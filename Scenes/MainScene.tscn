@@ -1,9 +1,12 @@
-[gd_scene load_steps=5 format=3 uid="uid://bwfpi53huo887"]
+[gd_scene load_steps=8 format=3 uid="uid://bwfpi53huo887"]
 
 [ext_resource type="Script" uid="uid://xjbucvoejbts" path="res://Scripts/Resources/GameManager.gd" id="1_hpc76"]
 [ext_resource type="Script" uid="uid://xh1kg301k38w" path="res://Scenes/TestArena.gd" id="2_tr2i4"]
 [ext_resource type="Resource" uid="uid://b0kng2hirhw4q" path="res://Player1.tres" id="3_7rqgy"]
 [ext_resource type="Resource" uid="uid://p5iapbgi8mrp" path="res://Player2.tres" id="4_qxria"]
+[ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="5_y4jh7"]
+[ext_resource type="Script" uid="uid://dv5cmapuaohjy" path="res://Scenes/card_displayTEST.gd" id="6_q68mp"]
+[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="7_q68mp"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -15,3 +18,11 @@ script = ExtResource("2_tr2i4")
 p1_resource = ExtResource("3_7rqgy")
 p2_resource = ExtResource("4_qxria")
 stop_on_game_over = false
+
+[node name="CardDisplay" parent="TestArena" instance=ExtResource("5_y4jh7")]
+offset_left = 500.0
+offset_top = 300.0
+offset_right = 750.0
+offset_bottom = 650.0
+script = ExtResource("6_q68mp")
+test_action = ExtResource("7_q68mp")
