@@ -25,7 +25,12 @@ var p2_data: CharacterData
 
 # Turn Logic variables
 var priority_player: int = 1 # 1 or 2
-var momentum: int = 0 # 0 is center. Negative = P1 Adv, Positive = P2 Adv.
+
+# MOMENTUM TRACKER (d8 Logic)
+# 0 = Initial Neutral State (Special)
+# 1-4 = Player 1 Territory (1 is Max P1, 4 is Weak P1)
+# 5-8 = Player 2 Territory (5 is Weak P2, 8 is Max P2)
+var momentum: int = 0 
 
 # Action Queues (The cards currently being played)
 var p1_action_queue: ActionData
@@ -40,6 +45,12 @@ var p2_locked_card: ActionData = null
 func start_combat(p1: CharacterData, p2: CharacterData):
 	p1_data = p1
 	p2_data = p2
+	
+	# NEW: Reset HP and SP to full at start of fight
+	p1_data.reset_stats()
+	p2_data.reset_stats()
+	
+	momentum = 0 # Start in the special neutral state
 	
 	# Rule: Priority goes to the higher Speed
 	if p1.speed > p2.speed:
@@ -105,9 +116,8 @@ func player_select_action(player_id: int, action: ActionData):
 # --- PHASE LOGIC ---
 
 func _enter_reveal_phase():
-	# 1. Pay Initial Costs
-	# (Note: In a real game, you'd check p1_data.current_sp here)
-	print("Costs paid.")
+	# 1. Pay Initial Costs (Costs paid on reveal)
+	print("Cards Revealed.")
 
 	# 2. Check for Feint Trait
 	var p1_feinting = p1_action_queue.feint
@@ -145,7 +155,27 @@ func resolve_clash():
 
 	emit_signal("clash_resolved", winner_id, "Winner is P" + str(winner_id))
 	
-	# B. HANDLE MULTI (PERSISTENCE)
+	# CHECK FOR INITIAL CLASH (d8 Logic: if 0, we are at start)
+	var is_initial_clash = (momentum == 0)
+	
+	# B. EXECUTE ATTACKS
+	# We pass 'is_initial_clash' to tell the logic to skip normal momentum math
+	if winner_id == 1:
+		execute_attack(1, 2, p1_action_queue, p2_action_queue, is_initial_clash)
+	else:
+		execute_attack(2, 1, p2_action_queue, p1_action_queue, is_initial_clash)
+	
+	# C. HANDLE INITIAL CLASH SNAP (Rule Page 5)
+	# If we were at 0, we snap to the starting position based on winner.
+	if is_initial_clash:
+		if winner_id == 1:
+			momentum = 4 # P1 starts at their "Weakest Advantage" (closest to center)
+		else:
+			momentum = 5 # P2 starts at their "Weakest Advantage" (closest to center)
+		print("Initial Clash Resolved: Momentum snapped to " + str(momentum))
+
+	
+	# D. HANDLE MULTI (PERSISTENCE)
 	p1_locked_card = null
 	p2_locked_card = null
 	
@@ -164,7 +194,81 @@ func resolve_clash():
 	p1_action_queue = null
 	p2_action_queue = null
 	
+	change_state(State.POST_CLASH)
 	change_state(State.SELECTION)
+
+func execute_attack(attacker_id: int, _defender_id: int, attack_card: ActionData, defense_card: ActionData, ignore_momentum: bool = false):
+	var attacker = p1_data if attacker_id == 1 else p2_data
+	var defender = p2_data if attacker_id == 1 else p1_data
+	
+	print("--- Executing: " + attack_card.display_name + " ---")
+	
+	# REPEAT LOGIC
+	# Ensure loop runs at least once even if Repeat is 0
+	var total_hits = max(1, attack_card.repeat_count)
+	
+	for i in range(total_hits):
+		
+		# 1. Check & Pay Stamina
+		if attacker.current_sp >= attack_card.cost:
+			attacker.current_sp -= attack_card.cost
+			emit_signal("combat_log_updated", "Hit " + str(i+1) + ": Paid " + str(attack_card.cost) + " SP")
+		else:
+			emit_signal("combat_log_updated", "Not enough SP for repeat! Combo ends.")
+			break 
+			
+		# 2. Calculate Block
+		var block_amt = defense_card.block_value
+		if attack_card.guard_break:
+			block_amt = 0
+			emit_signal("combat_log_updated", "Guard Break! Block ignored.")
+			
+		# 3. Calculate Net Damage
+		var net_damage = attack_card.damage - block_amt
+		if net_damage < 0: net_damage = 0
+		
+		# 4. Apply Damage
+		if net_damage > 0:
+			defender.current_hp -= net_damage
+			emit_signal("combat_log_updated", "Dealt " + str(net_damage) + " Damage. (HP: " + str(defender.current_hp) + ")")
+		else:
+			emit_signal("combat_log_updated", "Blocked.")
+			
+		# 5. Apply Self-Healing & Recovery
+		if attack_card.recover_value > 0:
+			attacker.current_sp = min(attacker.current_sp + attack_card.recover_value, attacker.max_sp)
+			emit_signal("combat_log_updated", "Recovered " + str(attack_card.recover_value) + " SP.")
+			
+		if attack_card.heal_value > 0:
+			attacker.current_hp = min(attacker.current_hp + attack_card.heal_value, attacker.max_hp)
+			emit_signal("combat_log_updated", "Healed " + str(attack_card.heal_value) + " HP.")
+
+		# 6. Apply Status Effects
+		if attack_card.injure:
+			print("Applied Injure status!")
+			
+		# 7. Apply Momentum (d8 Scale 1-8)
+		# Skip this math if it is the Initial Clash (flag set in resolve_clash)
+		if not ignore_momentum:
+			var gain = attack_card.momentum_gain
+			var loss = attack_card.fall_back_value 
+			
+			if attacker_id == 1:
+				# P1 wants to reach 1. 
+				# Gain moves DOWN (towards 1). Loss (Fall Back) moves UP (towards 8).
+				momentum -= gain 
+				momentum += loss 
+			else:
+				# P2 wants to reach 8. 
+				# Gain moves UP (towards 8). Loss (Fall Back) moves DOWN (towards 1).
+				momentum += gain 
+				momentum -= loss
+			
+			# Clamp to 1-8 Range (Tabletop Logic)
+			# Even if P1 has huge momentum, they can't go below 1.
+			momentum = clampi(momentum, 1, 8)
+		else:
+			emit_signal("combat_log_updated", "Momentum gain ignored (Initial Clash rule).")
 
 func swap_priority():
 	# Flips 1 to 2, and 2 to 1

@@ -18,5 +18,14 @@ enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL }
 # In the Selection Phase, we instantiate a Card Button for each item in this list.
 @export var deck: Array[ActionData] 
 
-@export_group("Abilities")
+@export_group("Passive")
 @export_multiline var passive_desc: String # Description of Rage/Relentless/etc. [cite: 798]
+
+# --- NEW CODE TO ADD BELOW ---
+@export_group("Runtime State")
+var current_hp: int
+var current_sp: int
+
+func reset_stats():
+	current_hp = max_hp
+	current_sp = max_sp

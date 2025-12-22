@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=11 format=3 uid="uid://p5iapbgi8mrp"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_kxc2r"]
+[ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="2_fhd3e"]
+[ext_resource type="Resource" uid="uid://dc23tmqsq7iod" path="res://Data/Actions/basic_dodge.tres" id="3_apqli"]
+[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="4_xdkvf"]
+[ext_resource type="Resource" uid="uid://dybsgcdat5xva" path="res://Data/Actions/basic_light.tres" id="5_5dkox"]
+[ext_resource type="Resource" uid="uid://bpen1jdisykl" path="res://Data/Actions/basic_parry.tres" id="6_borhb"]
+[ext_resource type="Resource" uid="uid://ceqlrpt4vuc04" path="res://Data/Actions/basic_positioning.tres" id="7_6qdtw"]
+[ext_resource type="Resource" uid="uid://b8ai0k486ma37" path="res://Data/Actions/basic_reversal.tres" id="8_tt3nf"]
+[ext_resource type="Resource" uid="uid://cis47vu3ete28" path="res://Data/Actions/basic_technical.tres" id="9_oaf0m"]
+[ext_resource type="Script" uid="uid://c4fll3p1ufpsf" path="res://Scripts/Resources/CharacterData.gd" id="10_mkgv7"]
+
+[resource]
+script = ExtResource("10_mkgv7")
+speed = 4
+deck = Array[ExtResource("1_kxc2r")]([ExtResource("2_fhd3e"), ExtResource("3_apqli"), ExtResource("4_xdkvf"), ExtResource("5_5dkox"), ExtResource("6_borhb"), ExtResource("7_6qdtw"), ExtResource("8_tt3nf"), ExtResource("9_oaf0m")])
+metadata/_custom_type_script = "uid://c4fll3p1ufpsf"

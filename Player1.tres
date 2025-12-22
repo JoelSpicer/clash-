@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CharacterData" load_steps=11 format=3 uid="uid://b0kng2hirhw4q"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_0ea2m"]
+[ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="2_3u464"]
+[ext_resource type="Script" uid="uid://c4fll3p1ufpsf" path="res://Scripts/Resources/CharacterData.gd" id="2_071o7"]
+[ext_resource type="Resource" uid="uid://dc23tmqsq7iod" path="res://Data/Actions/basic_dodge.tres" id="3_45bul"]
+[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="4_va6bm"]
+[ext_resource type="Resource" uid="uid://dybsgcdat5xva" path="res://Data/Actions/basic_light.tres" id="5_njgh8"]
+[ext_resource type="Resource" uid="uid://bpen1jdisykl" path="res://Data/Actions/basic_parry.tres" id="6_uutni"]
+[ext_resource type="Resource" uid="uid://ceqlrpt4vuc04" path="res://Data/Actions/basic_positioning.tres" id="7_sjlig"]
+[ext_resource type="Resource" uid="uid://b8ai0k486ma37" path="res://Data/Actions/basic_reversal.tres" id="8_0jj06"]
+[ext_resource type="Resource" uid="uid://cis47vu3ete28" path="res://Data/Actions/basic_technical.tres" id="9_x468r"]
+
+[resource]
+script = ExtResource("2_071o7")
+deck = Array[ExtResource("1_0ea2m")]([ExtResource("2_3u464"), ExtResource("3_45bul"), ExtResource("4_va6bm"), ExtResource("5_njgh8"), ExtResource("6_uutni"), ExtResource("7_sjlig"), ExtResource("8_0jj06"), ExtResource("9_x468r")])
+metadata/_custom_type_script = "uid://c4fll3p1ufpsf"

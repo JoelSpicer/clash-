@@ -1,8 +1,16 @@
-[gd_scene load_steps=2 format=3 uid="uid://bwfpi53huo887"]
+[gd_scene load_steps=5 format=3 uid="uid://bwfpi53huo887"]
 
 [ext_resource type="Script" uid="uid://xjbucvoejbts" path="res://Scripts/Resources/GameManager.gd" id="1_hpc76"]
+[ext_resource type="Script" uid="uid://xh1kg301k38w" path="res://Scenes/TestArena.gd" id="2_tr2i4"]
+[ext_resource type="Resource" uid="uid://b0kng2hirhw4q" path="res://Player1.tres" id="3_7rqgy"]
+[ext_resource type="Resource" uid="uid://p5iapbgi8mrp" path="res://Player2.tres" id="4_qxria"]
 
 [node name="Node2D" type="Node2D"]
 
 [node name="GameManager" type="Node" parent="."]
 script = ExtResource("1_hpc76")
+
+[node name="TestArena" type="Node2D" parent="."]
+script = ExtResource("2_tr2i4")
+p1_resource = ExtResource("3_7rqgy")
+p2_resource = ExtResource("4_qxria")
