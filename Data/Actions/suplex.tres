@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://da5k4afsb60wm"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_n21dq"]
+
+[resource]
+script = ExtResource("1_n21dq")
+id = "suplex"
+display_name = "Suplex"
+description = "Offence, Cost 3, Counter 2, Damage 3, Momentum 3, Guard Break"
+cost = 3
+damage = 3
+momentum_gain = 3
+counter_value = 2
+guard_break = true
+repeat_count = 0

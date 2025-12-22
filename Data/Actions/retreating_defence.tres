@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://p5spxlrqc5dq"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_1bkyg"]
+
+[resource]
+script = ExtResource("1_1bkyg")
+id = "retreating_defence"
+display_name = "Retreating Defence"
+description = "Defence, Cost 1, Parry, Fall Back 2, Sweep"
+type = 1
+cost = 1
+fall_back_value = 2
+sweep = true
+is_parry = true
+repeat_count = 0

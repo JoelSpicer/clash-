@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://68e7sa88yt6d"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_pov50"]
+
+[resource]
+script = ExtResource("1_pov50")
+id = "drop_prone"
+display_name = "Drop Prone"
+description = "Defence, Cost 4, Dodge 4"
+type = 1
+cost = 4
+dodge_value = 4
+repeat_count = 0

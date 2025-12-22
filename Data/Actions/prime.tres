@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://ul1bp46adt2x"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_lcbf5"]
+
+[resource]
+script = ExtResource("1_lcbf5")
+id = "prime"
+display_name = "Prime"
+description = "Defence, Cost 1, Reversal, Create Opening 1"
+type = 1
+block_value = 1
+reversal = true
+repeat_count = 0
+create_opening = 1

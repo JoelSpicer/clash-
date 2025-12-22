@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://b6fbtb461juoi"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_v1qmc"]
+
+[resource]
+script = ExtResource("1_v1qmc")
+id = "push"
+display_name = "Push"
+description = "Offence, Cost 1, Tiring 1, Momentum 1"
+cost = 1
+momentum_gain = 1
+tiring_value = 1
+repeat_count = 0

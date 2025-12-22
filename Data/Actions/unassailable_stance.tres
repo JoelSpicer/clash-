@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://eckqww1fti0u"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_pysls"]
+
+[resource]
+script = ExtResource("1_pysls")
+id = "unassailable_stance"
+display_name = "Unassailable Stance"
+description = "Offence"
+repeat_count = 0

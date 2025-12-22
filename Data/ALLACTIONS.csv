@@ -1,0 +1,88 @@
+Basic Block,"Defence, Recover 1, Block 1",1,0,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,1,0,FALSE,FALSE,FALSE,FALSE,0,Basic
+Basic Dodge,"Defence, Cost 2, Dodge 2, Basic",0,2,0,0,0,TRUE,FALSE,2,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Basic
+Basic Heavy,"Offence, Cost 3, Momentum 3, Damage 3",0,3,0,0,3,FALSE,FALSE,0,0,FALSE,0,FALSE,3,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Basic
+Basic Light,"Offence, Cost 1, Opener, Momentum 1, Damage 1",0,1,0,0,1,FALSE,FALSE,0,0,FALSE,0,FALSE,1,0,TRUE,TRUE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Basic
+Basic Parry,"Defence, Parry, Fall Back 2",0,0,0,0,0,TRUE,FALSE,0,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Basic
+Basic Positioning,"Offence, Opener, Recover 1, Fall Back 1",0,0,0,0,0,FALSE,FALSE,0,1,FALSE,0,FALSE,0,0,TRUE,FALSE,0,FALSE,1,0,FALSE,FALSE,FALSE,FALSE,0,Basic
+Basic Reversal,"Defence, Reversal, Basic",0,0,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,TRUE,FALSE,FALSE,0,Basic
+Basic Technical,"Offence, Cost 2, Momentum 1, Damage 1, Guard Break, Tiring 1",0,2,0,0,1,FALSE,FALSE,0,0,TRUE,0,FALSE,1,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,1,Basic
+Active Block,"Defence, Block 1, Parry, Fall Back 1",1,0,0,0,0,TRUE,FALSE,0,1,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Adept Block,"Defence, Block 2",2,0,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Adept Heavy,"Offence, Cost 2, Momentum 3, Damage 2",0,2,0,0,2,FALSE,FALSE,0,0,FALSE,0,FALSE,3,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Crushing Block,"Defence, Cost 2, Block 2, Damage 2",2,1,0,0,1,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Draining Defence,"Defence, Block 1, Tiring 1",1,0,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,1,Heavy
+Drop Kick,"Offence, Cost 2, Opener, Damage 4, Fall Back 1",0,2,0,0,4,FALSE,FALSE,0,1,FALSE,0,FALSE,0,0,TRUE,TRUE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Drop Punch,"Defence, Cost 3, Block 1, Damage 3",1,3,0,0,3,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Elbow Block,"Defence, Cost 1, Block 2, Damage 1",2,1,0,0,1,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Final Strike,"Offence, Cost 10, Damage 15, Fall Back 5, Super",0,10,0,0,15,FALSE,FALSE,0,5,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,TRUE,FALSE,0,Heavy
+Haymaker,"Offence, Opener, Cost 3, Damage 2, Momentum 3",0,3,0,0,2,FALSE,FALSE,0,0,FALSE,0,FALSE,3,0,TRUE,TRUE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Headbutt,"Offence, Cost 1, Tiring 2",0,1,0,0,0,FALSE,FALSE,0,0,FALSE,0,FALSE,0,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,2,Heavy
+Immovable Stance,"Defence, Cost 2, Block 2, Momentum 2",2,2,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,2,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Knee Crush,"Offence, Cost 3, Momentum 4, Damage 1, Tiring 1",0,3,0,0,1,FALSE,FALSE,0,0,FALSE,0,FALSE,4,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,1,Heavy
+Lariat,"Offence, Momentum, Damage 3",0,2,0,0,3,FALSE,FALSE,0,0,FALSE,0,FALSE,2,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Master Block,"Defence, Cost 1, Block 3, Sweep",3,1,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,TRUE,0,Heavy
+Master Heavy,"Offence, Cost 4, Momentum 3, Damage 3, Injure, Sweep",0,4,0,0,3,FALSE,FALSE,0,0,FALSE,0,TRUE,3,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,TRUE,0,Heavy
+Perfect Block,"Defence, Cost 2, Block 4",4,2,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Push Kick,"Defence, Cost 1, Opportunity 1, Momentum 1",0,1,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,1,0,FALSE,FALSE,1,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Roundhouse Kick,"Offence, Cost 3, Momentum 2, Damage 3, Guard Break",0,3,0,0,3,FALSE,FALSE,0,0,TRUE,0,FALSE,2,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Uppercut,"Offence, Cost 1, Momentum 3",0,1,0,0,0,FALSE,FALSE,0,0,FALSE,0,FALSE,3,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Heavy
+Adept Parry,"Defence, Cost 1, Parry, Fall Back 1",0,1,0,0,0,TRUE,FALSE,0,1,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Adept Positioning,"Offence, Recover 1, Heal 1, Fall Back 1",0,0,0,0,0,FALSE,FALSE,0,1,FALSE,1,FALSE,0,0,TRUE,FALSE,0,FALSE,1,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Adjust Stance,"Offence, Cost 1, Opportunity 1, Opener",0,1,0,0,0,FALSE,FALSE,0,0,FALSE,0,FALSE,0,0,TRUE,TRUE,1,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Counter Strike,"Defence, Fall Back 2, Parry, Damage 2",0,0,0,0,2,TRUE,FALSE,0,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Go with the Flow,"Offence, Cost 3, Ditto, Recover 1, Fall Back 1",0,3,0,0,0,FALSE,TRUE,0,1,FALSE,0,FALSE,0,0,TRUE,FALSE,0,FALSE,1,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Inner Peace,"Offence, Heal 1",0,0,0,0,0,FALSE,FALSE,0,0,FALSE,1,FALSE,0,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Master Parry,"Defence, Cost 1, Parry, Fall Back 2, Tiring 2",0,1,0,0,0,TRUE,FALSE,0,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,2,Patient
+Master Positioning,"Offence, Recover 2, Heal 2, Fall Back 2",0,0,0,0,0,FALSE,FALSE,0,2,FALSE,2,FALSE,0,0,TRUE,FALSE,0,FALSE,2,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Overwhelming Aura,"Offence, Damage 5, Fall Back 5, Recover 5, Heal 5, Super",0,0,0,0,5,FALSE,FALSE,0,5,FALSE,5,FALSE,0,0,TRUE,FALSE,0,FALSE,5,0,FALSE,FALSE,TRUE,FALSE,0,Patient
+Parry Follow-up,"Defence, Cost 1, Parry, Fall Back 2, Multi 1",0,1,0,0,0,TRUE,FALSE,0,2,FALSE,0,FALSE,0,1,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Perfect Strike,"Offence, Cost 3, Guard Break, Momentum 1, Damage 3, Injure",0,3,0,0,3,FALSE,FALSE,0,0,TRUE,0,TRUE,1,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Preparation,"Offence, Recover 1, Opportunity 1, Fall Back 2",0,0,0,0,0,FALSE,FALSE,0,2,FALSE,0,FALSE,0,0,TRUE,FALSE,1,FALSE,1,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Redirect,"Defence, Cost 1, Retaliate, Parry, Fall Back 2",0,1,0,0,0,TRUE,FALSE,0,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,TRUE,FALSE,FALSE,FALSE,0,Patient
+Resounding Counter,"Defence, Cost 1, Damage 2, Momentum 2, Counter 2",0,1,2,0,2,TRUE,FALSE,0,0,FALSE,0,FALSE,2,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Resounding Parry,"Defence, Cost 1, Parry, Create Opening, Fall Back 2",0,1,0,2,0,TRUE,FALSE,0,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Retreating Defence,"Defence, Cost 1, Parry, Fall Back 2, Sweep",0,1,0,0,0,TRUE,FALSE,0,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,TRUE,0,Patient
+Slapping Parry,"Defence, Parry, Fall Back 3, Damage 2",0,0,0,0,2,TRUE,FALSE,0,3,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Step-up,"Offence, Momentum 1",0,0,0,0,0,FALSE,FALSE,0,0,FALSE,0,FALSE,1,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Tiring Parry,"Defence, Cost 1, Parry, Fall Back 2, Tiring 2",0,1,0,0,0,TRUE,FALSE,0,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,2,Patient
+Unassailable Stance,Offence,0,0,0,0,0,FALSE,FALSE,0,0,FALSE,0,FALSE,0,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+100 Hand Slap,"Offence, Cost 1, Damage 1, Momentum 1, Repeat 3",0,1,0,0,1,FALSE,FALSE,0,0,FALSE,0,FALSE,1,0,TRUE,FALSE,0,FALSE,0,3,FALSE,FALSE,FALSE,FALSE,0,Quick
+Adept Dodge,"Defence, Cost 3, Dodge 3",0,3,0,0,0,TRUE,FALSE,3,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Adept Light,"Offence, Cost 1, Momentum 1, Damage 2",0,1,0,0,2,FALSE,FALSE,0,0,FALSE,0,FALSE,1,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Advancing Parry,"Defence, Cost 2, Dodge 1, Parry, Fall Back 2",0,2,0,0,0,TRUE,FALSE,1,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Catch,"Defence, Cost 2, Dodge 1, Block 2",2,2,0,0,0,TRUE,FALSE,1,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Drop Prone,"Defence, Cost 4, Dodge 4",0,4,0,0,0,TRUE,FALSE,4,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Evading Dance,"Defence, Cost 3, Dodge 2, Momentum 1",0,3,0,0,0,TRUE,FALSE,2,0,FALSE,0,FALSE,1,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Flying Kick,"Offence, Cost 2, Opener, Momentum 2, Damage 1, Create Opening 1",0,2,0,1,1,FALSE,FALSE,0,0,FALSE,0,FALSE,2,0,TRUE,TRUE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Master Dodge,"Defence, Cost 2, Dodge 2, Sweep, Momentum 1",0,2,0,0,0,TRUE,FALSE,2,0,FALSE,0,FALSE,1,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,TRUE,0,Quick
+Master Light,"Offence, Cost 3, Momentum 2, Damage 2, Create Opening 1",0,3,0,1,2,FALSE,FALSE,0,0,FALSE,0,FALSE,2,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+One-Two,"Offence, Cost 2, Momentum 1, Damage 1, Multi 1",0,2,0,0,1,FALSE,FALSE,0,0,FALSE,0,FALSE,1,1,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Precise Strike,"Offence, Cost 2, Damage 1, Momentum 1, Guard Break",0,2,0,0,1,FALSE,FALSE,0,0,TRUE,0,FALSE,1,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Pummel,"Offence, Cost 1, Momentum 1, Tiring 1, Repeat 2",0,1,0,0,0,FALSE,FALSE,0,0,FALSE,0,FALSE,1,0,TRUE,FALSE,0,FALSE,0,2,FALSE,FALSE,FALSE,FALSE,1,Quick
+Quick Dodge,"Defence, Cost 1, Dodge 1",0,1,0,0,0,TRUE,FALSE,1,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Roll Punch,"Offence, Cost 1, Damage 1, Momentum 1, Multi 3",0,1,0,0,1,FALSE,FALSE,0,0,FALSE,0,FALSE,1,0,TRUE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Slip Behind,"Defence, Cost 3, Dodge 2, Create Opening 1",0,3,0,1,0,TRUE,FALSE,2,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Toppling Kick,"Defence, Counter 1, Tiring 1, Damage 1",0,0,1,0,1,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,1,Quick
+Ultimate Barrage,"Offence, Cost 1, Damage 1, Momentum 1, Repeat 10, Super",0,1,0,0,1,FALSE,FALSE,0,0,FALSE,0,FALSE,1,0,TRUE,FALSE,0,FALSE,0,10,FALSE,FALSE,TRUE,FALSE,0,Quick
+Vital Strike,"Offence, Cost 3, Counter 1, Damage 2, Injure",0,3,1,0,2,FALSE,FALSE,0,0,FALSE,0,TRUE,0,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Weave,"Defence, Dodge 1, Fall Back 1",0,0,0,0,0,TRUE,FALSE,1,1,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Quick
+Adept Reversal,"Defence, Cost 1, Reversal, Momentum 1",0,1,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,1,0,FALSE,FALSE,0,FALSE,0,0,FALSE,TRUE,FALSE,FALSE,0,Technical
+Adept Tech,"Offence, Cost 2, Injure, Damage 1, Tiring 1",0,2,0,0,1,FALSE,FALSE,0,0,FALSE,0,TRUE,0,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,1,Technical
+Breakout,"Defence, Cost 2, Block 1, Reversal, Momentum 1",1,2,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,1,0,FALSE,FALSE,0,FALSE,0,0,FALSE,TRUE,FALSE,FALSE,0,Technical
+Discombobulate,"Offence, Cost 1, Tiring 1, Damage 1",0,1,0,0,1,FALSE,FALSE,0,0,FALSE,0,FALSE,0,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,1,Technical
+Grab,"Offence, Cost 1, Opener, Multi 2, Create Opening 2",0,1,0,2,0,FALSE,FALSE,0,0,FALSE,0,FALSE,0,2,TRUE,TRUE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Technical
+Hand Catch,"Defence, Cost 1, Block 1, Reversal",1,1,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,TRUE,FALSE,FALSE,0,Technical
+Leg Sweep,"Defence, Cost 1, Reversal, Sweep",0,1,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,TRUE,FALSE,TRUE,0,Technical
+Master Reversal,"Defence, Cost 2, Reversal, Momentum 2",0,2,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,2,0,FALSE,FALSE,0,FALSE,0,0,FALSE,TRUE,FALSE,FALSE,0,Technical
+Master Tech,"Offence, Cost 3, Timing 1, Guard Break, Damage 2, Opportunity 1",0,3,0,0,2,FALSE,FALSE,0,0,TRUE,0,FALSE,0,0,TRUE,FALSE,1,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,1,Technical
+Prime,"Defence, Cost 1, Reversal, Create Opening 1",1,0,0,1,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,TRUE,FALSE,FALSE,0,Technical
+Push,"Offence, Cost 1, Tiring 1, Momentum 1",0,1,0,0,0,FALSE,FALSE,0,0,FALSE,0,FALSE,1,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,1,Technical
+Read Defence,"Offence, Cost 2, Ditto",0,2,0,0,0,FALSE,TRUE,0,0,FALSE,0,FALSE,0,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Technical
+Read Offence,"Defence, Cost 2, Ditto",0,2,0,0,0,TRUE,TRUE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Technical
+Strike Back,"Defence, Counter 1, Retaliate, Injure",0,0,1,0,0,TRUE,FALSE,0,0,FALSE,0,TRUE,0,0,FALSE,FALSE,0,FALSE,0,0,TRUE,FALSE,FALSE,FALSE,0,Technical
+Suplex,"Offence, Cost 3, Counter 2, Damage 3, Momentum 3, Guard Break",0,3,2,0,3,FALSE,FALSE,0,0,TRUE,0,FALSE,3,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Technical
+Throw,"Offence, Cost 2, Counter 2, Damage 3, Momentum 1",0,2,2,0,3,FALSE,FALSE,0,0,FALSE,0,FALSE,1,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Technical
+Twist Arm,"Offence, Injure",0,0,0,0,0,FALSE,FALSE,0,0,FALSE,0,TRUE,0,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Technical
+Untouchable Dodge,"Defence, Cost 2, Reversal, Dodge 1, Tiring 1, Fall Back 1",0,2,0,0,0,TRUE,FALSE,0,0,FALSE,0,FALSE,0,0,FALSE,FALSE,0,FALSE,0,0,FALSE,TRUE,FALSE,FALSE,0,Technical
+Vital Point Assault,"Offence, Cost 2, Guard Break, Damage 2, Injure, Tiring 1, Repeat 3, Super",0,2,0,0,2,FALSE,FALSE,0,0,TRUE,0,TRUE,0,0,TRUE,FALSE,0,FALSE,0,3,FALSE,FALSE,TRUE,FALSE,1,Technical
+Wind-up,"Defence, Cost 3, Ditto, Damage 1, Momentum 2",0,3,0,0,1,TRUE,TRUE,0,0,FALSE,0,FALSE,2,0,FALSE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Technical

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://c5gaxw1tp047d"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_6b58t"]
+
+[resource]
+script = ExtResource("1_6b58t")
+id = "pummel"
+display_name = "Pummel"
+description = "Offence, Cost 1, Momentum 1, Tiring 1, Repeat 2"
+cost = 1
+momentum_gain = 1
+tiring_value = 1
+repeat_count = 2

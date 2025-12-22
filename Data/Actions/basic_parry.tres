@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bpen1jdisykl"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_bwqbq"]
+
+[resource]
+script = ExtResource("1_bwqbq")
+id = "basic_parry"
+display_name = "Basic Parry"
+description = "Defence, Parry, Fall Back 2"
+type = 1
+fall_back_value = 2
+is_parry = true
+repeat_count = 0

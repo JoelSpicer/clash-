@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://qeubfwp2v872"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_lwo54"]
+
+[resource]
+script = ExtResource("1_lwo54")
+id = "inner_peace"
+display_name = "Inner Peace"
+description = "Offence, Heal 1"
+heal_value = 1
+repeat_count = 0

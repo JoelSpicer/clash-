@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dww40yaqty63w"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_4io6y"]
+
+[resource]
+script = ExtResource("1_4io6y")
+id = "counter_strike"
+display_name = "Counter Strike"
+description = "Defence, Fall Back 2, Parry, Damage 2"
+type = 1
+damage = 2
+fall_back_value = 2
+is_parry = true
+repeat_count = 0

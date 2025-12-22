@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://wv7cpy24elmc"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_v51iw"]
+
+[resource]
+script = ExtResource("1_v51iw")
+id = "final_strike"
+display_name = "Final Strike"
+description = "Offence, Cost 10, Damage 15, Fall Back 5, Super"
+type = 1
+cost = 10
+damage = 15
+fall_back_value = 5
+is_super = true
+repeat_count = 0

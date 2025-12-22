@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://b2u0nank4ggoa"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_cri2a"]
+
+[resource]
+script = ExtResource("1_cri2a")
+id = "crushing_block"
+display_name = "Crushing Block"
+description = "Defence, Cost 2, Block 2, Damage 2"
+type = 1
+cost = 1
+damage = 1
+block_value = 2
+repeat_count = 0

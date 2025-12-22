@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://blby2qkfxk10t"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_3eb0e"]
+
+[resource]
+script = ExtResource("1_3eb0e")
+id = "lariat"
+display_name = "Lariat"
+description = "Offence, Momentum, Damage 3"
+cost = 2
+damage = 3
+momentum_gain = 2
+repeat_count = 0

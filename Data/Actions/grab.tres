@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://cf0tnr4cru147"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_s5qri"]
+
+[resource]
+script = ExtResource("1_s5qri")
+id = "grab"
+display_name = "Grab"
+description = "Offence, Cost 1, Opener, Multi 2, Create Opening 2"
+cost = 1
+is_opener = true
+multi_limit = 2
+repeat_count = 0
+create_opening = 2

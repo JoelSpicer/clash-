@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bhyob63mi5mo7"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_3i0gb"]
+
+[resource]
+script = ExtResource("1_3i0gb")
+id = "adept_tech"
+display_name = "Adept Tech"
+description = "Offence, Cost 2, Injure, Damage 1, Tiring 1"
+cost = 2
+damage = 1
+tiring_value = 1
+injure = true
+repeat_count = 0

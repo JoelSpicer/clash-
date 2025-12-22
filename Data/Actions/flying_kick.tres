@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://c8hohxccoptv3"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_3odgk"]
+
+[resource]
+script = ExtResource("1_3odgk")
+id = "flying_kick"
+display_name = "Flying Kick"
+description = "Offence, Cost 2, Opener, Momentum 2, Damage 1, Create Opening 1"
+cost = 2
+damage = 1
+momentum_gain = 2
+is_opener = true
+repeat_count = 0
+create_opening = 1

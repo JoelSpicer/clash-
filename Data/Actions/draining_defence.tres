@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bhbo2qkpxyp34"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_oj4hv"]
+
+[resource]
+script = ExtResource("1_oj4hv")
+id = "draining_defence"
+display_name = "Draining Defence"
+description = "Defence, Block 1, Tiring 1"
+type = 1
+block_value = 1
+tiring_value = 1
+repeat_count = 0

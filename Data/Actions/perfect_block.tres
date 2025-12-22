@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dgbkw431w7xwb"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_edp7g"]
+
+[resource]
+script = ExtResource("1_edp7g")
+id = "perfect_block"
+display_name = "Perfect Block"
+description = "Defence, Cost 2, Block 4"
+type = 1
+cost = 2
+block_value = 4
+repeat_count = 0

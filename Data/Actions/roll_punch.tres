@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bxb18ul3lsg2g"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_06lup"]
+
+[resource]
+script = ExtResource("1_06lup")
+id = "roll_punch"
+display_name = "Roll Punch"
+description = "Offence, Cost 1, Damage 1, Momentum 1, Multi 3"
+cost = 1
+damage = 1
+momentum_gain = 1
+is_parry = true
+repeat_count = 0

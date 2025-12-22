@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://xu552vd0i4du"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_fo3n0"]
+
+[resource]
+script = ExtResource("1_fo3n0")
+id = "adept_parry"
+display_name = "Adept Parry"
+description = "Defence, Cost 1, Parry, Fall Back 1"
+type = 1
+cost = 1
+fall_back_value = 1
+is_parry = true
+repeat_count = 0

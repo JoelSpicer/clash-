@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://c8ypqow7rqxtw"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_6hap1"]
+
+[resource]
+script = ExtResource("1_6hap1")
+id = "master_block"
+display_name = "Master Block"
+description = "Defence, Cost 1, Block 3, Sweep"
+type = 1
+cost = 1
+block_value = 3
+sweep = true
+repeat_count = 0

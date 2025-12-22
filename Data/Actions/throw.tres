@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bcgfudvf46ytx"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_p4ohi"]
+
+[resource]
+script = ExtResource("1_p4ohi")
+id = "throw"
+display_name = "Throw"
+description = "Offence, Cost 2, Counter 2, Damage 3, Momentum 1"
+cost = 2
+damage = 3
+momentum_gain = 1
+counter_value = 2
+repeat_count = 0

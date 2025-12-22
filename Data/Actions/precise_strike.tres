@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://c4yda6pm08iha"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_t7ul8"]
+
+[resource]
+script = ExtResource("1_t7ul8")
+id = "precise_strike"
+display_name = "Precise Strike"
+description = "Offence, Cost 2, Damage 1, Momentum 1, Guard Break"
+cost = 2
+damage = 1
+momentum_gain = 1
+guard_break = true
+repeat_count = 0

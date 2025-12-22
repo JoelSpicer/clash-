@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://ynpfcp40bvut"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_v1wmh"]
+
+[resource]
+script = ExtResource("1_v1wmh")
+id = "master_positioning"
+display_name = "Master Positioning"
+description = "Offence, Recover 2, Heal 2, Fall Back 2"
+heal_value = 2
+recover_value = 2
+fall_back_value = 2
+repeat_count = 0

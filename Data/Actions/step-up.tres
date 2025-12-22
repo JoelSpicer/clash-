@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dibvhq1pep76i"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_jwdfi"]
+
+[resource]
+script = ExtResource("1_jwdfi")
+id = "step-up"
+display_name = "Step-up"
+description = "Offence, Momentum 1"
+momentum_gain = 1
+repeat_count = 0

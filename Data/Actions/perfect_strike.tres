@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://csdopdiu6frnr"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_posia"]
+
+[resource]
+script = ExtResource("1_posia")
+id = "perfect_strike"
+display_name = "Perfect Strike"
+description = "Offence, Cost 3, Guard Break, Momentum 1, Damage 3, Injure"
+cost = 3
+damage = 3
+momentum_gain = 1
+guard_break = true
+injure = true
+repeat_count = 0

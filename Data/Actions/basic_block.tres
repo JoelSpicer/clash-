@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dtq045to38lur"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_ohsov"]
+
+[resource]
+script = ExtResource("1_ohsov")
+id = "basic_block"
+display_name = "Basic Block"
+description = "Defence, Recover 1, Block 1"
+type = 1
+block_value = 1
+recover_value = 1
+repeat_count = 0

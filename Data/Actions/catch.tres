@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://df8ia72t2m5t1"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_lrg7c"]
+
+[resource]
+script = ExtResource("1_lrg7c")
+id = "catch"
+display_name = "Catch"
+description = "Defence, Cost 2, Dodge 1, Block 2"
+type = 1
+cost = 2
+block_value = 2
+dodge_value = 1
+repeat_count = 0

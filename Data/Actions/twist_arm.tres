@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://ccmgitagwiydi"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_w8y5u"]
+
+[resource]
+script = ExtResource("1_w8y5u")
+id = "twist_arm"
+display_name = "Twist Arm"
+description = "Offence, Injure"
+injure = true
+repeat_count = 0

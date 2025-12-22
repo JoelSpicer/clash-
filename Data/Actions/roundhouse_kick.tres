@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://cjn0qgvlegofm"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_ff02s"]
+
+[resource]
+script = ExtResource("1_ff02s")
+id = "roundhouse_kick"
+display_name = "Roundhouse Kick"
+description = "Offence, Cost 3, Momentum 2, Damage 3, Guard Break"
+cost = 3
+damage = 3
+momentum_gain = 2
+guard_break = true
+repeat_count = 0

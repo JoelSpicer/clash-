@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://eb4hlxfyk3jh"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_3g2n0"]
+
+[resource]
+script = ExtResource("1_3g2n0")
+id = "drop_kick"
+display_name = "Drop Kick"
+description = "Offence, Cost 2, Opener, Damage 4, Fall Back 1"
+cost = 2
+damage = 4
+fall_back_value = 1
+is_opener = true
+repeat_count = 0

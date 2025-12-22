@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://cvichi2xf1plu"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_jda54"]
+
+[resource]
+script = ExtResource("1_jda54")
+id = "preparation"
+display_name = "Preparation"
+description = "Offence, Recover 1, Opportunity 1, Fall Back 2"
+recover_value = 1
+fall_back_value = 2
+repeat_count = 0
+opportunity = 1

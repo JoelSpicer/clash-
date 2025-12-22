@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://d2iahl50kag64"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_5gj34"]
+
+[resource]
+script = ExtResource("1_5gj34")
+id = "vital_point_assault"
+display_name = "Vital Point Assault"
+description = "Offence, Cost 2, Guard Break, Damage 2, Injure, Tiring 1, Repeat 3, Super"
+cost = 2
+damage = 2
+tiring_value = 1
+is_super = true
+guard_break = true
+injure = true
+repeat_count = 2
