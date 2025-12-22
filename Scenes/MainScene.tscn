@@ -14,3 +14,4 @@ script = ExtResource("1_hpc76")
 script = ExtResource("2_tr2i4")
 p1_resource = ExtResource("3_7rqgy")
 p2_resource = ExtResource("4_qxria")
+stop_on_game_over = false

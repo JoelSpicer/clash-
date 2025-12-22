@@ -13,6 +13,7 @@
 
 [resource]
 script = ExtResource("10_mkgv7")
+max_hp = 5
 speed = 4
 deck = Array[ExtResource("1_kxc2r")]([ExtResource("2_fhd3e"), ExtResource("3_apqli"), ExtResource("4_xdkvf"), ExtResource("5_5dkox"), ExtResource("6_borhb"), ExtResource("7_6qdtw"), ExtResource("8_tt3nf"), ExtResource("9_oaf0m")])
 metadata/_custom_type_script = "uid://c4fll3p1ufpsf"
