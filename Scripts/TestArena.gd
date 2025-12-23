@@ -2,59 +2,95 @@ extends Node2D
 
 @export var p1_resource: CharacterData
 @export var p2_resource: CharacterData
-
-@onready var battle_ui = $BattleUI
-
-# --- NEW: TOGGLE SWITCH ---
-# Check this box in the Inspector to stop the loop when someone dies.
 @export var stop_on_game_over: bool = true 
+
+# UI REFERENCE
+@onready var battle_ui = $BattleUI
 
 var _simulation_active: bool = true
 
 func _ready():
 	await get_tree().process_frame
 	
+	# 1. Connect Game Signals
 	GameManager.state_changed.connect(_on_state_changed)
 	GameManager.combat_log_updated.connect(_on_log_updated)
 	GameManager.clash_resolved.connect(_on_clash_resolved)
 	GameManager.game_over.connect(_on_game_over)
 	
-	print("--- INITIALIZING SIMULATION ---")
-	GameManager.start_combat(p1_resource, p2_resource)
+	# 2. Connect UI Signals (This bridges the gap!)
+	battle_ui.human_selected_card.connect(_on_human_input_received)
 	
-	# Initialize UI for Player 1
+	# 3. Load Deck into UI
 	battle_ui.load_deck(p1_resource.deck)
+	
+	print("--- INITIALIZING HUMAN vs BOT MATCH ---")
+	GameManager.start_combat(p1_resource, p2_resource)
 
 func _on_state_changed(new_state):
-	# SAFETY CHECK: If simulation is stopped, ignore state changes
-	if not _simulation_active:
-		return
+	if not _simulation_active: return
 
 	match new_state:
 		GameManager.State.SELECTION:
-			print("\n| --- NEW TURN (Bot Selection) --- |")
-			_simulate_turn()
+			# ADD THIS WAIT! 
+			# Breaks the stack, lets the UI clean up, and improves pacing.
+			await get_tree().create_timer(0.5).timeout
+			
+			print("\n| --- NEW TURN: Waiting for Player Input... --- |")
+			_prepare_human_turn()
+			
 		GameManager.State.FEINT_CHECK:
-			print("| --- FEINT (Bot Selection) --- |")
-			_simulate_turn()
+			# Add a small delay here too for consistency
+			await get_tree().create_timer(0.3).timeout
+			print("| --- FEINT: Waiting for Player Input... --- |")
+			_prepare_human_turn()
+			
 		GameManager.State.POST_CLASH:
 			_print_status_report()
 
-func _simulate_turn():
-	await get_tree().create_timer(0.4).timeout
-	
+# --- TURN LOGIC ---
+
+func _prepare_human_turn():
+	# 1. Determine who is attacking so we show the right tab
 	var attacker_id = GameManager.get_attacker()
 	
-	# 0 = Neutral, 1 = P1, 2 = P2
-	var p1_filter = null
-	var p2_filter = null
+	var required_tab = null
+	if attacker_id == 1: 
+		required_tab = ActionData.Type.OFFENCE # P1 Attacking
+		print("[GUIDE] You have the initiative! Attack!")
+	elif attacker_id == 2:
+		required_tab = ActionData.Type.DEFENCE # P1 Defending
+		print("[GUIDE] You are under attack! Defend!")
+	else:
+		print("[GUIDE] Neutral state. Anything goes.")
+		
+	# 2. Unlock the UI for the player
+	battle_ui.unlock_for_input(required_tab)
+
+func _on_human_input_received(p1_card: ActionData):
+	# This triggers when you click a button in BattleUI
+	print(">>> PLAYER COMMITTED: " + p1_card.display_name)
 	
+	# 1. Submit Player Move
+	GameManager.player_select_action(1, p1_card)
+	
+	# 2. Submit Bot Move (Immediate response)
+	_run_enemy_bot_turn()
+
+func _run_enemy_bot_turn():
+	# Logic is the same as before, but only for P2
+	var attacker_id = GameManager.get_attacker()
+	
+	var p2_filter = null
 	if attacker_id != 0:
-		p1_filter = ActionData.Type.OFFENCE if attacker_id == 1 else ActionData.Type.DEFENCE
 		p2_filter = ActionData.Type.OFFENCE if attacker_id == 2 else ActionData.Type.DEFENCE
 	
-	GameManager.player_select_action(1, _get_smart_card_choice(p1_resource, p1_filter))
-	GameManager.player_select_action(2, _get_smart_card_choice(p2_resource, p2_filter))
+	var p2_card = _get_smart_card_choice(p2_resource, p2_filter)
+	
+	# Submit Bot Move
+	GameManager.player_select_action(2, p2_card)
+
+# --- BOT BRAIN (Same as before) ---
 
 func _get_smart_card_choice(character: CharacterData, type_filter) -> ActionData:
 	var valid_options = []
@@ -67,7 +103,7 @@ func _get_smart_card_choice(character: CharacterData, type_filter) -> ActionData
 	
 	if valid_options.size() > 0: return valid_options.pick_random()
 	
-	print("[BOT] " + character.character_name + " Fallback! (Budget/Role Constraint)")
+	# Fallback Logic
 	if type_filter == ActionData.Type.OFFENCE:
 		for card in affordable_backups:
 			if "Positioning" in card.display_name: return card
@@ -78,17 +114,11 @@ func _get_smart_card_choice(character: CharacterData, type_filter) -> ActionData
 	if affordable_backups.size() > 0: return affordable_backups[0]
 	return character.deck[0]
 
+# --- LOGGING & REPORTS ---
+
 func _on_game_over(winner_id):
-	print("\n************************************************")
-	print("         VICTORY FOR PLAYER " + str(winner_id) + "!")
-	print("************************************************")
-	
-	# --- NEW: STOP LOGIC ---
-	if stop_on_game_over:
-		print(">> Simulation Stopped by User Setting <<")
-		_simulation_active = false
-	else:
-		print(">> Resetting for new match... <<")
+	print("\n*** VICTORY FOR PLAYER " + str(winner_id) + "! ***")
+	if stop_on_game_over: _simulation_active = false
 
 func _on_clash_resolved(winner_id, _text):
 	print("\n>>> Clash Winner: P" + str(winner_id))
@@ -110,12 +140,3 @@ func _print_status_report():
 	
 	print("\n[STATUS] P1: " + str(p1.current_hp) + "HP/" + str(p1.current_sp) + "SP  vs  P2: " + str(p2.current_hp) + "HP/" + str(p2.current_sp) + "SP")
 	print("[MOMENTUM] " + visual)
-	
-	var control_text = "NEUTRAL"
-	if att == 1: control_text = "P1 HAS OFFENCE"
-	elif att == 2: control_text = "P2 HAS OFFENCE"
-	
-	if GameManager.current_combo_attacker != 0:
-		control_text += " (COMBO ACTIVE)"
-	
-	print("[CONTROL] " + control_text)

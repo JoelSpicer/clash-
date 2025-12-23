@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://dhwx6yjjskbn7"]
 
-[ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scenes/BattleUI.gd" id="1_d8qwt"]
+[ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scripts/BattleUI.gd" id="1_d8qwt"]
 [ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
 
 [node name="BattleUI" type="CanvasLayer"]

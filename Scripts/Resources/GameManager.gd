@@ -29,8 +29,6 @@ var priority_player: int = 1
 var momentum: int = 0 
 
 # REVERSAL / INITIATIVE LOGIC
-# If this is non-zero, this player HAS INITIATIVE (is Attacker) regardless of momentum.
-# This persists until the Combo Ends (Out of SP or voluntarily stopping).
 var current_combo_attacker: int = 0
 
 var p1_action_queue: ActionData
@@ -63,14 +61,11 @@ func reset_combat():
 # --- PUBLIC HELPER ---
 
 func get_attacker() -> int:
-	# 1. If someone is mid-combo (via Reversal or just winning), they keep attack
 	if current_combo_attacker != 0:
 		return current_combo_attacker
-		
-	# 2. Otherwise, check Momentum
-	if momentum == 0: return 0 # Neutral
-	if momentum <= 4: return 1 # P1 has Advantage
-	return 2 # P2 has Advantage
+	if momentum == 0: return 0 
+	if momentum <= 4: return 1 
+	return 2 
 
 # --- STATE MACHINE ---
 
@@ -117,7 +112,7 @@ func _enter_reveal_phase():
 func resolve_clash():
 	var winner_id = 0
 	
-	# Determine Winner
+	# 1. DETERMINE WINNER (Calculates who gets Initiative/Momentum Advantage)
 	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
 	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
 	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
@@ -130,30 +125,40 @@ func resolve_clash():
 	emit_signal("clash_resolved", winner_id, "Clash Winner: P" + str(winner_id))
 	
 	var is_initial_clash = (momentum == 0)
-	var start_momentum = momentum # Snapshot for Reversal check
-	var fight_ended = false
+	var start_momentum = momentum 
 	
-	# Execute
-	if winner_id == 1:
-		fight_ended = execute_attack(1, 2, p1_action_queue, p2_action_queue, is_initial_clash)
-	else:
-		fight_ended = execute_attack(2, 1, p2_action_queue, p1_action_queue, is_initial_clash)
+	# 2. EXECUTE BOTH CARDS (Simultaneous Resolution)
+	# Even the "Loser" gets to use their effects (Damage, Buffs, etc.)
 	
-	if fight_ended:
-		emit_signal("game_over", winner_id)
+	# Pass 1: Player 1 executes their card against Player 2
+	var p1_fatal = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash)
+	
+	# Pass 2: Player 2 executes their card against Player 1
+	var p2_fatal = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash)
+	
+	# 3. CHECK FOR DEATH
+	if p1_fatal or p2_fatal:
+		# If both died, the "Clash Winner" effectively won the exchange? 
+		# Or just default to whoever died first in logic (which is rare).
+		var game_winner = 0
+		if p1_data.current_hp > 0: game_winner = 1
+		elif p2_data.current_hp > 0: game_winner = 2
+		else: game_winner = winner_id # Tie-breaker
+		
+		emit_signal("game_over", game_winner)
 		reset_combat() 
 		return 
 	
-	# Initial Snap
+	# 4. INITIAL CLASH SNAP
 	if is_initial_clash:
 		momentum = 4 if winner_id == 1 else 5
 		emit_signal("combat_log_updated", "Initial Clash Set! Momentum: " + str(momentum))
 	
-	# --- REVERSAL / INITIATIVE CHECK ---
+	# 5. REVERSAL / INITIATIVE CHECK
 	var loser_id = 3 - winner_id
 	var loser_card = p1_action_queue if loser_id == 1 else p2_action_queue
 	
-	# Check 1: Did a Reversal happen?
+	# A. Reversal Trigger
 	var reversal_triggered = false
 	if loser_card.reversal:
 		var moved_closer = false
@@ -161,27 +166,23 @@ func resolve_clash():
 		if loser_id == 2 and momentum > start_momentum: moved_closer = true
 		
 		if moved_closer:
-			current_combo_attacker = loser_id # Force Initiative Swap
+			current_combo_attacker = loser_id 
 			reversal_triggered = true
 			emit_signal("combat_log_updated", ">>> REVERSAL! Player " + str(loser_id) + " seizes the Combo! <<<")
 
-	# Check 2: Combo Maintenance (End of Turn Check)
-	# If we are in a combo (someone is attacking), can they afford to keep going?
-	
+	# B. Combo Maintenance (Can the attacker afford to keep going?)
 	var active_attacker = get_attacker()
 	if active_attacker != 0:
 		var att_data = p1_data if active_attacker == 1 else p2_data
 		
-		# If Out of SP, Combo Breaks.
 		if att_data.current_sp <= 0:
 			emit_signal("combat_log_updated", ">> Attacker Out of SP. Combo Ends.")
-			current_combo_attacker = 0 # Reset override
+			current_combo_attacker = 0 
 		else:
-			# If we didn't just Reversal, keep the combo going normally
 			if not reversal_triggered:
 				current_combo_attacker = active_attacker
 
-	# Multi Logic
+	# 6. MULTI / LOCK LOGIC
 	p1_locked_card = null
 	p2_locked_card = null
 	var winner_card = p1_action_queue if winner_id == 1 else p2_action_queue
@@ -198,57 +199,61 @@ func resolve_clash():
 	change_state(State.POST_CLASH)
 	change_state(State.SELECTION)
 
-func execute_attack(attacker_id: int, _defender_id: int, attack_card: ActionData, defense_card: ActionData, ignore_momentum: bool = false) -> bool:
-	var attacker = p1_data if attacker_id == 1 else p2_data
-	var defender = p2_data if attacker_id == 1 else p1_data
+# Executes ONE player's card stats against the other.
+# This is called TWICE per turn (once for P1, once for P2).
+func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool = false) -> bool:
+	var owner = p1_data if owner_id == 1 else p2_data
+	var target = p2_data if owner_id == 1 else p1_data
 	
-	# DEFENDER PAYS COSTS
-	var defender_paid = false
-	if defender.current_sp >= defense_card.cost:
-		defender.current_sp -= defense_card.cost
-		defender_paid = true
-		if defense_card.cost > 0: emit_signal("combat_log_updated", "Defender paid " + str(defense_card.cost) + " SP.")
+	# 1. Pay Costs
+	if owner.current_sp >= my_card.cost:
+		owner.current_sp -= my_card.cost
+		if my_card.cost > 0:
+			# Optional log to reduce clutter, or keep it for clarity
+			pass 
 	else:
-		emit_signal("combat_log_updated", ">> Defender Out of Stamina! Defence Fails! <<")
+		emit_signal("combat_log_updated", ">> P" + str(owner_id) + " Out of SP! Action Fails!")
+		return false # Fizzle
 	
-	var total_hits = max(1, attack_card.repeat_count)
+	var total_hits = max(1, my_card.repeat_count)
 	
 	for i in range(total_hits):
-		if attacker.current_sp >= attack_card.cost:
-			attacker.current_sp -= attack_card.cost
-		else:
-			emit_signal("combat_log_updated", ">> Attacker Out of Stamina! Combo ends.")
-			# Note: The Loop breaks here, and the Combo Check in resolve_clash will see 0 SP and end the turn sequence.
-			break 
 		
-		var block_amt = 0
-		if defender_paid: block_amt = defense_card.block_value + defense_card.dodge_value
-		if attack_card.guard_break: block_amt = 0
-		var net_damage = max(0, attack_card.damage - block_amt)
+		# 2. Calculate Damage vs Enemy Block
+		# Note: We use the enemy's Block/Dodge stats to mitigate THIS attack.
+		var block_amt = enemy_card.block_value + enemy_card.dodge_value
+		if my_card.guard_break: block_amt = 0
+		
+		var net_damage = max(0, my_card.damage - block_amt)
 		
 		if net_damage > 0:
-			defender.current_hp -= net_damage
-			emit_signal("combat_log_updated", "Hit " + str(i+1) + ": -" + str(net_damage) + " HP")
-		else:
-			emit_signal("combat_log_updated", "Hit " + str(i+1) + ": Blocked/Dodged")
+			target.current_hp -= net_damage
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
+		elif my_card.damage > 0:
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked/dodged.")
 
-		if defender.current_hp <= 0:
-			emit_signal("combat_log_updated", ">> FATAL HIT! Player " + str(3-attacker_id) + " Defeated! <<")
+		# 3. Check for Fatal
+		if target.current_hp <= 0:
+			emit_signal("combat_log_updated", ">> FATAL HIT on P" + str(target_id) + "! <<")
 			return true 
 
-		if attack_card.recover_value > 0: attacker.current_sp = min(attacker.current_sp + attack_card.recover_value, attacker.max_sp)
-		if attack_card.heal_value > 0: attacker.current_hp = min(attacker.current_hp + attack_card.heal_value, attacker.max_hp)
+		# 4. Self Recovery
+		if my_card.recover_value > 0: 
+			owner.current_sp = min(owner.current_sp + my_card.recover_value, owner.max_sp)
+		if my_card.heal_value > 0: 
+			owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
 
+		# 5. Apply Momentum (My Gain - My Fallback)
 		if not ignore_momentum:
-			var atk_gain = attack_card.momentum_gain
-			var atk_loss = attack_card.fall_back_value 
-			var def_loss = 0
-			if defender_paid: def_loss = defense_card.fall_back_value
+			var gain = my_card.momentum_gain
+			var loss = my_card.fall_back_value 
 			
-			if attacker_id == 1:
-				momentum = clampi(momentum - atk_gain + atk_loss - def_loss, 1, 8)
+			if owner_id == 1:
+				# P1: Gain moves Left (-), Fallback moves Right (+)
+				momentum = clampi(momentum - gain + loss, 1, 8)
 			else:
-				momentum = clampi(momentum + atk_gain - atk_loss + def_loss, 1, 8)
+				# P2: Gain moves Right (+), Fallback moves Left (-)
+				momentum = clampi(momentum + gain - loss, 1, 8)
 	
 	return false 
 
