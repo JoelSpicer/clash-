@@ -4,6 +4,9 @@ extends Node2D
 @export var p2_resource: CharacterData
 @export var stop_on_game_over: bool = true 
 
+#Check this in the Inspector to play. Uncheck to watch AI vs AI.
+@export var is_player_1_human: bool = true
+
 # UI REFERENCE
 @onready var battle_ui = $BattleUI
 
@@ -32,19 +35,25 @@ func _on_state_changed(new_state):
 
 	match new_state:
 		GameManager.State.SELECTION:
-			# ADD THIS WAIT! 
-			# Breaks the stack, lets the UI clean up, and improves pacing.
 			await get_tree().create_timer(0.5).timeout
 			
-			print("\n| --- NEW TURN: Waiting for Player Input... --- |")
-			_prepare_human_turn()
+			if is_player_1_human:
+				print("\n| --- NEW TURN: Waiting for Player Input... --- |")
+				_prepare_human_turn()
+			else:
+				print("\n| --- NEW TURN: AI vs AI --- |")
+				_run_full_bot_turn() # We will define this below
 			
 		GameManager.State.FEINT_CHECK:
-			# Add a small delay here too for consistency
 			await get_tree().create_timer(0.3).timeout
-			print("| --- FEINT: Waiting for Player Input... --- |")
-			_prepare_human_turn()
 			
+			if is_player_1_human:
+				print("| --- FEINT: Waiting for Player Input... --- |")
+				_prepare_human_turn()
+			else:
+				print("| --- FEINT: Bot Reaction --- |")
+				_run_full_bot_turn()
+
 		GameManager.State.POST_CLASH:
 			_print_status_report()
 
@@ -155,3 +164,20 @@ func _print_status_report():
 	
 	print("\n[STATUS] P1: " + str(p1.current_hp) + "HP/" + str(p1.current_sp) + "SP  vs  P2: " + str(p2.current_hp) + "HP/" + str(p2.current_sp) + "SP")
 	print("[MOMENTUM] " + visual)
+
+func _run_full_bot_turn():
+	# 1. AI Logic for Player 1
+	var attacker_id = GameManager.get_attacker()
+	
+	var p1_filter = null
+	if attacker_id != 0:
+		p1_filter = ActionData.Type.OFFENCE if attacker_id == 1 else ActionData.Type.DEFENCE
+	
+	var p1_card = _get_smart_card_choice(p1_resource, p1_filter)
+	
+	# 2. Submit P1 Move
+	print(">>> BOT P1 COMMITTED: " + p1_card.display_name)
+	GameManager.player_select_action(1, p1_card)
+	
+	# 3. Trigger P2 (Enemy) Logic
+	_run_enemy_bot_turn()

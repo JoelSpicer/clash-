@@ -19,6 +19,7 @@ script = ExtResource("2_tr2i4")
 p1_resource = ExtResource("3_7rqgy")
 p2_resource = ExtResource("4_qxria")
 stop_on_game_over = false
+is_player_1_human = false
 
 [node name="CardDisplay" parent="TestArena" instance=ExtResource("5_y4jh7")]
 visible = false

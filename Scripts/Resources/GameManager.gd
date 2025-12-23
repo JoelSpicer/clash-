@@ -75,6 +75,7 @@ func change_state(new_state: State):
 	
 	match current_state:
 		State.SELECTION:
+			# If locked, Force Selection immediately
 			if p1_locked_card: player_select_action(1, p1_locked_card)
 			if p2_locked_card: player_select_action(2, p2_locked_card)
 		State.REVEAL:
@@ -112,7 +113,7 @@ func _enter_reveal_phase():
 func resolve_clash():
 	var winner_id = 0
 	
-	# 1. DETERMINE WINNER (Calculates who gets Initiative/Momentum Advantage)
+	# 1. DETERMINE WINNER
 	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
 	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
 	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
@@ -127,19 +128,20 @@ func resolve_clash():
 	var is_initial_clash = (momentum == 0)
 	var start_momentum = momentum 
 	
-	# 2. EXECUTE BOTH CARDS (Simultaneous Resolution)
-	# Even the "Loser" gets to use their effects (Damage, Buffs, etc.)
+	# 2. DETECT MULTI/LOCK (Before execution)
+	# If a player was locked, they play for FREE this turn
+	var p1_is_free = (p1_locked_card != null)
+	var p2_is_free = (p2_locked_card != null)
 	
-	# Pass 1: Player 1 executes their card against Player 2
-	var p1_fatal = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash)
+	# 3. EXECUTE BOTH CARDS
+	# Pass 1: Player 1 (check if free)
+	var p1_fatal = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_is_free)
 	
-	# Pass 2: Player 2 executes their card against Player 1
-	var p2_fatal = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash)
+	# Pass 2: Player 2 (check if free)
+	var p2_fatal = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_is_free)
 	
-	# 3. CHECK FOR DEATH
+	# 4. CHECK FOR DEATH
 	if p1_fatal or p2_fatal:
-		# If both died, the "Clash Winner" effectively won the exchange? 
-		# Or just default to whoever died first in logic (which is rare).
 		var game_winner = 0
 		if p1_data.current_hp > 0: game_winner = 1
 		elif p2_data.current_hp > 0: game_winner = 2
@@ -149,12 +151,12 @@ func resolve_clash():
 		reset_combat() 
 		return 
 	
-	# 4. INITIAL CLASH SNAP
+	# 5. INITIAL CLASH SNAP
 	if is_initial_clash:
 		momentum = 4 if winner_id == 1 else 5
 		emit_signal("combat_log_updated", "Initial Clash Set! Momentum: " + str(momentum))
 	
-	# 5. REVERSAL / INITIATIVE CHECK
+	# 6. REVERSAL / INITIATIVE CHECK
 	var loser_id = 3 - winner_id
 	var loser_card = p1_action_queue if loser_id == 1 else p2_action_queue
 	
@@ -170,7 +172,7 @@ func resolve_clash():
 			reversal_triggered = true
 			emit_signal("combat_log_updated", ">>> REVERSAL! Player " + str(loser_id) + " seizes the Combo! <<<")
 
-	# B. Combo Maintenance (Can the attacker afford to keep going?)
+	# B. Combo Maintenance
 	var active_attacker = get_attacker()
 	if active_attacker != 0:
 		var att_data = p1_data if active_attacker == 1 else p2_data
@@ -182,9 +184,11 @@ func resolve_clash():
 			if not reversal_triggered:
 				current_combo_attacker = active_attacker
 
-	# 6. MULTI / LOCK LOGIC
+	# 7. MULTI / LOCK LOGIC (Set up for NEXT turn)
+	# Clear the old locks first
 	p1_locked_card = null
 	p2_locked_card = null
+	
 	var winner_card = p1_action_queue if winner_id == 1 else p2_action_queue
 	var loser_card_obj = p2_action_queue if winner_id == 1 else p1_action_queue 
 	
@@ -199,17 +203,21 @@ func resolve_clash():
 	change_state(State.POST_CLASH)
 	change_state(State.SELECTION)
 
-# Executes ONE player's card stats against the other.
-# This is called TWICE per turn (once for P1, once for P2).
-func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool = false) -> bool:
+# Updated signature: added 'is_free'
+func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool = false, is_free: bool = false) -> bool:
 	var owner = p1_data if owner_id == 1 else p2_data
 	var target = p2_data if owner_id == 1 else p1_data
 	
 	# 1. Pay Costs
-	if owner.current_sp >= my_card.cost:
-		owner.current_sp -= my_card.cost
-		if my_card.cost > 0:
-			# Optional log to reduce clutter, or keep it for clarity
+	var effective_cost = my_card.cost
+	if is_free:
+		effective_cost = 0
+		emit_signal("combat_log_updated", "P" + str(owner_id) + " locked by Multi: Action is FREE.")
+
+	if owner.current_sp >= effective_cost:
+		owner.current_sp -= effective_cost
+		if effective_cost > 0:
+			# Optional log
 			pass 
 	else:
 		emit_signal("combat_log_updated", ">> P" + str(owner_id) + " Out of SP! Action Fails!")
@@ -220,7 +228,6 @@ func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, en
 	for i in range(total_hits):
 		
 		# 2. Calculate Damage vs Enemy Block
-		# Note: We use the enemy's Block/Dodge stats to mitigate THIS attack.
 		var block_amt = enemy_card.block_value + enemy_card.dodge_value
 		if my_card.guard_break: block_amt = 0
 		
@@ -243,16 +250,14 @@ func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, en
 		if my_card.heal_value > 0: 
 			owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
 
-		# 5. Apply Momentum (My Gain - My Fallback)
+		# 5. Apply Momentum
 		if not ignore_momentum:
 			var gain = my_card.momentum_gain
 			var loss = my_card.fall_back_value 
 			
 			if owner_id == 1:
-				# P1: Gain moves Left (-), Fallback moves Right (+)
 				momentum = clampi(momentum - gain + loss, 1, 8)
 			else:
-				# P2: Gain moves Right (+), Fallback moves Left (-)
 				momentum = clampi(momentum + gain - loss, 1, 8)
 	
 	return false 
