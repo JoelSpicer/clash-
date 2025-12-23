@@ -1,0 +1,73 @@
+[gd_scene load_steps=3 format=3 uid="uid://dhwx6yjjskbn7"]
+
+[ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scenes/BattleUI.gd" id="1_d8qwt"]
+[ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
+
+[node name="BattleUI" type="CanvasLayer"]
+script = ExtResource("1_d8qwt")
+
+[node name="MainLayout" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 15.0
+offset_right = 8.0
+offset_bottom = 15.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PreviewAnchor" type="Control" parent="MainLayout"]
+anchors_preset = 0
+offset_left = 509.0
+offset_top = 219.0
+offset_right = 549.0
+offset_bottom = 259.0
+
+[node name="PreviewCard" parent="MainLayout/PreviewAnchor" instance=ExtResource("1_gl3jw")]
+layout_mode = 1
+
+[node name="BottomBar" type="Panel" parent="MainLayout"]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -165.0
+offset_right = -8.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ContentSplit" type="HBoxContainer" parent="MainLayout/BottomBar"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TabButtons" type="VBoxContainer" parent="MainLayout/BottomBar/ContentSplit"]
+layout_mode = 2
+
+[node name="Offence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons"]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Offence"
+
+[node name="Defence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons"]
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Defence"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainLayout/BottomBar/ContentSplit"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonGrid" type="GridContainer" parent="MainLayout/BottomBar/ContentSplit/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 3

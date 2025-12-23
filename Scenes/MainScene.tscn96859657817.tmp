@@ -21,7 +21,6 @@ p2_resource = ExtResource("4_qxria")
 stop_on_game_over = false
 
 [node name="CardDisplay" parent="TestArena" instance=ExtResource("5_y4jh7")]
-visible = false
 offset_left = 500.0
 offset_top = 300.0
 offset_right = 750.0

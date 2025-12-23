@@ -3,6 +3,8 @@ extends Node2D
 @export var p1_resource: CharacterData
 @export var p2_resource: CharacterData
 
+@onready var battle_ui = $BattleUI
+
 # --- NEW: TOGGLE SWITCH ---
 # Check this box in the Inspector to stop the loop when someone dies.
 @export var stop_on_game_over: bool = true 
@@ -19,6 +21,9 @@ func _ready():
 	
 	print("--- INITIALIZING SIMULATION ---")
 	GameManager.start_combat(p1_resource, p2_resource)
+	
+	# Initialize UI for Player 1
+	battle_ui.load_deck(p1_resource.deck)
 
 func _on_state_changed(new_state):
 	# SAFETY CHECK: If simulation is stopped, ignore state changes
