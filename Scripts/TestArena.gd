@@ -51,21 +51,36 @@ func _on_state_changed(new_state):
 # --- TURN LOGIC ---
 
 func _prepare_human_turn():
-	# 1. Determine who is attacking so we show the right tab
+	# 1. Determine Attacker
 	var attacker_id = GameManager.get_attacker()
+	var momentum = GameManager.momentum
+	var is_combo_active = (GameManager.current_combo_attacker != 0)
 	
 	var required_tab = null
+	var requires_opener = false
+	
+	# Logic for Restrictions
 	if attacker_id == 1: 
-		required_tab = ActionData.Type.OFFENCE # P1 Attacking
+		required_tab = ActionData.Type.OFFENCE 
 		print("[GUIDE] You have the initiative! Attack!")
-	elif attacker_id == 2:
-		required_tab = ActionData.Type.DEFENCE # P1 Defending
-		print("[GUIDE] You are under attack! Defend!")
-	else:
-		print("[GUIDE] Neutral state. Anything goes.")
 		
-	# 2. Unlock the UI for the player
-	battle_ui.unlock_for_input(required_tab)
+		# If we are attacking but a combo isn't locked in yet, we are STARTING one.
+		if not is_combo_active:
+			requires_opener = true
+			
+	elif attacker_id == 2:
+		required_tab = ActionData.Type.DEFENCE 
+		print("[GUIDE] You are under attack! Defend!")
+		# Defenders generally don't need openers (unless your rules say otherwise)
+		
+	else:
+		# Neutral State (Initial Clash)
+		print("[GUIDE] Neutral state. Anything goes.")
+		# In Neutral, if you choose to Attack, it MUST be an opener.
+		requires_opener = true
+		
+	# 2. Unlock UI with constraints
+	battle_ui.unlock_for_input(required_tab, p1_resource.current_sp, requires_opener)
 
 func _on_human_input_received(p1_card: ActionData):
 	# This triggers when you click a button in BattleUI

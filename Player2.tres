@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CharacterData" load_steps=11 format=3 uid="uid://p5iapbgi8mrp"]
+[gd_resource type="Resource" script_class="CharacterData" load_steps=22 format=3 uid="uid://p5iapbgi8mrp"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_kxc2r"]
 [ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="2_fhd3e"]
@@ -9,11 +9,22 @@
 [ext_resource type="Resource" uid="uid://ceqlrpt4vuc04" path="res://Data/Actions/basic_positioning.tres" id="7_6qdtw"]
 [ext_resource type="Resource" uid="uid://b8ai0k486ma37" path="res://Data/Actions/basic_reversal.tres" id="8_tt3nf"]
 [ext_resource type="Resource" uid="uid://cis47vu3ete28" path="res://Data/Actions/basic_technical.tres" id="9_oaf0m"]
+[ext_resource type="Resource" uid="uid://c5gaxw1tp047d" path="res://Data/Actions/pummel.tres" id="10_8jd2u"]
 [ext_resource type="Script" uid="uid://c4fll3p1ufpsf" path="res://Scripts/Resources/CharacterData.gd" id="10_mkgv7"]
+[ext_resource type="Resource" uid="uid://csdopdiu6frnr" path="res://Data/Actions/perfect_strike.tres" id="11_51f5q"]
+[ext_resource type="Resource" uid="uid://dw1n301ytbow3" path="res://Data/Actions/slip_behind.tres" id="12_fbq4i"]
+[ext_resource type="Resource" uid="uid://byt2cnaya58jx" path="res://Data/Actions/toppling_kick.tres" id="13_v421y"]
+[ext_resource type="Resource" uid="uid://quhx7ro2pyml" path="res://Data/Actions/read_offence.tres" id="14_p4ytc"]
+[ext_resource type="Resource" uid="uid://cf0tnr4cru147" path="res://Data/Actions/grab.tres" id="15_u0hck"]
+[ext_resource type="Resource" uid="uid://d2iahl50kag64" path="res://Data/Actions/vital_point_assault.tres" id="16_7y1sy"]
+[ext_resource type="Resource" uid="uid://p5spxlrqc5dq" path="res://Data/Actions/retreating_defence.tres" id="17_al0o1"]
+[ext_resource type="Resource" uid="uid://qeubfwp2v872" path="res://Data/Actions/inner_peace.tres" id="18_komau"]
+[ext_resource type="Resource" uid="uid://iknwl4dh2er6" path="res://Data/Actions/push_kick.tres" id="19_32j1u"]
+[ext_resource type="Resource" uid="uid://cmbpngiewxm6e" path="res://Data/Actions/redirect.tres" id="20_om62d"]
 
 [resource]
 script = ExtResource("10_mkgv7")
 max_hp = 5
 speed = 4
-deck = Array[ExtResource("1_kxc2r")]([ExtResource("2_fhd3e"), ExtResource("3_apqli"), ExtResource("4_xdkvf"), ExtResource("5_5dkox"), ExtResource("6_borhb"), ExtResource("7_6qdtw"), ExtResource("8_tt3nf"), ExtResource("9_oaf0m")])
+deck = Array[ExtResource("1_kxc2r")]([ExtResource("2_fhd3e"), ExtResource("3_apqli"), ExtResource("4_xdkvf"), ExtResource("5_5dkox"), ExtResource("6_borhb"), ExtResource("7_6qdtw"), ExtResource("8_tt3nf"), ExtResource("9_oaf0m"), ExtResource("10_8jd2u"), ExtResource("11_51f5q"), ExtResource("12_fbq4i"), ExtResource("13_v421y"), ExtResource("14_p4ytc"), ExtResource("15_u0hck"), ExtResource("16_7y1sy"), ExtResource("17_al0o1"), ExtResource("18_komau"), ExtResource("19_32j1u"), ExtResource("20_om62d")])
 metadata/_custom_type_script = "uid://c4fll3p1ufpsf"

@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CharacterData" load_steps=11 format=3 uid="uid://b0kng2hirhw4q"]
+[gd_resource type="Resource" script_class="CharacterData" load_steps=22 format=3 uid="uid://b0kng2hirhw4q"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_0ea2m"]
 [ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="2_3u464"]
@@ -10,9 +10,20 @@
 [ext_resource type="Resource" uid="uid://ceqlrpt4vuc04" path="res://Data/Actions/basic_positioning.tres" id="7_sjlig"]
 [ext_resource type="Resource" uid="uid://b8ai0k486ma37" path="res://Data/Actions/basic_reversal.tres" id="8_0jj06"]
 [ext_resource type="Resource" uid="uid://cis47vu3ete28" path="res://Data/Actions/basic_technical.tres" id="9_x468r"]
+[ext_resource type="Resource" uid="uid://c5gaxw1tp047d" path="res://Data/Actions/pummel.tres" id="10_ueadi"]
+[ext_resource type="Resource" uid="uid://csdopdiu6frnr" path="res://Data/Actions/perfect_strike.tres" id="11_js7f2"]
+[ext_resource type="Resource" uid="uid://dw1n301ytbow3" path="res://Data/Actions/slip_behind.tres" id="12_d63b0"]
+[ext_resource type="Resource" uid="uid://byt2cnaya58jx" path="res://Data/Actions/toppling_kick.tres" id="13_oqrl7"]
+[ext_resource type="Resource" uid="uid://quhx7ro2pyml" path="res://Data/Actions/read_offence.tres" id="14_b7hqx"]
+[ext_resource type="Resource" uid="uid://cf0tnr4cru147" path="res://Data/Actions/grab.tres" id="15_8ih77"]
+[ext_resource type="Resource" uid="uid://d2iahl50kag64" path="res://Data/Actions/vital_point_assault.tres" id="16_q8pw5"]
+[ext_resource type="Resource" uid="uid://p5spxlrqc5dq" path="res://Data/Actions/retreating_defence.tres" id="17_kwkfq"]
+[ext_resource type="Resource" uid="uid://qeubfwp2v872" path="res://Data/Actions/inner_peace.tres" id="18_c0rdt"]
+[ext_resource type="Resource" uid="uid://iknwl4dh2er6" path="res://Data/Actions/push_kick.tres" id="19_77luy"]
+[ext_resource type="Resource" uid="uid://cmbpngiewxm6e" path="res://Data/Actions/redirect.tres" id="20_w428t"]
 
 [resource]
 script = ExtResource("2_071o7")
 max_hp = 5
-deck = Array[ExtResource("1_0ea2m")]([ExtResource("2_3u464"), ExtResource("3_45bul"), ExtResource("4_va6bm"), ExtResource("5_njgh8"), ExtResource("6_uutni"), ExtResource("7_sjlig"), ExtResource("8_0jj06"), ExtResource("9_x468r")])
+deck = Array[ExtResource("1_0ea2m")]([ExtResource("2_3u464"), ExtResource("3_45bul"), ExtResource("4_va6bm"), ExtResource("5_njgh8"), ExtResource("6_uutni"), ExtResource("7_sjlig"), ExtResource("8_0jj06"), ExtResource("9_x468r"), ExtResource("10_ueadi"), ExtResource("11_js7f2"), ExtResource("12_d63b0"), ExtResource("13_oqrl7"), ExtResource("14_b7hqx"), ExtResource("15_8ih77"), ExtResource("16_q8pw5"), ExtResource("17_kwkfq"), ExtResource("18_c0rdt"), ExtResource("19_77luy"), ExtResource("20_w428t")])
 metadata/_custom_type_script = "uid://c4fll3p1ufpsf"
