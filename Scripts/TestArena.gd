@@ -3,31 +3,23 @@ extends Node2D
 @export var p1_resource: CharacterData
 @export var p2_resource: CharacterData
 @export var stop_on_game_over: bool = true 
+@export var is_player_1_human: bool = true 
 
-#Check this in the Inspector to play. Uncheck to watch AI vs AI.
-@export var is_player_1_human: bool = true
-
-# UI REFERENCE
 @onready var battle_ui = $BattleUI
-
 var _simulation_active: bool = true
 
 func _ready():
 	await get_tree().process_frame
 	
-	# 1. Connect Game Signals
 	GameManager.state_changed.connect(_on_state_changed)
 	GameManager.combat_log_updated.connect(_on_log_updated)
 	GameManager.clash_resolved.connect(_on_clash_resolved)
 	GameManager.game_over.connect(_on_game_over)
 	
-	# 2. Connect UI Signals (This bridges the gap!)
 	battle_ui.human_selected_card.connect(_on_human_input_received)
-	
-	# 3. Load Deck into UI
 	battle_ui.load_deck(p1_resource.deck)
 	
-	print("--- INITIALIZING HUMAN vs BOT MATCH ---")
+	print("--- INITIALIZING MATCH ---")
 	GameManager.start_combat(p1_resource, p2_resource)
 
 func _on_state_changed(new_state):
@@ -36,17 +28,15 @@ func _on_state_changed(new_state):
 	match new_state:
 		GameManager.State.SELECTION:
 			await get_tree().create_timer(0.5).timeout
-			
 			if is_player_1_human:
 				print("\n| --- NEW TURN: Waiting for Player Input... --- |")
 				_prepare_human_turn()
 			else:
 				print("\n| --- NEW TURN: AI vs AI --- |")
-				_run_full_bot_turn() # We will define this below
+				_run_full_bot_turn()
 			
 		GameManager.State.FEINT_CHECK:
 			await get_tree().create_timer(0.3).timeout
-			
 			if is_player_1_human:
 				print("| --- FEINT: Waiting for Player Input... --- |")
 				_prepare_human_turn()
@@ -57,88 +47,149 @@ func _on_state_changed(new_state):
 		GameManager.State.POST_CLASH:
 			_print_status_report()
 
-# --- TURN LOGIC ---
+# --- HUMAN TURN ---
 
 func _prepare_human_turn():
-	# 1. Determine Attacker
+	if GameManager.p1_locked_card:
+		print(">>> PLAYER LOCKED into: " + GameManager.p1_locked_card.display_name)
+		_run_enemy_bot_turn()
+		return
+
 	var attacker_id = GameManager.get_attacker()
-	var momentum = GameManager.momentum
-	var is_combo_active = (GameManager.current_combo_attacker != 0)
+	var is_combo = (GameManager.current_combo_attacker != 0)
+	var mom = GameManager.momentum
 	
 	var required_tab = null
 	var requires_opener = false
 	
-	# Logic for Restrictions
 	if attacker_id == 1: 
 		required_tab = ActionData.Type.OFFENCE 
 		print("[GUIDE] You have the initiative! Attack!")
-		
-		# If we are attacking but a combo isn't locked in yet, we are STARTING one.
-		if not is_combo_active:
-			requires_opener = true
-			
+		if not is_combo: requires_opener = true
 	elif attacker_id == 2:
 		required_tab = ActionData.Type.DEFENCE 
 		print("[GUIDE] You are under attack! Defend!")
-		# Defenders generally don't need openers (unless your rules say otherwise)
-		
 	else:
-		# Neutral State (Initial Clash)
 		print("[GUIDE] Neutral state. Anything goes.")
-		# In Neutral, if you choose to Attack, it MUST be an opener.
 		requires_opener = true
 		
-	# 2. Unlock UI with constraints
-	battle_ui.unlock_for_input(required_tab, p1_resource.current_sp, requires_opener)
+	# NEW: Pass P1's constraints to the UI
+	battle_ui.unlock_for_input(
+		required_tab, 
+		p1_resource.current_sp, 
+		requires_opener,
+		GameManager.p1_cost_limit,   # My Max Cost
+		GameManager.p1_opening_stat  # My Counter Ability
+	)
 
 func _on_human_input_received(p1_card: ActionData):
-	# This triggers when you click a button in BattleUI
 	print(">>> PLAYER COMMITTED: " + p1_card.display_name)
-	
-	# 1. Submit Player Move
 	GameManager.player_select_action(1, p1_card)
-	
-	# 2. Submit Bot Move (Immediate response)
 	_run_enemy_bot_turn()
 
+# --- BOT LOGIC (P2) ---
+
 func _run_enemy_bot_turn():
-	# Logic is the same as before, but only for P2
+	if GameManager.p2_locked_card:
+		print(">>> BOT P2 LOCKED into: " + GameManager.p2_locked_card.display_name)
+		return 
+
 	var attacker_id = GameManager.get_attacker()
+	var is_combo = (GameManager.current_combo_attacker != 0)
+	var mom = GameManager.momentum
 	
 	var p2_filter = null
 	if attacker_id != 0:
 		p2_filter = ActionData.Type.OFFENCE if attacker_id == 2 else ActionData.Type.DEFENCE
 	
-	var p2_card = _get_smart_card_choice(p2_resource, p2_filter)
+	var p2_needs_opener = false
+	if mom == 0: p2_needs_opener = true 
+	elif attacker_id == 2 and not is_combo: p2_needs_opener = true 
 	
-	# Submit Bot Move
+	# NEW: Pass P2's constraints to the Brain
+	var p2_card = _get_smart_card_choice(
+		p2_resource, 
+		p2_filter, 
+		p2_needs_opener, 
+		GameManager.p2_cost_limit, 
+		GameManager.p2_opening_stat
+	)
 	GameManager.player_select_action(2, p2_card)
 
-# --- BOT BRAIN (Same as before) ---
+# --- BOT LOGIC (P1 - AI vs AI) ---
 
-func _get_smart_card_choice(character: CharacterData, type_filter) -> ActionData:
+func _run_full_bot_turn():
+	if GameManager.p1_locked_card:
+		print(">>> BOT P1 LOCKED into: " + GameManager.p1_locked_card.display_name)
+	else:
+		var attacker_id = GameManager.get_attacker()
+		var is_combo = (GameManager.current_combo_attacker != 0)
+		var mom = GameManager.momentum
+		
+		var p1_filter = null
+		if attacker_id != 0:
+			p1_filter = ActionData.Type.OFFENCE if attacker_id == 1 else ActionData.Type.DEFENCE
+			
+		var p1_needs_opener = false
+		if mom == 0: p1_needs_opener = true
+		elif attacker_id == 1 and not is_combo: p1_needs_opener = true
+		
+		# NEW: Pass P1's constraints
+		var p1_card = _get_smart_card_choice(
+			p1_resource, 
+			p1_filter, 
+			p1_needs_opener, 
+			GameManager.p1_cost_limit, 
+			GameManager.p1_opening_stat
+		)
+		print(">>> BOT P1 COMMITTED: " + p1_card.display_name)
+		GameManager.player_select_action(1, p1_card)
+	
+	_run_enemy_bot_turn()
+
+# --- BOT BRAIN ---
+
+# UPDATED: Now accepts 'max_cost' and 'my_opening'
+func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool = false, max_cost: int = 99, my_opening: int = 0) -> ActionData:
 	var valid_options = []
 	var affordable_backups = []
 	
 	for card in character.deck:
 		if type_filter != null and card.type != type_filter: continue
-		if card.cost <= character.current_sp: valid_options.append(card)
-		if card.cost == 0: affordable_backups.append(card)
-	
-	if valid_options.size() > 0: return valid_options.pick_random()
-	
-	# Fallback Logic
-	if type_filter == ActionData.Type.OFFENCE:
-		for card in affordable_backups:
-			if "Positioning" in card.display_name: return card
-	elif type_filter == ActionData.Type.DEFENCE:
-		for card in affordable_backups:
-			if "Block" in card.display_name: return card
+		
+		# 1. Opener Check
+		if must_be_opener and card.type == ActionData.Type.OFFENCE:
+			if not card.is_opener: continue
+		
+		# 2. Cost Constraint (Create Opening)
+		if card.cost > max_cost: continue
 
-	if affordable_backups.size() > 0: return affordable_backups[0]
+		# 3. Counter Requirement
+		if card.counter_value > 0 and my_opening < card.counter_value: continue
+			
+		# 4. Affordability
+		if card.cost <= character.current_sp:
+			valid_options.append(card)
+		
+		if card.cost == 0:
+			# Validate backups too!
+			if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
+			if card.cost > max_cost: continue # Redundant for 0, but good safety
+			if card.counter_value > 0 and my_opening < card.counter_value: continue
+			
+			affordable_backups.append(card)
+	
+	if valid_options.size() > 0:
+		return valid_options.pick_random()
+	
+	print("[BOT] " + character.character_name + " Fallback! (No valid cards found)")
+	
+	if affordable_backups.size() > 0:
+		return affordable_backups[0]
+
 	return character.deck[0]
 
-# --- LOGGING & REPORTS ---
+# --- LOGGING ---
 
 func _on_game_over(winner_id):
 	print("\n*** VICTORY FOR PLAYER " + str(winner_id) + "! ***")
@@ -154,8 +205,6 @@ func _print_status_report():
 	var p1 = p1_resource
 	var p2 = p2_resource
 	var mom = GameManager.momentum
-	var att = GameManager.get_attacker() 
-	
 	var visual = "[ "
 	for i in range(1, 5): visual += ("P1 " if mom == i else str(i) + " ")
 	visual += "| "
@@ -164,20 +213,3 @@ func _print_status_report():
 	
 	print("\n[STATUS] P1: " + str(p1.current_hp) + "HP/" + str(p1.current_sp) + "SP  vs  P2: " + str(p2.current_hp) + "HP/" + str(p2.current_sp) + "SP")
 	print("[MOMENTUM] " + visual)
-
-func _run_full_bot_turn():
-	# 1. AI Logic for Player 1
-	var attacker_id = GameManager.get_attacker()
-	
-	var p1_filter = null
-	if attacker_id != 0:
-		p1_filter = ActionData.Type.OFFENCE if attacker_id == 1 else ActionData.Type.DEFENCE
-	
-	var p1_card = _get_smart_card_choice(p1_resource, p1_filter)
-	
-	# 2. Submit P1 Move
-	print(">>> BOT P1 COMMITTED: " + p1_card.display_name)
-	GameManager.player_select_action(1, p1_card)
-	
-	# 3. Trigger P2 (Enemy) Logic
-	_run_enemy_bot_turn()

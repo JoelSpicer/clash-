@@ -26,6 +26,7 @@ offset_right = 549.0
 offset_bottom = 259.0
 
 [node name="PreviewCard" parent="MainLayout/PreviewAnchor" instance=ExtResource("1_gl3jw")]
+unique_name_in_owner = true
 layout_mode = 1
 
 [node name="BottomBar" type="Panel" parent="MainLayout"]
@@ -54,11 +55,13 @@ grow_vertical = 2
 layout_mode = 2
 
 [node name="Offence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 50)
 layout_mode = 2
 text = "Offence"
 
 [node name="Defence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 50)
 layout_mode = 2
 text = "Defence"
@@ -68,6 +71,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="ButtonGrid" type="GridContainer" parent="MainLayout/BottomBar/ContentSplit/ScrollContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 columns = 3
