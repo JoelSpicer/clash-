@@ -22,7 +22,11 @@ var current_combo_attacker: int = 0
 var p1_cost_limit: int = 99     
 var p2_cost_limit: int = 99     
 var p1_opening_stat: int = 0    
-var p2_opening_stat: int = 0    
+var p2_opening_stat: int = 0
+
+# --- STATUS EFFECTS ---
+var p1_is_injured: bool = false
+var p2_is_injured: bool = false
 
 var p1_action_queue: ActionData
 var p2_action_queue: ActionData
@@ -48,6 +52,10 @@ func reset_combat():
 	p2_cost_limit = 99
 	p1_opening_stat = 0
 	p2_opening_stat = 0
+	
+	# Reset Status
+	p1_is_injured = false
+	p2_is_injured = false
 	
 	if p1_data.speed > p2_data.speed: priority_player = 1
 	elif p2_data.speed > p1_data.speed: priority_player = 2
@@ -125,60 +133,72 @@ func resolve_clash():
 	var p1_is_free = (p1_locked_card != null)
 	var p2_is_free = (p2_locked_card != null)
 	
+	# --- SNAPSHOT STATUS ---
+	# Capture who was injured BEFORE this turn resolved.
+	# We use this to ensure we don't tick damage on a FRESH injury.
+	var p1_started_injured = p1_is_injured
+	var p2_started_injured = p2_is_injured
+	
 	# --- PHASE 0: PAY COSTS ---
-	# We check if players can afford their cards. If not, they "Fizzle" (active = false)
 	var p1_active = _pay_cost(1, p1_action_queue, p1_is_free)
 	var p2_active = _pay_cost(2, p2_action_queue, p2_is_free)
 
-	# --- PHASE 1: SELF EFFECTS (Recover/Heal) ---
-	# "Apply traits from your action to yourself..."
+	# --- PHASE 1: SELF EFFECTS (Recover/Heal/Cure) ---
 	if p1_active: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, true, false, false)
 	if p2_active: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, true, false, false)
 
-	# --- PHASE 2: COMBAT EFFECTS (Damage/Tire/Retaliate) ---
-	# "...before you apply traits from your opponent’s action to yourself"
-	# We need to capture results (Fatal/Opening) from this phase
+	# --- PHASE 2: COMBAT EFFECTS (Damage/Tire/Retaliate/Apply Injure) ---
 	var p1_results = { "fatal": false, "opening": 0 }
 	var p2_results = { "fatal": false, "opening": 0 }
 	
 	if p1_active: p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, true, false)
 	if p2_active: p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, true, false)
 	
-	# Update Constraints (Create Opening)
+	# Update Constraints
 	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue)
 	
-	# Check Death immediately after combat
+	# Check Death (From Combat)
 	if p1_results["fatal"] or p2_results["fatal"]:
 		_handle_death(winner_id)
 		return 
 	
 	# --- PHASE 3: MOMENTUM ---
-	# "Apply traits that affect momentum from Offence actions first, then Defence actions."
 	var p1_is_offence = (p1_action_queue.type == ActionData.Type.OFFENCE)
 	var p2_is_offence = (p2_action_queue.type == ActionData.Type.OFFENCE)
 	
-	# Logic: If P1 is Offence, do P1. If P2 is Offence, do P2. 
-	# (If both are Offence, order implies P1 then P2, but usually irrelevant unless hitting clamps)
-	
-	# Run Offence Cards First
+	# Offence First
 	if p1_active and p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, false, true)
 	if p2_active and p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, false, true)
 	
-	# Run Defence Cards Second
+	# Defence Second
 	if p1_active and not p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, false, true)
 	if p2_active and not p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, false, true)
 	
+	# --- PHASE 4: STATUS TICK (End of Clash) ---
+	# Rule: "Opponent loses 1 HP every clash... EXCEPT the clash where Injure is applied."
+	# Logic: We only tick damage if they were injured at START (started_injured) AND are still injured (is_injured).
+	
+	if p1_started_injured and p1_is_injured:
+		p1_data.current_hp -= 1
+		emit_signal("combat_log_updated", ">> P1 takes 1 damage from Injury.")
+		if p1_data.current_hp <= 0:
+			_handle_death(winner_id)
+			return
+
+	if p2_started_injured and p2_is_injured:
+		p2_data.current_hp -= 1
+		emit_signal("combat_log_updated", ">> P2 takes 1 damage from Injury.")
+		if p2_data.current_hp <= 0:
+			_handle_death(winner_id)
+			return
+
 	# --- END OF RESOLUTION ---
 	
-	# Initial Clash Snap
 	if is_initial_clash:
 		momentum = 4 if winner_id == 1 else 5
 		emit_signal("combat_log_updated", "Initial Clash Set! Momentum: " + str(momentum))
 	
-	# Reversal Check
 	_check_reversal(winner_id, start_momentum)
-	
-	# Multi/Lock Logic
 	_handle_locks(winner_id)
 
 	p1_action_queue = null
@@ -270,25 +290,31 @@ func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card):
 	p2_opening_stat = next_p2_opening
 
 # --- CORE LOGIC ---
-# Updated to take Phase Flags
 func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool, do_self: bool, do_combat: bool, do_momentum: bool) -> Dictionary:
 	var owner = p1_data if owner_id == 1 else p2_data
 	var target = p2_data if owner_id == 1 else p1_data
 	var result = { "fatal": false, "opening": 0 }
 	
-	# Loop repeats for Multi-Hit attacks
 	var total_hits = max(1, my_card.repeat_count)
 	for i in range(total_hits):
 		
-		# --- PHASE 1: SELF (Recover/Heal) ---
+		# --- PHASE 1: SELF (Recover/Heal/Cure) ---
 		if do_self:
 			if my_card.recover_value > 0: 
 				owner.current_sp = min(owner.current_sp + my_card.recover_value, owner.max_sp)
-				# Optional: Log recovery here if you want
 			if my_card.heal_value > 0: 
 				owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
 
-		# --- PHASE 2: COMBAT (Damage/Tire/Retal) ---
+			# CURE INJURY
+			if my_card.heal_value > 0 or my_card.fall_back_value > 0:
+				if owner_id == 1 and p1_is_injured:
+					p1_is_injured = false
+					emit_signal("combat_log_updated", ">> P1 cures Injury!")
+				elif owner_id == 2 and p2_is_injured:
+					p2_is_injured = false
+					emit_signal("combat_log_updated", ">> P2 cures Injury!")
+
+		# --- PHASE 2: COMBAT (Damage/Tire/Retal/Injure) ---
 		if do_combat:
 			var enemy_block = enemy_card.block_value + enemy_card.dodge_value
 			if my_card.guard_break: enemy_block = 0
@@ -299,9 +325,20 @@ func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, en
 				target.current_hp -= net_damage
 				emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
 				
+				# Tiring
 				if my_card.tiring > 0:
 					target.current_sp = max(0, target.current_sp - my_card.tiring)
 					emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
+				
+				# Apply Injury
+				if my_card.injure:
+					if target_id == 1 and not p1_is_injured:
+						p1_is_injured = true
+						emit_signal("combat_log_updated", ">> P1 is Injured! (Takes damage next turn)")
+					elif target_id == 2 and not p2_is_injured:
+						p2_is_injured = true
+						emit_signal("combat_log_updated", ">> P2 is Injured! (Takes damage next turn)")
+
 			elif my_card.damage > 0:
 				emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked/dodged.")
 

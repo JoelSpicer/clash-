@@ -6,7 +6,7 @@
 script = ExtResource("1_twlhe")
 id = "read_defence"
 display_name = "Read Defence"
-description = "Offence, Cost 2, Ditto"
+description = "Offence, Cost 2, Feint"
 cost = 2
 feint = true
 repeat_count = 0

@@ -44,9 +44,16 @@ func set_card_data(action: ActionData):
 		stats_text += str(action.dodge_value) + " DDG  "
 	if action.heal_value > 0:
 		stats_text += str(action.heal_value) + " HEAL "
+	
 	if action.tiring > 0:
 		stats_text += str(action.tiring) + " TIRE "
 	if action.retaliate:
-		stats_text += "RETAL "	
+		stats_text += "RETAL "
+	if action.feint:
+		stats_text += "FEINT "
+		
+	# NEW: Injure
+	if action.injure:
+		stats_text += "INJURE "
 		
 	stat_label.text = stats_text

@@ -6,7 +6,7 @@
 script = ExtResource("1_yyggw")
 id = "read_offence"
 display_name = "Read Offence"
-description = "Defence, Cost 2, Ditto"
+description = "Defence, Cost 2, Feint"
 type = 1
 cost = 2
 feint = true

@@ -6,7 +6,7 @@
 script = ExtResource("1_l7oy7")
 id = "go_with_the_flow"
 display_name = "Go with the Flow"
-description = "Offence, Cost 3, Ditto, Recover 1, Fall Back 1"
+description = "Offence, Cost 3, Feint, Recover 1, Fall Back 1"
 cost = 3
 recover_value = 1
 fall_back_value = 1
