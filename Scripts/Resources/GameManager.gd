@@ -125,29 +125,93 @@ func resolve_clash():
 	var p1_is_free = (p1_locked_card != null)
 	var p2_is_free = (p2_locked_card != null)
 	
-	# 2. EXECUTE BOTH CARDS
-	var p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_is_free)
-	var p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_is_free)
+	# --- PHASE 0: PAY COSTS ---
+	# We check if players can afford their cards. If not, they "Fizzle" (active = false)
+	var p1_active = _pay_cost(1, p1_action_queue, p1_is_free)
+	var p2_active = _pay_cost(2, p2_action_queue, p2_is_free)
+
+	# --- PHASE 1: SELF EFFECTS (Recover/Heal) ---
+	# "Apply traits from your action to yourself..."
+	if p1_active: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, true, false, false)
+	if p2_active: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, true, false, false)
+
+	# --- PHASE 2: COMBAT EFFECTS (Damage/Tire/Retaliate) ---
+	# "...before you apply traits from your opponent’s action to yourself"
+	# We need to capture results (Fatal/Opening) from this phase
+	var p1_results = { "fatal": false, "opening": 0 }
+	var p2_results = { "fatal": false, "opening": 0 }
 	
-	# 3. UPDATE CONSTRAINTS (Refactored into helper)
+	if p1_active: p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, true, false)
+	if p2_active: p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, true, false)
+	
+	# Update Constraints (Create Opening)
 	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue)
 	
-	# 4. CHECK FOR DEATH
+	# Check Death immediately after combat
 	if p1_results["fatal"] or p2_results["fatal"]:
-		var game_winner = 0
-		if p1_data.current_hp > 0: game_winner = 1
-		elif p2_data.current_hp > 0: game_winner = 2
-		else: game_winner = winner_id 
-		emit_signal("game_over", game_winner)
-		reset_combat() 
+		_handle_death(winner_id)
 		return 
 	
-	# 5. INITIAL CLASH SNAP
+	# --- PHASE 3: MOMENTUM ---
+	# "Apply traits that affect momentum from Offence actions first, then Defence actions."
+	var p1_is_offence = (p1_action_queue.type == ActionData.Type.OFFENCE)
+	var p2_is_offence = (p2_action_queue.type == ActionData.Type.OFFENCE)
+	
+	# Logic: If P1 is Offence, do P1. If P2 is Offence, do P2. 
+	# (If both are Offence, order implies P1 then P2, but usually irrelevant unless hitting clamps)
+	
+	# Run Offence Cards First
+	if p1_active and p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, false, true)
+	if p2_active and p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, false, true)
+	
+	# Run Defence Cards Second
+	if p1_active and not p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, false, true)
+	if p2_active and not p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, false, true)
+	
+	# --- END OF RESOLUTION ---
+	
+	# Initial Clash Snap
 	if is_initial_clash:
 		momentum = 4 if winner_id == 1 else 5
 		emit_signal("combat_log_updated", "Initial Clash Set! Momentum: " + str(momentum))
 	
-	# 6. REVERSAL / INITIATIVE CHECK
+	# Reversal Check
+	_check_reversal(winner_id, start_momentum)
+	
+	# Multi/Lock Logic
+	_handle_locks(winner_id)
+
+	p1_action_queue = null
+	p2_action_queue = null
+	
+	change_state(State.POST_CLASH)
+	change_state(State.SELECTION)
+
+# --- HELPER FUNCTIONS ---
+
+func _pay_cost(player_id: int, card: ActionData, is_free: bool) -> bool:
+	var character = p1_data if player_id == 1 else p2_data
+	var cost = card.cost
+	if is_free: 
+		cost = 0
+		emit_signal("combat_log_updated", "P" + str(player_id) + " locked by Multi: Action is FREE.")
+	
+	if character.current_sp >= cost:
+		character.current_sp -= cost
+		return true
+	else:
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
+		return false
+
+func _handle_death(winner_id):
+	var game_winner = 0
+	if p1_data.current_hp > 0: game_winner = 1
+	elif p2_data.current_hp > 0: game_winner = 2
+	else: game_winner = winner_id 
+	emit_signal("game_over", game_winner)
+	reset_combat() 
+
+func _check_reversal(winner_id, start_momentum):
 	var loser_id = 3 - winner_id
 	var loser_card = p1_action_queue if loser_id == 1 else p2_action_queue
 	
@@ -172,7 +236,7 @@ func resolve_clash():
 			if not reversal_triggered:
 				current_combo_attacker = active_attacker
 
-	# 7. MULTI / LOCK LOGIC
+func _handle_locks(winner_id):
 	p1_locked_card = null
 	p2_locked_card = null
 	
@@ -184,80 +248,90 @@ func resolve_clash():
 		if winner_id == 1: p2_locked_card = loser_card_obj
 		else: p1_locked_card = loser_card_obj
 
-	p1_action_queue = null
-	p2_action_queue = null
-	
-	change_state(State.POST_CLASH)
-	change_state(State.SELECTION)
-
-# --- NEW HELPER ---
 func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card):
-	# Start fresh
 	var next_p1_limit = 99
 	var next_p2_limit = 99
 	var next_p1_opening = 0
 	var next_p2_opening = 0
 	
-	# A. Create Opening (Constrains Opponent, Unlocks My Counter)
 	if p1_res["opening"] > 0:
 		next_p2_limit = min(next_p2_limit, p1_res["opening"]) 
 		next_p1_opening = p1_res["opening"] 
-	
 	if p2_res["opening"] > 0:
 		next_p1_limit = min(next_p1_limit, p2_res["opening"])
 		next_p2_opening = p2_res["opening"]
-		
-	# B. Multi (Constrains Self)
+	
 	if p1_card.multi_limit > 0: next_p1_limit = min(next_p1_limit, p1_card.multi_limit)
 	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
 		
-	# Apply
 	p1_cost_limit = next_p1_limit
 	p2_cost_limit = next_p2_limit
 	p1_opening_stat = next_p1_opening
 	p2_opening_stat = next_p2_opening
 
-func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool = false, is_free: bool = false) -> Dictionary:
+# --- CORE LOGIC ---
+# Updated to take Phase Flags
+func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool, do_self: bool, do_combat: bool, do_momentum: bool) -> Dictionary:
 	var owner = p1_data if owner_id == 1 else p2_data
 	var target = p2_data if owner_id == 1 else p1_data
 	var result = { "fatal": false, "opening": 0 }
 	
-	# 1. Pay Costs
-	var effective_cost = my_card.cost
-	if is_free:
-		effective_cost = 0
-		emit_signal("combat_log_updated", "P" + str(owner_id) + " locked by Multi: Action is FREE.")
-
-	if owner.current_sp >= effective_cost:
-		owner.current_sp -= effective_cost
-	else:
-		emit_signal("combat_log_updated", ">> P" + str(owner_id) + " Out of SP! Action Fails!")
-		return result
-	
+	# Loop repeats for Multi-Hit attacks
 	var total_hits = max(1, my_card.repeat_count)
-	
 	for i in range(total_hits):
-		var block_amt = enemy_card.block_value + enemy_card.dodge_value
-		if my_card.guard_break: block_amt = 0
-		var net_damage = max(0, my_card.damage - block_amt)
 		
-		if net_damage > 0:
-			target.current_hp -= net_damage
-			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
-		elif my_card.damage > 0:
-			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked/dodged.")
+		# --- PHASE 1: SELF (Recover/Heal) ---
+		if do_self:
+			if my_card.recover_value > 0: 
+				owner.current_sp = min(owner.current_sp + my_card.recover_value, owner.max_sp)
+				# Optional: Log recovery here if you want
+			if my_card.heal_value > 0: 
+				owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
 
-		if target.current_hp <= 0:
-			emit_signal("combat_log_updated", ">> FATAL HIT on P" + str(target_id) + "! <<")
-			result["fatal"] = true
-			return result
+		# --- PHASE 2: COMBAT (Damage/Tire/Retal) ---
+		if do_combat:
+			var enemy_block = enemy_card.block_value + enemy_card.dodge_value
+			if my_card.guard_break: enemy_block = 0
+			var net_damage = max(0, my_card.damage - enemy_block)
+			
+			# Attack
+			if net_damage > 0:
+				target.current_hp -= net_damage
+				emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
+				
+				if my_card.tiring > 0:
+					target.current_sp = max(0, target.current_sp - my_card.tiring)
+					emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
+			elif my_card.damage > 0:
+				emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked/dodged.")
 
-		if my_card.recover_value > 0: 
-			owner.current_sp = min(owner.current_sp + my_card.recover_value, owner.max_sp)
-		if my_card.heal_value > 0: 
-			owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
+			# Retaliate
+			if my_card.damage > 0 and enemy_card.retaliate:
+				var raw_recoil = my_card.damage
+				var self_block = my_card.block_value + my_card.dodge_value
+				var net_recoil = max(0, raw_recoil - self_block)
+				
+				if net_recoil > 0:
+					owner.current_hp -= net_recoil
+					emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
+					if owner.current_hp <= 0:
+						emit_signal("combat_log_updated", ">> P" + str(owner_id) + " DIED from Retaliation! <<")
+						result["fatal"] = true
+						return result
+				else:
+					emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
 
-		if not ignore_momentum:
+			if target.current_hp <= 0:
+				emit_signal("combat_log_updated", ">> FATAL HIT on P" + str(target_id) + "! <<")
+				result["fatal"] = true
+				return result
+				
+			if my_card.create_opening > 0:
+				emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
+				result["opening"] = my_card.create_opening
+
+		# --- PHASE 3: MOMENTUM ---
+		if do_momentum and not ignore_momentum:
 			var gain = my_card.momentum_gain
 			var loss = my_card.fall_back_value 
 			if owner_id == 1:
@@ -265,10 +339,6 @@ func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, en
 			else:
 				momentum = clampi(momentum + gain - loss, 1, 8)
 				
-	if my_card.create_opening > 0:
-		emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
-		result["opening"] = my_card.create_opening
-		
 	return result
 
 func swap_priority():
