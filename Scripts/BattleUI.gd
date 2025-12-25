@@ -77,10 +77,13 @@ func _switch_tab(type):
 	current_tab = type
 	_refresh_grid()
 	
-	if not btn_offence.disabled:
-		btn_offence.modulate = Color.WHITE if type == ActionData.Type.OFFENCE else Color(0.6, 0.6, 0.6)
-	if not btn_defence.disabled:
-		btn_defence.modulate = Color.WHITE if type == ActionData.Type.DEFENCE else Color(0.6, 0.6, 0.6)
+	# Helper lambda to update button visuals
+	var update_btn = func(btn, is_active):
+		if not btn.disabled:
+			btn.modulate = Color.WHITE if is_active else Color(0.6, 0.6, 0.6)
+
+	update_btn.call(btn_offence, type == ActionData.Type.OFFENCE)
+	update_btn.call(btn_defence, type == ActionData.Type.DEFENCE)
 
 func _refresh_grid():
 	for child in button_grid.get_children():

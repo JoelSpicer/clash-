@@ -125,46 +125,15 @@ func resolve_clash():
 	var p1_is_free = (p1_locked_card != null)
 	var p2_is_free = (p2_locked_card != null)
 	
-	# --- RESET NEXT TURN CONSTRAINTS ---
-	var next_p1_limit = 99
-	var next_p2_limit = 99
-	var next_p1_opening = 0
-	var next_p2_opening = 0
-	
 	# 2. EXECUTE BOTH CARDS
 	var p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_is_free)
 	var p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_is_free)
 	
-	var p1_fatal = p1_results["fatal"]
-	var p2_fatal = p2_results["fatal"]
+	# 3. UPDATE CONSTRAINTS (Refactored into helper)
+	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue)
 	
-	# --- UPDATE CONSTRAINTS (Create Opening + Multi Self-Limit) ---
-	
-	# A. Create Opening (Constrains Opponent, Unlocks My Counter)
-	if p1_results["opening"] > 0:
-		next_p2_limit = min(next_p2_limit, p1_results["opening"]) 
-		next_p1_opening = p1_results["opening"] 
-	
-	if p2_results["opening"] > 0:
-		next_p1_limit = min(next_p1_limit, p2_results["opening"])
-		next_p2_opening = p2_results["opening"]
-		
-	# B. Multi (Constrains Self)
-	# If I used a Multi card, I limit MYSELF next turn.
-	if p1_action_queue.multi_limit > 0:
-		next_p1_limit = min(next_p1_limit, p1_action_queue.multi_limit)
-		
-	if p2_action_queue.multi_limit > 0:
-		next_p2_limit = min(next_p2_limit, p2_action_queue.multi_limit)
-		
-	# Apply to Globals
-	p1_cost_limit = next_p1_limit
-	p2_cost_limit = next_p2_limit
-	p1_opening_stat = next_p1_opening
-	p2_opening_stat = next_p2_opening
-	
-	# 3. CHECK FOR DEATH
-	if p1_fatal or p2_fatal:
+	# 4. CHECK FOR DEATH
+	if p1_results["fatal"] or p2_results["fatal"]:
 		var game_winner = 0
 		if p1_data.current_hp > 0: game_winner = 1
 		elif p2_data.current_hp > 0: game_winner = 2
@@ -173,12 +142,12 @@ func resolve_clash():
 		reset_combat() 
 		return 
 	
-	# 4. INITIAL CLASH SNAP
+	# 5. INITIAL CLASH SNAP
 	if is_initial_clash:
 		momentum = 4 if winner_id == 1 else 5
 		emit_signal("combat_log_updated", "Initial Clash Set! Momentum: " + str(momentum))
 	
-	# 5. REVERSAL / INITIATIVE CHECK
+	# 6. REVERSAL / INITIATIVE CHECK
 	var loser_id = 3 - winner_id
 	var loser_card = p1_action_queue if loser_id == 1 else p2_action_queue
 	
@@ -203,9 +172,7 @@ func resolve_clash():
 			if not reversal_triggered:
 				current_combo_attacker = active_attacker
 
-	# 6. MULTI / LOCK LOGIC (Keep existing lock logic if desired, or remove if redundant)
-	# NOTE: Currently Multi does BOTH: Constraints Self Cost AND Locks Loser (if they lost).
-	# This seems to be the intended dual-functionality.
+	# 7. MULTI / LOCK LOGIC
 	p1_locked_card = null
 	p2_locked_card = null
 	
@@ -222,6 +189,33 @@ func resolve_clash():
 	
 	change_state(State.POST_CLASH)
 	change_state(State.SELECTION)
+
+# --- NEW HELPER ---
+func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card):
+	# Start fresh
+	var next_p1_limit = 99
+	var next_p2_limit = 99
+	var next_p1_opening = 0
+	var next_p2_opening = 0
+	
+	# A. Create Opening (Constrains Opponent, Unlocks My Counter)
+	if p1_res["opening"] > 0:
+		next_p2_limit = min(next_p2_limit, p1_res["opening"]) 
+		next_p1_opening = p1_res["opening"] 
+	
+	if p2_res["opening"] > 0:
+		next_p1_limit = min(next_p1_limit, p2_res["opening"])
+		next_p2_opening = p2_res["opening"]
+		
+	# B. Multi (Constrains Self)
+	if p1_card.multi_limit > 0: next_p1_limit = min(next_p1_limit, p1_card.multi_limit)
+	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
+		
+	# Apply
+	p1_cost_limit = next_p1_limit
+	p2_cost_limit = next_p2_limit
+	p1_opening_stat = next_p1_opening
+	p2_opening_stat = next_p2_opening
 
 func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool = false, is_free: bool = false) -> Dictionary:
 	var owner = p1_data if owner_id == 1 else p2_data
