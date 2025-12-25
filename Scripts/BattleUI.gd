@@ -12,6 +12,8 @@ var card_button_scene = preload("res://Scenes/CardButton.tscn")
 var current_deck: Array[ActionData] = []
 var current_tab = ActionData.Type.OFFENCE
 
+var super_allowed: bool = false # NEW
+
 var current_sp_limit: int = 0 
 var opener_restriction: bool = false
 var turn_cost_limit: int = 99 # Replaces cost_limit_from_opponent
@@ -33,13 +35,15 @@ func load_deck(deck: Array[ActionData]):
 	_refresh_grid()
 
 # UPDATED: 'max_cost' now represents the STRICTEST limit (from Opponent OR Self)
-func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0):
+# UPDATED: Added 'can_use_super'
+func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false):
 	visible = true
 	is_locked = false
 	current_sp_limit = player_current_sp
 	opener_restriction = must_be_opener
-	turn_cost_limit = max_cost # Can be from Opponent's Opening OR My Multi
+	turn_cost_limit = max_cost 
 	my_opening_value = opening_val
+	super_allowed = can_use_super # Store permission
 	
 	if forced_tab != null:
 		_switch_tab(forced_tab)
@@ -60,6 +64,7 @@ func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool =
 	if opener_restriction: log_text += " | OPENERS ONLY"
 	if turn_cost_limit < 99: log_text += " | MAX COST " + str(turn_cost_limit)
 	if my_opening_value > 0: log_text += " | OPENING LVL " + str(my_opening_value)
+	if super_allowed: log_text += " | SUPER AVAILABLE!"
 	
 	print("[UI] Unlocked. " + log_text)
 
@@ -103,7 +108,7 @@ func _refresh_grid():
 			if opener_restriction and card.type == ActionData.Type.OFFENCE:
 				if not card.is_opener: passes_opener = false
 			
-			# CHECK 3: Max Cost Constraint (Multi / Opponent Opening)
+			# CHECK 3: Max Cost Constraint
 			var passes_cost_limit = (card.cost <= turn_cost_limit)
 			
 			# CHECK 4: Counter Requirement
@@ -112,7 +117,12 @@ func _refresh_grid():
 				if my_opening_value < card.counter_value:
 					passes_counter = false
 
-			btn.set_available(is_affordable and passes_opener and passes_cost_limit and passes_counter)
+			# NEW CHECK 5: Super Restriction
+			var passes_super = true
+			if card.is_super and not super_allowed:
+				passes_super = false
+
+			btn.set_available(is_affordable and passes_opener and passes_cost_limit and passes_counter and passes_super)
 			
 			btn.card_hovered.connect(_on_card_hovered)
 			btn.card_selected.connect(_on_card_selected)

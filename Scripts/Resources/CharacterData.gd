@@ -25,7 +25,9 @@ enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL }
 @export_group("Runtime State")
 var current_hp: int
 var current_sp: int
+var has_used_super: bool = false # NEW: Tracks usage limit
 
 func reset_stats():
 	current_hp = max_hp
 	current_sp = max_sp
+	has_used_super = false # Reset at start of combat

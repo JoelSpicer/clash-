@@ -50,27 +50,33 @@ func _start_turn_sequence():
 		_run_bot_turn(1)
 
 # --- NEW HELPER: CONSOLIDATED LOGIC ---
-# Calculates all rules (Opener, Cost, Filter) in one place
 func _get_player_constraints(player_id: int) -> Dictionary:
 	var attacker_id = GameManager.get_attacker()
 	var is_combo = (GameManager.current_combo_attacker != 0)
 	var mom = GameManager.momentum
 	
 	var c = {
-		"filter": null,          # ActionData.Type (for Bot)
-		"required_tab": null,    # ActionData.Type (for UI)
+		"filter": null,          
+		"required_tab": null,   
 		"needs_opener": false,
 		"max_cost": 99,
-		"opening_stat": 0
+		"opening_stat": 0,
+		"can_use_super": false # NEW: Super Permission
 	}
 	
-	# 1. Fetch Stats from GameManager
+	# 1. Fetch Stats & Check Super Conditions
 	if player_id == 1:
 		c.max_cost = GameManager.p1_cost_limit
 		c.opening_stat = GameManager.p1_opening_stat
+		# P1 Super Condition: Momentum must be 1 (End of P1 Side) AND Not Used
+		if mom == 1 and not p1_resource.has_used_super:
+			c.can_use_super = true
 	else:
 		c.max_cost = GameManager.p2_cost_limit
 		c.opening_stat = GameManager.p2_opening_stat
+		# P2 Super Condition: Momentum must be 8 (End of P2 Side) AND Not Used
+		if mom == 8 and not p2_resource.has_used_super:
+			c.can_use_super = true
 
 	# 2. Determine Role
 	if attacker_id != 0:
@@ -112,7 +118,16 @@ func _prepare_human_turn(player_id: int):
 	else: print("[GUIDE P" + str(player_id) + "] Neutral.")
 		
 	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
-	battle_ui.unlock_for_input(c.required_tab, character.current_sp, c.needs_opener, c.max_cost, c.opening_stat)
+	
+	# Pass "can_use_super" to UI
+	battle_ui.unlock_for_input(
+		c.required_tab, 
+		character.current_sp, 
+		c.needs_opener, 
+		c.max_cost, 
+		c.opening_stat,
+		c.can_use_super 
+	)
 
 func _on_human_input_received(card: ActionData):
 	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
@@ -130,23 +145,21 @@ func _on_human_input_received(card: ActionData):
 func _run_bot_turn(player_id: int):
 	var character = p1_resource if player_id == 1 else p2_resource
 	
-	# Check Debug Force (P2 Only)
 	if player_id == 2 and p2_debug_force_card != null:
 		print(">>> DEBUG FORCE P2: " + p2_debug_force_card.display_name)
 		GameManager.player_select_action(2, p2_debug_force_card)
 		return
 
-	# Check Locks
 	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
 	if locked_card:
 		print(">>> BOT P" + str(player_id) + " LOCKED into: " + locked_card.display_name)
 		_handle_bot_completion(player_id)
 		return
 
-	# Use Helper
 	var c = _get_player_constraints(player_id)
 	
-	var card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat)
+	# Pass "can_use_super" to Bot Brain
+	var card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super)
 	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
 	GameManager.player_select_action(player_id, card)
 	
@@ -161,7 +174,7 @@ func _handle_bot_completion(player_id):
 
 # --- BOT BRAIN ---
 
-func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int) -> ActionData:
+func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool) -> ActionData:
 	var valid_options = []
 	var affordable_backups = []
 	
@@ -171,6 +184,9 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
 		if card.cost > max_cost: continue
 		if card.counter_value > 0 and my_opening < card.counter_value: continue
+		
+		# NEW: Super Check
+		if card.is_super and not allow_super: continue
 		
 		# Validation Succeeded
 		if card.cost <= character.current_sp:

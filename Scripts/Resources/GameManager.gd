@@ -134,14 +134,21 @@ func resolve_clash():
 	var p2_is_free = (p2_locked_card != null)
 	
 	# --- SNAPSHOT STATUS ---
-	# Capture who was injured BEFORE this turn resolved.
-	# We use this to ensure we don't tick damage on a FRESH injury.
 	var p1_started_injured = p1_is_injured
 	var p2_started_injured = p2_is_injured
 	
-	# --- PHASE 0: PAY COSTS ---
+	# --- PHASE 0: PAY COSTS & CONSUME SUPER ---
 	var p1_active = _pay_cost(1, p1_action_queue, p1_is_free)
 	var p2_active = _pay_cost(2, p2_action_queue, p2_is_free)
+
+	# NEW: Mark Super as used if cost was paid
+	if p1_active and p1_action_queue.is_super:
+		p1_data.has_used_super = true
+		emit_signal("combat_log_updated", ">> P1 unleashes their Ultimate Art!")
+		
+	if p2_active and p2_action_queue.is_super:
+		p2_data.has_used_super = true
+		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
 
 	# --- PHASE 1: SELF EFFECTS (Recover/Heal/Cure) ---
 	if p1_active: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, true, false, false)
@@ -154,10 +161,8 @@ func resolve_clash():
 	if p1_active: p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, true, false)
 	if p2_active: p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, true, false)
 	
-	# Update Constraints
 	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue)
 	
-	# Check Death (From Combat)
 	if p1_results["fatal"] or p2_results["fatal"]:
 		_handle_death(winner_id)
 		return 
@@ -166,18 +171,13 @@ func resolve_clash():
 	var p1_is_offence = (p1_action_queue.type == ActionData.Type.OFFENCE)
 	var p2_is_offence = (p2_action_queue.type == ActionData.Type.OFFENCE)
 	
-	# Offence First
 	if p1_active and p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, false, true)
 	if p2_active and p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, false, true)
 	
-	# Defence Second
 	if p1_active and not p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, false, true)
 	if p2_active and not p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, false, true)
 	
-	# --- PHASE 4: STATUS TICK (End of Clash) ---
-	# Rule: "Opponent loses 1 HP every clash... EXCEPT the clash where Injure is applied."
-	# Logic: We only tick damage if they were injured at START (started_injured) AND are still injured (is_injured).
-	
+	# --- PHASE 4: STATUS TICK ---
 	if p1_started_injured and p1_is_injured:
 		p1_data.current_hp -= 1
 		emit_signal("combat_log_updated", ">> P1 takes 1 damage from Injury.")
