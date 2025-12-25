@@ -14,9 +14,7 @@ var current_tab = ActionData.Type.OFFENCE
 
 var current_sp_limit: int = 0 
 var opener_restriction: bool = false
-
-# NEW: Constraint variables
-var cost_limit_from_opponent: int = 99
+var turn_cost_limit: int = 99 # Replaces cost_limit_from_opponent
 var my_opening_value: int = 0
 
 var is_locked = false
@@ -34,13 +32,13 @@ func load_deck(deck: Array[ActionData]):
 	current_deck = deck
 	_refresh_grid()
 
-# UPDATED: Now accepts 'max_cost' and 'opening_val'
+# UPDATED: 'max_cost' now represents the STRICTEST limit (from Opponent OR Self)
 func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0):
 	visible = true
 	is_locked = false
 	current_sp_limit = player_current_sp
 	opener_restriction = must_be_opener
-	cost_limit_from_opponent = max_cost
+	turn_cost_limit = max_cost # Can be from Opponent's Opening OR My Multi
 	my_opening_value = opening_val
 	
 	if forced_tab != null:
@@ -60,7 +58,7 @@ func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool =
 
 	var log_text = "SP: " + str(current_sp_limit)
 	if opener_restriction: log_text += " | OPENERS ONLY"
-	if cost_limit_from_opponent < 99: log_text += " | MAX COST " + str(cost_limit_from_opponent)
+	if turn_cost_limit < 99: log_text += " | MAX COST " + str(turn_cost_limit)
 	if my_opening_value > 0: log_text += " | OPENING LVL " + str(my_opening_value)
 	
 	print("[UI] Unlocked. " + log_text)
@@ -102,8 +100,8 @@ func _refresh_grid():
 			if opener_restriction and card.type == ActionData.Type.OFFENCE:
 				if not card.is_opener: passes_opener = false
 			
-			# CHECK 3: Max Cost Constraint (Create Opening)
-			var passes_cost_limit = (card.cost <= cost_limit_from_opponent)
+			# CHECK 3: Max Cost Constraint (Multi / Opponent Opening)
+			var passes_cost_limit = (card.cost <= turn_cost_limit)
 			
 			# CHECK 4: Counter Requirement
 			var passes_counter = true
