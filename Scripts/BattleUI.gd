@@ -13,6 +13,7 @@ var current_deck: Array[ActionData] = []
 var current_tab = ActionData.Type.OFFENCE
 
 var super_allowed: bool = false # NEW
+var my_opportunity_val: int = 0
 
 var current_sp_limit: int = 0 
 var opener_restriction: bool = false
@@ -36,15 +37,17 @@ func load_deck(deck: Array[ActionData]):
 
 # UPDATED: 'max_cost' now represents the STRICTEST limit (from Opponent OR Self)
 # UPDATED: Added 'can_use_super'
-func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false):
+func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0):
 	visible = true
 	is_locked = false
 	current_sp_limit = player_current_sp
 	opener_restriction = must_be_opener
 	turn_cost_limit = max_cost 
 	my_opening_value = opening_val
-	super_allowed = can_use_super # Store permission
+	super_allowed = can_use_super 
+	my_opportunity_val = opportunity_val # Store it
 	
+	# ... (Tab logic unchanged) ...
 	if forced_tab != null:
 		_switch_tab(forced_tab)
 		if forced_tab == ActionData.Type.OFFENCE:
@@ -63,8 +66,7 @@ func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool =
 	var log_text = "SP: " + str(current_sp_limit)
 	if opener_restriction: log_text += " | OPENERS ONLY"
 	if turn_cost_limit < 99: log_text += " | MAX COST " + str(turn_cost_limit)
-	if my_opening_value > 0: log_text += " | OPENING LVL " + str(my_opening_value)
-	if super_allowed: log_text += " | SUPER AVAILABLE!"
+	if my_opportunity_val > 0: log_text += " | OPPORTUNITY -" + str(my_opportunity_val) + " COST"
 	
 	print("[UI] Unlocked. " + log_text)
 
@@ -100,24 +102,26 @@ func _refresh_grid():
 			button_grid.add_child(btn)
 			btn.setup(card)
 			
-			# CHECK 1: SP Affordability
-			var is_affordable = (card.cost <= current_sp_limit)
+			# 1. Calculate Discount
+			var effective_cost = max(0, card.cost - my_opportunity_val)
 			
-			# CHECK 2: Opener Restriction
+			# 2. Update Visuals (The Fix)
+			btn.update_cost_display(effective_cost)
+			
+			# 3. Logic Checks (Using effective_cost)
+			var is_affordable = (effective_cost <= current_sp_limit)
+			
 			var passes_opener = true
 			if opener_restriction and card.type == ActionData.Type.OFFENCE:
 				if not card.is_opener: passes_opener = false
 			
-			# CHECK 3: Max Cost Constraint
 			var passes_cost_limit = (card.cost <= turn_cost_limit)
 			
-			# CHECK 4: Counter Requirement
 			var passes_counter = true
 			if card.counter_value > 0:
 				if my_opening_value < card.counter_value:
 					passes_counter = false
 
-			# NEW CHECK 5: Super Restriction
 			var passes_super = true
 			if card.is_super and not super_allowed:
 				passes_super = false
@@ -128,5 +132,8 @@ func _refresh_grid():
 			btn.card_selected.connect(_on_card_selected)
 
 func _on_card_hovered(card: ActionData):
-	preview_card.set_card_data(card)
+	# NEW: Calculate cost again for the preview so it matches the button
+	var effective_cost = max(0, card.cost - my_opportunity_val)
+	
+	preview_card.set_card_data(card, effective_cost)
 	preview_card.visible = true

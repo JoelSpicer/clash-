@@ -24,6 +24,11 @@ var p2_cost_limit: int = 99
 var p1_opening_stat: int = 0    
 var p2_opening_stat: int = 0
 
+# --- NEW: OPPORTUNITY STATS ---
+# Stores the "Opportunity X" value from the PREVIOUS turn.
+var p1_opportunity_stat: int = 0
+var p2_opportunity_stat: int = 0
+
 # --- STATUS EFFECTS ---
 var p1_is_injured: bool = false
 var p2_is_injured: bool = false
@@ -53,7 +58,10 @@ func reset_combat():
 	p1_opening_stat = 0
 	p2_opening_stat = 0
 	
-	# Reset Status
+	# Reset Opportunity
+	p1_opportunity_stat = 0
+	p2_opportunity_stat = 0
+	
 	p1_is_injured = false
 	p2_is_injured = false
 	
@@ -116,7 +124,8 @@ func _enter_reveal_phase():
 func resolve_clash():
 	var winner_id = 0
 	
-	# 1. DETERMINE WINNER
+	# 1. DETERMINE WINNER (Logic uses Base Cost, ignoring Opportunity discount)
+	# "Opportunity" makes it easier to afford, but doesn't change the card's raw speed/weight.
 	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
 	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
 	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
@@ -133,33 +142,32 @@ func resolve_clash():
 	var p1_is_free = (p1_locked_card != null)
 	var p2_is_free = (p2_locked_card != null)
 	
-	# --- SNAPSHOT STATUS ---
 	var p1_started_injured = p1_is_injured
 	var p2_started_injured = p2_is_injured
 	
 	# --- PHASE 0: PAY COSTS & CONSUME SUPER ---
-	var p1_active = _pay_cost(1, p1_action_queue, p1_is_free)
-	var p2_active = _pay_cost(2, p2_action_queue, p2_is_free)
+	# NEW: Pass 'opportunity_stat' to reduce cost
+	var p1_active = _pay_cost(1, p1_action_queue, p1_is_free, p1_opportunity_stat)
+	var p2_active = _pay_cost(2, p2_action_queue, p2_is_free, p2_opportunity_stat)
 
-	# NEW: Mark Super as used if cost was paid
 	if p1_active and p1_action_queue.is_super:
 		p1_data.has_used_super = true
 		emit_signal("combat_log_updated", ">> P1 unleashes their Ultimate Art!")
-		
 	if p2_active and p2_action_queue.is_super:
 		p2_data.has_used_super = true
 		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
 
-	# --- PHASE 1: SELF EFFECTS (Recover/Heal/Cure) ---
-	if p1_active: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, true, false, false)
-	if p2_active: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, true, false, false)
+	# --- PHASE 1: SELF EFFECTS ---
+	# Note: We pass '0' for opportunity here because it only affects Momentum (Phase 3)
+	if p1_active: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, 0, true, false, false)
+	if p2_active: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, 0, true, false, false)
 
-	# --- PHASE 2: COMBAT EFFECTS (Damage/Tire/Retaliate/Apply Injure) ---
-	var p1_results = { "fatal": false, "opening": 0 }
-	var p2_results = { "fatal": false, "opening": 0 }
+	# --- PHASE 2: COMBAT EFFECTS ---
+	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
+	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
-	if p1_active: p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, true, false)
-	if p2_active: p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, true, false)
+	if p1_active: p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, 0, false, true, false)
+	if p2_active: p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, 0, false, true, false)
 	
 	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue)
 	
@@ -168,14 +176,15 @@ func resolve_clash():
 		return 
 	
 	# --- PHASE 3: MOMENTUM ---
+	# NEW: Pass 'opportunity_stat' to boost momentum gain
 	var p1_is_offence = (p1_action_queue.type == ActionData.Type.OFFENCE)
 	var p2_is_offence = (p2_action_queue.type == ActionData.Type.OFFENCE)
 	
-	if p1_active and p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, false, true)
-	if p2_active and p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, false, true)
+	if p1_active and p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_opportunity_stat, false, false, true)
+	if p2_active and p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_opportunity_stat, false, false, true)
 	
-	if p1_active and not p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, false, false, true)
-	if p2_active and not p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, false, false, true)
+	if p1_active and not p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_opportunity_stat, false, false, true)
+	if p2_active and not p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_opportunity_stat, false, false, true)
 	
 	# --- PHASE 4: STATUS TICK ---
 	if p1_started_injured and p1_is_injured:
@@ -209,15 +218,25 @@ func resolve_clash():
 
 # --- HELPER FUNCTIONS ---
 
-func _pay_cost(player_id: int, card: ActionData, is_free: bool) -> bool:
+# UPDATED: Now accepts opportunity_val
+func _pay_cost(player_id: int, card: ActionData, is_free: bool, opportunity_val: int) -> bool:
 	var character = p1_data if player_id == 1 else p2_data
-	var cost = card.cost
+	var raw_cost = card.cost
+	
+	# Apply Opportunity Discount (min cost 0)
+	var effective_cost = max(0, raw_cost - opportunity_val)
+	
 	if is_free: 
-		cost = 0
+		effective_cost = 0
 		emit_signal("combat_log_updated", "P" + str(player_id) + " locked by Multi: Action is FREE.")
 	
-	if character.current_sp >= cost:
-		character.current_sp -= cost
+	# Optional: Log the discount
+	if opportunity_val > 0 and not is_free:
+		# emit_signal("combat_log_updated", ">> Opportunity! Cost reduced by " + str(opportunity_val))
+		pass
+
+	if character.current_sp >= effective_cost:
+		character.current_sp -= effective_cost
 		return true
 	else:
 		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
@@ -268,7 +287,9 @@ func _handle_locks(winner_id):
 		if winner_id == 1: p2_locked_card = loser_card_obj
 		else: p1_locked_card = loser_card_obj
 
+# UPDATED: Sets Opportunity for next turn
 func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card):
+	# ... (Existing Logic) ...
 	var next_p1_limit = 99
 	var next_p2_limit = 99
 	var next_p1_opening = 0
@@ -289,23 +310,30 @@ func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card):
 	p1_opening_stat = next_p1_opening
 	p2_opening_stat = next_p2_opening
 
+	# NEW: Set Opportunity for NEXT turn
+	p1_opportunity_stat = p1_res["opportunity"]
+	p2_opportunity_stat = p2_res["opportunity"]
+	
+	if p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity (Moves are cheaper next turn).")
+	if p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity (Moves are cheaper next turn).")
+
 # --- CORE LOGIC ---
-func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool, do_self: bool, do_combat: bool, do_momentum: bool) -> Dictionary:
+# UPDATED: Accepts 'opportunity_val' for Momentum Bonus
+func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool, opportunity_val: int, do_self: bool, do_combat: bool, do_momentum: bool) -> Dictionary:
 	var owner = p1_data if owner_id == 1 else p2_data
 	var target = p2_data if owner_id == 1 else p1_data
-	var result = { "fatal": false, "opening": 0 }
+	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
 	var total_hits = max(1, my_card.repeat_count)
 	for i in range(total_hits):
 		
-		# --- PHASE 1: SELF (Recover/Heal/Cure) ---
+		# --- PHASE 1: SELF ---
 		if do_self:
 			if my_card.recover_value > 0: 
 				owner.current_sp = min(owner.current_sp + my_card.recover_value, owner.max_sp)
 			if my_card.heal_value > 0: 
 				owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
 
-			# CURE INJURY
 			if my_card.heal_value > 0 or my_card.fall_back_value > 0:
 				if owner_id == 1 and p1_is_injured:
 					p1_is_injured = false
@@ -314,69 +342,69 @@ func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, en
 					p2_is_injured = false
 					emit_signal("combat_log_updated", ">> P2 cures Injury!")
 
-		# --- PHASE 2: COMBAT (Damage/Tire/Retal/Injure) ---
+		# --- PHASE 2: COMBAT ---
 		if do_combat:
 			var enemy_block = enemy_card.block_value + enemy_card.dodge_value
 			if my_card.guard_break: enemy_block = 0
 			var net_damage = max(0, my_card.damage - enemy_block)
 			
-			# Attack
 			if net_damage > 0:
 				target.current_hp -= net_damage
 				emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
 				
-				# Tiring
 				if my_card.tiring > 0:
 					target.current_sp = max(0, target.current_sp - my_card.tiring)
 					emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
 				
-				# Apply Injury
 				if my_card.injure:
 					if target_id == 1 and not p1_is_injured:
 						p1_is_injured = true
-						emit_signal("combat_log_updated", ">> P1 is Injured! (Takes damage next turn)")
+						emit_signal("combat_log_updated", ">> P1 is Injured!")
 					elif target_id == 2 and not p2_is_injured:
 						p2_is_injured = true
-						emit_signal("combat_log_updated", ">> P2 is Injured! (Takes damage next turn)")
+						emit_signal("combat_log_updated", ">> P2 is Injured!")
 
 			elif my_card.damage > 0:
 				emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked/dodged.")
 
-			# Retaliate
 			if my_card.damage > 0 and enemy_card.retaliate:
 				var raw_recoil = my_card.damage
 				var self_block = my_card.block_value + my_card.dodge_value
 				var net_recoil = max(0, raw_recoil - self_block)
-				
 				if net_recoil > 0:
 					owner.current_hp -= net_recoil
 					emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
 					if owner.current_hp <= 0:
-						emit_signal("combat_log_updated", ">> P" + str(owner_id) + " DIED from Retaliation! <<")
 						result["fatal"] = true
 						return result
 				else:
 					emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
 
 			if target.current_hp <= 0:
-				emit_signal("combat_log_updated", ">> FATAL HIT on P" + str(target_id) + "! <<")
 				result["fatal"] = true
 				return result
 				
 			if my_card.create_opening > 0:
 				emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
 				result["opening"] = my_card.create_opening
+			
+			# NEW: Store Opportunity for next turn
+			if my_card.opportunity > 0:
+				result["opportunity"] = my_card.opportunity
 
 		# --- PHASE 3: MOMENTUM ---
 		if do_momentum and not ignore_momentum:
-			var gain = my_card.momentum_gain
+			var base_gain = my_card.momentum_gain
+			# Apply Opportunity Boost
+			var actual_gain = base_gain + opportunity_val
+			
 			var loss = my_card.fall_back_value 
 			if owner_id == 1:
-				momentum = clampi(momentum - gain + loss, 1, 8)
+				momentum = clampi(momentum - actual_gain + loss, 1, 8)
 			else:
-				momentum = clampi(momentum + gain - loss, 1, 8)
+				momentum = clampi(momentum + actual_gain - loss, 1, 8)
 				
 	return result
-
+	
 func swap_priority():
 	priority_player = 3 - priority_player

@@ -61,7 +61,9 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 		"needs_opener": false,
 		"max_cost": 99,
 		"opening_stat": 0,
-		"can_use_super": false # NEW: Super Permission
+		"can_use_super": false, # NEW: Super Permission
+		"opportunity_stat": 0 # NEW
+		
 	}
 	
 	# 1. Fetch Stats & Check Super Conditions
@@ -74,6 +76,7 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 	else:
 		c.max_cost = GameManager.p2_cost_limit
 		c.opening_stat = GameManager.p2_opening_stat
+		c.opportunity_stat = GameManager.p2_opportunity_stat # Get Value
 		# P2 Super Condition: Momentum must be 8 (End of P2 Side) AND Not Used
 		if mom == 8 and not p2_resource.has_used_super:
 			c.can_use_super = true
@@ -126,7 +129,8 @@ func _prepare_human_turn(player_id: int):
 		c.needs_opener, 
 		c.max_cost, 
 		c.opening_stat,
-		c.can_use_super 
+		c.can_use_super, 
+		c.opportunity_stat # Pass New Arg
 	)
 
 func _on_human_input_received(card: ActionData):
@@ -159,7 +163,7 @@ func _run_bot_turn(player_id: int):
 	var c = _get_player_constraints(player_id)
 	
 	# Pass "can_use_super" to Bot Brain
-	var card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super)
+	var card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
 	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
 	GameManager.player_select_action(player_id, card)
 	
@@ -174,7 +178,7 @@ func _handle_bot_completion(player_id):
 
 # --- BOT BRAIN ---
 
-func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool) -> ActionData:
+func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
 	var valid_options = []
 	var affordable_backups = []
 	
@@ -192,6 +196,14 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		if card.cost <= character.current_sp:
 			valid_options.append(card)
 		elif card.cost == 0:
+			affordable_backups.append(card)
+		
+		# NEW: Calculate discounted cost
+		var effective_cost = max(0, card.cost - my_opportunity)
+
+		if effective_cost <= character.current_sp:
+			valid_options.append(card)
+		elif effective_cost == 0:
 			affordable_backups.append(card)
 	
 	if valid_options.size() > 0: return valid_options.pick_random()

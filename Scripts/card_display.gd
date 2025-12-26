@@ -12,10 +12,17 @@ extends Control
 const OFFENCE_COLOR = Color("#d14d4d") # Red
 const DEFENCE_COLOR = Color("#4d8ad1") # Blue
 
-func set_card_data(action: ActionData):
+# UPDATED: Added 'override_cost' with a default value of -1 (ignore)
+func set_card_data(action: ActionData, override_cost: int = -1):
 	# 1. Set Basic Text
 	name_label.text = action.display_name
-	cost_label.text = str(action.cost) + " SP"
+	
+	# NEW: Check for override
+	var final_cost = action.cost
+	if override_cost != -1:
+		final_cost = override_cost
+		
+	cost_label.text = str(final_cost) + " SP"
 	desc_label.text = action.description
 	
 	# 2. Set Art (if it exists, otherwise use a placeholder color)

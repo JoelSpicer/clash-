@@ -33,3 +33,13 @@ func _pressed():
 
 func _on_mouse_entered():
 	emit_signal("card_hovered", my_action)
+
+# Updates the text to show the discounted price
+func update_cost_display(new_cost: int):
+	$CostLabel.text = str(new_cost) + " SP"
+	
+	# Optional: Turn the text Green if it's cheaper than normal
+	if new_cost < my_action.cost:
+		$CostLabel.modulate = Color(0.5, 1.0, 0.5) # Light Green
+	else:
+		$CostLabel.modulate = Color(1, 1, 1)
