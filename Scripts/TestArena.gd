@@ -61,25 +61,32 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 		"needs_opener": false,
 		"max_cost": 99,
 		"opening_stat": 0,
-		"can_use_super": false, # NEW: Super Permission
-		"opportunity_stat": 0 # NEW
-		
+		"can_use_super": false,
+		"opportunity_stat": 0 
 	}
 	
-	# 1. Fetch Stats & Check Super Conditions
+	# 1. Fetch Stats
 	if player_id == 1:
 		c.max_cost = GameManager.p1_cost_limit
 		c.opening_stat = GameManager.p1_opening_stat
-		# P1 Super Condition: Momentum must be 1 (End of P1 Side) AND Not Used
+		c.opportunity_stat = GameManager.p1_opportunity_stat 
 		if mom == 1 and not p1_resource.has_used_super:
 			c.can_use_super = true
+			
+		# NEW: Parry Forced Opener
+		if GameManager.p1_must_opener:
+			c.needs_opener = true
+			
 	else:
 		c.max_cost = GameManager.p2_cost_limit
 		c.opening_stat = GameManager.p2_opening_stat
-		c.opportunity_stat = GameManager.p2_opportunity_stat # Get Value
-		# P2 Super Condition: Momentum must be 8 (End of P2 Side) AND Not Used
+		c.opportunity_stat = GameManager.p2_opportunity_stat 
 		if mom == 8 and not p2_resource.has_used_super:
 			c.can_use_super = true
+			
+		# NEW: Parry Forced Opener
+		if GameManager.p2_must_opener:
+			c.needs_opener = true
 
 	# 2. Determine Role
 	if attacker_id != 0:
@@ -90,7 +97,7 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 			c.filter = ActionData.Type.DEFENCE
 			c.required_tab = ActionData.Type.DEFENCE
 			
-	# 3. Opener Logic
+	# 3. Standard Opener Logic (OR condition)
 	if mom == 0:
 		c.needs_opener = true
 	elif attacker_id == player_id and not is_combo:

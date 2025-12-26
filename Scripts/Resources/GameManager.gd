@@ -23,11 +23,12 @@ var p1_cost_limit: int = 99
 var p2_cost_limit: int = 99     
 var p1_opening_stat: int = 0    
 var p2_opening_stat: int = 0
-
-# --- NEW: OPPORTUNITY STATS ---
-# Stores the "Opportunity X" value from the PREVIOUS turn.
 var p1_opportunity_stat: int = 0
 var p2_opportunity_stat: int = 0
+
+# NEW: Forced Opener Constraint (from being Parried)
+var p1_must_opener: bool = false
+var p2_must_opener: bool = false
 
 # --- STATUS EFFECTS ---
 var p1_is_injured: bool = false
@@ -57,10 +58,10 @@ func reset_combat():
 	p2_cost_limit = 99
 	p1_opening_stat = 0
 	p2_opening_stat = 0
-	
-	# Reset Opportunity
 	p1_opportunity_stat = 0
 	p2_opportunity_stat = 0
+	p1_must_opener = false
+	p2_must_opener = false
 	
 	p1_is_injured = false
 	p2_is_injured = false
@@ -124,8 +125,7 @@ func _enter_reveal_phase():
 func resolve_clash():
 	var winner_id = 0
 	
-	# 1. DETERMINE WINNER (Logic uses Base Cost, ignoring Opportunity discount)
-	# "Opportunity" makes it easier to afford, but doesn't change the card's raw speed/weight.
+	# 1. DETERMINE WINNER
 	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
 	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
 	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
@@ -145,8 +145,7 @@ func resolve_clash():
 	var p1_started_injured = p1_is_injured
 	var p2_started_injured = p2_is_injured
 	
-	# --- PHASE 0: PAY COSTS & CONSUME SUPER ---
-	# NEW: Pass 'opportunity_stat' to reduce cost
+	# --- PHASE 0: PAY COSTS ---
 	var p1_active = _pay_cost(1, p1_action_queue, p1_is_free, p1_opportunity_stat)
 	var p2_active = _pay_cost(2, p2_action_queue, p2_is_free, p2_opportunity_stat)
 
@@ -157,34 +156,77 @@ func resolve_clash():
 		p2_data.has_used_super = true
 		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
 
-	# --- PHASE 1: SELF EFFECTS ---
-	# Note: We pass '0' for opportunity here because it only affects Momentum (Phase 3)
-	if p1_active: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, 0, true, false, false)
-	if p2_active: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, 0, true, false, false)
+	# --- PHASE 1: SELF EFFECTS (Recover/Heal) ---
+	# Args: (owner, target, my, enemy, ignore, override, use_fixed, self, combat, momentum, immune)
+	if p1_active: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, 0, false, true, false, false, false)
+	if p2_active: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, 0, false, true, false, false, false)
 
-	# --- PHASE 2: COMBAT EFFECTS ---
+	# --- PARRY PRE-CALCULATION ---
+	
+	# 1. Base Momentum Gains (including Opportunity)
+	var p1_base_gain = (p1_action_queue.momentum_gain + p1_opportunity_stat) if p1_active else 0
+	var p2_base_gain = (p2_action_queue.momentum_gain + p2_opportunity_stat) if p2_active else 0
+	var p1_fb = p1_action_queue.fall_back_value if p1_active else 0
+	var p2_fb = p2_action_queue.fall_back_value if p2_active else 0
+	
+	# 2. Determine "Effective" Gains (Parry Steal)
+	var p1_eff_gain = p1_base_gain
+	var p2_eff_gain = p2_base_gain
+	var p1_parrying = (p1_active and p1_action_queue.is_parry)
+	var p2_parrying = (p2_active and p2_action_queue.is_parry)
+	
+	if p1_parrying: p1_eff_gain += p2_base_gain
+	if p2_parrying: p2_eff_gain += p1_base_gain
+	
+	if p1_parrying and not p2_parrying: p2_eff_gain = 0
+	if p2_parrying and not p1_parrying: p1_eff_gain = 0
+	
+	# 3. Calculate Projected Delta
+	var delta = -p1_eff_gain + p1_fb + p2_eff_gain - p2_fb
+	
+	# 4. Check Success
+	var p1_parry_win = false
+	var p2_parry_win = false
+	
+	if p1_parrying and delta < 0: # Net movement Left (P1 Direction)
+		p1_parry_win = true
+		emit_signal("combat_log_updated", ">>> P1 PARRIES! (Momentum Stolen & Immunity)")
+		
+	if p2_parrying and delta > 0: # Net movement Right (P2 Direction)
+		p2_parry_win = true
+		emit_signal("combat_log_updated", ">>> P2 PARRIES! (Momentum Stolen & Immunity)")
+
+	# --- PHASE 2: COMBAT EFFECTS (Damage/Injure/Retaliate) ---
 	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
 	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
-	if p1_active: p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, 0, false, true, false)
-	if p2_active: p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, 0, false, true, false)
+	# Note: 'is_immune' arg applies to the TARGET of the effect.
+	# If P2 won parry, P1's attack on P2 should fail (P2 is immune).
+	var p2_is_immune = p2_parry_win 
+	var p1_is_immune = p1_parry_win
 	
-	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue)
+	# Args: (..., override, use_fixed, self, combat, momentum, immune)
+	if p1_active: p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, 0, false, false, true, false, p2_is_immune)
+	if p2_active: p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, 0, false, false, true, false, p1_is_immune)
+	
+	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue, p1_parry_win, p2_parry_win)
 	
 	if p1_results["fatal"] or p2_results["fatal"]:
 		_handle_death(winner_id)
 		return 
 	
-	# --- PHASE 3: MOMENTUM ---
-	# NEW: Pass 'opportunity_stat' to boost momentum gain
+	# --- PHASE 3: MOMENTUM (With Stolen Values) ---
 	var p1_is_offence = (p1_action_queue.type == ActionData.Type.OFFENCE)
 	var p2_is_offence = (p2_action_queue.type == ActionData.Type.OFFENCE)
 	
-	if p1_active and p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_opportunity_stat, false, false, true)
-	if p2_active and p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_opportunity_stat, false, false, true)
+	# Args: (..., override, use_fixed, self, combat, momentum, immune)
+	# IMPORTANT: 'do_momentum' is TRUE here. 'use_fixed' is TRUE.
 	
-	if p1_active and not p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_opportunity_stat, false, false, true)
-	if p2_active and not p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_opportunity_stat, false, false, true)
+	if p1_active and p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_eff_gain, true, false, false, true, false)
+	if p2_active and p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_eff_gain, true, false, false, true, false)
+	
+	if p1_active and not p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_eff_gain, true, false, false, true, false)
+	if p2_active and not p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_eff_gain, true, false, false, true, false)
 	
 	# --- PHASE 4: STATUS TICK ---
 	if p1_started_injured and p1_is_injured:
@@ -218,23 +260,15 @@ func resolve_clash():
 
 # --- HELPER FUNCTIONS ---
 
-# UPDATED: Now accepts opportunity_val
 func _pay_cost(player_id: int, card: ActionData, is_free: bool, opportunity_val: int) -> bool:
 	var character = p1_data if player_id == 1 else p2_data
 	var raw_cost = card.cost
-	
-	# Apply Opportunity Discount (min cost 0)
 	var effective_cost = max(0, raw_cost - opportunity_val)
 	
 	if is_free: 
 		effective_cost = 0
 		emit_signal("combat_log_updated", "P" + str(player_id) + " locked by Multi: Action is FREE.")
 	
-	# Optional: Log the discount
-	if opportunity_val > 0 and not is_free:
-		# emit_signal("combat_log_updated", ">> Opportunity! Cost reduced by " + str(opportunity_val))
-		pass
-
 	if character.current_sp >= effective_cost:
 		character.current_sp -= effective_cost
 		return true
@@ -287,13 +321,15 @@ func _handle_locks(winner_id):
 		if winner_id == 1: p2_locked_card = loser_card_obj
 		else: p1_locked_card = loser_card_obj
 
-# UPDATED: Sets Opportunity for next turn
-func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card):
-	# ... (Existing Logic) ...
+func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bool = false, p2_parry_win: bool = false):
 	var next_p1_limit = 99
 	var next_p2_limit = 99
 	var next_p1_opening = 0
 	var next_p2_opening = 0
+	
+	# Reset Forced Opener defaults
+	p1_must_opener = false
+	p2_must_opener = false
 	
 	if p1_res["opening"] > 0:
 		next_p2_limit = min(next_p2_limit, p1_res["opening"]) 
@@ -305,21 +341,41 @@ func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card):
 	if p1_card.multi_limit > 0: next_p1_limit = min(next_p1_limit, p1_card.multi_limit)
 	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
 		
+	# NEW: Apply Forced Opener if Parried
+	if p1_parry_win:
+		p2_must_opener = true
+		emit_signal("combat_log_updated", ">> P2 is unbalanced! Must use Opener next turn.")
+	if p2_parry_win:
+		p1_must_opener = true
+		emit_signal("combat_log_updated", ">> P1 is unbalanced! Must use Opener next turn.")
+
 	p1_cost_limit = next_p1_limit
 	p2_cost_limit = next_p2_limit
 	p1_opening_stat = next_p1_opening
 	p2_opening_stat = next_p2_opening
 
-	# NEW: Set Opportunity for NEXT turn
 	p1_opportunity_stat = p1_res["opportunity"]
 	p2_opportunity_stat = p2_res["opportunity"]
 	
-	if p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity (Moves are cheaper next turn).")
-	if p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity (Moves are cheaper next turn).")
+	if p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity.")
+	if p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity.")
 
 # --- CORE LOGIC ---
-# UPDATED: Accepts 'opportunity_val' for Momentum Bonus
-func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, ignore_momentum: bool, opportunity_val: int, do_self: bool, do_combat: bool, do_momentum: bool) -> Dictionary:
+# Signature has exactly 11 Arguments.
+func process_card_effects(
+	owner_id: int, 
+	target_id: int, 
+	my_card: ActionData, 
+	enemy_card: ActionData, 
+	ignore_momentum: bool, 
+	momentum_override: int, 
+	use_fixed_momentum: bool, 
+	do_self: bool, 
+	do_combat: bool, 
+	do_momentum: bool,
+	is_immune: bool = false
+) -> Dictionary:
+	
 	var owner = p1_data if owner_id == 1 else p2_data
 	var target = p2_data if owner_id == 1 else p1_data
 	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
@@ -344,6 +400,12 @@ func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, en
 
 		# --- PHASE 2: COMBAT ---
 		if do_combat:
+			# IMMUNITY CHECK (PARRY)
+			# 'is_immune' means "Target is immune".
+			if is_immune:
+				emit_signal("combat_log_updated", "P" + str(owner_id) + " attack PARRIED/NULLIFIED!")
+				return result
+			
 			var enemy_block = enemy_card.block_value + enemy_card.dodge_value
 			if my_card.guard_break: enemy_block = 0
 			var net_damage = max(0, my_card.damage - enemy_block)
@@ -388,15 +450,17 @@ func process_card_effects(owner_id: int, target_id: int, my_card: ActionData, en
 				emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
 				result["opening"] = my_card.create_opening
 			
-			# NEW: Store Opportunity for next turn
 			if my_card.opportunity > 0:
 				result["opportunity"] = my_card.opportunity
 
 		# --- PHASE 3: MOMENTUM ---
 		if do_momentum and not ignore_momentum:
-			var base_gain = my_card.momentum_gain
-			# Apply Opportunity Boost
-			var actual_gain = base_gain + opportunity_val
+			var actual_gain = 0
+			
+			if use_fixed_momentum:
+				actual_gain = momentum_override
+			else:
+				actual_gain = my_card.momentum_gain + momentum_override # override is opp_val
 			
 			var loss = my_card.fall_back_value 
 			if owner_id == 1:
