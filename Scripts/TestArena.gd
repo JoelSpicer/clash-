@@ -35,12 +35,29 @@ func _on_state_changed(new_state):
 		GameManager.State.SELECTION:
 			await get_tree().create_timer(0.5).timeout
 			_start_turn_sequence()
+			
 		GameManager.State.FEINT_CHECK:
 			await get_tree().create_timer(0.3).timeout
 			print("| --- FEINT PHASE --- |")
-			_start_turn_sequence()
+			_start_feint_input() # NEW
+
 		GameManager.State.POST_CLASH:
 			_print_status_report()
+			
+# NEW FUNCTION: Handles the Feint loop
+func _start_feint_input():
+	if GameManager.p1_pending_feint:
+		print("| --- WAITING FOR P1 FEINT SELECTION --- |")
+		if is_player_1_human:
+			_prepare_human_turn(1)
+		else:
+			_run_bot_turn(1)
+	elif GameManager.p2_pending_feint:
+		print("| --- WAITING FOR P2 FEINT SELECTION --- |")
+		if is_player_2_human:
+			_prepare_human_turn(2)
+		else:
+			_run_bot_turn(2)
 
 func _start_turn_sequence():
 	if is_player_1_human:
@@ -122,14 +139,20 @@ func _prepare_human_turn(player_id: int):
 	# Use Helper
 	var c = _get_player_constraints(player_id)
 	
+	# Detect Feint Mode
+	var is_feinting = (GameManager.current_state == GameManager.State.FEINT_CHECK)
+	
 	# Guide Print
-	if c.required_tab == ActionData.Type.OFFENCE: print("[GUIDE P" + str(player_id) + "] Attack!")
-	elif c.required_tab == ActionData.Type.DEFENCE: print("[GUIDE P" + str(player_id) + "] Defend!")
-	else: print("[GUIDE P" + str(player_id) + "] Neutral.")
+	if is_feinting:
+		print("[GUIDE P" + str(player_id) + "] Feint! Choose a second card to combine, or 'SKIP FEINT'.")
+	else:
+		if c.required_tab == ActionData.Type.OFFENCE: print("[GUIDE P" + str(player_id) + "] Attack!")
+		elif c.required_tab == ActionData.Type.DEFENCE: print("[GUIDE P" + str(player_id) + "] Defend!")
+		else: print("[GUIDE P" + str(player_id) + "] Neutral.")
 		
 	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
 	
-	# Pass "can_use_super" to UI
+	# Pass updated args to UI
 	battle_ui.unlock_for_input(
 		c.required_tab, 
 		character.current_sp, 
@@ -137,19 +160,34 @@ func _prepare_human_turn(player_id: int):
 		c.max_cost, 
 		c.opening_stat,
 		c.can_use_super, 
-		c.opportunity_stat # Pass New Arg
+		c.opportunity_stat,
+		is_feinting # NEW: Feint Flag
 	)
 
 func _on_human_input_received(card: ActionData):
 	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
-	GameManager.player_select_action(_current_input_player, card)
 	
-	if _current_input_player == 1:
-		if is_player_2_human:
-			await get_tree().create_timer(0.2).timeout # Fix Race Condition
-			_prepare_human_turn(2)
-		else:
-			_run_bot_turn(2)
+	# CHECK FOR SKIP
+	# If the user chose the special Skip card, we pass 'null' to GameManager
+	var action_to_submit = card
+	if card.display_name == "SKIP FEINT":
+		action_to_submit = null
+	
+	GameManager.player_select_action(_current_input_player, action_to_submit)
+	
+	# Logic Split
+	if GameManager.current_state == GameManager.State.SELECTION:
+		if _current_input_player == 1:
+			if is_player_2_human:
+				await get_tree().create_timer(0.2).timeout
+				_prepare_human_turn(2)
+			else:
+				_run_bot_turn(2)
+				
+	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
+		# If we just finished P1 Feint, check if P2 also needs to feint
+		await get_tree().create_timer(0.2).timeout
+		_start_feint_input()
 
 # --- BOT LOGIC ---
 

@@ -26,7 +26,6 @@ var p2_opening_stat: int = 0
 var p1_opportunity_stat: int = 0
 var p2_opportunity_stat: int = 0
 
-# NEW: Forced Opener Constraint (from being Parried)
 var p1_must_opener: bool = false
 var p2_must_opener: bool = false
 
@@ -38,6 +37,10 @@ var p1_action_queue: ActionData
 var p2_action_queue: ActionData
 var p1_locked_card: ActionData = null
 var p2_locked_card: ActionData = null
+
+# --- FEINT STATE TRACKING ---
+var p1_pending_feint: bool = false
+var p2_pending_feint: bool = false
 
 # --- INITIALIZATION ---
 
@@ -65,6 +68,8 @@ func reset_combat():
 	
 	p1_is_injured = false
 	p2_is_injured = false
+	p1_pending_feint = false
+	p2_pending_feint = false
 	
 	if p1_data.speed > p2_data.speed: priority_player = 1
 	elif p2_data.speed > p1_data.speed: priority_player = 2
@@ -94,6 +99,7 @@ func change_state(new_state: State):
 		State.REVEAL:
 			_enter_reveal_phase()
 		State.FEINT_CHECK:
+			# Signals for UI are handled in _enter_reveal_phase logic
 			pass 
 		State.RESOLUTION:
 			resolve_clash()
@@ -101,26 +107,108 @@ func change_state(new_state: State):
 # --- INPUT ---
 
 func player_select_action(player_id: int, action: ActionData):
-	if current_state != State.SELECTION and current_state != State.FEINT_CHECK: return
-	if player_id == 1: p1_action_queue = action
-	else: p2_action_queue = action
-	
-	if current_state == State.SELECTION and p1_action_queue and p2_action_queue:
-		change_state(State.REVEAL)
+	# 1. Standard Selection
+	if current_state == State.SELECTION:
+		if player_id == 1: p1_action_queue = action
+		else: p2_action_queue = action
+		
+		if p1_action_queue and p2_action_queue:
+			change_state(State.REVEAL)
+			
+	# 2. Feint Selection
+	elif current_state == State.FEINT_CHECK:
+		_handle_feint_selection(player_id, action)
 
 # --- LOGIC ---
 
 func _enter_reveal_phase():
 	emit_signal("combat_log_updated", "REVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
-	var p1_feinting = p1_action_queue.feint
-	var p2_feinting = p2_action_queue.feint
+	
+	# Check for Feints
+	p1_pending_feint = p1_action_queue.feint
+	p2_pending_feint = p2_action_queue.feint
 
-	if p1_feinting or p2_feinting:
+	if p1_pending_feint or p2_pending_feint:
 		change_state(State.FEINT_CHECK)
-		if p1_feinting: emit_signal("feint_triggered", 1)
-		if p2_feinting: emit_signal("feint_triggered", 2)
+		# We don't emit trigger yet, TestArena polls the pending flags
 	else:
 		change_state(State.RESOLUTION)
+
+func _handle_feint_selection(player_id: int, secondary_action: ActionData):
+	# If null/skip passed, we just stop feinting for this player
+	if secondary_action == null:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " skips Feint combination.")
+		if player_id == 1: p1_pending_feint = false
+		else: p2_pending_feint = false
+		_check_feint_completion()
+		return
+
+	# Combine Cards
+	var base_card = p1_action_queue if player_id == 1 else p2_action_queue
+	var character = p1_data if player_id == 1 else p2_data
+	
+	# Check Affordability of COMBINED cost
+	# Note: Base cost is technically paid in resolve_clash, but we check logic here.
+	# "Cost traits are combined"
+	var total_cost = base_card.cost + secondary_action.cost
+	
+	# Opportunity discount applies to the TOTAL
+	var opp_val = p1_opportunity_stat if player_id == 1 else p2_opportunity_stat
+	var effective_total = max(0, total_cost - opp_val)
+	
+	if character.current_sp >= effective_total:
+		# Success: Merge
+		var combined = _combine_actions(base_card, secondary_action)
+		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined.display_name)
+		
+		if player_id == 1: p1_action_queue = combined
+		else: p2_action_queue = combined
+	else:
+		# Failure: Not enough SP
+		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint. Action applies normally.")
+	
+	# Clear Flag
+	if player_id == 1: p1_pending_feint = false
+	else: p2_pending_feint = false
+	
+	_check_feint_completion()
+
+func _check_feint_completion():
+	if not p1_pending_feint and not p2_pending_feint:
+		change_state(State.RESOLUTION)
+
+func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
+	var new_card = base.duplicate()
+	new_card.display_name = base.display_name + " + " + sec.display_name
+	
+	# Add Stats
+	new_card.cost += sec.cost
+	new_card.damage += sec.damage
+	new_card.block_value += sec.block_value
+	new_card.dodge_value += sec.dodge_value
+	new_card.momentum_gain += sec.momentum_gain
+	new_card.heal_value += sec.heal_value
+	new_card.recover_value += sec.recover_value
+	new_card.fall_back_value += sec.fall_back_value
+	new_card.counter_value = max(new_card.counter_value, sec.counter_value) # Use highest requirement? Or add? Usually highest req.
+	new_card.tiring += sec.tiring
+	new_card.create_opening += sec.create_opening
+	new_card.multi_limit += sec.multi_limit
+	new_card.repeat_count = max(new_card.repeat_count, sec.repeat_count)
+	new_card.opportunity += sec.opportunity
+	
+	# OR Logic for Booleans
+	if sec.guard_break: new_card.guard_break = true
+	if sec.injure: new_card.injure = true
+	if sec.retaliate: new_card.retaliate = true
+	if sec.is_parry: new_card.is_parry = true
+	if sec.is_super: new_card.is_super = true
+	if sec.is_opener: new_card.is_opener = true
+	
+	# Feint inside a Feint? Usually ignored, but we can keep it false to prevent loops.
+	new_card.feint = false 
+	
+	return new_card
 
 func resolve_clash():
 	var winner_id = 0
@@ -156,20 +244,16 @@ func resolve_clash():
 		p2_data.has_used_super = true
 		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
 
-	# --- PHASE 1: SELF EFFECTS (Recover/Heal) ---
-	# Args: (owner, target, my, enemy, ignore, override, use_fixed, self, combat, momentum, immune)
+	# --- PHASE 1: SELF EFFECTS ---
 	if p1_active: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, 0, false, true, false, false, false)
 	if p2_active: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, 0, false, true, false, false, false)
 
 	# --- PARRY PRE-CALCULATION ---
-	
-	# 1. Base Momentum Gains (including Opportunity)
 	var p1_base_gain = (p1_action_queue.momentum_gain + p1_opportunity_stat) if p1_active else 0
 	var p2_base_gain = (p2_action_queue.momentum_gain + p2_opportunity_stat) if p2_active else 0
 	var p1_fb = p1_action_queue.fall_back_value if p1_active else 0
 	var p2_fb = p2_action_queue.fall_back_value if p2_active else 0
 	
-	# 2. Determine "Effective" Gains (Parry Steal)
 	var p1_eff_gain = p1_base_gain
 	var p2_eff_gain = p2_base_gain
 	var p1_parrying = (p1_active and p1_action_queue.is_parry)
@@ -181,31 +265,26 @@ func resolve_clash():
 	if p1_parrying and not p2_parrying: p2_eff_gain = 0
 	if p2_parrying and not p1_parrying: p1_eff_gain = 0
 	
-	# 3. Calculate Projected Delta
 	var delta = -p1_eff_gain + p1_fb + p2_eff_gain - p2_fb
 	
-	# 4. Check Success
 	var p1_parry_win = false
 	var p2_parry_win = false
 	
-	if p1_parrying and delta < 0: # Net movement Left (P1 Direction)
+	if p1_parrying and delta < 0: 
 		p1_parry_win = true
 		emit_signal("combat_log_updated", ">>> P1 PARRIES! (Momentum Stolen & Immunity)")
 		
-	if p2_parrying and delta > 0: # Net movement Right (P2 Direction)
+	if p2_parrying and delta > 0: 
 		p2_parry_win = true
 		emit_signal("combat_log_updated", ">>> P2 PARRIES! (Momentum Stolen & Immunity)")
 
-	# --- PHASE 2: COMBAT EFFECTS (Damage/Injure/Retaliate) ---
+	# --- PHASE 2: COMBAT EFFECTS ---
 	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
 	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
-	# Note: 'is_immune' arg applies to the TARGET of the effect.
-	# If P2 won parry, P1's attack on P2 should fail (P2 is immune).
 	var p2_is_immune = p2_parry_win 
 	var p1_is_immune = p1_parry_win
 	
-	# Args: (..., override, use_fixed, self, combat, momentum, immune)
 	if p1_active: p1_results = process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, 0, false, false, true, false, p2_is_immune)
 	if p2_active: p2_results = process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, 0, false, false, true, false, p1_is_immune)
 	
@@ -215,12 +294,9 @@ func resolve_clash():
 		_handle_death(winner_id)
 		return 
 	
-	# --- PHASE 3: MOMENTUM (With Stolen Values) ---
+	# --- PHASE 3: MOMENTUM ---
 	var p1_is_offence = (p1_action_queue.type == ActionData.Type.OFFENCE)
 	var p2_is_offence = (p2_action_queue.type == ActionData.Type.OFFENCE)
-	
-	# Args: (..., override, use_fixed, self, combat, momentum, immune)
-	# IMPORTANT: 'do_momentum' is TRUE here. 'use_fixed' is TRUE.
 	
 	if p1_active and p1_is_offence: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, p1_eff_gain, true, false, false, true, false)
 	if p2_active and p2_is_offence: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, p2_eff_gain, true, false, false, true, false)
@@ -327,7 +403,6 @@ func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bo
 	var next_p1_opening = 0
 	var next_p2_opening = 0
 	
-	# Reset Forced Opener defaults
 	p1_must_opener = false
 	p2_must_opener = false
 	
@@ -341,7 +416,6 @@ func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bo
 	if p1_card.multi_limit > 0: next_p1_limit = min(next_p1_limit, p1_card.multi_limit)
 	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
 		
-	# NEW: Apply Forced Opener if Parried
 	if p1_parry_win:
 		p2_must_opener = true
 		emit_signal("combat_log_updated", ">> P2 is unbalanced! Must use Opener next turn.")
@@ -360,8 +434,6 @@ func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bo
 	if p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity.")
 	if p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity.")
 
-# --- CORE LOGIC ---
-# Signature has exactly 11 Arguments.
 func process_card_effects(
 	owner_id: int, 
 	target_id: int, 
@@ -400,8 +472,6 @@ func process_card_effects(
 
 		# --- PHASE 2: COMBAT ---
 		if do_combat:
-			# IMMUNITY CHECK (PARRY)
-			# 'is_immune' means "Target is immune".
 			if is_immune:
 				emit_signal("combat_log_updated", "P" + str(owner_id) + " attack PARRIED/NULLIFIED!")
 				return result
@@ -460,7 +530,7 @@ func process_card_effects(
 			if use_fixed_momentum:
 				actual_gain = momentum_override
 			else:
-				actual_gain = my_card.momentum_gain + momentum_override # override is opp_val
+				actual_gain = my_card.momentum_gain + momentum_override 
 			
 			var loss = my_card.fall_back_value 
 			if owner_id == 1:
