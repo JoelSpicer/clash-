@@ -14,7 +14,7 @@ var current_tab = ActionData.Type.OFFENCE
 
 var super_allowed: bool = false 
 var my_opportunity_val: int = 0
-var feint_mode: bool = false # NEW: Tracks if we should show the Skip button
+var feint_mode: bool = false 
 
 var current_sp_limit: int = 0 
 var opener_restriction: bool = false
@@ -40,13 +40,11 @@ func _ready():
 	skip_action.display_name = "SKIP FEINT"
 	skip_action.description = "Stop combining and use your original action."
 	skip_action.cost = 0
-	# Type is set dynamically in _refresh_grid
 
 func load_deck(deck: Array[ActionData]):
 	current_deck = deck
 	_refresh_grid()
 
-# UPDATED: Added 'is_feint_mode' parameter
 func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
 	visible = true
 	is_locked = false
@@ -56,7 +54,7 @@ func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool =
 	my_opening_value = opening_val
 	super_allowed = can_use_super 
 	my_opportunity_val = opportunity_val 
-	feint_mode = is_feint_mode # Store the state
+	feint_mode = is_feint_mode 
 	
 	if forced_tab != null:
 		_switch_tab(forced_tab)
@@ -137,22 +135,16 @@ func _refresh_grid():
 			btn.card_hovered.connect(_on_card_hovered)
 			btn.card_selected.connect(_on_card_selected)
 
-	# NEW: Manually inject the Skip Button if in Feint Mode
+	# Inject Skip Button if in Feint Mode
 	if feint_mode:
-		# Update Skip Action to match current tab color/type
 		skip_action.type = current_tab 
 		
 		var skip_btn = card_button_scene.instantiate()
 		button_grid.add_child(skip_btn)
 		
-		# Setup visual
 		skip_btn.setup(skip_action)
 		skip_btn.update_cost_display(0)
-		
-		# Skip is always available (Cost 0)
 		skip_btn.set_available(true)
-		
-		# Use a distinctive color (Optional)
 		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
 		
 		skip_btn.card_hovered.connect(_on_card_hovered)

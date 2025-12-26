@@ -99,7 +99,6 @@ func change_state(new_state: State):
 		State.REVEAL:
 			_enter_reveal_phase()
 		State.FEINT_CHECK:
-			# Signals for UI are handled in _enter_reveal_phase logic
 			pass 
 		State.RESOLUTION:
 			resolve_clash()
@@ -107,7 +106,6 @@ func change_state(new_state: State):
 # --- INPUT ---
 
 func player_select_action(player_id: int, action: ActionData):
-	# 1. Standard Selection
 	if current_state == State.SELECTION:
 		if player_id == 1: p1_action_queue = action
 		else: p2_action_queue = action
@@ -115,7 +113,6 @@ func player_select_action(player_id: int, action: ActionData):
 		if p1_action_queue and p2_action_queue:
 			change_state(State.REVEAL)
 			
-	# 2. Feint Selection
 	elif current_state == State.FEINT_CHECK:
 		_handle_feint_selection(player_id, action)
 
@@ -124,18 +121,17 @@ func player_select_action(player_id: int, action: ActionData):
 func _enter_reveal_phase():
 	emit_signal("combat_log_updated", "REVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
 	
-	# Check for Feints
+	# Check for Feint Trait
 	p1_pending_feint = p1_action_queue.feint
 	p2_pending_feint = p2_action_queue.feint
 
 	if p1_pending_feint or p2_pending_feint:
 		change_state(State.FEINT_CHECK)
-		# We don't emit trigger yet, TestArena polls the pending flags
 	else:
 		change_state(State.RESOLUTION)
 
 func _handle_feint_selection(player_id: int, secondary_action: ActionData):
-	# If null/skip passed, we just stop feinting for this player
+	# Handle "Skip" (passed as null)
 	if secondary_action == null:
 		emit_signal("combat_log_updated", "P" + str(player_id) + " skips Feint combination.")
 		if player_id == 1: p1_pending_feint = false
@@ -143,31 +139,24 @@ func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 		_check_feint_completion()
 		return
 
-	# Combine Cards
 	var base_card = p1_action_queue if player_id == 1 else p2_action_queue
 	var character = p1_data if player_id == 1 else p2_data
 	
-	# Check Affordability of COMBINED cost
-	# Note: Base cost is technically paid in resolve_clash, but we check logic here.
-	# "Cost traits are combined"
+	# Calculate Combined Costs
 	var total_cost = base_card.cost + secondary_action.cost
-	
-	# Opportunity discount applies to the TOTAL
 	var opp_val = p1_opportunity_stat if player_id == 1 else p2_opportunity_stat
 	var effective_total = max(0, total_cost - opp_val)
 	
+	# Check Affordability
 	if character.current_sp >= effective_total:
-		# Success: Merge
 		var combined = _combine_actions(base_card, secondary_action)
 		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined.display_name)
 		
 		if player_id == 1: p1_action_queue = combined
 		else: p2_action_queue = combined
 	else:
-		# Failure: Not enough SP
 		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint. Action applies normally.")
 	
-	# Clear Flag
 	if player_id == 1: p1_pending_feint = false
 	else: p2_pending_feint = false
 	
@@ -181,7 +170,7 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	var new_card = base.duplicate()
 	new_card.display_name = base.display_name + " + " + sec.display_name
 	
-	# Add Stats
+	# Combine Stats
 	new_card.cost += sec.cost
 	new_card.damage += sec.damage
 	new_card.block_value += sec.block_value
@@ -190,14 +179,14 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	new_card.heal_value += sec.heal_value
 	new_card.recover_value += sec.recover_value
 	new_card.fall_back_value += sec.fall_back_value
-	new_card.counter_value = max(new_card.counter_value, sec.counter_value) # Use highest requirement? Or add? Usually highest req.
+	new_card.counter_value = max(new_card.counter_value, sec.counter_value) 
 	new_card.tiring += sec.tiring
 	new_card.create_opening += sec.create_opening
 	new_card.multi_limit += sec.multi_limit
 	new_card.repeat_count = max(new_card.repeat_count, sec.repeat_count)
 	new_card.opportunity += sec.opportunity
 	
-	# OR Logic for Booleans
+	# Combine Booleans
 	if sec.guard_break: new_card.guard_break = true
 	if sec.injure: new_card.injure = true
 	if sec.retaliate: new_card.retaliate = true
@@ -205,9 +194,8 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	if sec.is_super: new_card.is_super = true
 	if sec.is_opener: new_card.is_opener = true
 	
-	# Feint inside a Feint? Usually ignored, but we can keep it false to prevent loops.
+	# Prevent recursion
 	new_card.feint = false 
-	
 	return new_card
 
 func resolve_clash():
@@ -244,7 +232,8 @@ func resolve_clash():
 		p2_data.has_used_super = true
 		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
 
-	# --- PHASE 1: SELF EFFECTS ---
+	# --- PHASE 1: SELF EFFECTS (Recover/Heal) ---
+	# Args: (owner, target, my, enemy, ignore, override, use_fixed, self, combat, momentum, immune)
 	if p1_active: process_card_effects(1, 2, p1_action_queue, p2_action_queue, is_initial_clash, 0, false, true, false, false, false)
 	if p2_active: process_card_effects(2, 1, p2_action_queue, p1_action_queue, is_initial_clash, 0, false, true, false, false, false)
 
@@ -278,7 +267,7 @@ func resolve_clash():
 		p2_parry_win = true
 		emit_signal("combat_log_updated", ">>> P2 PARRIES! (Momentum Stolen & Immunity)")
 
-	# --- PHASE 2: COMBAT EFFECTS ---
+	# --- PHASE 2: COMBAT EFFECTS (Damage/Injure/Retaliate) ---
 	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
 	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
@@ -457,11 +446,18 @@ func process_card_effects(
 		
 		# --- PHASE 1: SELF ---
 		if do_self:
-			if my_card.recover_value > 0: 
-				owner.current_sp = min(owner.current_sp + my_card.recover_value, owner.max_sp)
+			# RECOVER LOGIC (Includes +1 Passive for Defence)
+			var actual_recover = my_card.recover_value
+			if my_card.type == ActionData.Type.DEFENCE:
+				actual_recover += 1
+			
+			if actual_recover > 0: 
+				owner.current_sp = min(owner.current_sp + actual_recover, owner.max_sp)
+				
 			if my_card.heal_value > 0: 
 				owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
 
+			# Cure Injure
 			if my_card.heal_value > 0 or my_card.fall_back_value > 0:
 				if owner_id == 1 and p1_is_injured:
 					p1_is_injured = false

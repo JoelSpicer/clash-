@@ -1,6 +1,6 @@
 extends Control
 
-# UI References (Link these in the Inspector or use unique names)
+# UI References
 @onready var background = $Background
 @onready var cost_label = $VBoxContainer/Header/CostLabel
 @onready var name_label = $VBoxContainer/Header/NameLabel
@@ -8,16 +8,15 @@ extends Control
 @onready var stat_label = $VBoxContainer/StatsRow/StatLabel
 @onready var desc_label = $VBoxContainer/Description
 
-# Colors for the Background (You can tweak these hex codes)
+# Colors
 const OFFENCE_COLOR = Color("#d14d4d") # Red
 const DEFENCE_COLOR = Color("#4d8ad1") # Blue
 
-# UPDATED: Added 'override_cost' with a default value of -1 (ignore)
 func set_card_data(action: ActionData, override_cost: int = -1):
 	# 1. Set Basic Text
 	name_label.text = action.display_name
 	
-	# NEW: Check for override
+	# Check for override
 	var final_cost = action.cost
 	if override_cost != -1:
 		final_cost = override_cost
@@ -25,7 +24,7 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 	cost_label.text = str(final_cost) + " SP"
 	desc_label.text = action.description
 	
-	# 2. Set Art (if it exists, otherwise use a placeholder color)
+	# 2. Set Art
 	if action.icon:
 		art_rect.texture = action.icon
 	
@@ -36,11 +35,10 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 	else:
 		bg_style.bg_color = DEFENCE_COLOR
 	
-	# Add a nice corner radius
 	bg_style.set_corner_radius_all(10)
 	background.add_theme_stylebox_override("panel", bg_style)
 	
-	# 4. Compile Stats String (e.g., "3 DMG | 2 BLK")
+	# 4. Compile Stats String
 	var stats_text = ""
 	
 	if action.damage > 0:
@@ -51,6 +49,14 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 		stats_text += str(action.dodge_value) + " DDG  "
 	if action.heal_value > 0:
 		stats_text += str(action.heal_value) + " HEAL "
+		
+	# NEW: Recover Display (+1 for Defence)
+	var final_rec = action.recover_value
+	if action.type == ActionData.Type.DEFENCE:
+		final_rec += 1
+	
+	if final_rec > 0:
+		stats_text += str(final_rec) + " REC "
 	
 	if action.tiring > 0:
 		stats_text += str(action.tiring) + " TIRE "
@@ -58,8 +64,6 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 		stats_text += "RETAL "
 	if action.feint:
 		stats_text += "FEINT "
-		
-	# NEW: Injure
 	if action.injure:
 		stats_text += "INJURE "
 		
