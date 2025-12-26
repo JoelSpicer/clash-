@@ -16,7 +16,7 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 	# 1. Set Basic Text
 	name_label.text = action.display_name
 	
-	# Check for override
+	# Determine Cost Display
 	var final_cost = action.cost
 	if override_cost != -1:
 		final_cost = override_cost
@@ -41,30 +41,21 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 	# 4. Compile Stats String
 	var stats_text = ""
 	
-	if action.damage > 0:
-		stats_text += str(action.damage) + " DMG  "
-	if action.block_value > 0:
-		stats_text += str(action.block_value) + " BLK  "
-	if action.dodge_value > 0:
-		stats_text += str(action.dodge_value) + " DDG  "
-	if action.heal_value > 0:
-		stats_text += str(action.heal_value) + " HEAL "
+	if action.damage > 0: stats_text += str(action.damage) + " DMG  "
+	if action.block_value > 0: stats_text += str(action.block_value) + " BLK  "
+	if action.dodge_value > 0: stats_text += str(action.dodge_value) + " DDG  "
+	if action.heal_value > 0: stats_text += str(action.heal_value) + " HEAL "
 		
-	# NEW: Recover Display (+1 for Defence)
+	# Recover Logic (Visuals matching Game Logic)
 	var final_rec = action.recover_value
 	if action.type == ActionData.Type.DEFENCE:
 		final_rec += 1
+	if final_rec > 0: stats_text += str(final_rec) + " REC "
 	
-	if final_rec > 0:
-		stats_text += str(final_rec) + " REC "
-	
-	if action.tiring > 0:
-		stats_text += str(action.tiring) + " TIRE "
-	if action.retaliate:
-		stats_text += "RETAL "
-	if action.feint:
-		stats_text += "FEINT "
-	if action.injure:
-		stats_text += "INJURE "
+	# Boolean Tags
+	if action.tiring > 0: stats_text += str(action.tiring) + " TIRE "
+	if action.retaliate: stats_text += "RETAL "
+	if action.feint: stats_text += "FEINT "
+	if action.injure: stats_text += "INJURE "
 		
 	stat_label.text = stats_text

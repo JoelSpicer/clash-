@@ -1,6 +1,6 @@
 extends Button
 
-# Signal to tell the UI "I was clicked" or "I am being hovered"
+# Signals for UI Interaction
 signal card_hovered(action)
 signal card_selected(action)
 
@@ -11,20 +11,21 @@ func setup(action: ActionData):
 	text = action.display_name 
 	$CostLabel.text = str(action.cost) + " SP"
 	
+	# Visual Theme
 	if action.type == ActionData.Type.OFFENCE:
 		add_theme_color_override("font_color", Color("#ff9999")) 
 	else:
 		add_theme_color_override("font_color", Color("#99ccff")) 
 
-# NEW: Toggle availability visual state
+# Handles grey-out/disable logic
 func set_available(is_affordable: bool):
 	disabled = not is_affordable
 	
 	if is_affordable:
-		modulate = Color(1, 1, 1, 1) # Normal
+		modulate = Color(1, 1, 1, 1) # Normal opacity
 		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	else:
-		modulate = Color(0.5, 0.5, 0.5, 0.5) # Greyed out and transparent
+		modulate = Color(0.5, 0.5, 0.5, 0.5) # Greyed out
 		mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
 
 func _pressed():
@@ -34,12 +35,11 @@ func _pressed():
 func _on_mouse_entered():
 	emit_signal("card_hovered", my_action)
 
-# Updates the text to show the discounted price
+# Dynamically updates cost text (e.g. for Opportunity discounts)
 func update_cost_display(new_cost: int):
 	$CostLabel.text = str(new_cost) + " SP"
 	
-	# Optional: Turn the text Green if it's cheaper than normal
 	if new_cost < my_action.cost:
-		$CostLabel.modulate = Color(0.5, 1.0, 0.5) # Light Green
+		$CostLabel.modulate = Color(0.5, 1.0, 0.5) # Green text for discount
 	else:
 		$CostLabel.modulate = Color(1, 1, 1)
