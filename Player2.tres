@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="CharacterData" load_steps=23 format=3 uid="uid://p5iapbgi8mrp"]
+[gd_resource type="Resource" script_class="CharacterData" load_steps=25 format=3 uid="uid://p5iapbgi8mrp"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_kxc2r"]
 [ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="2_fhd3e"]
@@ -22,10 +22,12 @@
 [ext_resource type="Resource" uid="uid://iknwl4dh2er6" path="res://Data/Actions/push_kick.tres" id="19_32j1u"]
 [ext_resource type="Resource" uid="uid://cmbpngiewxm6e" path="res://Data/Actions/redirect.tres" id="20_om62d"]
 [ext_resource type="Resource" uid="uid://djwvlwm42rfxf" path="res://Data/Actions/advancing_parry.tres" id="21_51f5q"]
+[ext_resource type="Resource" uid="uid://crhe8sd3sbgb6" path="res://Data/Actions/adjust_stance.tres" id="22_fbq4i"]
+[ext_resource type="Resource" uid="uid://bxb18ul3lsg2g" path="res://Data/Actions/roll_punch.tres" id="23_v421y"]
 
 [resource]
 script = ExtResource("10_mkgv7")
 max_sp = 10
 speed = 4
-deck = Array[ExtResource("1_kxc2r")]([ExtResource("2_fhd3e"), ExtResource("3_apqli"), ExtResource("4_xdkvf"), ExtResource("5_5dkox"), ExtResource("6_borhb"), ExtResource("7_6qdtw"), ExtResource("8_tt3nf"), ExtResource("9_oaf0m"), ExtResource("10_8jd2u"), ExtResource("11_51f5q"), ExtResource("12_fbq4i"), ExtResource("13_v421y"), ExtResource("14_p4ytc"), ExtResource("15_u0hck"), ExtResource("16_7y1sy"), ExtResource("17_al0o1"), ExtResource("18_komau"), ExtResource("19_32j1u"), ExtResource("20_om62d"), ExtResource("21_51f5q")])
+deck = Array[ExtResource("1_kxc2r")]([ExtResource("2_fhd3e"), ExtResource("3_apqli"), ExtResource("4_xdkvf"), ExtResource("5_5dkox"), ExtResource("6_borhb"), ExtResource("7_6qdtw"), ExtResource("8_tt3nf"), ExtResource("9_oaf0m"), ExtResource("10_8jd2u"), ExtResource("11_51f5q"), ExtResource("12_fbq4i"), ExtResource("13_v421y"), ExtResource("14_p4ytc"), ExtResource("15_u0hck"), ExtResource("16_7y1sy"), ExtResource("17_al0o1"), ExtResource("18_komau"), ExtResource("19_32j1u"), ExtResource("20_om62d"), ExtResource("21_51f5q"), ExtResource("22_fbq4i"), ExtResource("23_v421y")])
 metadata/_custom_type_script = "uid://c4fll3p1ufpsf"

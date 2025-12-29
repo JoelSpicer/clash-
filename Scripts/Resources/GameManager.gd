@@ -203,8 +203,7 @@ func resolve_clash():
 	var is_initial_clash = (momentum == 0)
 	var start_momentum = momentum 
 	
-	# --- SNAPSHOT STATUS (NEW) ---
-	# We verify if players were injured BEFORE this turn started.
+	# --- SNAPSHOT STATUS ---
 	var p1_started_injured = p1_is_injured
 	var p2_started_injured = p2_is_injured
 	
@@ -241,7 +240,7 @@ func resolve_clash():
 	var p1_base_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
 	var p2_base_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
 	
-	# 4. Final Push (With Steal/Dodge Logic)
+	# 4. Final Push
 	var p1_contribution = p1_base_gain
 	if p2_parries: p1_contribution = 0 
 	elif p1_is_dodged: p1_contribution = 0 
@@ -293,7 +292,6 @@ func resolve_clash():
 	if p2_active and not p2_is_offence: _apply_phase_3_momentum(2, p2_action_queue, p2_final_push)
 	
 	# --- PHASE 4: STATUS TICK ---
-	# We pass the 'started_injured' flags to ensure damage isn't taken immediately
 	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
 
 	# --- CLEANUP ---
@@ -434,7 +432,6 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
 		return false
 
-# UPDATED: Checks both current status AND status at start of turn
 func _handle_status_damage(winner_id, p1_started_injured: bool, p2_started_injured: bool):
 	if p1_is_injured and p1_started_injured:
 		p1_data.current_hp -= 1
@@ -467,7 +464,12 @@ func _check_reversal(winner_id, start_momentum):
 		if moved_closer:
 			current_combo_attacker = loser_id 
 			reversal_triggered = true
-			emit_signal("combat_log_updated", ">>> REVERSAL! Player " + str(loser_id) + " seizes the Combo! <<<")
+			
+			# NEW: If reversal is successful, the player seizes initiative and MUST start with an Opener
+			if loser_id == 1: p1_must_opener = true
+			else: p2_must_opener = true
+			
+			emit_signal("combat_log_updated", ">>> REVERSAL! Player " + str(loser_id) + " seizes the Combo! (Must use Opener) <<<")
 
 	var active_attacker = get_attacker()
 	if active_attacker != 0:
