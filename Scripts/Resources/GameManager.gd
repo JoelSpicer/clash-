@@ -132,13 +132,16 @@ func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 	var opp_val = _get_opportunity_value(player_id)
 	var effective_total = max(0, total_cost - opp_val)
 	
-	if character.current_sp >= effective_total:
-		var combined = _combine_actions(base_card, secondary_action)
-		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined.display_name)
-		if player_id == 1: p1_action_queue = combined
-		else: p2_action_queue = combined
+	var combined_card = _combine_actions(base_card, secondary_action)
+	var total_reps = max(1, combined_card.repeat_count)
+	var total_required = effective_total * total_reps
+	
+	if character.current_sp >= total_required:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined_card.display_name)
+		if player_id == 1: p1_action_queue = combined_card
+		else: p2_action_queue = combined_card
 	else:
-		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint. Action applies normally.")
+		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint (Need " + str(total_required) + "). Action applies normally.")
 	
 	_clear_feint_flag(player_id)
 	_check_feint_completion()
@@ -218,7 +221,7 @@ func resolve_clash():
 		p2_data.has_used_super = true
 		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
 
-	# --- PHASE 1: SELF EFFECTS (Recover/Heal) ---
+	# --- PHASE 1: SELF EFFECTS ---
 	if p1_active: _apply_phase_1_self_effects(1, p1_action_queue)
 	if p2_active: _apply_phase_1_self_effects(2, p2_action_queue)
 
@@ -256,8 +259,12 @@ func resolve_clash():
 	var p2_final_push = p2_contribution + p2_stolen
 	
 	# 5. Delta Calculation
-	var p1_fb = p1_action_queue.fall_back_value if p1_active else 0
-	var p2_fb = p2_action_queue.fall_back_value if p2_active else 0
+	# Sum up repeated fallbacks
+	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
+	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
+	
+	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
+	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
 	
 	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
 	
@@ -339,35 +346,51 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 	var target = p2_data if owner_id == 1 else p1_data
 	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
+	# PARRY/DODGE IMMUNITY check
 	if target_is_immune:
 		emit_signal("combat_log_updated", "P" + str(owner_id) + " attack NULLIFIED (Dodge/Parry)!")
 		return result
 
 	var total_hits = max(1, my_card.repeat_count)
 	for i in range(total_hits):
+		# 1. DAMAGE CALCULATION
 		var enemy_block = enemy_card.block_value 
 		if my_card.guard_break: enemy_block = 0
 		var net_damage = max(0, my_card.damage - enemy_block)
 		
+		# 2. STATUS EFFECT APPLICATION
+		# Status effects apply if the attack wasn't dodged/parried.
+		# Block does NOT prevent these effects.
+		
+		if my_card.tiring > 0:
+			target.current_sp = max(0, target.current_sp - my_card.tiring)
+			emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
+		
+		if my_card.injure:
+			if target_id == 1 and not p1_is_injured:
+				p1_is_injured = true
+				emit_signal("combat_log_updated", ">> P1 is Injured!")
+			elif target_id == 2 and not p2_is_injured:
+				p2_is_injured = true
+				emit_signal("combat_log_updated", ">> P2 is Injured!")
+
+		if my_card.create_opening > 0:
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
+			result["opening"] = my_card.create_opening
+		
+		if my_card.opportunity > 0:
+			result["opportunity"] = my_card.opportunity
+
+		# 3. APPLY HP DAMAGE
 		if net_damage > 0:
 			target.current_hp -= net_damage
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
-			
-			if my_card.tiring > 0:
-				target.current_sp = max(0, target.current_sp - my_card.tiring)
-				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
-			
-			if my_card.injure:
-				if target_id == 1 and not p1_is_injured:
-					p1_is_injured = true
-					emit_signal("combat_log_updated", ">> P1 is Injured!")
-				elif target_id == 2 and not p2_is_injured:
-					p2_is_injured = true
-					emit_signal("combat_log_updated", ">> P2 is Injured!")
-
 		elif my_card.damage > 0:
-			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked.")
+			# Only log "Blocked" if there was damage to block
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
 
+		# 4. RETALIATE CHECK
+		# Logic: Retaliate triggers if the enemy tried to damage you, even if you blocked it.
 		if my_card.damage > 0 and enemy_card.retaliate:
 			var raw_recoil = my_card.damage
 			var self_block = my_card.block_value + my_card.dodge_value 
@@ -381,25 +404,22 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 			else:
 				emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
 
+		# 5. CHECK DEATH
 		if target.current_hp <= 0:
 			result["fatal"] = true
 			return result
 			
-		if my_card.create_opening > 0:
-			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
-			result["opening"] = my_card.create_opening
-		
-		if my_card.opportunity > 0:
-			result["opportunity"] = my_card.opportunity
-			
 	return result
 
 func _apply_phase_3_momentum(owner_id: int, my_card: ActionData, effective_gain: int):
-	var loss = my_card.fall_back_value 
+	# Calculate total fallback logic (Repeated X times)
+	var reps = max(1, my_card.repeat_count)
+	var total_loss = my_card.fall_back_value * reps
+	
 	if owner_id == 1:
-		momentum = clampi(momentum - effective_gain + loss, 1, 8)
+		momentum = clampi(momentum - effective_gain + total_loss, 1, 8)
 	else:
-		momentum = clampi(momentum + effective_gain - loss, 1, 8)
+		momentum = clampi(momentum + effective_gain - total_loss, 1, 8)
 
 # ==============================================================================
 # HELPER FUNCTIONS
@@ -408,7 +428,11 @@ func _apply_phase_3_momentum(owner_id: int, my_card: ActionData, effective_gain:
 func _calculate_projected_momentum(player_id: int, card: ActionData, is_active: bool) -> int:
 	if not is_active: return 0
 	var opp_val = _get_opportunity_value(player_id)
-	return card.momentum_gain + opp_val
+	
+	# Gain applies per repetition
+	var single_gain = card.momentum_gain + opp_val
+	var total_gain = single_gain * max(1, card.repeat_count)
+	return total_gain
 
 func _get_opportunity_value(player_id: int) -> int:
 	return p1_opportunity_stat if player_id == 1 else p2_opportunity_stat
@@ -419,17 +443,20 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 	
 	var raw_cost = card.cost
 	var opp_val = _get_opportunity_value(player_id)
-	var effective_cost = max(0, raw_cost - opp_val)
+	var effective_single_cost = max(0, raw_cost - opp_val)
+	
+	var total_reps = max(1, card.repeat_count)
+	var total_cost = effective_single_cost * total_reps
 	
 	if is_free: 
-		effective_cost = 0
+		total_cost = 0
 		emit_signal("combat_log_updated", "P" + str(player_id) + " locked by Multi: Action is FREE.")
 	
-	if character.current_sp >= effective_cost:
-		character.current_sp -= effective_cost
+	if character.current_sp >= total_cost:
+		character.current_sp -= total_cost
 		return true
 	else:
-		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP (Need " + str(total_cost) + ")! Action Fails!")
 		return false
 
 func _handle_status_damage(winner_id, p1_started_injured: bool, p2_started_injured: bool):
@@ -465,7 +492,6 @@ func _check_reversal(winner_id, start_momentum):
 			current_combo_attacker = loser_id 
 			reversal_triggered = true
 			
-			# NEW: If reversal is successful, the player seizes initiative and MUST start with an Opener
 			if loser_id == 1: p1_must_opener = true
 			else: p2_must_opener = true
 			
