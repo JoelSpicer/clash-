@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://dhwx6yjjskbn7"]
+[gd_scene load_steps=4 format=3 uid="uid://dhwx6yjjskbn7"]
 
 [ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scripts/BattleUI.gd" id="1_d8qwt"]
 [ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
+[ext_resource type="PackedScene" uid="uid://yeraw55rlx1q" path="res://Scenes/PlayerHUD.tscn" id="3_vxmu1"]
 
 [node name="BattleUI" type="CanvasLayer"]
 script = ExtResource("1_d8qwt")
@@ -27,7 +28,12 @@ offset_bottom = 259.0
 
 [node name="PreviewCard" parent="MainLayout/PreviewAnchor" instance=ExtResource("1_gl3jw")]
 unique_name_in_owner = true
+z_index = 1
 layout_mode = 1
+offset_left = 348.0
+offset_top = 28.0
+offset_right = 558.0
+offset_bottom = 338.0
 
 [node name="BottomBar" type="Panel" parent="MainLayout"]
 custom_minimum_size = Vector2(0, 150)
@@ -75,3 +81,19 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 columns = 3
+
+[node name="MomentumSlider" type="HSlider" parent="."]
+offset_left = 414.0
+offset_top = 9.0
+offset_right = 663.0
+offset_bottom = 25.0
+max_value = 8.0
+editable = false
+
+[node name="P1_HUD" parent="." instance=ExtResource("3_vxmu1")]
+
+[node name="P2_HUD" parent="." instance=ExtResource("3_vxmu1")]
+offset_left = 929.0
+offset_top = 2.0
+offset_right = 969.0
+offset_bottom = 42.0

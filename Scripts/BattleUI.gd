@@ -2,17 +2,23 @@ extends CanvasLayer
 
 signal human_selected_card(action_card)
 
-# UI References
+# --- REFERENCES ---
+@onready var p1_hud = $P1_HUD # Make sure you add these to the scene!
+@onready var p2_hud = $P2_HUD
+@onready var momentum_slider = $MomentumSlider
+@onready var momentum_label = $MomentumSlider/Label # Optional text display
+
 @onready var button_grid = %ButtonGrid
 @onready var preview_card = %PreviewCard
 @onready var btn_offence = %Offence        
 @onready var btn_defence = %Defence       
 
+# --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
 var current_deck: Array[ActionData] = []
 var current_tab = ActionData.Type.OFFENCE
 
-# Turn State passed from TestArena
+# State Constraints
 var current_sp_limit: int = 0 
 var my_opportunity_val: int = 0
 var my_opening_value: int = 0
@@ -21,33 +27,76 @@ var opener_restriction: bool = false
 var super_allowed: bool = false 
 var feint_mode: bool = false 
 
-# Special Actions
 var skip_action: ActionData
 var is_locked = false
 
 func _ready():
-	# UI Setup
 	if not btn_offence or not btn_defence:
-		printerr("CRITICAL ERROR: Buttons not found!")
+		printerr("CRITICAL: Buttons missing in BattleUI")
 		return
 
 	btn_offence.pressed.connect(func(): _switch_tab(ActionData.Type.OFFENCE))
 	btn_defence.pressed.connect(func(): _switch_tab(ActionData.Type.DEFENCE))
-	visible = false 
 	
-	# Initialize Skip Card (for Feint)
+	# Skip Action Init
 	skip_action = ActionData.new()
 	skip_action.display_name = "SKIP FEINT"
 	skip_action.description = "Stop combining and use your original action."
 	skip_action.cost = 0
+	
+	# Initially hide input grid, but keep HUDs visible
+	button_grid.visible = false
+	preview_card.visible = false
+
+# --- NEW: VISUAL UPDATE FUNCTIONS ---
+
+func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
+	p1_hud.setup(p1_data)
+	p2_hud.setup(p2_data)
+	update_momentum(0) # Neutral
+
+func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
+	# Fetch Game State directly from GameManager globals would be cleaner,
+	# but passing them in is safer for decoupling.
+	
+	# We need access to status effects. 
+	# Ideally, CharacterData should hold 'is_injured', but currently GameManager holds it.
+	# For now, we will read from GameManager static instance or pass args.
+	
+	p1_hud.update_stats(p1, GameManager.p1_is_injured, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat)
+	p2_hud.update_stats(p2, GameManager.p2_is_injured, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat)
+	
+	update_momentum(momentum)
+
+func update_momentum(val: int):
+	# If 0, maybe center it? Or map 0 -> 4.5?
+	# Let's map logical momentum (1-8) to slider (1-8). 
+	# If 0 (Neutral), we visualy place it in the middle.
+	
+	var visual_val = val
+	var text = "NEUTRAL"
+	
+	if val == 0: 
+		visual_val = 4.5 # Sits between P1 and P2
+	elif val <= 4:
+		text = "P1 MOMENTUM"
+	else:
+		text = "P2 MOMENTUM"
+		
+	# Tween the slider for smooth movement
+	var tween = create_tween()
+	tween.tween_property(momentum_slider, "value", visual_val, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	
+	if momentum_label: momentum_label.text = text
+
+# --- INPUT HANDLING (Existing Logic) ---
 
 func load_deck(deck: Array[ActionData]):
 	current_deck = deck
 	_refresh_grid()
 
-# Unlocks UI for player input with specific constraints
 func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
-	visible = true
+	button_grid.visible = true # Show grid
 	is_locked = false
 	current_sp_limit = player_current_sp
 	opener_restriction = must_be_opener
@@ -57,7 +106,6 @@ func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool =
 	my_opportunity_val = opportunity_val 
 	feint_mode = is_feint_mode 
 	
-	# Force specific tab if required (e.g. Attacker/Defender roles)
 	if forced_tab != null:
 		_switch_tab(forced_tab)
 		btn_offence.disabled = (forced_tab != ActionData.Type.OFFENCE)
@@ -69,18 +117,12 @@ func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool =
 		btn_defence.disabled = false
 		_switch_tab(current_tab)
 
-	# Debug Log
-	var log_text = "SP: " + str(current_sp_limit)
-	if opener_restriction: log_text += " | OPENERS ONLY"
-	if turn_cost_limit < 99: log_text += " | MAX COST " + str(turn_cost_limit)
-	if my_opportunity_val > 0: log_text += " | OPPORTUNITY -" + str(my_opportunity_val) + " COST"
-	if feint_mode: log_text += " | FEINT SELECTION"
-	print("[UI] Unlocked. " + log_text)
+	print("[UI] Input Unlocked.")
 
 func lock_ui():
 	is_locked = true
-	visible = false 
-	print("[UI] Locked.")
+	button_grid.visible = false 
+	preview_card.visible = false
 
 func _on_card_selected(card: ActionData):
 	if is_locked: return
@@ -90,24 +132,19 @@ func _on_card_selected(card: ActionData):
 func _switch_tab(type):
 	current_tab = type
 	_refresh_grid()
-	
-	# Update Button Visuals
 	if !btn_offence.disabled: btn_offence.modulate = Color.WHITE if type == ActionData.Type.OFFENCE else Color(0.6, 0.6, 0.6)
 	if !btn_defence.disabled: btn_defence.modulate = Color.WHITE if type == ActionData.Type.DEFENCE else Color(0.6, 0.6, 0.6)
 
 func _refresh_grid():
-	# Clear old buttons
 	for child in button_grid.get_children():
 		child.queue_free()
 	
-	# Populate Grid
 	for card in current_deck:
 		if card.type == current_tab:
 			var btn = card_button_scene.instantiate()
 			button_grid.add_child(btn)
 			btn.setup(card)
 			
-			# Logic: Is this card playable?
 			var effective_cost = max(0, card.cost - my_opportunity_val)
 			btn.update_cost_display(effective_cost)
 			
@@ -123,17 +160,14 @@ func _refresh_grid():
 			btn.card_hovered.connect(_on_card_hovered)
 			btn.card_selected.connect(_on_card_selected)
 
-	# Feint Mode: Add Skip Button
 	if feint_mode:
 		skip_action.type = current_tab 
 		var skip_btn = card_button_scene.instantiate()
 		button_grid.add_child(skip_btn)
-		
 		skip_btn.setup(skip_action)
 		skip_btn.update_cost_display(0)
 		skip_btn.set_available(true)
 		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
-		
 		skip_btn.card_hovered.connect(_on_card_hovered)
 		skip_btn.card_selected.connect(_on_card_selected)
 

@@ -28,6 +28,12 @@ func _ready():
 	
 	print("--- INITIALIZING MATCH ---")
 	GameManager.start_combat(p1_resource, p2_resource)
+	
+	# NEW: Setup HUDs
+	battle_ui.initialize_hud(p1_resource, p2_resource)
+
+func _update_visuals():
+	battle_ui.update_all_visuals(p1_resource, p2_resource, GameManager.momentum)
 
 func _on_state_changed(new_state):
 	if not _simulation_active: return
@@ -136,8 +142,11 @@ func _prepare_human_turn(player_id: int):
 		if c.required_tab == ActionData.Type.OFFENCE: print("[GUIDE P" + str(player_id) + "] Attack!")
 		elif c.required_tab == ActionData.Type.DEFENCE: print("[GUIDE P" + str(player_id) + "] Defend!")
 		else: print("[GUIDE P" + str(player_id) + "] Neutral.")
+	
+	_update_visuals() # <--- Ensure visuals are fresh before player input
 		
 	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
+	
 	
 	# Unlock UI
 	battle_ui.unlock_for_input(
@@ -239,8 +248,15 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 func _on_game_over(winner_id):
 	print("\n*** VICTORY FOR PLAYER " + str(winner_id) + "! ***")
 	if stop_on_game_over: _simulation_active = false
-func _on_clash_resolved(winner_id, _text): print("\n>>> Clash Winner: P" + str(winner_id))
-func _on_log_updated(text): print("   > " + text)
+	
+func _on_clash_resolved(winner_id, _text): 
+	print("\n>>> Clash Winner: P" + str(winner_id))
+	_update_visuals() # <--- Update bars after damage
+
+func _on_log_updated(text): 
+	print("   > " + text)
+
+
 func _print_status_report():
 	var p1 = p1_resource
 	var p2 = p2_resource
