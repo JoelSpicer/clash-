@@ -10,5 +10,5 @@ description = "Defence, Counter 1, Tiring 1, Damage 1"
 type = 1
 damage = 1
 counter_value = 1
-tiring_value = 1
+tiring = 1
 repeat_count = 0

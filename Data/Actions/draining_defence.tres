@@ -9,5 +9,5 @@ display_name = "Draining Defence"
 description = "Defence, Block 1, Tiring 1"
 type = 1
 block_value = 1
-tiring_value = 1
+tiring = 1
 repeat_count = 0

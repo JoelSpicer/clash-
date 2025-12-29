@@ -8,5 +8,5 @@ id = "headbutt"
 display_name = "Headbutt"
 description = "Offence, Cost 1, Tiring 2"
 cost = 1
-tiring_value = 2
+tiring = 1
 repeat_count = 0

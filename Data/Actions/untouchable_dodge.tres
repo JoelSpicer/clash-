@@ -9,5 +9,6 @@ display_name = "Untouchable Dodge"
 description = "Defence, Cost 2, Reversal, Dodge 1, Tiring 1, Fall Back 1"
 type = 1
 cost = 2
+tiring = 1
 reversal = true
 repeat_count = 0

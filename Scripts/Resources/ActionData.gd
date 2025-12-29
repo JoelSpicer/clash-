@@ -26,7 +26,7 @@ enum Type { OFFENCE, DEFENCE }
 @export var recover_value: int = 0 # Restores SP
 @export var fall_back_value: int = 0 # Pushes momentum backwards (counteracts gain)
 @export var counter_value: int = 0 # Required "Opening" level on opponent to play this
-@export var tiring_value: int = 0  # (Legacy/Unused?) The SP drain is handled by 'tiring' int below
+@export var tiring: int = 0        # Drains opponent's SP on hit
 
 # --- SPECIAL BOOLEANS ---
 @export_group("Special Mechanics")
@@ -46,4 +46,3 @@ enum Type { OFFENCE, DEFENCE }
 @export var repeat_count: int = 1        # Number of times the effect loop runs (e.g., Flurry)
 @export var create_opening: int = 0      # Sets opponent's Opening Stat (enables Counters)
 @export var opportunity: int = 0         # Reduces cost/Increases momentum next turn
-@export var tiring: int = 0              # Drains opponent's SP on hit

@@ -25,7 +25,6 @@
 
 [resource]
 script = ExtResource("2_071o7")
-max_hp = 5
 max_sp = 10
 deck = Array[ExtResource("1_0ea2m")]([ExtResource("2_3u464"), ExtResource("3_45bul"), ExtResource("4_va6bm"), ExtResource("5_njgh8"), ExtResource("6_uutni"), ExtResource("7_sjlig"), ExtResource("8_0jj06"), ExtResource("9_x468r"), ExtResource("10_ueadi"), ExtResource("11_js7f2"), ExtResource("12_d63b0"), ExtResource("13_oqrl7"), ExtResource("14_b7hqx"), ExtResource("15_8ih77"), ExtResource("16_q8pw5"), ExtResource("17_kwkfq"), ExtResource("18_c0rdt"), ExtResource("19_77luy"), ExtResource("20_w428t"), ExtResource("21_js7f2")])
 metadata/_custom_type_script = "uid://c4fll3p1ufpsf"

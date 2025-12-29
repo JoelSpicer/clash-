@@ -10,5 +10,5 @@ description = "Offence, Cost 3, Momentum 4, Damage 1, Tiring 1"
 cost = 3
 damage = 1
 momentum_gain = 4
-tiring_value = 1
+tiring = 1
 repeat_count = 0

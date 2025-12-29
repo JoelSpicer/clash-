@@ -9,6 +9,6 @@ display_name = "Adept Tech"
 description = "Offence, Cost 2, Injure, Damage 1, Tiring 1"
 cost = 2
 damage = 1
-tiring_value = 1
+tiring = 1
 injure = true
 repeat_count = 0

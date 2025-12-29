@@ -10,6 +10,6 @@ description = "Offence, Cost 2, Momentum 1, Damage 1, Guard Break, Tiring 1"
 cost = 2
 damage = 1
 momentum_gain = 1
-tiring_value = 1
+tiring = 1
 guard_break = true
 repeat_count = 0
