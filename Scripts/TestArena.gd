@@ -16,7 +16,7 @@ var _current_input_player: int = 1
 
 func _ready():
 	await get_tree().process_frame
-	
+	battle_ui.combat_log.clear_log()
 	# Connect Signals
 	GameManager.state_changed.connect(_on_state_changed)
 	GameManager.combat_log_updated.connect(_on_log_updated)

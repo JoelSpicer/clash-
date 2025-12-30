@@ -111,7 +111,7 @@ func player_select_action(player_id: int, action: ActionData):
 # ==============================================================================
 
 func _enter_reveal_phase():
-	emit_signal("combat_log_updated", "REVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
+	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
 	
 	p1_pending_feint = p1_action_queue.feint
 	p2_pending_feint = p2_action_queue.feint

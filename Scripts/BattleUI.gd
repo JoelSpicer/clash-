@@ -9,6 +9,7 @@ signal p2_mode_toggled(is_human)
 @onready var p2_hud = $P2_HUD
 @onready var momentum_slider = $MomentumSlider
 @onready var momentum_label = $MomentumSlider/Label # Optional text display
+@onready var combat_log = $CombatLog
 
 @onready var button_grid = %ButtonGrid
 @onready var preview_card = %PreviewCard
@@ -59,6 +60,9 @@ func _ready():
 	GameManager.damage_dealt.connect(_on_damage_dealt)
 	GameManager.healing_received.connect(_on_healing_received)
 	GameManager.status_applied.connect(_on_status_applied)	
+	
+	# --- NEW: Connect Log Signal ---
+	GameManager.combat_log_updated.connect(_on_combat_log_updated)
 	
 	# --- NEW: Create Toggles Programmatically ---
 	_create_debug_toggles()
@@ -253,3 +257,7 @@ func _spawn_text(pos: Vector2, text: String, color: Color):
 	var popup = floating_text_scene.instantiate()
 	add_child(popup)
 	popup.setup(text, color, pos)
+
+func _on_combat_log_updated(text: String):
+	if combat_log:
+		combat_log.add_log(text)

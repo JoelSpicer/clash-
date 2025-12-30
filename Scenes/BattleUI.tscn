@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://dhwx6yjjskbn7"]
+[gd_scene load_steps=5 format=3 uid="uid://dhwx6yjjskbn7"]
 
 [ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scripts/BattleUI.gd" id="1_d8qwt"]
 [ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
 [ext_resource type="PackedScene" uid="uid://yeraw55rlx1q" path="res://Scenes/PlayerHUD.tscn" id="3_vxmu1"]
+[ext_resource type="PackedScene" uid="uid://bu7kfrk2ayfm6" path="res://Scenes/CombatLog.tscn" id="4_f6fb8"]
 
 [node name="BattleUI" type="CanvasLayer"]
 script = ExtResource("1_d8qwt")
@@ -104,3 +105,9 @@ offset_left = 929.0
 offset_top = 2.0
 offset_right = 969.0
 offset_bottom = 42.0
+
+[node name="CombatLog" parent="." instance=ExtResource("4_f6fb8")]
+offset_left = 12.0
+offset_top = 232.0
+offset_right = 312.0
+offset_bottom = 432.0

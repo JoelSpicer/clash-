@@ -1,0 +1,21 @@
+[gd_scene load_steps=2 format=3 uid="uid://bu7kfrk2ayfm6"]
+
+[ext_resource type="Script" uid="uid://d1csvul0dae5i" path="res://Scripts/CombatLog.gd" id="1_8rr8p"]
+
+[node name="CombatLog" type="PanelContainer"]
+custom_minimum_size = Vector2(300, 200)
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_8rr8p")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="LogLabel" type="RichTextLabel" parent="MarginContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "Waiting for logs..."
