@@ -31,10 +31,21 @@ offset_bottom = 259.0
 unique_name_in_owner = true
 z_index = 1
 layout_mode = 1
-offset_left = 348.0
-offset_top = 28.0
-offset_right = 558.0
-offset_bottom = 338.0
+offset_left = 349.0
+offset_top = -70.0
+offset_right = 559.0
+offset_bottom = 240.0
+
+[node name="ToolTipLabel" type="RichTextLabel" parent="MainLayout/PreviewAnchor"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 0
+offset_right = 300.0
+offset_bottom = 40.0
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/normal_font_size = 12
+theme_override_font_sizes/bold_font_size = 12
+bbcode_enabled = true
+fit_content = true
 
 [node name="BottomBar" type="Panel" parent="MainLayout"]
 custom_minimum_size = Vector2(0, 150)

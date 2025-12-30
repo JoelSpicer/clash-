@@ -5,14 +5,15 @@ signal p1_mode_toggled(is_human)
 signal p2_mode_toggled(is_human)
 
 # --- REFERENCES ---
-@onready var p1_hud = $P1_HUD # Make sure you add these to the scene!
+@onready var p1_hud = $P1_HUD 
 @onready var p2_hud = $P2_HUD
 @onready var momentum_slider = $MomentumSlider
-@onready var momentum_label = $MomentumSlider/Label # Optional text display
+@onready var momentum_label = $MomentumSlider/Label 
 @onready var combat_log = $CombatLog
 
 @onready var button_grid = %ButtonGrid
 @onready var preview_card = %PreviewCard
+@onready var tooltip_label = $MainLayout/PreviewAnchor/ToolTipLabel
 @onready var btn_offence = %Offence        
 @onready var btn_defence = %Defence       
 
@@ -38,6 +39,35 @@ var is_locked = false
 var p1_toggle: CheckButton
 var p2_toggle: CheckButton
 
+# --- KEYWORD DEFINITIONS ---
+const KEYWORD_DEFS = {
+	"Block": "Reduce incoming damage by X",
+	"Cost": "lose X stamina",
+	"Counter": "You must have used an action with Create Opening X or higher in the previous clash",
+	"Create Opening": "Your opponent’s next action cannot have a Cost trait higher than X",
+	"Damage": "Reduce your opponent’s health by X",
+	"Defence": "Can only be used on the defensive. This action gains the Recover 1 trait. You must have the stamina require to use this action.",
+	"Feint": "In addition to the action’s listed traits, it gains all the traits of another action that you can use. That action can be chosen after actions are revealed",
+	"Dodge": "You ignore the effects of your opponent’s action if its stamina cost is X or below",
+	"Fall Back": "Lose X momentum",
+	"Guard Break": "Ignore the ‘Block X’ trait of your opponent’s action",
+	"Heal": "Gain X HP",
+	"Injure": "Your opponent must lose 1 HP every clash after this until you use an action with the Recover X, Heal X or Fall Back X traits, or the combat ends",
+	"Momentum": "Gain X momentum",
+	"Multi": "After this action, you may use any other action that has a Cost trait of X or below, and that does not have the multi X trait. This action interacts with your opponent’s previous action. If your opponent’s action would end your combo, you do not get to use this trait. In addition, moves with this trait can be used to start a combo",
+	"Offence": "Can only be used on the offensive. If you are reduced to 0SP, your combo ends",
+	"Opener": "Only actions with this trait can be used to start a combo",
+	"Opportunity": "Increase your next actions momentum by X, and reduce its stamina cost by X",
+	"Parry": "Your action steals the Momentum X trait of your opponent’s action. If this causes the momentum tracker to move in your direction, your opponent’s action has no affect on you, and your opponent’s next action must have the Opener trait",
+	"Recover": "Gain X stamina",
+	"Repeat": "After this action, use the same action again, ignoring the Repeat X trait. This must continue X times. This action interacts with your opponent’s chosen action as normal",
+	"Retaliate": "Your opponent takes the same damage as they dealt to you in the previous clash",
+	"Reversal": "If the momentum tracker moves closer to your side from this clash, the current combo ends and you take the offence, even if you do not have the momentum advantage. This applies even in the inital clash",
+	"Super": "This action can only be used when the momentum tracker has reached the end of your side. You can only use an action with this trait once per combat",
+	"Sweep": "This action affects all opponents you are in combat with",
+	"Tiring": "Cause the opponent to lose X Stamina"
+}
+
 func _ready():
 	if not btn_offence or not btn_defence:
 		printerr("CRITICAL: Buttons missing in BattleUI")
@@ -52,26 +82,24 @@ func _ready():
 	skip_action.description = "Stop combining and use your original action."
 	skip_action.cost = 0
 	
-	# Initially hide input grid, but keep HUDs visible
+	# Initially hide input grid
 	button_grid.visible = false
 	preview_card.visible = false
+	if tooltip_label: tooltip_label.visible = false
 	
 	# Connect Visual Signals
 	GameManager.damage_dealt.connect(_on_damage_dealt)
 	GameManager.healing_received.connect(_on_healing_received)
 	GameManager.status_applied.connect(_on_status_applied)	
-	
-	# --- NEW: Connect Log Signal ---
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
 	
-	# --- NEW: Create Toggles Programmatically ---
 	_create_debug_toggles()
 
 func _create_debug_toggles():
 	var container = HBoxContainer.new()
 	add_child(container)
 	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	container.position.y += 60 # Push down a bit so it doesn't overlap top bar
+	container.position.y += 60 
 	container.add_theme_constant_override("separation", 20)
 	
 	p1_toggle = CheckButton.new()
@@ -87,55 +115,38 @@ func _create_debug_toggles():
 func setup_toggles(p1_is_human: bool, p2_is_human: bool):
 	if p1_toggle: p1_toggle.set_pressed_no_signal(p1_is_human)
 	if p2_toggle: p2_toggle.set_pressed_no_signal(p2_is_human)
-# --- NEW: VISUAL UPDATE FUNCTIONS ---
+
+# --- VISUAL UPDATE FUNCTIONS ---
 
 func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	p1_hud.setup(p1_data)
 	p2_hud.setup(p2_data)
-	update_momentum(0) # Neutral
+	update_momentum(0) 
 
 func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
-	# Fetch Game State directly from GameManager globals would be cleaner,
-	# but passing them in is safer for decoupling.
-	
-	# We need access to status effects. 
-	# Ideally, CharacterData should hold 'is_injured', but currently GameManager holds it.
-	# For now, we will read from GameManager static instance or pass args.
-	
 	p1_hud.update_stats(p1, GameManager.p1_is_injured, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat)
 	p2_hud.update_stats(p2, GameManager.p2_is_injured, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat)
-	
 	update_momentum(momentum)
 
 func update_momentum(val: int):
-	# If 0, maybe center it? Or map 0 -> 4.5?
-	# Let's map logical momentum (1-8) to slider (1-8). 
-	# If 0 (Neutral), we visualy place it in the middle.
-	
 	var visual_val = val
-	var text = "NEUTRAL " + str(val)
-	
-	if val == 0: 
-		visual_val = 4.5 # Sits between P1 and P2
-	elif val <= 4:
-		text = "P1 MOMENTUM " + str(val)
-	else:
-		text = "P2 MOMENTUM " + str(val)
+	var text = "NEUTRAL"
+	if val == 0: visual_val = 4.5 
+	elif val <= 4: text = "P1 MOMENTUM"
+	else: text = "P2 MOMENTUM"
 		
-	# Tween the slider for smooth movement
 	var tween = create_tween()
 	tween.tween_property(momentum_slider, "value", visual_val, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	
 	if momentum_label: momentum_label.text = text
 
-# --- INPUT HANDLING (Existing Logic) ---
+# --- INPUT HANDLING ---
 
 func load_deck(deck: Array[ActionData]):
 	current_deck = deck
 	_refresh_grid()
 
 func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
-	button_grid.visible = true # Show grid
+	button_grid.visible = true 
 	is_locked = false
 	current_sp_limit = player_current_sp
 	opener_restriction = must_be_opener
@@ -156,12 +167,10 @@ func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool =
 		btn_defence.disabled = false
 		_switch_tab(current_tab)
 
-	print("[UI] Input Unlocked.")
-
 func lock_ui():
 	is_locked = true
 	button_grid.visible = false 
-	preview_card.visible = false
+	_on_card_exited() # Clean up tooltips when locking
 
 func _on_card_selected(card: ActionData):
 	if is_locked: return
@@ -197,6 +206,7 @@ func _refresh_grid():
 			btn.set_available(is_valid)
 			
 			btn.card_hovered.connect(_on_card_hovered)
+			btn.card_exited.connect(_on_card_exited) 
 			btn.card_selected.connect(_on_card_selected)
 
 	if feint_mode:
@@ -208,40 +218,104 @@ func _refresh_grid():
 		skip_btn.set_available(true)
 		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
 		skip_btn.card_hovered.connect(_on_card_hovered)
+		skip_btn.card_exited.connect(_on_card_exited)
 		skip_btn.card_selected.connect(_on_card_selected)
+
+# --- TOOLTIP LOGIC ---
 
 func _on_card_hovered(card: ActionData):
 	var effective_cost = max(0, card.cost - my_opportunity_val)
 	preview_card.set_card_data(card, effective_cost)
 	preview_card.visible = true
 	
-# --- VISUAL HANDLERS ---
+	_update_tooltip_text(card)
 
-# NEW Helper: Calculates a position slightly offset towards the center of the screen
+func _on_card_exited():
+	preview_card.visible = false
+	if tooltip_label: tooltip_label.visible = false
+
+func _update_tooltip_text(card: ActionData):
+	if not tooltip_label: return
+	
+	var active_keys = []
+	
+	# Core Type
+	if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")
+	if card.type == ActionData.Type.DEFENCE: active_keys.append("Defence")
+	
+	# Basic Stats
+	if card.cost > 0: active_keys.append("Cost")
+	if card.damage > 0: active_keys.append("Damage")
+	if card.momentum_gain > 0: active_keys.append("Momentum")
+	
+	# Combat Values
+	if card.block_value > 0: active_keys.append("Block")
+	if card.dodge_value > 0: active_keys.append("Dodge")
+	if card.heal_value > 0: active_keys.append("Heal")
+	if card.recover_value > 0: active_keys.append("Recover")
+	if card.fall_back_value > 0: active_keys.append("Fall Back")
+	if card.counter_value > 0: active_keys.append("Counter")
+	if card.tiring > 0: active_keys.append("Tiring")
+	
+	# Booleans
+	if card.is_opener: active_keys.append("Opener")
+	if card.is_super: active_keys.append("Super")
+	if card.guard_break: active_keys.append("Guard Break")
+	if card.feint: active_keys.append("Ditto")
+	if card.injure: active_keys.append("Injure")
+	if card.retaliate: active_keys.append("Retaliate")
+	if card.reversal: active_keys.append("Reversal")
+	if card.is_parry: active_keys.append("Parry")
+	if card.sweep: active_keys.append("Sweep")
+	
+	# Advanced
+	if card.multi_limit > 0: active_keys.append("Multi")
+	if card.repeat_count > 1: active_keys.append("Repeat")
+	if card.create_opening > 0: active_keys.append("Create Opening")
+	if card.opportunity > 0: active_keys.append("Opportunity")
+	
+	if active_keys.is_empty():
+		tooltip_label.visible = false
+		return
+		
+	# Build Text
+	var full_text = ""
+	for k in active_keys:
+		if k in KEYWORD_DEFS:
+			full_text += "[b]" + k + ":[/b] " + KEYWORD_DEFS[k] + "\n"
+			
+	tooltip_label.text = full_text
+	tooltip_label.visible = true
+	
+# --- POSITIONING LOGIC ---
+	
+	# 1. Force size update so calculations are accurate
+	tooltip_label.size.y = 0 
+	var padding = 20
+	# 2. Calculate Vertical Position (Grow Upwards)
+	# We align the BOTTOM of the tooltip with the BOTTOM of the card
+	var preview_bottom = preview_card.position.y + preview_card.size.y
+	tooltip_label.position.y = preview_bottom - tooltip_label.size.y - padding
+	
+	# 3. Calculate Horizontal Position (Place on RIGHT)
+	# Formula: Card X Position + Card Width + Padding
+	tooltip_label.position.x = preview_card.position.x - tooltip_label.size.x - padding
+
+# --- VISUAL HANDLERS (Floating Text etc) ---
+
 func _get_clash_text_pos(target_id: int) -> Vector2:
 	var hud = p1_hud if target_id == 1 else p2_hud
 	var pos = hud.global_position + (hud.size / 2)
-	
-	# The Shift Amount (How far to push text towards the center)
 	var center_offset = 100 
 	pos.y += 75
-	if target_id == 1:
-		# P1 is on the Left, so push text Right (+)
-		pos.x += center_offset
-	else:
-		# P2 is on the Right, so push text Left (-)
-		pos.x -= center_offset
-		
+	if target_id == 1: pos.x += center_offset
+	else: pos.x -= center_offset
 	return pos
 
 func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
-	# Use the new helper for position
 	var spawn_pos = _get_clash_text_pos(target_id)
-	
-	if is_blocked:
-		_spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
-	else:
-		_spawn_text(spawn_pos, str(amount), Color.RED)
+	if is_blocked: _spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
+	else: _spawn_text(spawn_pos, str(amount), Color.RED)
 
 func _on_healing_received(target_id: int, amount: int):
 	var spawn_pos = _get_clash_text_pos(target_id)
@@ -249,7 +323,6 @@ func _on_healing_received(target_id: int, amount: int):
 
 func _on_status_applied(target_id: int, status: String):
 	var spawn_pos = _get_clash_text_pos(target_id)
-	# Spawn status slightly higher so it doesn't overlap damage numbers
 	spawn_pos.y -= 40 
 	_spawn_text(spawn_pos, status, Color.YELLOW)
 
@@ -259,5 +332,4 @@ func _spawn_text(pos: Vector2, text: String, color: Color):
 	popup.setup(text, color, pos)
 
 func _on_combat_log_updated(text: String):
-	if combat_log:
-		combat_log.add_log(text)
+	if combat_log: combat_log.add_log(text)

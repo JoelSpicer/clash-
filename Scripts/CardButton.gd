@@ -2,6 +2,7 @@ extends Button
 
 # Signals for UI Interaction
 signal card_hovered(action)
+signal card_exited() # <--- NEW SIGNAL
 signal card_selected(action)
 
 var my_action: ActionData
@@ -34,6 +35,10 @@ func _pressed():
 
 func _on_mouse_entered():
 	emit_signal("card_hovered", my_action)
+
+# NEW: Handle mouse exit
+func _on_mouse_exited():
+	emit_signal("card_exited")
 
 # Dynamically updates cost text (e.g. for Opportunity discounts)
 func update_cost_display(new_cost: int):
