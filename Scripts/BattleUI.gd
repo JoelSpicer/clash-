@@ -15,6 +15,7 @@ signal human_selected_card(action_card)
 
 # --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
+var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
 var current_deck: Array[ActionData] = []
 var current_tab = ActionData.Type.OFFENCE
 
@@ -47,6 +48,11 @@ func _ready():
 	# Initially hide input grid, but keep HUDs visible
 	button_grid.visible = false
 	preview_card.visible = false
+	
+	# Connect Visual Signals
+	GameManager.damage_dealt.connect(_on_damage_dealt)
+	GameManager.healing_received.connect(_on_healing_received)
+	GameManager.status_applied.connect(_on_status_applied)	
 
 # --- NEW: VISUAL UPDATE FUNCTIONS ---
 
@@ -74,14 +80,14 @@ func update_momentum(val: int):
 	# If 0 (Neutral), we visualy place it in the middle.
 	
 	var visual_val = val
-	var text = "NEUTRAL"
+	var text = "NEUTRAL " + str(val)
 	
 	if val == 0: 
 		visual_val = 4.5 # Sits between P1 and P2
 	elif val <= 4:
-		text = "P1 MOMENTUM"
+		text = "P1 MOMENTUM " + str(val)
 	else:
-		text = "P2 MOMENTUM"
+		text = "P2 MOMENTUM " + str(val)
 		
 	# Tween the slider for smooth movement
 	var tween = create_tween()
@@ -175,3 +181,46 @@ func _on_card_hovered(card: ActionData):
 	var effective_cost = max(0, card.cost - my_opportunity_val)
 	preview_card.set_card_data(card, effective_cost)
 	preview_card.visible = true
+	
+# --- VISUAL HANDLERS ---
+
+# NEW Helper: Calculates a position slightly offset towards the center of the screen
+func _get_clash_text_pos(target_id: int) -> Vector2:
+	var hud = p1_hud if target_id == 1 else p2_hud
+	var pos = hud.global_position + (hud.size / 2)
+	
+	# The Shift Amount (How far to push text towards the center)
+	var center_offset = 100 
+	pos.y += 75
+	if target_id == 1:
+		# P1 is on the Left, so push text Right (+)
+		pos.x += center_offset
+	else:
+		# P2 is on the Right, so push text Left (-)
+		pos.x -= center_offset
+		
+	return pos
+
+func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
+	# Use the new helper for position
+	var spawn_pos = _get_clash_text_pos(target_id)
+	
+	if is_blocked:
+		_spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
+	else:
+		_spawn_text(spawn_pos, str(amount), Color.RED)
+
+func _on_healing_received(target_id: int, amount: int):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	_spawn_text(spawn_pos, "+" + str(amount), Color.GREEN)
+
+func _on_status_applied(target_id: int, status: String):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	# Spawn status slightly higher so it doesn't overlap damage numbers
+	spawn_pos.y -= 40 
+	_spawn_text(spawn_pos, status, Color.YELLOW)
+
+func _spawn_text(pos: Vector2, text: String, color: Color):
+	var popup = floating_text_scene.instantiate()
+	add_child(popup)
+	popup.setup(text, color, pos)

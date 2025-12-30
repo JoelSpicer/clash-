@@ -5,6 +5,9 @@ signal state_changed(new_state)
 signal clash_resolved(winner_id, log_text)
 signal combat_log_updated(text)
 signal game_over(winner_id)
+signal damage_dealt(target_id: int, amount: int, is_blocked: bool)
+signal healing_received(target_id: int, amount: int)
+signal status_applied(target_id: int, status_name: String)
 
 # --- STATE MACHINE ---
 enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
@@ -332,14 +335,17 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 			
 		if my_card.heal_value > 0: 
 			owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
+			emit_signal("healing_received", owner_id, my_card.heal_value) # <--- ADD THIS
 
 		if my_card.heal_value > 0 or my_card.fall_back_value > 0:
 			if owner_id == 1 and p1_is_injured:
 				p1_is_injured = false
 				emit_signal("combat_log_updated", ">> P1 cures Injury!")
+				emit_signal("status_applied", 1, "CURED!") # <--- ADD THIS
 			elif owner_id == 2 and p2_is_injured:
 				p2_is_injured = false
 				emit_signal("combat_log_updated", ">> P2 cures Injury!")
+				emit_signal("status_applied", 2, "CURED!")
 
 func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool) -> Dictionary:
 	var owner = p1_data if owner_id == 1 else p2_data
@@ -349,6 +355,8 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 	# PARRY/DODGE IMMUNITY check
 	if target_is_immune:
 		emit_signal("combat_log_updated", "P" + str(owner_id) + " attack NULLIFIED (Dodge/Parry)!")
+		emit_signal("status_applied", owner_id, "MISS")
+		emit_signal("status_applied", target_id, "DODGED")
 		return result
 
 	var total_hits = max(1, my_card.repeat_count)
@@ -384,10 +392,12 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		# 3. APPLY HP DAMAGE
 		if net_damage > 0:
 			target.current_hp -= net_damage
+			emit_signal("damage_dealt", target_id, net_damage, false)
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
 		elif my_card.damage > 0:
 			# Only log "Blocked" if there was damage to block
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
+			emit_signal("damage_dealt", target_id, 0, true)
 
 		# 4. RETALIATE CHECK
 		# Logic: Retaliate triggers if the enemy tried to damage you, even if you blocked it.
