@@ -1,6 +1,8 @@
 extends CanvasLayer
 
 signal human_selected_card(action_card)
+signal p1_mode_toggled(is_human)
+signal p2_mode_toggled(is_human)
 
 # --- REFERENCES ---
 @onready var p1_hud = $P1_HUD # Make sure you add these to the scene!
@@ -31,6 +33,10 @@ var feint_mode: bool = false
 var skip_action: ActionData
 var is_locked = false
 
+# Toggle Buttons
+var p1_toggle: CheckButton
+var p2_toggle: CheckButton
+
 func _ready():
 	if not btn_offence or not btn_defence:
 		printerr("CRITICAL: Buttons missing in BattleUI")
@@ -53,7 +59,30 @@ func _ready():
 	GameManager.damage_dealt.connect(_on_damage_dealt)
 	GameManager.healing_received.connect(_on_healing_received)
 	GameManager.status_applied.connect(_on_status_applied)	
+	
+	# --- NEW: Create Toggles Programmatically ---
+	_create_debug_toggles()
 
+func _create_debug_toggles():
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	container.position.y += 60 # Push down a bit so it doesn't overlap top bar
+	container.add_theme_constant_override("separation", 20)
+	
+	p1_toggle = CheckButton.new()
+	p1_toggle.text = "P1 Human"
+	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
+	container.add_child(p1_toggle)
+	
+	p2_toggle = CheckButton.new()
+	p2_toggle.text = "P2 Human"
+	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
+	container.add_child(p2_toggle)
+
+func setup_toggles(p1_is_human: bool, p2_is_human: bool):
+	if p1_toggle: p1_toggle.set_pressed_no_signal(p1_is_human)
+	if p2_toggle: p2_toggle.set_pressed_no_signal(p2_is_human)
 # --- NEW: VISUAL UPDATE FUNCTIONS ---
 
 func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
