@@ -10,6 +10,9 @@ extends Node2D
 @export var is_player_2_human: bool = false 
 @export var p2_debug_force_card: ActionData 
 
+# NEW: Preload the Game Over Screen
+var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
+
 @onready var battle_ui = $BattleUI
 var _simulation_active: bool = true
 var _current_input_player: int = 1 
@@ -245,6 +248,23 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 func _on_game_over(winner_id):
 	print("\n*** VICTORY FOR PLAYER " + str(winner_id) + "! ***")
 	if stop_on_game_over: _simulation_active = false
+	
+	# 1. Wait a moment for the final hit impact to register visually
+	await get_tree().create_timer(1.5).timeout
+	
+	# 2. Lock UI so no more cards can be clicked
+	if battle_ui:
+		battle_ui.lock_ui()
+	
+	# 3. Spawn Game Over Screen
+	var screen = game_over_scene.instantiate()
+	# Add to CanvasLayer (BattleUI) so it draws on top of everything, 
+	# or add to self if you want it part of the world. 
+	# Adding to BattleUI is usually safer for Z-index.
+	battle_ui.add_child(screen) 
+	screen.setup(winner_id)
+	
+	
 func _on_clash_resolved(winner_id, _text): 
 	print("\n>>> Clash Winner: P" + str(winner_id))
 	_update_visuals()
