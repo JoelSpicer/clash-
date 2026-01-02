@@ -18,3 +18,4 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameManager="*res://Scripts/Resources/GameManager.gd"
+ClassFactory="*res://Scripts/ClassFactory.gd"

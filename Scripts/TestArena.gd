@@ -20,6 +20,15 @@ var _current_input_player: int = 1
 func _ready():
 	await get_tree().process_frame
 	battle_ui.combat_log.clear_log()
+	
+	# --- NEW LOGIC: CHECK FOR SELECTION ---
+	if GameManager.next_match_p1_data != null:
+		p1_resource = GameManager.next_match_p1_data
+		
+	if GameManager.next_match_p2_data != null:
+		p2_resource = GameManager.next_match_p2_data
+	# --------------------------------------
+	
 	# Connect Signals
 	GameManager.state_changed.connect(_on_state_changed)
 	GameManager.combat_log_updated.connect(_on_log_updated)

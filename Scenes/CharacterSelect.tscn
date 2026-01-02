@@ -1,0 +1,75 @@
+[gd_scene load_steps=2 format=3 uid="uid://c3jl31vkltf5h"]
+
+[ext_resource type="Script" uid="uid://bkm6gg67mwbyu" path="res://Scripts/CharacterSelect.gd" id="1_r5nmx"]
+
+[node name="CharacterSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_r5nmx")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -107.5
+offset_top = -46.5
+offset_right = 107.5
+offset_bottom = 46.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="P1_Column" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+
+[node name="P1Label" type="Label" parent="HBoxContainer/P1_Column"]
+layout_mode = 2
+text = "PLAYER 1"
+
+[node name="ClassOption" type="OptionButton" parent="HBoxContainer/P1_Column"]
+layout_mode = 2
+
+[node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P1_Column"]
+layout_mode = 2
+
+[node name="Center_Column" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+
+[node name="VSLabel" type="Label" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+text = "VS"
+
+[node name="StartButton" type="Button" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+text = "CLASH!"
+
+[node name="BackButton" type="Button" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+text = "Back"
+
+[node name="P2_Column" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+
+[node name="P2Label" type="Label" parent="HBoxContainer/P2_Column"]
+layout_mode = 2
+text = "PLAYER 2"
+
+[node name="ClassOption" type="OptionButton" parent="HBoxContainer/P2_Column"]
+layout_mode = 2
+
+[node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P2_Column"]
+layout_mode = 2

@@ -13,6 +13,10 @@ signal status_applied(target_id: int, status_name: String)
 enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
 var current_state = State.SETUP
 
+# --- PERSISTENT GAME SETUP ---
+var next_match_p1_data: CharacterData
+var next_match_p2_data: CharacterData
+
 # --- CORE DATA ---
 var p1_data: CharacterData
 var p2_data: CharacterData
@@ -139,12 +143,19 @@ func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 	var total_reps = max(1, combined_card.repeat_count)
 	var total_required = effective_total * total_reps
 	
+	# Affordability check (Handles Rage Passive for Feints too)
+	var can_afford = false
 	if character.current_sp >= total_required:
+		can_afford = true
+	elif character.class_type == CharacterData.ClassType.HEAVY and (character.current_sp + character.current_hp) > total_required:
+		can_afford = true # Rage Logic
+		
+	if can_afford:
 		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined_card.display_name)
 		if player_id == 1: p1_action_queue = combined_card
 		else: p2_action_queue = combined_card
 	else:
-		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint (Need " + str(total_required) + "). Action applies normally.")
+		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint. Action applies normally.")
 	
 	_clear_feint_flag(player_id)
 	_check_feint_completion()
@@ -209,6 +220,16 @@ func resolve_clash():
 	var is_initial_clash = (momentum == 0)
 	var start_momentum = momentum 
 	
+	# Update Combo Counts (For Quick Passive)
+	var current_attacker = get_attacker()
+	# Logic: If I won and I am attacking, combo grows. Else reset.
+	# Note: Simplification -> Just checking consecutive wins for now
+	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE: p1_data.combo_action_count += 1
+	else: p1_data.combo_action_count = 0
+	
+	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE: p2_data.combo_action_count += 1
+	else: p2_data.combo_action_count = 0
+	
 	# --- SNAPSHOT STATUS ---
 	var p1_started_injured = p1_is_injured
 	var p2_started_injured = p2_is_injured
@@ -261,8 +282,7 @@ func resolve_clash():
 	var p1_final_push = p1_contribution + p1_stolen
 	var p2_final_push = p2_contribution + p2_stolen
 	
-	# 5. Delta Calculation
-	# Sum up repeated fallbacks
+	# 5. Delta Calculation (FALLBACK)
 	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
 	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
 	
@@ -326,6 +346,13 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 	var owner = p1_data if owner_id == 1 else p2_data
 	var total_hits = max(1, my_card.repeat_count)
 	
+	# PASSIVE: RELENTLESS (Quick Class)
+	# "Every 3rd action in a combo gains Recover 1"
+	if owner.class_type == CharacterData.ClassType.QUICK:
+		if owner.combo_action_count > 0 and (owner.combo_action_count % 3 == 0):
+			owner.current_sp = min(owner.current_sp + 1, owner.max_sp)
+			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
+	
 	for i in range(total_hits):
 		var actual_recover = my_card.recover_value
 		if my_card.type == ActionData.Type.DEFENCE: actual_recover += 1
@@ -335,13 +362,13 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 			
 		if my_card.heal_value > 0: 
 			owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
-			emit_signal("healing_received", owner_id, my_card.heal_value) # <--- ADD THIS
+			emit_signal("healing_received", owner_id, my_card.heal_value)
 
 		if my_card.heal_value > 0 or my_card.fall_back_value > 0:
 			if owner_id == 1 and p1_is_injured:
 				p1_is_injured = false
 				emit_signal("combat_log_updated", ">> P1 cures Injury!")
-				emit_signal("status_applied", 1, "CURED!") # <--- ADD THIS
+				emit_signal("status_applied", 1, "CURED!")
 			elif owner_id == 2 and p2_is_injured:
 				p2_is_injured = false
 				emit_signal("combat_log_updated", ">> P2 cures Injury!")
@@ -352,7 +379,6 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 	var target = p2_data if owner_id == 1 else p1_data
 	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
-	# PARRY/DODGE IMMUNITY check
 	if target_is_immune:
 		emit_signal("combat_log_updated", "P" + str(owner_id) + " attack NULLIFIED (Dodge/Parry)!")
 		emit_signal("status_applied", owner_id, "MISS")
@@ -361,18 +387,25 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 
 	var total_hits = max(1, my_card.repeat_count)
 	for i in range(total_hits):
-		# 1. DAMAGE CALCULATION
 		var enemy_block = enemy_card.block_value 
 		if my_card.guard_break: enemy_block = 0
 		var net_damage = max(0, my_card.damage - enemy_block)
 		
-		# 2. STATUS EFFECT APPLICATION
-		# Status effects apply if the attack wasn't dodged/parried.
-		# Block does NOT prevent these effects.
-		
+		# --- STATUS EFFECTS ---
 		if my_card.tiring > 0:
-			target.current_sp = max(0, target.current_sp - my_card.tiring)
-			emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
+			# PASSIVE: RAGE (Heavy Class) - Losing SP from Tiring can be taken as HP
+			if target.class_type == CharacterData.ClassType.HEAVY and target.current_sp < my_card.tiring:
+				# Simple Logic: If SP runs out, take remaining as damage
+				var drain_amount = my_card.tiring
+				var sp_avail = target.current_sp
+				var hp_cost = drain_amount - sp_avail
+				target.current_sp = 0
+				target.current_hp -= hp_cost
+				emit_signal("combat_log_updated", ">> Rage! P" + str(target_id) + " takes " + str(hp_cost) + " HP dmg instead of SP.")
+				emit_signal("damage_dealt", target_id, hp_cost, false)
+			else:
+				target.current_sp = max(0, target.current_sp - my_card.tiring)
+				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
 		
 		if my_card.injure:
 			if target_id == 1 and not p1_is_injured:
@@ -389,18 +422,16 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		if my_card.opportunity > 0:
 			result["opportunity"] = my_card.opportunity
 
-		# 3. APPLY HP DAMAGE
+		# --- DAMAGE ---
 		if net_damage > 0:
 			target.current_hp -= net_damage
 			emit_signal("damage_dealt", target_id, net_damage, false)
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
 		elif my_card.damage > 0:
-			# Only log "Blocked" if there was damage to block
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
 			emit_signal("damage_dealt", target_id, 0, true)
 
-		# 4. RETALIATE CHECK
-		# Logic: Retaliate triggers if the enemy tried to damage you, even if you blocked it.
+		# --- RETALIATE ---
 		if my_card.damage > 0 and enemy_card.retaliate:
 			var raw_recoil = my_card.damage
 			var self_block = my_card.block_value + my_card.dodge_value 
@@ -414,7 +445,6 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 			else:
 				emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
 
-		# 5. CHECK DEATH
 		if target.current_hp <= 0:
 			result["fatal"] = true
 			return result
@@ -422,9 +452,19 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 	return result
 
 func _apply_phase_3_momentum(owner_id: int, my_card: ActionData, effective_gain: int):
-	# Calculate total fallback logic (Repeated X times)
+	var owner = p1_data if owner_id == 1 else p2_data
+	
 	var reps = max(1, my_card.repeat_count)
 	var total_loss = my_card.fall_back_value * reps
+	
+	# PASSIVE: KEEP-UP (Patient Class)
+	# "Whenever you would Fall Back, you can instead choose to lose the same amount of stamina."
+	# Logic: If Patient has enough SP, Auto-Pay SP to prevent Fall Back.
+	if owner.class_type == CharacterData.ClassType.PATIENT and total_loss > 0:
+		if owner.current_sp >= total_loss:
+			owner.current_sp -= total_loss
+			total_loss = 0
+			emit_signal("combat_log_updated", ">> Keep-Up! P" + str(owner_id) + " spent SP to hold ground.")
 	
 	if owner_id == 1:
 		momentum = clampi(momentum - effective_gain + total_loss, 1, 8)
@@ -438,8 +478,6 @@ func _apply_phase_3_momentum(owner_id: int, my_card: ActionData, effective_gain:
 func _calculate_projected_momentum(player_id: int, card: ActionData, is_active: bool) -> int:
 	if not is_active: return 0
 	var opp_val = _get_opportunity_value(player_id)
-	
-	# Gain applies per repetition
 	var single_gain = card.momentum_gain + opp_val
 	var total_gain = single_gain * max(1, card.repeat_count)
 	return total_gain
@@ -454,19 +492,28 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 	var raw_cost = card.cost
 	var opp_val = _get_opportunity_value(player_id)
 	var effective_single_cost = max(0, raw_cost - opp_val)
-	
 	var total_reps = max(1, card.repeat_count)
 	var total_cost = effective_single_cost * total_reps
 	
-	if is_free: 
-		total_cost = 0
-		emit_signal("combat_log_updated", "P" + str(player_id) + " locked by Multi: Action is FREE.")
+	if is_free: total_cost = 0
 	
 	if character.current_sp >= total_cost:
 		character.current_sp -= total_cost
 		return true
 	else:
-		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP (Need " + str(total_cost) + ")! Action Fails!")
+		# PASSIVE: RAGE (Heavy Class)
+		# "Whenever you would lose SP, you can instead choose to lose the same amount of HP."
+		if character.class_type == CharacterData.ClassType.HEAVY:
+			if (character.current_sp + character.current_hp) > total_cost:
+				var sp_avail = character.current_sp
+				var hp_cost = total_cost - sp_avail
+				character.current_sp = 0
+				character.current_hp -= hp_cost
+				emit_signal("combat_log_updated", ">> Rage! P" + str(player_id) + " pays " + str(hp_cost) + " HP for action.")
+				emit_signal("damage_dealt", player_id, hp_cost, false)
+				return true
+		
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
 		return false
 
 func _handle_status_damage(winner_id, p1_started_injured: bool, p2_started_injured: bool):
@@ -501,10 +548,8 @@ func _check_reversal(winner_id, start_momentum):
 		if moved_closer:
 			current_combo_attacker = loser_id 
 			reversal_triggered = true
-			
 			if loser_id == 1: p1_must_opener = true
 			else: p2_must_opener = true
-			
 			emit_signal("combat_log_updated", ">>> REVERSAL! Player " + str(loser_id) + " seizes the Combo! (Must use Opener) <<<")
 
 	var active_attacker = get_attacker()
@@ -518,12 +563,9 @@ func _check_reversal(winner_id, start_momentum):
 				current_combo_attacker = active_attacker
 
 func _handle_locks(winner_id):
-	p1_locked_card = null
-	p2_locked_card = null
-	
+	p1_locked_card = null; p2_locked_card = null
 	var winner_card = p1_action_queue if winner_id == 1 else p2_action_queue
 	var loser_card_obj = p2_action_queue if winner_id == 1 else p1_action_queue 
-	
 	if winner_card.multi_limit > 0:
 		emit_signal("combat_log_updated", "Multi Triggered! Loser Locked.")
 		if winner_id == 1: p2_locked_card = loser_card_obj
@@ -532,7 +574,6 @@ func _handle_locks(winner_id):
 func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bool, p2_parry_win: bool):
 	var next_p1_limit = 99; var next_p2_limit = 99
 	var next_p1_opening = 0; var next_p2_opening = 0
-	
 	p1_must_opener = false; p2_must_opener = false
 	
 	if p1_res["opening"] > 0:
