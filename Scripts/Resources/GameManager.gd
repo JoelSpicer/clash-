@@ -44,6 +44,12 @@ var p2_locked_card: ActionData = null
 var p1_pending_feint: bool = false
 var p2_pending_feint: bool = false
 
+# --- PASSIVES ---
+var p1_rage_active: bool = false
+var p2_rage_active: bool = false
+var p1_keep_up_active: bool = false
+var p2_keep_up_active: bool = false
+
 # ==============================================================================
 # INITIALIZATION
 # ==============================================================================
@@ -66,6 +72,9 @@ func reset_combat():
 	p1_must_opener = false; p2_must_opener = false
 	p1_is_injured = false; p2_is_injured = false
 	p1_pending_feint = false; p2_pending_feint = false
+	
+	p1_rage_active = false; p2_rage_active = false
+	p1_keep_up_active = false; p2_keep_up_active = false
 	
 	if p1_data.speed > p2_data.speed: priority_player = 1
 	elif p2_data.speed > p1_data.speed: priority_player = 2
@@ -99,7 +108,17 @@ func change_state(new_state: State):
 		State.RESOLUTION:
 			resolve_clash()
 
-func player_select_action(player_id: int, action: ActionData):
+func player_select_action(player_id: int, action: ActionData, extra_data: Dictionary = {}):
+	# Store toggle states
+	if player_id == 1:
+		p1_action_queue = action
+		p1_rage_active = extra_data.get("rage", false)
+		p1_keep_up_active = extra_data.get("keep_up", false)
+	else:
+		p2_action_queue = action
+		p2_rage_active = extra_data.get("rage", false)
+		p2_keep_up_active = extra_data.get("keep_up", false)
+		
 	if current_state == State.SELECTION:
 		if player_id == 1: p1_action_queue = action
 		else: p2_action_queue = action
@@ -453,18 +472,18 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 
 func _apply_phase_3_momentum(owner_id: int, my_card: ActionData, effective_gain: int):
 	var owner = p1_data if owner_id == 1 else p2_data
+	var keep_up_is_on = (p1_keep_up_active if owner_id == 1 else p2_keep_up_active)
 	
 	var reps = max(1, my_card.repeat_count)
 	var total_loss = my_card.fall_back_value * reps
 	
-	# PASSIVE: KEEP-UP (Patient Class)
-	# "Whenever you would Fall Back, you can instead choose to lose the same amount of stamina."
-	# Logic: If Patient has enough SP, Auto-Pay SP to prevent Fall Back.
-	if owner.class_type == CharacterData.ClassType.PATIENT and total_loss > 0:
+# --- KEEP-UP LOGIC ---
+	# Only triggers if toggle is ON and class is PATIENT
+	if keep_up_is_on and owner.class_type == CharacterData.ClassType.PATIENT and total_loss > 0:
 		if owner.current_sp >= total_loss:
 			owner.current_sp -= total_loss
 			total_loss = 0
-			emit_signal("combat_log_updated", ">> Keep-Up! P" + str(owner_id) + " spent SP to hold ground.")
+			emit_signal("combat_log_updated", ">> KEEP-UP! P" + str(owner_id) + " spent SP to hold ground.")
 	
 	if owner_id == 1:
 		momentum = clampi(momentum - effective_gain + total_loss, 1, 8)
@@ -488,6 +507,7 @@ func _get_opportunity_value(player_id: int) -> int:
 func _pay_cost(player_id: int, card: ActionData) -> bool:
 	var character = p1_data if player_id == 1 else p2_data
 	var is_free = (p1_locked_card != null if player_id == 1 else p2_locked_card != null)
+	var rage_is_on = (p1_rage_active if player_id == 1 else p2_rage_active)
 	
 	var raw_cost = card.cost
 	var opp_val = _get_opportunity_value(player_id)
@@ -496,6 +516,18 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 	var total_cost = effective_single_cost * total_reps
 	
 	if is_free: total_cost = 0
+	
+	# --- RAGE LOGIC ---
+	# If Rage is ON, we pay with HP.
+	if rage_is_on and character.class_type == CharacterData.ClassType.HEAVY:
+		if character.current_hp > total_cost:
+			character.current_hp -= total_cost
+			emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
+			emit_signal("damage_dealt", player_id, total_cost, false)
+			return true
+		else:
+			emit_signal("combat_log_updated", ">> RAGE failed! Not enough HP.")
+			return false
 	
 	if character.current_sp >= total_cost:
 		character.current_sp -= total_cost

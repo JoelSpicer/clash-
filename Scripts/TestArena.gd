@@ -158,6 +158,10 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 func _prepare_human_turn(player_id: int):
 	_current_input_player = player_id
 	var character = p1_resource if player_id == 1 else p2_resource
+	
+	# --- NEW: SETUP UI TOGGLES ---
+	battle_ui.setup_passive_toggles(character.class_type)
+	# -----------------------------
 	battle_ui.load_deck(character.deck)
 	
 	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
@@ -180,17 +184,18 @@ func _prepare_human_turn(player_id: int):
 	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
 	
 	battle_ui.unlock_for_input(
-		c.required_tab, character.current_sp, c.needs_opener, c.max_cost, c.opening_stat,
+		c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
 		c.can_use_super, c.opportunity_stat, is_feinting
 	)
 
-func _on_human_input_received(card: ActionData):
+func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # Updated Signature
 	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
 	
 	var action_to_submit = card
 	if card.display_name == "SKIP FEINT": action_to_submit = null
 	
-	GameManager.player_select_action(_current_input_player, action_to_submit)
+	# Pass the extra data (toggles) to GameManager
+	GameManager.player_select_action(_current_input_player, action_to_submit, extra_data)
 	
 	if GameManager.current_state == GameManager.State.SELECTION:
 		if _current_input_player == 1:

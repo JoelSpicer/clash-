@@ -1,6 +1,6 @@
 extends CanvasLayer
 
-signal human_selected_card(action_card)
+signal human_selected_card(action_card, extra_data)
 signal p1_mode_toggled(is_human)
 signal p2_mode_toggled(is_human)
 
@@ -25,6 +25,7 @@ var current_tab = ActionData.Type.OFFENCE
 
 # State Constraints
 var current_sp_limit: int = 0 
+var current_hp_limit: int = 0
 var my_opportunity_val: int = 0
 var my_opening_value: int = 0
 var turn_cost_limit: int = 99 
@@ -38,6 +39,11 @@ var is_locked = false
 # Toggle Buttons
 var p1_toggle: CheckButton
 var p2_toggle: CheckButton
+
+# --- NEW VARIABLES ---
+var rage_toggle: CheckButton
+var keep_up_toggle: CheckButton
+# We send the state of these toggles along with the card
 
 # --- KEYWORD DEFINITIONS ---
 const KEYWORD_DEFS = {
@@ -94,6 +100,35 @@ func _ready():
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
 	
 	_create_debug_toggles()
+	_create_passive_toggles() # Add this new function call
+
+func _create_passive_toggles():
+	var container = HBoxContainer.new()
+	add_child(container)
+	# Position this near the card grid or bottom of screen
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	container.position.y -= 50 
+	container.position.x -= 100 
+	rage_toggle = CheckButton.new()
+	rage_toggle.text = "RAGE (Pay HP)"
+	rage_toggle.visible = false
+	rage_toggle.toggled.connect(func(on): _refresh_grid()) # Refresh card availability when clicked
+	container.add_child(rage_toggle)
+	
+	keep_up_toggle = CheckButton.new()
+	keep_up_toggle.text = "KEEP UP (Pay SP)"
+	keep_up_toggle.visible = false
+	# No refresh needed for Keep Up as it doesn't change card playability, only resolution
+	container.add_child(keep_up_toggle)
+	
+# Helper to set correct toggle visibility (Call this from TestArena)
+func setup_passive_toggles(class_type: CharacterData.ClassType):
+	rage_toggle.visible = (class_type == CharacterData.ClassType.HEAVY)
+	keep_up_toggle.visible = (class_type == CharacterData.ClassType.PATIENT)
+	
+	# Reset them to false at start of turn? Or keep them? Usually reset is safer.
+	rage_toggle.button_pressed = false
+	keep_up_toggle.button_pressed = false
 
 func _create_debug_toggles():
 	var container = HBoxContainer.new()
@@ -145,10 +180,11 @@ func load_deck(deck: Array[ActionData]):
 	current_deck = deck
 	_refresh_grid()
 
-func unlock_for_input(forced_tab, player_current_sp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
+func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
 	button_grid.visible = true 
 	is_locked = false
 	current_sp_limit = player_current_sp
+	current_hp_limit = player_current_hp
 	opener_restriction = must_be_opener
 	turn_cost_limit = max_cost 
 	my_opening_value = opening_val
@@ -174,7 +210,12 @@ func lock_ui():
 
 func _on_card_selected(card: ActionData):
 	if is_locked: return
-	emit_signal("human_selected_card", card)
+	# --- NEW: GATHER TOGGLE DATA ---
+	var extra_data = {
+		"rage": rage_toggle.button_pressed if rage_toggle.visible else false,
+		"keep_up": keep_up_toggle.button_pressed if keep_up_toggle.visible else false
+	}
+	emit_signal("human_selected_card", card, extra_data)
 	lock_ui() 
 
 func _switch_tab(type):
@@ -188,6 +229,7 @@ func _refresh_grid():
 		child.queue_free()
 	
 	for card in current_deck:
+		if card == null: continue
 		if card.type == current_tab:
 			var btn = card_button_scene.instantiate()
 			button_grid.add_child(btn)
@@ -196,7 +238,15 @@ func _refresh_grid():
 			var effective_cost = max(0, card.cost - my_opportunity_val)
 			btn.update_cost_display(effective_cost)
 			
-			var can_afford = (effective_cost <= current_sp_limit)
+			# --- UPDATED AFFORDABILITY LOGIC ---
+			var can_afford = false
+			
+			# If Rage is ON, we check HP instead of SP
+			if rage_toggle.visible and rage_toggle.button_pressed:
+				can_afford = (current_hp_limit > effective_cost)
+			else:
+				can_afford = (effective_cost <= current_sp_limit)
+			# -----------------------------------
 			var passes_opener = !(opener_restriction and card.type == ActionData.Type.OFFENCE and !card.is_opener)
 			var passes_max_cost = (card.cost <= turn_cost_limit)
 			var passes_counter = !(card.counter_value > 0 and my_opening_value < card.counter_value)

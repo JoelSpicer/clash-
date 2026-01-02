@@ -10,25 +10,25 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 	match class_type:
 		CharacterData.ClassType.HEAVY:
 			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_sp = 10
 			char_data.speed = 1
 			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
 			
 		CharacterData.ClassType.PATIENT:
 			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_sp = 10
 			char_data.speed = 2
 			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
 			
 		CharacterData.ClassType.QUICK:
 			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_sp = 10
 			char_data.speed = 4
 			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
 			
 		CharacterData.ClassType.TECHNICAL:
 			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_sp = 10
 			char_data.speed = 3
 			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
 
