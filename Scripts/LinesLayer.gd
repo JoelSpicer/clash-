@@ -5,10 +5,19 @@ extends Control
 @export var line_width: float = 2.0
 
 func _draw():
-	var tree_root = get_parent()
+	var tree_root = owner         # <-- This finds the actual ActionTree root
+
+	# Safety check to prevent errors if the scene isn't fully ready
+	if not tree_root or not "action_tree_dict" in tree_root:
+		return
+
 	var dict = tree_root.action_tree_dict
+	
+	# We can grab the nodes_layer directly from the root now that you fixed the path there
 	var nodes_container = tree_root.nodes_layer
 	
+	if not nodes_container:
+		return
 	# We need to find where the nodes are
 	var node_map = {}
 	for child in nodes_container.get_children():

@@ -41,8 +41,8 @@ var action_tree_dict = {
 var id_to_name = {}
 
 # --- SCENE REFS ---
-@onready var nodes_layer = $NodesLayer
-@onready var lines_layer = $LinesLayer
+@onready var nodes_layer = %NodesLayer
+@onready var lines_layer = %LinesLayer
 
 # --- STATE ---
 var unlocked_ids: Array[int] = []
