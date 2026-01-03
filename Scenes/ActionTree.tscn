@@ -1048,4 +1048,13 @@ offset_right = 164.33333
 offset_bottom = 199.33333
 text = "Confirm"
 
+[node name="ResetButton" type="Button" parent="TreeContainer"]
+layout_mode = 0
+offset_left = 91.666664
+offset_top = 216.66666
+offset_right = 162.66666
+offset_bottom = 247.66666
+text = "Reset Skills"
+
 [connection signal="pressed" from="TreeContainer/ConfirmButton" to="." method="_on_confirm_button_pressed"]
+[connection signal="pressed" from="TreeContainer/ResetButton" to="." method="_on_reset_button_pressed"]

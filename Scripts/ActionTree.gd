@@ -1,8 +1,7 @@
-# ActionTree.gd
 extends Control
 
 # --- DATA ---
-# (Pasting your provided dicts here)
+# (Keep your existing dictionaries here)
 var action_tree_key_dict = {
 	"Toppling Kick":1, "Pummel":2, "One Two":3, "Evading Dance":4, "Slip Behind":5,
 	"Adept Dodge":6, "Adept Light":7, "Hundred Hand Slap":8, "Precise Strike":9, "Breakout":10,
@@ -37,7 +36,6 @@ var action_tree_dict = {
 	68:[67,72], 69:[61,62], 70:[58,65], 71:[66,67], 72:[68,61], 73:[2], 74:[34], 75:[39], 76:[71]
 }
 
-# Invert key dict for ID -> Name lookup
 var id_to_name = {}
 
 # --- SCENE REFS ---
@@ -50,25 +48,36 @@ var owned_ids: Array[int] = []
 var selected_class_id: int = 0
 var is_class_locked: bool = false
 
+# --- NEW: STATS TRACKING ---
+var current_max_hp: int = 10
+var current_max_sp: int = 3
+var stats_label: Label 
+
 func _ready():
-	# 1. Build ID to Name Lookup
+	# 1. Build ID lookup
 	for key in action_tree_key_dict:
 		id_to_name[action_tree_key_dict[key]] = key
 	
-	# 2. Setup Nodes (Assume nodes are placed manually in editor as children of NodesLayer)
+	# 2. Setup Nodes
 	for child in nodes_layer.get_children():
 		if child.has_method("setup"):
-			var id = int(str(child.name)) # Assuming node name is "1", "2", etc.
+			var id = int(str(child.name)) 
 			var a_name = id_to_name.get(id, "Unknown")
 			child.setup(id, a_name)
 			child.action_clicked.connect(_on_node_clicked)
 			
-	# Check if GameManager has a pre-selection from the Character Select screen
+	# 3. Create Stats Label UI
+	stats_label = Label.new()
+	stats_label.text = "HP: 10 | SP: 3"
+	stats_label.add_theme_font_size_override("font_size", 32)
+	stats_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	stats_label.position.y += 20 # Offset from top
+	add_child(stats_label)
+
+	# 4. Check for Pre-Selection
 	if GameManager.get("temp_p1_class_selection") != null:
 		var prev_selection = GameManager.temp_p1_class_selection
 		var node_id = 0
-		
-		# Map Dropdown Index -> Node ID
 		match prev_selection:
 			0: node_id = 76 # Heavy
 			1: node_id = 75 # Patient
@@ -77,52 +86,84 @@ func _ready():
 			
 		if node_id != 0:
 			_select_class(node_id)
-			is_class_locked = true
-	# 3. Initial Visual Update
-	_update_tree_visuals()
+			is_class_locked = true 
 	
-	# 4. Trigger Line Drawing
+	_update_tree_visuals()
+	_recalculate_stats() # Initial calc
 	lines_layer.queue_redraw()
 
 func _on_node_clicked(id: int, _name: String):
-	# Is this a Class Selection Node? (73, 74, 75, 76)
 	if id >= 73 and id <= 76:
-		# IF LOCKED, IGNORE CLICKS ON OTHER CLASSES
-		if is_class_locked:
-			if id != selected_class_id:
-				print("Class is locked! You cannot switch classes.")
-			return # Do nothing
-			
+		if is_class_locked: return
 		_select_class(id)
 		return
 		
-	# Logic for normal nodes
 	if id in owned_ids:
-		# Already owned
-		print("Already owned: " + _name)
+		# If we click an OWNED node, try to refund it
+		_try_deselect_action(id)
 	elif id in unlocked_ids:
-		# Buy it!
 		owned_ids.append(id)
 		_unlock_neighbors(id)
 		_update_tree_visuals()
+		_recalculate_stats() # <--- Update stats when buying
 	else:
 		print("Locked!")
 
 func _select_class(class_id: int):
-	print("Selected Class: " + id_to_name[class_id])
 	selected_class_id = class_id
-	
-	# Reset Tree
 	owned_ids.clear()
 	unlocked_ids.clear()
-	
-	# Add Class Node as owned
 	owned_ids.append(class_id)
-	
-	# Unlock the class's starting connections
 	_unlock_neighbors(class_id)
-	
 	_update_tree_visuals()
+	_recalculate_stats() # <--- Update stats when resetting
+
+# --- NEW: STATS CALCULATION LOGIC ---
+func _recalculate_stats():
+	# Reset to Base
+	current_max_hp = 10
+	current_max_sp = 3
+	
+	# If no class selected, just show base
+	if selected_class_id == 0:
+		stats_label.text = "HP: 10 | SP: 3"
+		return
+
+	# Calculate bonuses from owned cards
+	for id in owned_ids:
+		if id >= 73: continue # Skip the class node itself
+		
+		var a_name = id_to_name.get(id)
+		var card = _find_action_resource(a_name)
+		
+		if card:
+			# Apply Rules based on Class + Card Type
+			# ActionData.Type: OFFENCE = 0, DEFENCE = 1
+			
+			match selected_class_id:
+				73: # QUICK
+					if card.type == ActionData.Type.OFFENCE: current_max_hp += 1
+					elif card.type == ActionData.Type.DEFENCE: current_max_sp += 2
+					
+				74: # TECHNICAL
+					if card.type == ActionData.Type.OFFENCE: 
+						current_max_hp += 1
+						current_max_sp += 1
+					elif card.type == ActionData.Type.DEFENCE:
+						current_max_sp += 1
+						
+				75: # PATIENT
+					if card.type == ActionData.Type.OFFENCE: current_max_hp += 1
+					elif card.type == ActionData.Type.DEFENCE:
+						current_max_hp += 1
+						current_max_sp += 1
+						
+				76: # HEAVY
+					if card.type == ActionData.Type.OFFENCE: current_max_sp += 1
+					elif card.type == ActionData.Type.DEFENCE: current_max_hp += 2
+	
+	# Update UI
+	stats_label.text = "HP: " + str(current_max_hp) + " | SP: " + str(current_max_sp)
 
 func _unlock_neighbors(node_id: int):
 	if node_id in action_tree_dict:
@@ -135,103 +176,131 @@ func _update_tree_visuals():
 		var id = int(str(child.name))
 		
 		if id in owned_ids:
-			child.set_status(2) # OWNED
+			child.set_status(2) 
 		elif id in unlocked_ids:
-			child.set_status(1) # AVAILABLE
+			child.set_status(1) 
 		else:
-			child.set_status(0) # LOCKED
+			child.set_status(0) 
 			
-		# Special Case: Classes are always visible/clickable to restart?
 		if id >= 73 and id <= 76:
 			child.set_status(1)
 			if id == selected_class_id: child.set_status(2)
-			
-# Helper to find a file even if it's in a subfolder like "Class/Heavy/"
+
 func _find_action_resource(action_name: String) -> ActionData:
-	# 1. Convert "Toppling Kick" -> "toppling_kick"
 	var clean_name = action_name.to_lower().replace(" ", "_")
 	var filename = clean_name + ".tres"
 	
-	# 2. Check the main folder first (Common Actions)
 	var common_path = "res://Data/Actions/" + filename
-	if ResourceLoader.exists(common_path):
-		return load(common_path)
+	if ResourceLoader.exists(common_path): return load(common_path)
 		
-	# 3. Check Class Subfolders (If your structure matches ClassFactory paths)
 	var class_folders = ["Heavy", "Patient", "Quick", "Technical"]
 	for folder in class_folders:
 		var class_path = "res://Data/Actions/Class/" + folder + "/" + filename
-		if ResourceLoader.exists(class_path):
-			return load(class_path)
+		if ResourceLoader.exists(class_path): return load(class_path)
 			
-	# 4. Debug if not found
-	printerr("CRITICAL: Could not find action file for: " + action_name + " | Looking for: " + filename)
 	return null
-	
-# --- DRAWING LINES AUTOMATICALLY ---
-func _draw_lines():
-	# This function runs inside LinesLayer script (see below)
-	pass
 
 func _on_confirm_button_pressed():
-	# 1. Create a new Character Data to hold this loadout
-	# We can base it on the selected class (73-76)
 	if selected_class_id == 0:
 		print("Please select a Class first!")
 		return
-	
+
 	var final_character = CharacterData.new()
 	
-	# Set Class Identity based on the node selected
+	# 1. Set Class Type
 	match selected_class_id:
 		73: final_character.class_type = CharacterData.ClassType.QUICK
 		74: final_character.class_type = CharacterData.ClassType.TECHNICAL
 		75: final_character.class_type = CharacterData.ClassType.PATIENT
 		76: final_character.class_type = CharacterData.ClassType.HEAVY
-		_: 
-			print("Please select a Class (Nodes 73-76) first!")
-			return
 
-	# 2. Build the Deck
-# --- NEW: LOAD BASE ACTIONS FIRST ---
-	# This pulls the 8 Basic cards + 2 Starting Class cards [cite: 17, 21]
-	# (Requires ClassFactory.get_starting_deck to be public!)
+	# 2. Add Base Deck (Starters + Basic)
 	var base_deck = ClassFactory.get_starting_deck(final_character.class_type)
 	var final_deck: Array[ActionData] = []
 	final_deck.append_array(base_deck)
 	
-	# 2. Add Tree Selections
+	# 3. Add Unlocked Tree Cards
 	for id in owned_ids:
-		if id >= 73: continue # Skip class nodes
-		
+		if id >= 73: continue 
 		var a_name = id_to_name.get(id)
 		var card_resource = _find_action_resource(a_name)
-		
 		if card_resource:
 			final_deck.append(card_resource)
-		else:
-			printerr("Warning: Could not load resource for " + a_name)
-	
-	# 3. Validate Deck Size (Optional)
-	#if new_deck.size() < 5:
-		#print("Deck too small! Select more actions.")
-		#return
-		
-	# 4. Assign to Character and Start Game
+			
+	# 4. Finalize Character with CALCULATED STATS
 	final_character.deck = final_deck
 	final_character.character_name = "Custom Player"
-	# Copy standard stats from ClassFactory if needed, or set defaults here
-	final_character.max_hp = 10 
-	final_character.max_sp = 10
+	
+	# --- USE CALCULATED STATS HERE ---
+	final_character.max_hp = current_max_hp
+	final_character.max_sp = current_max_sp
+	# ---------------------------------
+	
 	final_character.reset_stats()
 	
-	# Send to GameManager
 	GameManager.next_match_p1_data = final_character
-	# For testing, we might generate a dummy P2
-	#GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
-	
 	if GameManager.next_match_p2_data == null:
 		GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
-	
-	# Load the Arena
+		
 	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+
+func _try_deselect_action(id_to_remove: int):
+	# 1. Create a hypothetical list of what ownership looks like AFTER removal
+	var remaining_ids = owned_ids.duplicate()
+	remaining_ids.erase(id_to_remove)
+	
+	# 2. FLOOD FILL: Check if we can reach every remaining node starting from the Class Node
+	var reachable_count = 0
+	var queue: Array[int] = [selected_class_id]
+	var visited = {selected_class_id: true}
+	
+	while queue.size() > 0:
+		var current = queue.pop_front()
+		
+		# If this node is in our remaining list, we count it as "Safe and Connected"
+		if current in remaining_ids:
+			reachable_count += 1
+		
+		# Add neighbors to queue
+		if current in action_tree_dict:
+			for neighbor in action_tree_dict[current]:
+				# Only traverse to nodes we actually OWN (in the remaining list)
+				# and haven't visited yet
+				if neighbor in remaining_ids and not neighbor in visited:
+					visited[neighbor] = true
+					queue.append(neighbor)
+	
+	# 3. VERDICT: Did we find everyone?
+	# If the BFS found fewer nodes than we own, it means some nodes got cut off.
+	if reachable_count < remaining_ids.size():
+		print("Cannot deselect: This action connects to others you own!")
+		return
+
+	# 4. SUCCESS: Commit the removal
+	owned_ids.erase(id_to_remove)
+	
+	# 5. Rebuild "Available" (Yellow) list from scratch
+	unlocked_ids.clear()
+	for owner_id in owned_ids:
+		_unlock_neighbors(owner_id)
+		
+	# 6. Update Visuals & Stats
+	_update_tree_visuals()
+	_recalculate_stats()
+
+func _on_reset_button_pressed():
+	if selected_class_id == 0: return
+	
+	# 1. Clear everything
+	owned_ids.clear()
+	unlocked_ids.clear()
+	
+	# 2. Re-add the Class Node
+	owned_ids.append(selected_class_id)
+	
+	# 3. Recalculate unlocks from the root
+	_unlock_neighbors(selected_class_id)
+	
+	# 4. Update UI
+	_update_tree_visuals()
+	_recalculate_stats()
