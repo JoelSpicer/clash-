@@ -48,6 +48,7 @@ var id_to_name = {}
 var unlocked_ids: Array[int] = []
 var owned_ids: Array[int] = []
 var selected_class_id: int = 0
+var is_class_locked: bool = false
 
 func _ready():
 	# 1. Build ID to Name Lookup
@@ -76,7 +77,7 @@ func _ready():
 			
 		if node_id != 0:
 			_select_class(node_id)
-			
+			is_class_locked = true
 	# 3. Initial Visual Update
 	_update_tree_visuals()
 	
@@ -86,6 +87,12 @@ func _ready():
 func _on_node_clicked(id: int, _name: String):
 	# Is this a Class Selection Node? (73, 74, 75, 76)
 	if id >= 73 and id <= 76:
+		# IF LOCKED, IGNORE CLICKS ON OTHER CLASSES
+		if is_class_locked:
+			if id != selected_class_id:
+				print("Class is locked! You cannot switch classes.")
+			return # Do nothing
+			
 		_select_class(id)
 		return
 		
@@ -169,6 +176,10 @@ func _draw_lines():
 func _on_confirm_button_pressed():
 	# 1. Create a new Character Data to hold this loadout
 	# We can base it on the selected class (73-76)
+	if selected_class_id == 0:
+		print("Please select a Class first!")
+		return
+	
 	var final_character = CharacterData.new()
 	
 	# Set Class Identity based on the node selected
@@ -182,37 +193,45 @@ func _on_confirm_button_pressed():
 			return
 
 	# 2. Build the Deck
-	var new_deck: Array[ActionData] = []
+# --- NEW: LOAD BASE ACTIONS FIRST ---
+	# This pulls the 8 Basic cards + 2 Starting Class cards [cite: 17, 21]
+	# (Requires ClassFactory.get_starting_deck to be public!)
+	var base_deck = ClassFactory.get_starting_deck(final_character.class_type)
+	var final_deck: Array[ActionData] = []
+	final_deck.append_array(base_deck)
 	
+	# 2. Add Tree Selections
 	for id in owned_ids:
-		# Skip the class selection nodes themselves
-		if id >= 73: continue 
+		if id >= 73: continue # Skip class nodes
 		
-		# Get the name from your dictionary
 		var a_name = id_to_name.get(id)
-		
-		# Load the actual file
 		var card_resource = _find_action_resource(a_name)
+		
 		if card_resource:
-			new_deck.append(card_resource)
+			final_deck.append(card_resource)
+		else:
+			printerr("Warning: Could not load resource for " + a_name)
 	
 	# 3. Validate Deck Size (Optional)
-	if new_deck.size() < 5:
-		print("Deck too small! Select more actions.")
-		return
+	#if new_deck.size() < 5:
+		#print("Deck too small! Select more actions.")
+		#return
 		
 	# 4. Assign to Character and Start Game
-	final_character.deck = new_deck
+	final_character.deck = final_deck
 	final_character.character_name = "Custom Player"
 	# Copy standard stats from ClassFactory if needed, or set defaults here
 	final_character.max_hp = 10 
-	final_character.max_sp = 3
+	final_character.max_sp = 10
 	final_character.reset_stats()
 	
 	# Send to GameManager
 	GameManager.next_match_p1_data = final_character
 	# For testing, we might generate a dummy P2
-	GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
+	#GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
+	
+	if GameManager.next_match_p2_data == null:
+		GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
 	
 	# Load the Arena
 	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")

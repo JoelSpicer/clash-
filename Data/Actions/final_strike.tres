@@ -7,7 +7,6 @@ script = ExtResource("1_v51iw")
 id = "final_strike"
 display_name = "Final Strike"
 description = "Offence, Cost 10, Damage 15, Fall Back 5, Super"
-type = 1
 cost = 10
 damage = 15
 fall_back_value = 5

@@ -33,13 +33,13 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
 
 	# 2. Build the Deck (Basic Cards + Class Exclusives)
-	char_data.deck = _get_starting_deck(class_type)
+	char_data.deck = get_starting_deck(class_type)
 	
 	# 3. Reset Runtime state
 	char_data.reset_stats()
 	return char_data
 
-func _get_starting_deck(type: CharacterData.ClassType) -> Array[ActionData]:
+func get_starting_deck(type: CharacterData.ClassType) -> Array[ActionData]:
 	var deck: Array[ActionData] = []
 	
 	# --- ADD BASIC CARDS (Common to all) ---
