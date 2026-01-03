@@ -62,6 +62,21 @@ func _ready():
 			child.setup(id, a_name)
 			child.action_clicked.connect(_on_node_clicked)
 			
+	# Check if GameManager has a pre-selection from the Character Select screen
+	if GameManager.get("temp_p1_class_selection") != null:
+		var prev_selection = GameManager.temp_p1_class_selection
+		var node_id = 0
+		
+		# Map Dropdown Index -> Node ID
+		match prev_selection:
+			0: node_id = 76 # Heavy
+			1: node_id = 75 # Patient
+			2: node_id = 73 # Quick
+			3: node_id = 74 # Technical
+			
+		if node_id != 0:
+			_select_class(node_id)
+			
 	# 3. Initial Visual Update
 	_update_tree_visuals()
 	

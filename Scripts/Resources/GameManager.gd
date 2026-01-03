@@ -12,6 +12,7 @@ signal status_applied(target_id: int, status_name: String)
 # --- STATE MACHINE ---
 enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
 var current_state = State.SETUP
+var temp_p1_class_selection: int = 0
 
 # --- PERSISTENT GAME SETUP ---
 var next_match_p1_data: CharacterData
