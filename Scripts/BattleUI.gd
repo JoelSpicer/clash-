@@ -43,7 +43,7 @@ var p2_toggle: CheckButton
 # --- NEW VARIABLES ---
 var rage_toggle: CheckButton
 var keep_up_toggle: CheckButton
-# We send the state of these toggles along with the card
+var tech_dropdown: OptionButton
 
 # --- KEYWORD DEFINITIONS ---
 const KEYWORD_DEFS = {
@@ -107,8 +107,8 @@ func _create_passive_toggles():
 	add_child(container)
 	# Position this near the card grid or bottom of screen
 	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	container.position.y -= 50 
-	container.position.x -= 100 
+	container.position.y -= 200
+	container.position.x -= 570
 	rage_toggle = CheckButton.new()
 	rage_toggle.text = "RAGE (Pay HP)"
 	rage_toggle.visible = false
@@ -121,10 +121,24 @@ func _create_passive_toggles():
 	# No refresh needed for Keep Up as it doesn't change card playability, only resolution
 	container.add_child(keep_up_toggle)
 	
+	# --- ADD THIS BLOCK ---
+	tech_dropdown = OptionButton.new()
+	tech_dropdown.add_item("Tech: None")
+	tech_dropdown.add_item("+Opener (1 SP)")
+	tech_dropdown.add_item("+Tiring 1 (1 SP)")
+	tech_dropdown.add_item("+Momentum 1 (1 SP)")
+	tech_dropdown.selected = 0
+	tech_dropdown.visible = false
+	# Refresh grid when selection changes to update costs/validity
+	tech_dropdown.item_selected.connect(func(_idx): _refresh_grid())
+	container.add_child(tech_dropdown)
+	
 # Helper to set correct toggle visibility (Call this from TestArena)
 func setup_passive_toggles(class_type: CharacterData.ClassType):
 	rage_toggle.visible = (class_type == CharacterData.ClassType.HEAVY)
 	keep_up_toggle.visible = (class_type == CharacterData.ClassType.PATIENT)
+	tech_dropdown.visible = (class_type == CharacterData.ClassType.TECHNICAL)
+	tech_dropdown.selected = 0 # Always reset to "None" at start of turn
 	
 	# Reset them to false at start of turn? Or keep them? Usually reset is safer.
 	rage_toggle.button_pressed = false
@@ -213,7 +227,8 @@ func _on_card_selected(card: ActionData):
 	# --- NEW: GATHER TOGGLE DATA ---
 	var extra_data = {
 		"rage": rage_toggle.button_pressed if rage_toggle.visible else false,
-		"keep_up": keep_up_toggle.button_pressed if keep_up_toggle.visible else false
+		"keep_up": keep_up_toggle.button_pressed if keep_up_toggle.visible else false,
+		"technique": tech_dropdown.selected if tech_dropdown.visible else 0 # <--- SEND SELECTION
 	}
 	emit_signal("human_selected_card", card, extra_data)
 	lock_ui() 
@@ -227,6 +242,9 @@ func _switch_tab(type):
 func _refresh_grid():
 	for child in button_grid.get_children():
 		child.queue_free()
+		
+	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
+	var tech_cost = 1 if tech_idx > 0 else 0
 	
 	for card in current_deck:
 		if card == null: continue
@@ -235,19 +253,35 @@ func _refresh_grid():
 			button_grid.add_child(btn)
 			btn.setup(card)
 			
-			var effective_cost = max(0, card.cost - my_opportunity_val)
-			btn.update_cost_display(effective_cost)
+			var effective_base_cost = max(0, card.cost - my_opportunity_val)
+			var total_cost = effective_base_cost + tech_cost # Add the 1 SP tax
 			
-			# --- UPDATED AFFORDABILITY LOGIC ---
+			# --- FIX 1: UPDATE VISUAL COST ---
+			# Show the PLAYER the total cost (Base + Tech) so they know why it's expensive
+			btn.update_cost_display(total_cost) 
+			
+			# --- AFFORDABILITY LOGIC ---
 			var can_afford = false
 			
 			# If Rage is ON, we check HP instead of SP
 			if rage_toggle.visible and rage_toggle.button_pressed:
-				can_afford = (current_hp_limit > effective_cost)
+				can_afford = (current_hp_limit > total_cost)
 			else:
-				can_afford = (effective_cost <= current_sp_limit)
-			# -----------------------------------
-			var passes_opener = !(opener_restriction and card.type == ActionData.Type.OFFENCE and !card.is_opener)
+				can_afford = (total_cost <= current_sp_limit)
+			
+			# Handle "Opener on Offence Only" Rule (Tech restriction)
+			if tech_idx == 1 and card.type == ActionData.Type.DEFENCE:
+				can_afford = false
+				
+			# --- FIX 2: OPENER LOGIC ---
+			# Calculate if it IS an opener (naturally OR via technique)
+			var effective_is_opener = card.is_opener
+			if tech_idx == 1 and card.type == ActionData.Type.OFFENCE:
+				effective_is_opener = true
+				
+			# Use the EFFECTIVE opener status for the check
+			var passes_opener = !(opener_restriction and card.type == ActionData.Type.OFFENCE and !effective_is_opener)
+			
 			var passes_max_cost = (card.cost <= turn_cost_limit)
 			var passes_counter = !(card.counter_value > 0 and my_opening_value < card.counter_value)
 			var passes_super = !(card.is_super and !super_allowed)
@@ -259,6 +293,7 @@ func _refresh_grid():
 			btn.card_exited.connect(_on_card_exited) 
 			btn.card_selected.connect(_on_card_selected)
 
+	# (Feint Skip button logic remains the same)
 	if feint_mode:
 		skip_action.type = current_tab 
 		var skip_btn = card_button_scene.instantiate()

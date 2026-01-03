@@ -109,25 +109,43 @@ func change_state(new_state: State):
 			resolve_clash()
 
 func player_select_action(player_id: int, action: ActionData, extra_data: Dictionary = {}):
-	# Store toggle states
+	# 1. Process the Action based on Technique
+	var final_action = action
+	var tech_idx = extra_data.get("technique", 0)
+	
+	# Only modify if a technique was actually selected AND action is not null (Skip)
+	if action != null and tech_idx > 0:
+		final_action = action.duplicate() # CRITICAL: Don't edit the original file!
+		final_action.cost += 1 # Auto-deduct the 1 SP cost
+		
+		match tech_idx:
+			1: # Opener
+				if final_action.type == ActionData.Type.OFFENCE:
+					final_action.is_opener = true
+					final_action.display_name += "+" # Visual indicator
+			2: # Tiring
+				final_action.tiring += 1
+				final_action.display_name += "+"
+			3: # Momentum
+				final_action.momentum_gain += 1
+				final_action.display_name += "+"
+	
+	# 2. Standard Logic (Using final_action instead of action)
 	if player_id == 1:
-		p1_action_queue = action
+		p1_action_queue = final_action
 		p1_rage_active = extra_data.get("rage", false)
 		p1_keep_up_active = extra_data.get("keep_up", false)
 	else:
-		p2_action_queue = action
+		p2_action_queue = final_action
 		p2_rage_active = extra_data.get("rage", false)
 		p2_keep_up_active = extra_data.get("keep_up", false)
 		
 	if current_state == State.SELECTION:
-		if player_id == 1: p1_action_queue = action
-		else: p2_action_queue = action
-		
 		if p1_action_queue and p2_action_queue:
 			change_state(State.REVEAL)
-			
 	elif current_state == State.FEINT_CHECK:
-		_handle_feint_selection(player_id, action)
+		# Note: Feints use the modified card as the "secondary" card
+		_handle_feint_selection(player_id, final_action)
 
 # ==============================================================================
 # FEINT MECHANICS
