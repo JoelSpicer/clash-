@@ -112,7 +112,7 @@ func _create_passive_toggles():
 	rage_toggle = CheckButton.new()
 	rage_toggle.text = "RAGE (Pay HP)"
 	rage_toggle.visible = false
-	rage_toggle.toggled.connect(func(on): _refresh_grid()) # Refresh card availability when clicked
+	rage_toggle.toggled.connect(func(_on): _refresh_grid()) # Refresh card availability when clicked
 	container.add_child(rage_toggle)
 	
 	keep_up_toggle = CheckButton.new()

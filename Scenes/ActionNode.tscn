@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8dgolgg1e7du"]
+
+[ext_resource type="Script" uid="uid://cvvntr40ye1d4" path="res://Scripts/ActionNode.gd" id="1_lyua5"]
+
+[node name="TextureButton" type="TextureButton"]
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_lyua5")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="Panel" type="Panel" parent="Label"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
