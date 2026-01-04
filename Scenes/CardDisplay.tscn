@@ -57,9 +57,11 @@ stretch_mode = 5
 layout_mode = 2
 
 [node name="StatLabel" type="Label" parent="VBoxContainer/StatsRow"]
+visible = false
 layout_mode = 2
 
 [node name="Description" type="RichTextLabel" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
+bbcode_enabled = true
 fit_content = true

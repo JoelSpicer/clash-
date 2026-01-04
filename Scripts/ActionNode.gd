@@ -1,6 +1,8 @@
 extends TextureButton
 
 signal action_clicked(node_id, node_name)
+signal hovered(node_id, node_name)
+signal exited()
 
 var id: int = 0
 var action_name: String = ""
@@ -11,54 +13,60 @@ var label: Label
 var background: Panel
 
 func _ready():
-	# 1. VISUAL REPAIR: If the button is empty, build the UI automatically
+	# 1. VISUAL REPAIR
 	if get_child_count() == 0:
 		_build_ui()
 	else:
-		# If children exist (e.g. you added them manually), grab refs
 		label = get_node_or_null("Label")
 		background = get_node_or_null("Panel")
 	
-	# 2. SIZE REPAIR: Ensure it's not invisible (0x0)
+	# --- FIX 1: FORCE MOUSE IGNORE ON CHILDREN ---
+	# This ensures the label/panel never block the hover signal
+	if label: label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if background: background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# ---------------------------------------------
+	
+	# 2. SIZE REPAIR
 	if size.x < 40 or size.y < 40:
 		custom_minimum_size = Vector2(50, 50)
-		size = Vector2(50, 50) # Force immediate update
+		size = Vector2(50, 50)
+		
+	mouse_entered.connect(func(): hovered.emit(id, action_name))
+	mouse_exited.connect(func(): exited.emit())	
 
 func _build_ui():
-	# Create Background Panel
 	background = Panel.new()
-	background.mouse_filter = Control.MOUSE_FILTER_IGNORE # Let clicks pass through to button
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(background)
 	
-	# Create Label
 	label = Label.new()
-	label.text = name # Temporary text (Node Name)
+	label.text = name
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(label)
 
 func setup(new_id: int, new_name: String):
 	id = new_id
 	action_name = new_name
-	
-	# Update Label
 	if label: label.text = str(id)
-	
-	# Update Tooltip
-	tooltip_text = action_name
+	tooltip_text = ""
 
 func set_status(new_status: int):
 	status = new_status
 	
-	# We tint the BACKGROUND panel, not the whole button
-	# This keeps the text white and readable
 	if background:
 		match status:
 			0: # LOCKED
 				background.modulate = Color(0.2, 0.2, 0.2) # Dark Grey
-				disabled = true
+				# --- FIX 2: DO NOT DISABLE ---
+				# disabled = true  <-- DELETE THIS LINE
+				# We keep it enabled so it can receive 'mouse_entered' signals.
+				# The ActionTree script already prevents clicking locked nodes.
+				disabled = false 
+				
 			1: # AVAILABLE
 				background.modulate = Color(1, 1, 0) # Yellow
 				disabled = false

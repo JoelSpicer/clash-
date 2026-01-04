@@ -53,6 +53,10 @@ var current_max_hp: int = 10
 var current_max_sp: int = 3
 var stats_label: Label 
 
+# --- NEW: POPUP REFERENCES ---
+var card_scene = preload("res://Scenes/CardDisplay.tscn")
+var popup_card: Control
+
 func _ready():
 	# 1. Build ID lookup
 	for key in action_tree_key_dict:
@@ -65,7 +69,8 @@ func _ready():
 			var a_name = id_to_name.get(id, "Unknown")
 			child.setup(id, a_name)
 			child.action_clicked.connect(_on_node_clicked)
-			
+			child.hovered.connect(_on_node_hovered) # <--- ADD THIS
+			child.exited.connect(_on_node_exited)
 	# 3. Create Stats Label UI
 	stats_label = Label.new()
 	stats_label.text = "HP: 10 | SP: 3"
@@ -73,6 +78,27 @@ func _ready():
 	stats_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	stats_label.position.y += 20 # Offset from top
 	add_child(stats_label)
+	
+	# 4. --- NEW: CREATE POPUP CARD ---
+	var canvas = CanvasLayer.new() # Use CanvasLayer to float above everything
+	canvas.layer = 100
+	add_child(canvas)
+	
+	popup_card = card_scene.instantiate()
+	popup_card.visible = false
+# --- FIX START: FORCE SIZE AND SHAPE ---
+	# 1. Stop it from stretching to fill the screen (Reset Anchors)
+	popup_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	
+	# 2. Force it to the correct standard card size
+	# (Matching custom_minimum_size from CardDisplay.tscn)
+	popup_card.size = Vector2(250, 350) 
+	
+	# 3. Set Scale (1.0 is standard size, adjust if you want it smaller/larger)
+	popup_card.scale = Vector2(0.6, 0.6) 
+	# ---------------------------------------rger
+	popup_card.mouse_filter = Control.MOUSE_FILTER_IGNORE # Don't block mouse
+	canvas.add_child(popup_card)
 
 	# 4. Check for Pre-Selection
 	if GameManager.get("temp_p1_class_selection") != null:
@@ -91,6 +117,78 @@ func _ready():
 	_update_tree_visuals()
 	_recalculate_stats() # Initial calc
 	lines_layer.queue_redraw()
+
+func _on_node_hovered(id, a_name):
+	
+	# --- NEW: DETECT CLASS NODES (73-76) ---
+	if id >= 73 and id <= 76:
+		var class_info = _get_class_display_data(id)
+		popup_card.set_card_data(class_info)
+		
+		# Optional: Hide the "0 SP" cost label if you want (requires CardDisplay tweaks), 
+		# but for now we just show the info.
+		
+		popup_card.visible = true
+		_update_popup_position()
+		return
+	# ---------------------------------------
+
+	# Standard Action Node Logic (Existing Code)
+	# 1. Try to load the real file
+	var res = _find_action_resource(a_name)
+	
+	# 2. If missing, create a "Dummy" card so the UI still works
+	if res == null:
+		print("Debug: File missing for '" + a_name + "'") # Console check
+		res = ActionData.new()
+		res.display_name = a_name
+		res.description = "(File not created yet)"
+		res.type = ActionData.Type.OFFENCE # Default color
+		res.cost = 0
+	
+	
+# --- CHANGE 2: USE THE CORRECT METHOD FOR THE FULL CARD ---
+	# In BattleUI, you use 'set_card_data(card, cost)' for the preview card.
+	# We replicate that here.
+	if popup_card.has_method("set_card_data"):
+		popup_card.set_card_data(res, res.cost)
+	elif popup_card.has_method("setup"):
+		# Fallback in case your card script uses 'setup' instead
+		popup_card.setup(res)
+		
+	popup_card.visible = true
+	_update_popup_position()
+	
+
+func _on_node_exited():
+	popup_card.visible = false
+
+func _process(_delta):
+	if popup_card.visible:
+		_update_popup_position()
+
+func _update_popup_position():
+	var m_pos = get_viewport().get_mouse_position()
+	var screen_size = get_viewport_rect().size
+	
+	# Calculate actual size including scale (just in case you scale it later)
+	var card_size = popup_card.size * popup_card.scale
+	var offset = Vector2(30, 30)
+	
+	# 1. Default Position: Bottom-Right of mouse
+	var final_pos = m_pos + offset
+	
+	# 2. Check Horizontal Bounds (Right Edge)
+	if final_pos.x + card_size.x > screen_size.x:
+		# If it goes off right, flip to the LEFT of the mouse
+		final_pos.x = m_pos.x - card_size.x - offset.x
+	
+	# 3. Check Vertical Bounds (Bottom Edge)
+	if final_pos.y + card_size.y > screen_size.y:
+		# If it goes off bottom, flip to ABOVE the mouse
+		final_pos.y = m_pos.y - card_size.y - offset.y
+	
+	popup_card.position = final_pos
 
 func _on_node_clicked(id: int, _name: String):
 	if id >= 73 and id <= 76:
@@ -304,3 +402,46 @@ func _on_reset_button_pressed():
 	# 4. Update UI
 	_update_tree_visuals()
 	_recalculate_stats()
+
+func _get_class_display_data(id: int) -> ActionData:
+	var data = ActionData.new()
+	data.cost = 0 # Classes don't have a cost
+	
+	match id:
+		76: # HEAVY
+			data.display_name = "CLASS: HEAVY"
+			data.type = ActionData.Type.OFFENCE # Red Theme
+			data.description = "[b]Action: Haymaker[/b]\nOpener, Cost 3, Dmg 2, Mom 3\n" + \
+			"[b]Action: Elbow Block[/b]\nBlock 1, Cost 2, Dmg 1\n" + \
+			"[b]Passive: Rage[/b]\nPay HP instead of SP when low.\n" + \
+			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\n" + \
+			"[b]Speed:[/b] 1"
+
+		75: # PATIENT
+			data.display_name = "CLASS: PATIENT"
+			data.type = ActionData.Type.DEFENCE # Blue Theme
+			data.description = "[b]Action: Preparation[/b]\nFall Back 2, Opp 1, Reco 1\n" + \
+			"[b]Action: Counter Strike[/b]\nDmg 2, Fall Back 2, Parry\n" + \
+			"[b]Passive: Keep-up[/b]\nSpend SP to prevent Fall Back.\n" + \
+			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +1 HP/SP\n" + \
+			"[b]Speed:[/b] 2"
+
+		73: # QUICK
+			data.display_name = "CLASS: QUICK"
+			data.type = ActionData.Type.OFFENCE
+			data.description = "[b]Action: Roll Punch[/b]\nDmg 1, Cost 1, Mom 1, Rep 3\n" + \
+			"[b]Action: Weave[/b]\nDodge 1, Fall Back 1\n" + \
+			"[b]Passive: Relentless[/b]\nEvery 3rd combo hit gains Reco 1.\n" + \
+			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +2 SP\n" + \
+			"[b]Speed:[/b] 4"
+
+		74: # TECHNICAL
+			data.display_name = "CLASS: TECHNICAL"
+			data.type = ActionData.Type.DEFENCE
+			data.description = "[b]Action: Discombobulate[/b]\nCost 1, Dmg 1, Tiring 1\n" + \
+			"[b]Action: Hand Catch[/b]\nBlock 1, Cost 1, Reversal\n" + \
+			"[b]Passive: Technique[/b]\nSpend 1 SP to add Opener, Tiring, or Momentum to action.\n" + \
+			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP/HP, [color=#99ccff]Defence:[/color] +1 SP\n" + \
+			"[b]Speed:[/b] 3"
+			
+	return data

@@ -24,6 +24,11 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 	cost_label.text = str(final_cost) + " SP"
 	desc_label.text = action.description
 	
+	if final_cost == 0 and override_cost == -1:
+		cost_label.text = "" # Hide for classes
+	else:
+		cost_label.text = str(final_cost) + " SP"
+	
 	# 2. Set Art
 	if action.icon:
 		art_rect.texture = action.icon
