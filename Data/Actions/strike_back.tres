@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://t3l51w3ta8xh"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://t3l51w3ta8xh"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_3lgcb"]
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_s7eo4"]
 
 [resource]
 script = ExtResource("1_3lgcb")
 id = "strike_back"
 display_name = "Strike Back"
+icon = ExtResource("1_s7eo4")
 description = "Defence, Counter 1, Retaliate, Injure"
 type = 1
 counter_value = 1

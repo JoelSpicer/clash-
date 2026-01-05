@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dflt7waxi5glo"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dflt7waxi5glo"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_ine2l"]
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_tan2x"]
 
 [resource]
 script = ExtResource("1_ine2l")
 id = "ultimate_barrage"
 display_name = "Ultimate Barrage"
+icon = ExtResource("1_tan2x")
 description = "Offence, Cost 1, Damage 1, Momentum 1, Repeat 10, Super"
 cost = 1
 damage = 1

@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://cjn0qgvlegofm"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://cjn0qgvlegofm"]
 
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_d1fdo"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_ff02s"]
 
 [resource]
 script = ExtResource("1_ff02s")
 id = "roundhouse_kick"
 display_name = "Roundhouse Kick"
+icon = ExtResource("1_d1fdo")
 description = "Offence, Cost 3, Momentum 2, Damage 3, Guard Break"
 cost = 3
 damage = 3

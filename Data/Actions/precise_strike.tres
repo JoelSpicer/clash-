@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://c4yda6pm08iha"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://c4yda6pm08iha"]
 
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_dx8yy"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_t7ul8"]
 
 [resource]
 script = ExtResource("1_t7ul8")
 id = "precise_strike"
 display_name = "Precise Strike"
+icon = ExtResource("1_dx8yy")
 description = "Offence, Cost 2, Damage 1, Momentum 1, Guard Break"
 cost = 2
 damage = 1

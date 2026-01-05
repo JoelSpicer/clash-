@@ -1,13 +1,15 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://b2jgxlpfq8f7f"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://b2jgxlpfq8f7f"]
 
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_f1m2q"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_hb7ni"]
 
 [resource]
 script = ExtResource("1_hb7ni")
 id = "100_hand_slap"
 display_name = "100 Hand Slap"
-description = "Offence, Cost 1, Damage 1, Momentum 1, Repeat 3"
+icon = ExtResource("1_f1m2q")
+description = "Offence, Cost 1, Damage 1, Momentum 1, Repeat 4"
 cost = 1
 damage = 1
 momentum_gain = 1
-repeat_count = 3
+repeat_count = 4

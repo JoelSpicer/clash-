@@ -54,6 +54,9 @@ var p2_rage_active: bool = false
 var p1_keep_up_active: bool = false
 var p2_keep_up_active: bool = false
 
+var temp_p1_name: String = ""
+var temp_p2_name: String = ""
+
 # ==============================================================================
 # INITIALIZATION
 # ==============================================================================
@@ -262,7 +265,6 @@ func resolve_clash():
 	var start_momentum = momentum 
 	
 	# Update Combo Counts (For Quick Passive)
-	var current_attacker = get_attacker()
 	# Logic: If I won and I am attacking, combo grows. Else reset.
 	# Note: Simplification -> Just checking consecutive wins for now
 	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE: p1_data.combo_action_count += 1
@@ -384,7 +386,7 @@ func resolve_clash():
 # ==============================================================================
 
 func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
-	var owner = p1_data if owner_id == 1 else p2_data
+	var character = p1_data if owner_id == 1 else p2_data
 	var total_hits = max(1, my_card.repeat_count)
 	
 	# PASSIVE: RELENTLESS (Quick Class)
@@ -416,7 +418,7 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 				emit_signal("status_applied", 2, "CURED!")
 
 func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool) -> Dictionary:
-	var owner = p1_data if owner_id == 1 else p2_data
+	var character = p1_data if owner_id == 1 else p2_data
 	var target = p2_data if owner_id == 1 else p1_data
 	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
@@ -493,7 +495,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 	return result
 
 func _apply_phase_3_momentum(owner_id: int, my_card: ActionData, effective_gain: int):
-	var owner = p1_data if owner_id == 1 else p2_data
+	var character = p1_data if owner_id == 1 else p2_data
 	var keep_up_is_on = (p1_keep_up_active if owner_id == 1 else p2_keep_up_active)
 	
 	var reps = max(1, my_card.repeat_count)

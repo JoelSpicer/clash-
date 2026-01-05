@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://quhx7ro2pyml"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://quhx7ro2pyml"]
 
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_lcbqn"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_yyggw"]
 
 [resource]
 script = ExtResource("1_yyggw")
 id = "read_offence"
 display_name = "Read Offence"
+icon = ExtResource("1_lcbqn")
 description = "Defence, Cost 2, Feint"
 type = 1
 cost = 2

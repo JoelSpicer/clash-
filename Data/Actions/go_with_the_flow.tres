@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://blsksq2c7tek0"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://blsksq2c7tek0"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_l7oy7"]
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_t608k"]
 
 [resource]
 script = ExtResource("1_l7oy7")
 id = "go_with_the_flow"
 display_name = "Go with the Flow"
+icon = ExtResource("1_t608k")
 description = "Offence, Cost 3, Feint, Recover 1, Fall Back 1"
 cost = 3
 recover_value = 1

@@ -354,7 +354,6 @@ func _on_confirm_button_pressed():
 			
 	# 4. Finalize Character with CALCULATED STATS
 	final_character.deck = final_deck
-	final_character.character_name = "Custom Player"
 	
 	# --- USE CALCULATED STATS HERE ---
 	final_character.max_hp = current_max_hp
@@ -363,26 +362,31 @@ func _on_confirm_button_pressed():
 	
 	final_character.reset_stats()
 	
-# 2. Save to the correct slot
+	# 2. Save to the correct slot
 	if GameManager.editing_player_index == 1:
-		final_character.character_name = "Player 1"
-		GameManager.next_match_p1_data = final_character
-		print("P1 Saved.")
+		# Use stored name if exists, else "Player 1"
+		var p1_name = GameManager.get("temp_p1_name")
+		final_character.character_name = p1_name if p1_name != "" else "Player 1"
 		
-		# CHECK: Do we need to do Player 2?
+		GameManager.next_match_p1_data = final_character
+		print("P1 Saved as: " + final_character.character_name)
+		
 		if GameManager.p2_is_custom:
 			print("Moving to Player 2 Setup...")
 			GameManager.editing_player_index = 2
-			
-			# Reset the screen for P2 without reloading the scene
 			_setup_for_current_player()
-			return # STOP HERE, Don't start fight yet
+			return 
 			
 	else:
 		# We are editing Player 2
-		final_character.character_name = "Player 2"
+		var p2_name = GameManager.get("temp_p2_name")
+		final_character.character_name = p2_name if p2_name != "" else "Player 2"
+		
+		# DELETE THIS LINE:
+		# final_character.character_name = "Player 2" <-- DELETE THIS TOO
+		
 		GameManager.next_match_p2_data = final_character
-		print("P2 Saved.")
+		print("P2 Saved as: " + final_character.character_name)
 
 	# 3. Launch Fight
 	# (Safety fallback if P2 data is somehow missing, create bot)

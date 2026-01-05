@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bupx4efiddy3e"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://bupx4efiddy3e"]
 
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_5b5wh"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_7ryn2"]
 
 [resource]
 script = ExtResource("1_7ryn2")
 id = "immovable_stance"
 display_name = "Immovable Stance"
+icon = ExtResource("1_5b5wh")
 description = "Defence, Cost 2, Block 2, Momentum 2"
 type = 1
 cost = 2

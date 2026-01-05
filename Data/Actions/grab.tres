@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://cf0tnr4cru147"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://cf0tnr4cru147"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_s5qri"]
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_x7d6m"]
 
 [resource]
 script = ExtResource("1_s5qri")
 id = "grab"
 display_name = "Grab"
+icon = ExtResource("1_x7d6m")
 description = "Offence, Cost 1, Opener, Multi 2, Create Opening 2"
 cost = 1
 is_opener = true

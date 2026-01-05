@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PresetCharacter" load_steps=2 format=3 uid="uid://lykqwnswhe0u"]
+
+[ext_resource type="Script" uid="uid://l0hennmoy7yn" path="res://Scripts/Resources/PresetCharacter.gd" id="1_a56lg"]
+
+[resource]
+script = ExtResource("1_a56lg")
+character_name = "Vegeta"
+level = 2
+extra_skills = Array[String](["Drop Kick", "Adept Block"])
+metadata/_custom_type_script = "uid://l0hennmoy7yn"

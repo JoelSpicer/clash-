@@ -9,7 +9,6 @@ extends Control
 
 func setup(character: CharacterData):
 	name_label.text = character.character_name
-	name_label.text = "test"
 	hp_bar.max_value = character.max_hp
 	hp_bar.value = character.current_hp
 	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)

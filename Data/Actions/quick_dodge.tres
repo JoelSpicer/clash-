@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dqaioeb6t4jf2"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dqaioeb6t4jf2"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_ao3qb"]
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_wvnh4"]
 
 [resource]
 script = ExtResource("1_ao3qb")
 id = "quick_dodge"
 display_name = "Quick Dodge"
+icon = ExtResource("1_wvnh4")
 description = "Defence, Cost 1, Dodge 1"
 type = 1
 cost = 1

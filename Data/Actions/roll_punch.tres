@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bxb18ul3lsg2g"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://bxb18ul3lsg2g"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_06lup"]
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_7yelf"]
 
 [resource]
 script = ExtResource("1_06lup")
 id = "roll_punch"
 display_name = "Roll Punch"
+icon = ExtResource("1_7yelf")
 description = "Offence, Cost 1, Damage 1, Momentum 1, Repeat 3"
 cost = 1
 damage = 1
