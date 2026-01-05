@@ -4,6 +4,7 @@ extends Control
 @onready var p1_info = $HBoxContainer/P1_Column/InfoLabel
 @onready var p2_option = $HBoxContainer/P2_Column/ClassOption
 @onready var p2_info = $HBoxContainer/P2_Column/InfoLabel
+@onready var p2_custom_check = $HBoxContainer/P2_Column/P2CustomCheck
 
 # New Buttons
 @onready var btn_quick = $HBoxContainer/Center_Column/QuickFightButton
@@ -61,12 +62,23 @@ func _on_quick_fight_pressed():
 
 # --- OPTION 2: CUSTOM DECK (Skill Tree) ---
 func _on_custom_deck_pressed():
-	# 1. Store the CLASS choice so the Tree knows where to start
+	# 1. Store BOTH Class Choices
 	GameManager.temp_p1_class_selection = p1_option.selected
+	GameManager.temp_p2_class_selection = p2_option.selected
 	
-	# 2. Pre-generate Player 2 (The Bot) and store it for later
-	var p2 = ClassFactory.create_character(p2_option.selected, "Player 2")
-	GameManager.next_match_p2_data = p2
+	# 2. Reset Editing State
+	GameManager.editing_player_index = 1 # Start with Player 1
+	GameManager.p2_is_custom = p2_custom_check.button_pressed # Check the box
 	
-	# 3. Load the Action Tree
+	# 3. Handle P2 Data
+	if GameManager.p2_is_custom:
+		# If custom, we will generate P2 later in the tree.
+		# Clear any existing data to be safe.
+		GameManager.next_match_p2_data = null 
+	else:
+		# If NOT custom, generate the Bot immediately (as before)
+		var p2 = ClassFactory.create_character(p2_option.selected, "Player 2")
+		GameManager.next_match_p2_data = p2
+	
+	# 4. Load the Tree
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")

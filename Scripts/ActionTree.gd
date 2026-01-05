@@ -101,18 +101,7 @@ func _ready():
 	canvas.add_child(popup_card)
 
 	# 4. Check for Pre-Selection
-	if GameManager.get("temp_p1_class_selection") != null:
-		var prev_selection = GameManager.temp_p1_class_selection
-		var node_id = 0
-		match prev_selection:
-			0: node_id = 76 # Heavy
-			1: node_id = 75 # Patient
-			2: node_id = 73 # Quick
-			3: node_id = 74 # Technical
-			
-		if node_id != 0:
-			_select_class(node_id)
-			is_class_locked = true 
+	_setup_for_current_player()
 	
 	_update_tree_visuals()
 	_recalculate_stats() # Initial calc
@@ -158,7 +147,45 @@ func _on_node_hovered(id, a_name):
 		
 	popup_card.visible = true
 	_update_popup_position()
+
+func _setup_for_current_player():
+	# 1. Determine which class to load based on who we are editing
+	var target_selection = 0
+	var player_name = ""
 	
+	if GameManager.editing_player_index == 1:
+		target_selection = GameManager.get("temp_p1_class_selection")
+		player_name = "PLAYER 1"
+	else:
+		target_selection = GameManager.get("temp_p2_class_selection")
+		player_name = "PLAYER 2"
+		
+	# 2. Update UI to show who we are building
+	# You might want to update the window title or add a label
+	print("Building Loadout for: " + player_name) 
+	
+	# 3. Reset Tree State
+	owned_ids.clear()
+	unlocked_ids.clear()
+	is_class_locked = false
+	
+	# 4. Select the Class Node
+	if target_selection != null:
+		var node_id = 0
+		match target_selection:
+			0: node_id = 76 # Heavy
+			1: node_id = 75 # Patient
+			2: node_id = 73 # Quick
+			3: node_id = 74 # Technical
+			
+		if node_id != 0:
+			_select_class(node_id)
+			is_class_locked = true 
+			
+	# 5. Refresh Visuals
+	_update_tree_visuals()
+	_recalculate_stats()
+	lines_layer.queue_redraw()
 
 func _on_node_exited():
 	popup_card.visible = false
@@ -336,7 +363,29 @@ func _on_confirm_button_pressed():
 	
 	final_character.reset_stats()
 	
-	GameManager.next_match_p1_data = final_character
+# 2. Save to the correct slot
+	if GameManager.editing_player_index == 1:
+		final_character.character_name = "Player 1"
+		GameManager.next_match_p1_data = final_character
+		print("P1 Saved.")
+		
+		# CHECK: Do we need to do Player 2?
+		if GameManager.p2_is_custom:
+			print("Moving to Player 2 Setup...")
+			GameManager.editing_player_index = 2
+			
+			# Reset the screen for P2 without reloading the scene
+			_setup_for_current_player()
+			return # STOP HERE, Don't start fight yet
+			
+	else:
+		# We are editing Player 2
+		final_character.character_name = "Player 2"
+		GameManager.next_match_p2_data = final_character
+		print("P2 Saved.")
+
+	# 3. Launch Fight
+	# (Safety fallback if P2 data is somehow missing, create bot)
 	if GameManager.next_match_p2_data == null:
 		GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
 		

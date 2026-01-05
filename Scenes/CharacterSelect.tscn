@@ -78,3 +78,7 @@ layout_mode = 2
 
 [node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P2_Column"]
 layout_mode = 2
+
+[node name="P2CustomCheck" type="CheckBox" parent="HBoxContainer/P2_Column"]
+layout_mode = 2
+text = "Customise Deck?"
