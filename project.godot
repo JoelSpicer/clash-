@@ -19,3 +19,9 @@ config/icon="res://icon.svg"
 
 GameManager="*res://Scripts/Resources/GameManager.gd"
 ClassFactory="*res://Scripts/ClassFactory.gd"
+
+[display]
+
+window/size/window_width_override=1920
+window/size/window_height_override=1080
+window/stretch/mode="canvas_items"

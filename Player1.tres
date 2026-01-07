@@ -25,7 +25,7 @@
 [ext_resource type="Resource" uid="uid://crhe8sd3sbgb6" path="res://Data/Actions/adjust_stance.tres" id="22_d63b0"]
 [ext_resource type="Resource" uid="uid://bxb18ul3lsg2g" path="res://Data/Actions/roll_punch.tres" id="23_oqrl7"]
 [ext_resource type="Resource" uid="uid://dflt7waxi5glo" path="res://Data/Actions/ultimate_barrage.tres" id="24_8ih77"]
-[ext_resource type="Resource" uid="uid://b2jgxlpfq8f7f" path="res://Data/Actions/100_hand_slap.tres" id="25_q8pw5"]
+[ext_resource type="Resource" uid="uid://b2jgxlpfq8f7f" path="res://Data/Actions/hundred_hand_slap.tres" id="25_q8pw5"]
 
 [resource]
 script = ExtResource("2_071o7")
