@@ -79,6 +79,10 @@ func _ready():
 	stats_label.position.y += 20 # Offset from top
 	add_child(stats_label)
 	
+	var btn_back = $TreeContainer/BackButton 
+	if btn_back:
+		btn_back.pressed.connect(_on_back_button_pressed)
+	
 	# 4. --- NEW: CREATE POPUP CARD ---
 	var canvas = CanvasLayer.new() # Use CanvasLayer to float above everything
 	canvas.layer = 100
@@ -86,7 +90,7 @@ func _ready():
 	
 	popup_card = card_scene.instantiate()
 	popup_card.visible = false
-# --- FIX START: FORCE SIZE AND SHAPE ---
+	# --- FIX START: FORCE SIZE AND SHAPE ---
 	# 1. Stop it from stretching to fill the screen (Reset Anchors)
 	popup_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	
@@ -498,3 +502,22 @@ func _get_class_display_data(id: int) -> ActionData:
 			"[b]Speed:[/b] 3"
 			
 	return data
+
+func _on_back_button_pressed():
+	print("Canceling customization...")
+	
+	# 1. CLEANUP: Wipe temporary data in GameManager
+	# This ensures the next time you click "Quick Fight" or "Build Deck",
+	# it starts fresh instead of remembering half-finished data.
+	GameManager.next_match_p1_data = null
+	GameManager.next_match_p2_data = null
+	GameManager.editing_player_index = 1
+	GameManager.p2_is_custom = false
+	
+	# Optional: Clear temp names if you want total reset
+	GameManager.temp_p1_name = ""
+	GameManager.temp_p2_name = ""
+	
+	# 2. CHANGE SCENE
+	# You can send them to "res://Scenes/CharacterSelect.tscn" if you prefer
+	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")

@@ -1057,5 +1057,13 @@ offset_right = 162.66666
 offset_bottom = 247.66666
 text = "Reset Skills"
 
+[node name="BackButton" type="Button" parent="TreeContainer"]
+layout_mode = 0
+offset_left = 31.666666
+offset_top = 35.0
+offset_right = 145.66667
+offset_bottom = 66.0
+text = "Back to Menu"
+
 [connection signal="pressed" from="TreeContainer/ConfirmButton" to="." method="_on_confirm_button_pressed"]
 [connection signal="pressed" from="TreeContainer/ResetButton" to="." method="_on_reset_button_pressed"]
