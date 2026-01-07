@@ -152,20 +152,23 @@ func _on_node_hovered(id, a_name):
 	popup_card.visible = true
 	_update_popup_position()
 
+# ActionTree.gd
+
 func _setup_for_current_player():
-	# 1. Determine which class to load based on who we are editing
+	# 1. Determine which class/preset to load
 	var target_selection = 0
 	var player_name = ""
+	var target_preset = null # <--- New variable
 	
 	if GameManager.editing_player_index == 1:
 		target_selection = GameManager.get("temp_p1_class_selection")
+		target_preset = GameManager.get("temp_p1_preset") # Get P1 Preset
 		player_name = "PLAYER 1"
 	else:
 		target_selection = GameManager.get("temp_p2_class_selection")
+		target_preset = GameManager.get("temp_p2_preset") # Get P2 Preset
 		player_name = "PLAYER 2"
 		
-	# 2. Update UI to show who we are building
-	# You might want to update the window title or add a label
 	print("Building Loadout for: " + player_name) 
 	
 	# 3. Reset Tree State
@@ -173,7 +176,7 @@ func _setup_for_current_player():
 	unlocked_ids.clear()
 	is_class_locked = false
 	
-	# 4. Select the Class Node
+	# 4. Select the Class Node (Resets the tree to base class state)
 	if target_selection != null:
 		var node_id = 0
 		match target_selection:
@@ -185,6 +188,27 @@ func _setup_for_current_player():
 		if node_id != 0:
 			_select_class(node_id)
 			is_class_locked = true 
+	
+	# --- NEW: PRE-FILL PRESET MOVES ---
+	if target_preset != null:
+		print("Applying Preset Skills: ", target_preset.extra_skills)
+		
+		for skill_name in target_preset.extra_skills:
+			# Look up the ID using your existing Name->ID dictionary
+			if skill_name in action_tree_key_dict:
+				var id = action_tree_key_dict[skill_name]
+				
+				# Add to owned if not already there
+				if id not in owned_ids:
+					owned_ids.append(id)
+			else:
+				printerr("Warning: Preset skill '" + skill_name + "' not found in ActionTree dict.")
+		
+		# IMPORTANT: Now that we forced nodes into 'owned_ids', 
+		# we must re-run the unlock logic so their neighbors turn yellow.
+		for owner_id in owned_ids:
+			_unlock_neighbors(owner_id)
+	# ----------------------------------
 			
 	# 5. Refresh Visuals
 	_update_tree_visuals()
@@ -513,6 +537,8 @@ func _on_back_button_pressed():
 	GameManager.next_match_p2_data = null
 	GameManager.editing_player_index = 1
 	GameManager.p2_is_custom = false
+	GameManager.temp_p1_preset = null
+	GameManager.temp_p2_preset = null
 	
 	# Optional: Clear temp names if you want total reset
 	GameManager.temp_p1_name = ""

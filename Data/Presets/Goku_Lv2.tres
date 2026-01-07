@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_6w7fl")
-character_name = "Son Goku"
+character_name = "Test Quick"
 class_type = 2
 level = 2
 extra_skills = Array[String](["Pummel", "Adept Dodge"])

@@ -133,6 +133,7 @@ func _on_custom_deck_pressed():
 		# Base Class
 		p1_class_id = p1_sel
 		GameManager.temp_p1_name = "Player 1"
+		GameManager.temp_p1_preset = null # <--- Clear preset
 	else:
 		# Preset Character
 		var preset_idx = p1_sel - base_classes.size() - 1
@@ -140,6 +141,7 @@ func _on_custom_deck_pressed():
 			var p = presets[preset_idx]
 			p1_class_id = p.class_type
 			GameManager.temp_p1_name = p.character_name
+			GameManager.temp_p1_preset = p # <--- Save preset
 
 	# --- 2. HANDLE PLAYER 2 (The opponent or next edit) ---
 	var p2_sel = p2_option.selected
@@ -149,6 +151,7 @@ func _on_custom_deck_pressed():
 		# Base Class
 		p2_class_id = p2_sel
 		GameManager.temp_p2_name = "Player 2"
+		GameManager.temp_p2_preset = null # <--- Clear preset
 	else:
 		# Preset Character
 		var preset_idx = p2_sel - base_classes.size() - 1
@@ -156,6 +159,7 @@ func _on_custom_deck_pressed():
 			var p = presets[preset_idx]
 			p2_class_id = p.class_type
 			GameManager.temp_p2_name = p.character_name
+			GameManager.temp_p2_preset = p # <--- Save preset
 
 	# Store the CORRECT Class IDs (Enum ints), not the Dropdown Indices
 	GameManager.temp_p1_class_selection = p1_class_id
