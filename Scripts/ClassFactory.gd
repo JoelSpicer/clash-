@@ -95,50 +95,15 @@ func create_from_preset(preset: PresetCharacter) -> CharacterData:
 # ClassFactory.gd
 
 func _recalculate_stats(char_data: CharacterData):
-	# Reset to base
-	var hp = 10
-	var sp = 3
+	# Ask the master calculator for the numbers
+	var result = calculate_stats_for_deck(char_data.class_type, char_data.deck)
 	
-	# 1. IDENTIFY CARDS TO IGNORE
-	# We get the list of cards this class starts with automatically.
-	# We shouldn't get stats for cards we didn't "unlock".
-	var starter_deck = get_starting_deck(char_data.class_type)
-	var ignore_list: Array[String] = []
-	
-	for c in starter_deck:
-		ignore_list.append(c.display_name)
-	
-	# 2. CALCULATE STATS
-	for card in char_data.deck:
-		# SKIP STARTING CARDS (Basics + Class Starters)
-		if card.display_name in ignore_list: 
-			continue
-		
-		# Apply Growth Rules
-		match char_data.class_type:
-			CharacterData.ClassType.QUICK:
-				if card.type == ActionData.Type.OFFENCE: hp += 1
-				elif card.type == ActionData.Type.DEFENCE: sp += 2
-				
-			CharacterData.ClassType.TECHNICAL:
-				if card.type == ActionData.Type.OFFENCE: 
-					hp += 1; sp += 1
-				elif card.type == ActionData.Type.DEFENCE: 
-					sp += 1
-					
-			CharacterData.ClassType.PATIENT:
-				if card.type == ActionData.Type.OFFENCE: hp += 1
-				elif card.type == ActionData.Type.DEFENCE:
-					hp += 1; sp += 1
-					
-			CharacterData.ClassType.HEAVY:
-				if card.type == ActionData.Type.OFFENCE: sp += 1
-				elif card.type == ActionData.Type.DEFENCE: hp += 2
-	
-	char_data.max_hp = hp
-	char_data.max_sp = sp
-	char_data.current_hp = hp
-	char_data.current_sp = sp
+	# Apply them
+	char_data.max_hp = result["hp"]
+	char_data.max_sp = result["sp"]
+	char_data.current_hp = result["hp"]
+	char_data.current_sp = result["sp"]
+
 
 # --- HELPER: Find Resource (Moved from ActionTree) ---
 func _find_action_resource(action_name: String) -> ActionData:
@@ -156,3 +121,47 @@ func _find_action_resource(action_name: String) -> ActionData:
 		if ResourceLoader.exists(class_path): return load(class_path)
 			
 	return null
+
+# New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
+func calculate_stats_for_deck(class_type: CharacterData.ClassType, deck: Array[ActionData]) -> Dictionary:
+	var final_hp = 10
+	var final_sp = 3
+	
+	# 1. Get the list of "Free" cards to ignore (Starters + Basic)
+	# We reuse your existing logic here to ensure consistency
+	var starter_deck = get_starting_deck(class_type)
+	var ignore_names: Array[String] = []
+	for c in starter_deck:
+		ignore_names.append(c.display_name)
+		
+	# 2. Iterate through the provided deck
+	for card in deck:
+		# Safety Check
+		if card == null: continue
+		
+		# Skip cards that shouldn't give stats (Starters or explicitly "Basic")
+		if card.display_name in ignore_names or card.display_name.begins_with("Basic"):
+			continue
+			
+		# 3. Apply the Class Growth Rules (The "One True Logic")
+		match class_type:
+			CharacterData.ClassType.QUICK:
+				if card.type == ActionData.Type.OFFENCE: final_hp += 1
+				elif card.type == ActionData.Type.DEFENCE: final_sp += 2
+				
+			CharacterData.ClassType.TECHNICAL:
+				if card.type == ActionData.Type.OFFENCE: 
+					final_hp += 1; final_sp += 1
+				elif card.type == ActionData.Type.DEFENCE: 
+					final_sp += 1
+					
+			CharacterData.ClassType.PATIENT:
+				if card.type == ActionData.Type.OFFENCE: final_hp += 1
+				elif card.type == ActionData.Type.DEFENCE:
+					final_hp += 1; final_sp += 1
+					
+			CharacterData.ClassType.HEAVY:
+				if card.type == ActionData.Type.OFFENCE: final_sp += 1
+				elif card.type == ActionData.Type.DEFENCE: final_hp += 2
+				
+	return {"hp": final_hp, "sp": final_sp}

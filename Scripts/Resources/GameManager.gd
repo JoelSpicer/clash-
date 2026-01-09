@@ -391,11 +391,10 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 	var character = p1_data if owner_id == 1 else p2_data
 	var total_hits = max(1, my_card.repeat_count)
 	
-	# PASSIVE: RELENTLESS (Quick Class)
-	# "Every 3rd action in a combo gains Recover 1"
-	if owner.class_type == CharacterData.ClassType.QUICK:
-		if owner.combo_action_count > 0 and (owner.combo_action_count % 3 == 0):
-			owner.current_sp = min(owner.current_sp + 1, owner.max_sp)
+	# FIX: Use 'character' instead of 'owner'
+	if character.class_type == CharacterData.ClassType.QUICK:
+		if character.combo_action_count > 0 and (character.combo_action_count % 3 == 0):
+			character.current_sp = min(character.current_sp + 1, character.max_sp)
 			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
 	
 	for i in range(total_hits):
@@ -403,10 +402,12 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 		if my_card.type == ActionData.Type.DEFENCE: actual_recover += 1
 		
 		if actual_recover > 0: 
-			owner.current_sp = min(owner.current_sp + actual_recover, owner.max_sp)
+			# FIX: Use 'character' here
+			character.current_sp = min(character.current_sp + actual_recover, character.max_sp)
 			
 		if my_card.heal_value > 0: 
-			owner.current_hp = min(owner.current_hp + my_card.heal_value, owner.max_hp)
+			# FIX: Use 'character' here
+			character.current_hp = min(character.current_hp + my_card.heal_value, character.max_hp)
 			emit_signal("healing_received", owner_id, my_card.heal_value)
 
 		if my_card.heal_value > 0 or my_card.fall_back_value > 0:
@@ -482,9 +483,12 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 			var self_block = my_card.block_value + my_card.dodge_value 
 			var net_recoil = max(0, raw_recoil - self_block)
 			if net_recoil > 0:
-				owner.current_hp -= net_recoil
+				# FIX: Use 'character' instead of 'owner'
+				character.current_hp -= net_recoil
 				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
-				if owner.current_hp <= 0:
+				
+				# FIX: Use 'character' here too
+				if character.current_hp <= 0:
 					result["fatal"] = true
 					return result
 			else:
@@ -503,11 +507,10 @@ func _apply_phase_3_momentum(owner_id: int, my_card: ActionData, effective_gain:
 	var reps = max(1, my_card.repeat_count)
 	var total_loss = my_card.fall_back_value * reps
 	
-# --- KEEP-UP LOGIC ---
-	# Only triggers if toggle is ON and class is PATIENT
-	if keep_up_is_on and owner.class_type == CharacterData.ClassType.PATIENT and total_loss > 0:
-		if owner.current_sp >= total_loss:
-			owner.current_sp -= total_loss
+	#keep up logic
+	if keep_up_is_on and character.class_type == CharacterData.ClassType.PATIENT and total_loss > 0:
+		if character.current_sp >= total_loss:
+			character.current_sp -= total_loss
 			total_loss = 0
 			emit_signal("combat_log_updated", ">> KEEP-UP! P" + str(owner_id) + " spent SP to hold ground.")
 	
@@ -664,3 +667,12 @@ func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bo
 
 func swap_priority():
 	priority_player = 3 - priority_player
+
+
+# Returns the data for the requested player ID
+func get_player(id: int) -> CharacterData:
+	return p1_data if id == 1 else p2_data
+
+# Returns the data for the OTHER player (the enemy of 'id')
+func get_opponent(id: int) -> CharacterData:
+	return p2_data if id == 1 else p1_data

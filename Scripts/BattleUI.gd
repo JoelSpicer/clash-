@@ -239,62 +239,42 @@ func _switch_tab(type):
 	if !btn_offence.disabled: btn_offence.modulate = Color.WHITE if type == ActionData.Type.OFFENCE else Color(0.6, 0.6, 0.6)
 	if !btn_defence.disabled: btn_defence.modulate = Color.WHITE if type == ActionData.Type.DEFENCE else Color(0.6, 0.6, 0.6)
 
+# 1. THE UI MANAGER (Clean and readable)
 func _refresh_grid():
+	# Clear existing buttons
 	for child in button_grid.get_children():
 		child.queue_free()
 		
-	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
-	var tech_cost = 1 if tech_idx > 0 else 0
-	
+	# Loop through deck
 	for card in current_deck:
 		if card == null: continue
-		if card.type == current_tab:
-			var btn = card_button_scene.instantiate()
-			button_grid.add_child(btn)
-			btn.setup(card)
-			
-			var effective_base_cost = max(0, card.cost - my_opportunity_val)
-			var total_cost = effective_base_cost + tech_cost # Add the 1 SP tax
-			
-			# --- FIX 1: UPDATE VISUAL COST ---
-			# Show the PLAYER the total cost (Base + Tech) so they know why it's expensive
-			btn.update_cost_display(total_cost) 
-			
-			# --- AFFORDABILITY LOGIC ---
-			var can_afford = false
-			
-			# If Rage is ON, we check HP instead of SP
-			if rage_toggle.visible and rage_toggle.button_pressed:
-				can_afford = (current_hp_limit > total_cost)
-			else:
-				can_afford = (total_cost <= current_sp_limit)
-			
-			# Handle "Opener on Offence Only" Rule (Tech restriction)
-			if tech_idx == 1 and card.type == ActionData.Type.DEFENCE:
-				can_afford = false
-				
-			# --- FIX 2: OPENER LOGIC ---
-			# Calculate if it IS an opener (naturally OR via technique)
-			var effective_is_opener = card.is_opener
-			if tech_idx == 1 and card.type == ActionData.Type.OFFENCE:
-				effective_is_opener = true
-				
-			# Use the EFFECTIVE opener status for the check
-			var passes_opener = !(opener_restriction and card.type == ActionData.Type.OFFENCE and !effective_is_opener)
-			
-			var passes_max_cost = (card.cost <= turn_cost_limit)
-			var passes_counter = !(card.counter_value > 0 and my_opening_value < card.counter_value)
-			var passes_super = !(card.is_super and !super_allowed)
+		if card.type != current_tab: continue # Skip cards from the wrong tab
+		
+		# --- STEP 1: CALCULATE NUMBERS ---
+		# We ask a helper function to do the math
+		var final_cost = _calculate_card_cost(card)
+		
+		# --- STEP 2: CHECK RULES ---
+		# We ask a helper function if this play is legal
+		var is_valid = _check_card_validity(card, final_cost)
+		
+		# --- STEP 3: UPDATE UI ---
+		var btn = card_button_scene.instantiate()
+		button_grid.add_child(btn)
+		
+		btn.setup(card)
+		btn.update_cost_display(final_cost) # Show the calculated cost
+		btn.set_available(is_valid)         # Grey out if invalid
+		
+		# Connect signals
+		btn.card_hovered.connect(_on_card_hovered)
+		btn.card_exited.connect(_on_card_exited) 
+		btn.card_selected.connect(_on_card_selected)
 
-			var is_valid = can_afford and passes_opener and passes_max_cost and passes_counter and passes_super
-			btn.set_available(is_valid)
-			
-			btn.card_hovered.connect(_on_card_hovered)
-			btn.card_exited.connect(_on_card_exited) 
-			btn.card_selected.connect(_on_card_selected)
-
-	# (Feint Skip button logic remains the same)
+	# (Keep your existing Feint/Skip button logic here at the bottom)
 	if feint_mode:
+		# Assuming _create_skip_button() is your existing logic for the skip button,
+		# or paste your original skip button code block here.
 		skip_action.type = current_tab 
 		var skip_btn = card_button_scene.instantiate()
 		button_grid.add_child(skip_btn)
@@ -305,6 +285,60 @@ func _refresh_grid():
 		skip_btn.card_hovered.connect(_on_card_hovered)
 		skip_btn.card_exited.connect(_on_card_exited)
 		skip_btn.card_selected.connect(_on_card_selected)
+
+# 2. THE MATH HELPER (Calculates how much SP it costs)
+func _calculate_card_cost(card: ActionData) -> int:
+	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
+	
+	# Apply "Opportunity" Discount
+	var effective_base_cost = max(0, card.cost - my_opportunity_val)
+	
+	# Apply "Technical" Class Tax (+1 SP cost for modifiers)
+	var tech_cost = 1 if tech_idx > 0 else 0
+	
+	return effective_base_cost + tech_cost
+
+# 3. THE RULE REFEREE (Returns True/False if playable)
+func _check_card_validity(card: ActionData, final_cost: int) -> bool:
+	# A. AFFORDABILITY CHECK
+	var can_afford = false
+	if rage_toggle.visible and rage_toggle.button_pressed:
+		# Heavy Class: Pay with HP
+		can_afford = (current_hp_limit > final_cost)
+	else:
+		# Standard: Pay with SP
+		can_afford = (final_cost <= current_sp_limit)
+	
+	if not can_afford: return false
+
+	# B. TECHNIQUE RESTRICTIONS (Technical Class)
+	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
+	# Rule: "Opener" tech can only be applied to OFFENCE cards
+	if tech_idx == 1 and card.type == ActionData.Type.DEFENCE:
+		return false
+
+	# C. OPENER CHECK
+	var effective_is_opener = card.is_opener
+	# Tech Rule: If "Opener" tech (Index 1) is selected, card BECOMES an opener
+	if tech_idx == 1 and card.type == ActionData.Type.OFFENCE:
+		effective_is_opener = true
+		
+	# Game Rule: If 'opener_restriction' is active (e.g. start of combo), 
+	# you MUST play an opener.
+	if opener_restriction and card.type == ActionData.Type.OFFENCE and not effective_is_opener:
+		return false
+
+	# D. SITUATIONAL CHECKS
+	# Multi-Hit Limit: Opponent limited our max cost
+	if card.cost > turn_cost_limit: return false
+	
+	# Counter: Requires opponent to have created an opening
+	if card.counter_value > 0 and my_opening_value < card.counter_value: return false
+	
+	# Super: Can only use if momentum meter is full
+	if card.is_super and not super_allowed: return false
+
+	return true
 
 # --- TOOLTIP LOGIC ---
 
@@ -372,7 +406,7 @@ func _update_tooltip_text(card: ActionData):
 	tooltip_label.text = full_text
 	tooltip_label.visible = true
 	
-# --- POSITIONING LOGIC ---
+	# --- POSITIONING LOGIC ---
 	
 	# 1. Force size update so calculations are accurate
 	tooltip_label.size.y = 0 

@@ -38,6 +38,11 @@ var action_tree_dict = {
 
 var id_to_name = {}
 
+const NODE_QUICK = 73
+const NODE_TECHNICAL = 74
+const NODE_PATIENT = 75
+const NODE_HEAVY = 76
+
 # --- SCENE REFS ---
 @onready var nodes_layer = %NodesLayer
 @onready var lines_layer = %LinesLayer
@@ -273,49 +278,41 @@ func _select_class(class_id: int):
 
 # --- NEW: STATS CALCULATION LOGIC ---
 func _recalculate_stats():
-	# Reset to Base
-	current_max_hp = 10
-	current_max_sp = 3
-	
-	# If no class selected, just show base
+	# Default display if nothing selected
 	if selected_class_id == 0:
 		stats_label.text = "HP: 10 | SP: 3"
 		return
 
-	# Calculate bonuses from owned cards
+	# 1. Convert the Tree's "Node ID" (73-76) into a proper "Class Enum"
+	var class_enum = CharacterData.ClassType.HEAVY # Default
+	match selected_class_id:
+		73: class_enum = CharacterData.ClassType.QUICK
+		74: class_enum = CharacterData.ClassType.TECHNICAL
+		75: class_enum = CharacterData.ClassType.PATIENT
+		76: class_enum = CharacterData.ClassType.HEAVY
+
+	# 2. Build a temporary deck from the nodes we own
+	var temp_deck: Array[ActionData] = []
+	
+	# Add the base starter cards for this class (so the calculator knows to ignore them properly)
+	# Note: ClassFactory.get_starting_deck returns resources, which is what we need.
+	temp_deck.append_array(ClassFactory.get_starting_deck(class_enum))
+	
+	# Add the extra cards we bought in the tree
 	for id in owned_ids:
-		if id >= 73: continue # Skip the class node itself
+		if id >= 73: continue # Skip class nodes
 		
 		var a_name = id_to_name.get(id)
 		var card = _find_action_resource(a_name)
-		
 		if card:
-			# Apply Rules based on Class + Card Type
-			# ActionData.Type: OFFENCE = 0, DEFENCE = 1
-			
-			match selected_class_id:
-				73: # QUICK
-					if card.type == ActionData.Type.OFFENCE: current_max_hp += 1
-					elif card.type == ActionData.Type.DEFENCE: current_max_sp += 2
-					
-				74: # TECHNICAL
-					if card.type == ActionData.Type.OFFENCE: 
-						current_max_hp += 1
-						current_max_sp += 1
-					elif card.type == ActionData.Type.DEFENCE:
-						current_max_sp += 1
-						
-				75: # PATIENT
-					if card.type == ActionData.Type.OFFENCE: current_max_hp += 1
-					elif card.type == ActionData.Type.DEFENCE:
-						current_max_hp += 1
-						current_max_sp += 1
-						
-				76: # HEAVY
-					if card.type == ActionData.Type.OFFENCE: current_max_sp += 1
-					elif card.type == ActionData.Type.DEFENCE: current_max_hp += 2
+			temp_deck.append(card)
 	
-	# Update UI
+	# 3. ASK THE FACTORY: "If I had this deck, what would my stats be?"
+	var result = ClassFactory.calculate_stats_for_deck(class_enum, temp_deck)
+	
+	# 4. Update UI
+	current_max_hp = result["hp"]
+	current_max_sp = result["sp"]
 	stats_label.text = "HP: " + str(current_max_hp) + " | SP: " + str(current_max_sp)
 
 func _unlock_neighbors(node_id: int):

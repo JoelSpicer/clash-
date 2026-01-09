@@ -59,7 +59,7 @@ func _run():
 		action.reversal = (line[23].to_lower() == "true")
 		action.is_super = (line[24].to_lower() == "true")
 		action.sweep = (line[25].to_lower() == "true")
-		action.tiring_value = int(line[26])
+		action.tiring = int(line[26])
 		
 		# 3. Apply Hard-Coded Fixes (The "Harsh" Audit)
 		if action.display_name == "Vital Point Assault" and action.repeat_count == 3:
