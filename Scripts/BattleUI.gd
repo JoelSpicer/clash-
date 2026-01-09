@@ -15,7 +15,9 @@ signal p2_mode_toggled(is_human)
 @onready var preview_card = %PreviewCard
 @onready var tooltip_label = $MainLayout/PreviewAnchor/ToolTipLabel
 @onready var btn_offence = %Offence        
-@onready var btn_defence = %Defence       
+@onready var btn_defence = %Defence      
+
+@onready var log_toggle = $LogToggle 
 
 # --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
@@ -82,7 +84,15 @@ func _ready():
 		return
 	
 	if clash_layer: clash_layer.visible = false
-
+	
+	log_toggle.button_pressed = false
+	combat_log.visible = false
+	
+	if log_toggle:
+		log_toggle.toggled.connect(_on_log_toggled)
+		# Sync the log visibility to the button's starting state
+		combat_log.visible = log_toggle.button_pressed
+	
 	btn_offence.pressed.connect(func(): _switch_tab(ActionData.Type.OFFENCE))
 	btn_defence.pressed.connect(func(): _switch_tab(ActionData.Type.DEFENCE))
 	
@@ -470,6 +480,9 @@ func _spawn_text(pos: Vector2, text: String, color: Color):
 
 func _on_combat_log_updated(text: String):
 	if combat_log: combat_log.add_log(text)
+
+func _on_log_toggled(is_visible: bool):
+	combat_log.visible = is_visible
 
 # BattleUI.gd
 
