@@ -21,6 +21,9 @@ func _ready():
 	await get_tree().process_frame
 	battle_ui.combat_log.clear_log()
 	
+	# Force difficulty for testing
+	GameManager.ai_difficulty = GameManager.Difficulty.HARD
+	
 	# --- NEW LOGIC: CHECK FOR SELECTION ---
 	if GameManager.next_match_p1_data != null:
 		p1_resource = GameManager.next_match_p1_data
@@ -240,25 +243,24 @@ func _handle_bot_completion(player_id):
 		if is_player_2_human: _prepare_human_turn(2)
 		else: _run_bot_turn(2)
 
+# TestArena.gd
+
 func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
 	var valid_options = []
-	var affordable_backups = [] # Cards we can play even if we have 0 SP (if any exist)
+	var affordable_backups = [] 
 	
-	# A. FILTER: Find all legally playable cards first
+	# A. FILTER (Find all legally playable cards)
 	for card in character.deck:
-		# 1. Rule Checks (Same as before)
 		if type_filter != null and card.type != type_filter: continue
 		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
 		if card.cost > max_cost: continue
 		if card.counter_value > 0 and my_opening < card.counter_value: continue
 		if card.is_super and not allow_super: continue
 		
-		# 2. Affordability Check
-		# (Simplified: we assume Bot respects SP limits unless it's Heavy class Rage logic)
 		var effective_cost = max(0, card.cost - my_opportunity)
-		
-		# Heavy Class "Rage" Exception: Can pay with HP if SP is low
 		var can_pay = (effective_cost <= character.current_sp)
+		
+		# Heavy Class "Rage" Logic
 		if character.class_type == CharacterData.ClassType.HEAVY:
 			if (character.current_sp + character.current_hp) > effective_cost:
 				can_pay = true
@@ -268,34 +270,39 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		elif effective_cost == 0:
 			affordable_backups.append(card)
 	
-	# B. STRATEGY: Score the valid options
-	# If we have no valid moves, try backups. If still nothing, return default (will likely fail but prevents crash).
+	# Fallback if no moves are possible
 	if valid_options.is_empty():
 		if affordable_backups.size() > 0: return affordable_backups.pick_random()
 		return character.deck[0] 
 
+	# B. STRATEGY (Score the options based on difficulty)
 	var best_card = valid_options[0]
-	var best_score = -9999
+	var best_score = -99999.0 # Start really low
 	
-	# Identify Opponent Data for context
-	# (We assume the bot is the character passed in)
 	var my_id = 1 if character == p1_resource else 2
 	var opponent = p2_resource if my_id == 1 else p1_resource
+	
+	# --- DETERMINE "NOISE" BASED ON DIFFICULTY ---
+	var noise_range = 0.0
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.EASY: noise_range = 100.0   # Massive randomness (Chaos)
+		GameManager.Difficulty.MEDIUM: noise_range = 25.0  # Moderate randomness (Human error)
+		GameManager.Difficulty.HARD: noise_range = 2.0     # Tiny randomness (Variety only)
 	
 	for card in valid_options:
 		var score = _score_card_utility(card, character, opponent, my_id)
 		
-		# Add a tiny bit of randomness so it doesn't play the EXACT same way every time
-		score += randf_range(0, 5)
+		# Apply the "Brain Fog"
+		score += randf_range(-noise_range, noise_range)
 		
-		# Debug print (Optional: Uncomment to see bot thinking)
-		# print("Bot P" + str(my_id) + " evaluating " + card.display_name + ": " + str(int(score)))
+		# Debug: See what the bot is thinking
+		print("Bot P%s considers %s: Score %d" % [my_id, card.display_name, score])
 		
 		if score > best_score:
 			best_score = score
 			best_card = card
 			
-	return best_card
+	return best_card 
 
 # 2. THE BRAIN (Assigns value to actions)
 func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:

@@ -18,6 +18,8 @@ var temp_p1_class_selection: int = 0
 var temp_p2_class_selection: int = 0 # New: Remember P2's class choice
 var editing_player_index: int = 1    # New: Are we building P1 (1) or P2 (2)?
 var p2_is_custom: bool = false       # New: Did the user ask to customize P2?
+enum Difficulty { EASY, MEDIUM, HARD }
+var ai_difficulty: Difficulty = Difficulty.MEDIUM # Default
 
 # --- PERSISTENT GAME SETUP ---
 var next_match_p1_data: CharacterData
