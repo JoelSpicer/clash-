@@ -242,22 +242,123 @@ func _handle_bot_completion(player_id):
 
 func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
 	var valid_options = []
-	var affordable_backups = []
+	var affordable_backups = [] # Cards we can play even if we have 0 SP (if any exist)
 	
+	# A. FILTER: Find all legally playable cards first
 	for card in character.deck:
+		# 1. Rule Checks (Same as before)
 		if type_filter != null and card.type != type_filter: continue
 		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
 		if card.cost > max_cost: continue
 		if card.counter_value > 0 and my_opening < card.counter_value: continue
 		if card.is_super and not allow_super: continue
 		
+		# 2. Affordability Check
+		# (Simplified: we assume Bot respects SP limits unless it's Heavy class Rage logic)
 		var effective_cost = max(0, card.cost - my_opportunity)
-		if effective_cost <= character.current_sp: valid_options.append(card)
-		elif effective_cost == 0: affordable_backups.append(card)
+		
+		# Heavy Class "Rage" Exception: Can pay with HP if SP is low
+		var can_pay = (effective_cost <= character.current_sp)
+		if character.class_type == CharacterData.ClassType.HEAVY:
+			if (character.current_sp + character.current_hp) > effective_cost:
+				can_pay = true
+				
+		if can_pay:
+			valid_options.append(card)
+		elif effective_cost == 0:
+			affordable_backups.append(card)
 	
-	if valid_options.size() > 0: return valid_options.pick_random()
-	if affordable_backups.size() > 0: return affordable_backups[0]
-	return character.deck[0]
+	# B. STRATEGY: Score the valid options
+	# If we have no valid moves, try backups. If still nothing, return default (will likely fail but prevents crash).
+	if valid_options.is_empty():
+		if affordable_backups.size() > 0: return affordable_backups.pick_random()
+		return character.deck[0] 
+
+	var best_card = valid_options[0]
+	var best_score = -9999
+	
+	# Identify Opponent Data for context
+	# (We assume the bot is the character passed in)
+	var my_id = 1 if character == p1_resource else 2
+	var opponent = p2_resource if my_id == 1 else p1_resource
+	
+	for card in valid_options:
+		var score = _score_card_utility(card, character, opponent, my_id)
+		
+		# Add a tiny bit of randomness so it doesn't play the EXACT same way every time
+		score += randf_range(0, 5)
+		
+		# Debug print (Optional: Uncomment to see bot thinking)
+		# print("Bot P" + str(my_id) + " evaluating " + card.display_name + ": " + str(int(score)))
+		
+		if score > best_score:
+			best_score = score
+			best_card = card
+			
+	return best_card
+
+# 2. THE BRAIN (Assigns value to actions)
+func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
+	var score = 0.0
+	
+	# --- 1. KILL INSTINCT ---
+	# If this card kills the opponent, prioritize it above all else!
+	if card.damage >= opp.current_hp:
+		score += 1000.0
+		
+	# --- 2. SURVIVAL INSTINCT ---
+	# If I am dying (HP < 4), prioritize staying alive
+	if me.current_hp < 4:
+		score += card.block_value * 10
+		score += card.heal_value * 15
+		score += card.dodge_value * 10
+		if card.type == ActionData.Type.DEFENCE: score += 20
+		
+	# --- 3. MOMENTUM STRATEGY ---
+	var mom = GameManager.momentum
+	# Helper: "My Side" is 1-4 for P1, 5-8 for P2.
+	var winning_momentum = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
+	var losing_momentum = (my_id == 1 and mom >= 5) or (my_id == 2 and mom <= 4)
+	
+	if winning_momentum:
+		# PRESS THE ADVANTAGE: Value Damage and Momentum Gain
+		score += card.damage * 10
+		score += card.momentum_gain * 5
+		if card.type == ActionData.Type.OFFENCE: score += 10
+	
+	elif losing_momentum:
+		# TURN THE TIDE: Value Reversals, Parries, and Pushback
+		if card.reversal: score += 50
+		if card.is_parry: score += 40
+		score += card.fall_back_value * 8
+		score += card.block_value * 5 # Play safe
+		
+	# --- 4. TACTICAL COMBOS ---
+	# If I have a combo opening (e.g., Opponent is off-balance), use Counters!
+	var my_opening = GameManager.p1_opening_stat if my_id == 1 else GameManager.p2_opening_stat
+	if my_opening > 0:
+		# If this card takes advantage of the opening, boost it
+		if card.counter_value > 0 and card.counter_value <= my_opening:
+			score += 40
+			
+	# --- 5. CLASS SPECIFIC BIAS ---
+	match me.class_type:
+		CharacterData.ClassType.HEAVY:
+			score += card.damage * 5 # Loves damage
+		CharacterData.ClassType.PATIENT:
+			score += card.block_value * 5 # Loves blocking
+		CharacterData.ClassType.QUICK:
+			if card.cost <= 1: score += 10 # Loves cheap cards
+			
+	# --- 6. COST EFFICIENCY ---
+	# Don't spend all SP unless necessary
+	if card.cost > 0:
+		var sp_ratio = float(me.current_sp) / float(me.max_sp)
+		if sp_ratio < 0.3: 
+			# Low SP? Penalize expensive cards heavily
+			score -= card.cost * 15
+	
+	return score
 
 # --- LOGGING ---
 func _on_game_over(winner_id):

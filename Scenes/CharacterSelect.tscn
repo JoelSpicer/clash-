@@ -60,7 +60,7 @@ text = "Quick CLASH!"
 
 [node name="CustomDeckButton" type="Button" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
-text = "Build Movelist"
+text = "Build P1 Movelist"
 
 [node name="BackButton" type="Button" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
@@ -81,4 +81,4 @@ layout_mode = 2
 
 [node name="P2CustomCheck" type="CheckBox" parent="HBoxContainer/P2_Column"]
 layout_mode = 2
-text = "Customise Deck for P2?"
+text = "Also build movelist for P2?"
