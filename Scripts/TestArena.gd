@@ -34,6 +34,7 @@ func _ready():
 	GameManager.combat_log_updated.connect(_on_log_updated)
 	GameManager.clash_resolved.connect(_on_clash_resolved)
 	GameManager.game_over.connect(_on_game_over)
+	GameManager.request_clash_animation.connect(battle_ui.play_clash_animation)
 	
 	battle_ui.human_selected_card.connect(_on_human_input_received)
 	

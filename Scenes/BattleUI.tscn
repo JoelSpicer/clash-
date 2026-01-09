@@ -8,6 +8,28 @@
 [node name="BattleUI" type="CanvasLayer"]
 script = ExtResource("1_d8qwt")
 
+[node name="ClashLayer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ClashIcon" type="Label" parent="ClashLayer"]
+layout_mode = 0
+offset_left = 554.0
+offset_top = 286.0
+offset_right = 594.0
+offset_bottom = 309.0
+text = "VS"
+
+[node name="LeftCard" parent="ClashLayer" instance=ExtResource("1_gl3jw")]
+layout_mode = 1
+
+[node name="RightCard" parent="ClashLayer" instance=ExtResource("1_gl3jw")]
+layout_mode = 1
+
 [node name="MainLayout" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15

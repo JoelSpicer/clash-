@@ -44,6 +44,8 @@ var p2_toggle: CheckButton
 var rage_toggle: CheckButton
 var keep_up_toggle: CheckButton
 var tech_dropdown: OptionButton
+var shake_strength: float = 0.0
+var shake_decay: float = 5.0
 
 # --- KEYWORD DEFINITIONS ---
 const KEYWORD_DEFS = {
@@ -78,6 +80,8 @@ func _ready():
 	if not btn_offence or not btn_defence:
 		printerr("CRITICAL: Buttons missing in BattleUI")
 		return
+	
+	if clash_layer: clash_layer.visible = false
 
 	btn_offence.pressed.connect(func(): _switch_tab(ActionData.Type.OFFENCE))
 	btn_defence.pressed.connect(func(): _switch_tab(ActionData.Type.DEFENCE))
@@ -98,9 +102,23 @@ func _ready():
 	GameManager.healing_received.connect(_on_healing_received)
 	GameManager.status_applied.connect(_on_status_applied)	
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
+	GameManager.damage_dealt.connect(_on_damage_shake)
 	
 	_create_debug_toggles()
 	_create_passive_toggles() # Add this new function call
+
+func _process(delta):
+	# This applies the shake to the entire UI Layer
+	if shake_strength > 0:
+		shake_strength = lerpf(shake_strength, 0, shake_decay * delta)
+		
+		# Apply random offset to the CanvasLayer
+		offset = Vector2(
+			randf_range(-shake_strength, shake_strength),
+			randf_range(-shake_strength, shake_strength)
+		)
+	else:
+		offset = Vector2.ZERO
 
 func _create_passive_toggles():
 	var container = HBoxContainer.new()
@@ -452,3 +470,76 @@ func _spawn_text(pos: Vector2, text: String, color: Color):
 
 func _on_combat_log_updated(text: String):
 	if combat_log: combat_log.add_log(text)
+
+# BattleUI.gd
+
+@onready var clash_layer = $ClashLayer # Make sure you created this node
+@onready var left_card_display = $ClashLayer/LeftCard # Assign these in editor
+@onready var right_card_display = $ClashLayer/RightCard
+
+func play_clash_animation(p1_card: ActionData, p2_card: ActionData):
+	clash_layer.visible = true
+	
+	# 1. Setup Data
+	left_card_display.set_card_data(p1_card)
+	right_card_display.set_card_data(p2_card)
+	
+	# --- FIX START: FORCE SIZE & PIVOT ---
+	# Force standard card size (Portrait)
+	var card_size = Vector2(250, 350) 
+	
+	left_card_display.custom_minimum_size = card_size
+	left_card_display.size = card_size
+	
+	right_card_display.custom_minimum_size = card_size
+	right_card_display.size = card_size
+	
+	# Set Pivot to center so they scale/rotate from the middle, not top-left
+	left_card_display.pivot_offset = card_size / 2
+	right_card_display.pivot_offset = card_size / 2
+	
+	# Reset Scale (Try 1.0, or 1.2 for big impact)
+	left_card_display.scale = Vector2(1.0, 1.0)
+	right_card_display.scale = Vector2(1.0, 1.0)
+	# --- FIX END ---
+	
+	# 2. Reset Positions (Off-screen)
+	var center = get_viewport().get_visible_rect().size / 2
+	
+	# Start far left/right
+	left_card_display.position.x = -400
+	right_card_display.position.x = get_viewport().get_visible_rect().size.x + 400
+	
+	# Center Y (adjusted for pivot)
+	left_card_display.position.y = center.y - (card_size.y / 2)
+	right_card_display.position.y = center.y - (card_size.y / 2)
+	
+	# 3. Animate Slam
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART)
+	tween.set_ease(Tween.EASE_OUT)
+	
+	# Move to center (Target positions)
+	# Left card stops slightly left of center
+	tween.tween_property(left_card_display, "position:x", center.x - card_size.x - 40, 0.4)
+	# Right card stops slightly right of center
+	tween.tween_property(right_card_display, "position:x", center.x + 20, 0.4)
+	
+	# Add a little shake/scale punch on impact
+	await tween.finished
+	HitStopManager.stop_frame(0.15) 
+	
+	# Hold for reading
+	await get_tree().create_timer(1.2).timeout
+	
+	# Fade out
+	clash_layer.visible = false
+	GameManager.clash_animation_finished.emit()
+
+func _on_damage_shake(_target, amount, is_blocked):
+	# The higher the damage, the harder the shake
+	if is_blocked:
+		shake_strength = 2.0 
+	else:
+		shake_strength = float(amount) * 5.0 # Increased multiplier for visibility

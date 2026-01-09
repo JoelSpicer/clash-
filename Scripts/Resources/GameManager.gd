@@ -8,6 +8,8 @@ signal game_over(winner_id)
 signal damage_dealt(target_id: int, amount: int, is_blocked: bool)
 signal healing_received(target_id: int, amount: int)
 signal status_applied(target_id: int, status_name: String)
+signal request_clash_animation(p1_card, p2_card)
+signal clash_animation_finished
 
 # --- STATE MACHINE ---
 enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
@@ -162,6 +164,14 @@ func player_select_action(player_id: int, action: ActionData, extra_data: Dictio
 
 func _enter_reveal_phase():
 	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
+	
+	# --- NEW VISUAL STEP ---
+	# 1. Tell UI to play animation
+	emit_signal("request_clash_animation", p1_action_queue, p2_action_queue)
+	
+	# 2. Wait for it to finish
+	await self.clash_animation_finished
+	# -----------------------
 	
 	p1_pending_feint = p1_action_queue.feint
 	p2_pending_feint = p2_action_queue.feint
