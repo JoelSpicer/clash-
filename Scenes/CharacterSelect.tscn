@@ -74,6 +74,10 @@ horizontal_alignment = 1
 [node name="DifficultyOption" type="OptionButton" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
 
+[node name="ArcadeButton" type="Button" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+text = "Start Arcade Run"
+
 [node name="P2_Column" type="VBoxContainer" parent="HBoxContainer"]
 layout_mode = 2
 
@@ -90,3 +94,5 @@ layout_mode = 2
 [node name="P2CustomCheck" type="CheckBox" parent="HBoxContainer/P2_Column"]
 layout_mode = 2
 text = "Also build movelist for P2?"
+
+[connection signal="pressed" from="HBoxContainer/Center_Column/ArcadeButton" to="." method="_on_start_arcade_pressed"]

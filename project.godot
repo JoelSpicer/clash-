@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 GameManager="*res://Scripts/Resources/GameManager.gd"
 ClassFactory="*res://Scripts/ClassFactory.gd"
 HitStopManager="*res://Scripts/HitStopManager.gd"
+RunManager="*res://Scripts/RunManager.gd"
 
 [display]
 

@@ -1,0 +1,3795 @@
+--- START OF PROJECT DUMP ---
+
+
+========================================
+FILE PATH: res://Scripts/ActionNode.gd
+========================================
+extends TextureButton
+
+signal action_clicked(node_id, node_name)
+signal hovered(node_id, node_name)
+signal exited()
+
+var id: int = 0
+var action_name: String = ""
+var status: int = 0 
+
+# Variables to hold the visual parts
+var label: Label
+var background: Panel
+
+func _ready():
+	# 1. VISUAL REPAIR
+	if get_child_count() == 0:
+		_build_ui()
+	else:
+		label = get_node_or_null("Label")
+		background = get_node_or_null("Panel")
+	
+	# --- FIX 1: FORCE MOUSE IGNORE ON CHILDREN ---
+	# This ensures the label/panel never block the hover signal
+	if label: label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if background: background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# ---------------------------------------------
+	
+	# 2. SIZE REPAIR
+	if size.x < 40 or size.y < 40:
+		custom_minimum_size = Vector2(50, 50)
+		size = Vector2(50, 50)
+		
+	mouse_entered.connect(func(): hovered.emit(id, action_name))
+	mouse_exited.connect(func(): exited.emit())	
+
+func _build_ui():
+	background = Panel.new()
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(background)
+	
+	label = Label.new()
+	label.text = name
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(label)
+
+func setup(new_id: int, new_name: String):
+	id = new_id
+	action_name = new_name
+	if label: label.text = str(id)
+	tooltip_text = ""
+
+func set_status(new_status: int):
+	status = new_status
+	
+	if background:
+		match status:
+			0: # LOCKED
+				background.modulate = Color(0.2, 0.2, 0.2) # Dark Grey
+				# --- FIX 2: DO NOT DISABLE ---
+				# disabled = true  <-- DELETE THIS LINE
+				# We keep it enabled so it can receive 'mouse_entered' signals.
+				# The ActionTree script already prevents clicking locked nodes.
+				disabled = false 
+				
+			1: # AVAILABLE
+				background.modulate = Color(1, 1, 0) # Yellow
+				disabled = false
+			2: # OWNED
+				background.modulate = Color(0, 1, 0) # Green
+				disabled = false
+
+func _pressed():
+	action_clicked.emit(id, action_name)
+
+
+========================================
+FILE PATH: res://Scripts/ActionTree.gd
+========================================
+extends Control
+
+# --- DATA ---
+# (Keep your existing dictionaries here)
+var action_tree_key_dict = {
+	"Toppling Kick":1, "Pummel":2, "One Two":3, "Evading Dance":4, "Slip Behind":5,
+	"Adept Dodge":6, "Adept Light":7, "Hundred Hand Slap":8, "Precise Strike":9, "Breakout":10,
+	"Read Offence":11, "Quick Dodge":12, "Master Dodge":13, "Master Light":14, "Flying Kick":15,
+	"Vital Strike":16, "Unassailable Stance":17, "Strike Back":18, "Leg Sweep":19, "Catch":20,
+	"Drop Prone":21, "Perfect Strike":22, "Step Up":23, "Go with the Flow":24, "Prime":25,
+	"Inner Peace":26, "Adept Reversal":27, "Master Reversal":28, "Untouchable Dodge":29,
+	"Ultimate Barrage":30, "Advancing Parry":31, "Master Positioning":32, "Adept Positioning":33,
+	"Grab":34, "Wind Up":35, "Vital Point Assault":36, "Overwhelming Aura":37, "Parry FollowUp":38,
+	"Adjust Stance":39, "Adept Tech":40, "Master Tech":41, "Crushing Block":42, "Final Strike":43,
+	"Redirect":44, "Master Parry":45, "Adept Parry":46, "Throw":47, "Resounding Parry":48,
+	"Push":49, "Twist Arm":50, "Suplex":51, "Perfect Block":52, "Active Block":53,
+	"Retreating Defence":54, "Resounding Counter":55, "Read Defence":56, "Headbutt":57, "Lariat":58,
+	"Master Heavy":59, "Master Block":60, "Draining Defence":61, "Slapping Parry":62, "Tiring Parry":63,
+	"Roundhouse Kick":64, "Uppercut":65, "Adept Heavy":66, "Adept Block":67, "Push Kick":68,
+	"Drop Punch":69, "Knee Crush":70, "Drop Kick":71, "Immovable Stance":72,
+	"Quick":73, "Technical":74, "Patient":75, "Heavy":76
+}
+
+var action_tree_dict = {
+	1:[12,5], 2:[6,7], 3:[8,15], 4:[11,12], 5:[1,6], 6:[2,5,13], 7:[2,14,8], 8:[7,3],
+	9:[15,16], 10:[11,19], 11:[4,10,20], 12:[4,1,13,20], 13:[12,6,21], 14:[7,15,21],
+	15:[3,14,9,22], 16:[9,22,17], 17:[16,23], 18:[19,25], 19:[10,18,20,28], 20:[19,11,12,29],
+	21:[13,14,29,31,30], 22:[15,16,23,31], 23:[22,17,24,32], 24:[23,26], 25:[18,27], 26:[24,33],
+	27:[34,28,25], 28:[27,19,35], 29:[20,21,35], 30:[21], 31:[21,22,38], 32:[23,38,33],
+	33:[32,26,39], 34:[27,40], 35:[28,41,29,42,36], 36:[35], 37:[38], 38:[31,32,44,45,37],
+	39:[33,46], 40:[34,41,47], 41:[40,50,35], 42:[35,51,52], 43:[52], 44:[52,38,53],
+	45:[38,46,54], 46:[45,48], 47:[40,49], 48:[46,55], 49:[47,50], 50:[49,41,51,56],
+	51:[50,42,58,57], 52:[42,43,44,59,60], 53:[44,54,61,62], 54:[53,45,55,63], 55:[48,54],
+	56:[50,57], 57:[56,51,64], 58:[51,64,59,70], 59:[52,66,58], 60:[52,67,61], 61:[53,72,69],
+	62:[53,63,69], 63:[54,62], 64:[57,58], 65:[70,66], 66:[59,65,71], 67:[68,60,71],
+	68:[67,72], 69:[61,62], 70:[58,65], 71:[66,67], 72:[68,61], 73:[2], 74:[34], 75:[39], 76:[71]
+}
+
+var id_to_name = {}
+
+const NODE_QUICK = 73
+const NODE_TECHNICAL = 74
+const NODE_PATIENT = 75
+const NODE_HEAVY = 76
+
+# --- SCENE REFS ---
+@onready var nodes_layer = %NodesLayer
+@onready var lines_layer = %LinesLayer
+
+# --- STATE ---
+var unlocked_ids: Array[int] = []
+var owned_ids: Array[int] = []
+var selected_class_id: int = 0
+var is_class_locked: bool = false
+var pending_unlock_id: int = 0 # Track the ONE card the player wants to pick
+# --- NEW: STATS TRACKING ---
+var current_max_hp: int = 10
+var current_max_sp: int = 3
+var stats_label: Label 
+
+# --- NEW: POPUP REFERENCES ---
+var card_scene = preload("res://Scenes/CardDisplay.tscn")
+var popup_card: Control
+
+func _ready():
+	
+	# 1. Build ID lookup
+	for key in action_tree_key_dict:
+		id_to_name[action_tree_key_dict[key]] = key
+	
+	# 2. Setup Nodes
+	for child in nodes_layer.get_children():
+		if child.has_method("setup"):
+			var id = int(str(child.name)) 
+			var a_name = id_to_name.get(id, "Unknown")
+			child.setup(id, a_name)
+			child.action_clicked.connect(_on_node_clicked)
+			child.hovered.connect(_on_node_hovered) # <--- ADD THIS
+			child.exited.connect(_on_node_exited)
+	# 3. Create Stats Label UI
+	stats_label = Label.new()
+	stats_label.text = "HP: 10 | SP: 3"
+	stats_label.add_theme_font_size_override("font_size", 32)
+	stats_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	stats_label.position.y += 20 # Offset from top
+	add_child(stats_label)
+	
+	if RunManager.is_arcade_mode:
+		print("ActionTree: Loading Arcade Run Data...")
+		
+		# A. Load state from RunManager instead of GameManager temp vars
+		# We clone the list so we don't accidentally modify the 'real' list until confirmed
+		owned_ids = RunManager.player_owned_tree_ids.duplicate()
+		
+		# The first node in the list is always the Class Node (73-76)
+		if owned_ids.size() > 0:
+			selected_class_id = owned_ids[0] 
+		
+		# B. Lock the UI 'Back' button so they can't leave without picking
+		var btn_back = $TreeContainer/BackButton
+		if btn_back: btn_back.visible = false 
+		
+		# C. Change the Confirm button text
+		var btn_confirm = $TreeContainer/ConfirmButton 
+		if btn_confirm: btn_confirm.text = "UNLOCK & FIGHT"
+		
+		# D. Calculate unlocks based on what we already own
+		_unlock_neighbors(selected_class_id)
+		for oid in owned_ids: 
+			_unlock_neighbors(oid)
+	else:
+		_setup_for_current_player()
+		var btn_back = $TreeContainer/BackButton
+		if btn_back:
+			btn_back.pressed.connect(_on_back_button_pressed)
+		
+	
+	
+	# 4. --- NEW: CREATE POPUP CARD ---
+	var canvas = CanvasLayer.new() # Use CanvasLayer to float above everything
+	canvas.layer = 100
+	add_child(canvas)
+	
+	popup_card = card_scene.instantiate()
+	popup_card.visible = false
+	# --- FIX START: FORCE SIZE AND SHAPE ---
+	# 1. Stop it from stretching to fill the screen (Reset Anchors)
+	popup_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	
+	# 2. Force it to the correct standard card size
+	# (Matching custom_minimum_size from CardDisplay.tscn)
+	popup_card.size = Vector2(250, 350) 
+	
+	# 3. Set Scale (1.0 is standard size, adjust if you want it smaller/larger)
+	popup_card.scale = Vector2(0.6, 0.6) 
+	# ---------------------------------------rger
+	popup_card.mouse_filter = Control.MOUSE_FILTER_IGNORE # Don't block mouse
+	canvas.add_child(popup_card)
+
+	
+	_update_tree_visuals()
+	_recalculate_stats() # Initial calc
+	lines_layer.queue_redraw()
+
+func _on_node_hovered(id, a_name):
+	
+	# --- NEW: DETECT CLASS NODES (73-76) ---
+	if id >= 73 and id <= 76:
+		var class_info = _get_class_display_data(id)
+		popup_card.set_card_data(class_info)
+		
+		# Optional: Hide the "0 SP" cost label if you want (requires CardDisplay tweaks), 
+		# but for now we just show the info.
+		
+		popup_card.visible = true
+		_update_popup_position()
+		return
+	# ---------------------------------------
+
+	# Standard Action Node Logic (Existing Code)
+	# 1. Try to load the real file
+	var res = _find_action_resource(a_name)
+	
+	# 2. If missing, create a "Dummy" card so the UI still works
+	if res == null:
+		print("Debug: File missing for '" + a_name + "'") # Console check
+		res = ActionData.new()
+		res.display_name = a_name
+		res.description = "(File not created yet)"
+		res.type = ActionData.Type.OFFENCE # Default color
+		res.cost = 0
+	
+	
+# --- CHANGE 2: USE THE CORRECT METHOD FOR THE FULL CARD ---
+	# In BattleUI, you use 'set_card_data(card, cost)' for the preview card.
+	# We replicate that here.
+	if popup_card.has_method("set_card_data"):
+		popup_card.set_card_data(res, res.cost)
+	elif popup_card.has_method("setup"):
+		# Fallback in case your card script uses 'setup' instead
+		popup_card.setup(res)
+		
+	popup_card.visible = true
+	_update_popup_position()
+
+# ActionTree.gd
+
+func _setup_for_current_player():
+	# 1. Determine which class/preset to load
+	var target_selection = 0
+	var player_name = ""
+	var target_preset = null # <--- New variable
+	
+	if GameManager.editing_player_index == 1:
+		target_selection = GameManager.get("temp_p1_class_selection")
+		target_preset = GameManager.get("temp_p1_preset") # Get P1 Preset
+		player_name = "PLAYER 1"
+	else:
+		target_selection = GameManager.get("temp_p2_class_selection")
+		target_preset = GameManager.get("temp_p2_preset") # Get P2 Preset
+		player_name = "PLAYER 2"
+		
+	print("Building Loadout for: " + player_name) 
+	
+	# 3. Reset Tree State
+	owned_ids.clear()
+	unlocked_ids.clear()
+	is_class_locked = false
+	
+	# 4. Select the Class Node (Resets the tree to base class state)
+	if target_selection != null:
+		var node_id = 0
+		match target_selection:
+			0: node_id = 76 # Heavy
+			1: node_id = 75 # Patient
+			2: node_id = 73 # Quick
+			3: node_id = 74 # Technical
+			
+		if node_id != 0:
+			_select_class(node_id)
+			is_class_locked = true 
+	
+	# --- NEW: PRE-FILL PRESET MOVES ---
+	if target_preset != null:
+		print("Applying Preset Skills: ", target_preset.extra_skills)
+		
+		for skill_name in target_preset.extra_skills:
+			# Look up the ID using your existing Name->ID dictionary
+			if skill_name in action_tree_key_dict:
+				var id = action_tree_key_dict[skill_name]
+				
+				# Add to owned if not already there
+				if id not in owned_ids:
+					owned_ids.append(id)
+			else:
+				printerr("Warning: Preset skill '" + skill_name + "' not found in ActionTree dict.")
+		
+		# IMPORTANT: Now that we forced nodes into 'owned_ids', 
+		# we must re-run the unlock logic so their neighbors turn yellow.
+		for owner_id in owned_ids:
+			_unlock_neighbors(owner_id)
+	# ----------------------------------
+			
+	# 5. Refresh Visuals
+	_update_tree_visuals()
+	_recalculate_stats()
+	lines_layer.queue_redraw()
+
+func _on_node_exited():
+	popup_card.visible = false
+
+func _process(_delta):
+	if popup_card.visible:
+		_update_popup_position()
+
+func _update_popup_position():
+	var m_pos = get_viewport().get_mouse_position()
+	var screen_size = get_viewport_rect().size
+	
+	# Calculate actual size including scale (just in case you scale it later)
+	var card_size = popup_card.size * popup_card.scale
+	var offset = Vector2(30, 30)
+	
+	# 1. Default Position: Bottom-Right of mouse
+	var final_pos = m_pos + offset
+	
+	# 2. Check Horizontal Bounds (Right Edge)
+	if final_pos.x + card_size.x > screen_size.x:
+		# If it goes off right, flip to the LEFT of the mouse
+		final_pos.x = m_pos.x - card_size.x - offset.x
+	
+	# 3. Check Vertical Bounds (Bottom Edge)
+	if final_pos.y + card_size.y > screen_size.y:
+		# If it goes off bottom, flip to ABOVE the mouse
+		final_pos.y = m_pos.y - card_size.y - offset.y
+	
+	popup_card.position = final_pos
+
+func _on_node_clicked(id: int, _name: String):
+	if RunManager.is_arcade_mode:
+		# Rule 1: You can't un-learn skills you already have
+		if id in owned_ids: 
+			return 
+			
+		# Rule 2: You can only pick yellow (unlocked) nodes
+		if id not in unlocked_ids: 
+			return 
+		
+		# Rule 3: Set this as the "Pending Reward"
+		pending_unlock_id = id
+		print("Selected reward candidate: " + str(id))
+		
+		# Visual Feedback: Show what stats this NEW card would give
+		# We create a fake deck consisting of (Current Deck + New Card)
+		var temp_deck = RunManager.player_run_data.deck.duplicate()
+		var card_name = id_to_name.get(id)
+		var new_card = _find_action_resource(card_name)
+		
+		if new_card:
+			temp_deck.append(new_card)
+			# Ask Factory to calculate stats for this potential future
+			var result = ClassFactory.calculate_stats_for_deck(RunManager.player_run_data.class_type, temp_deck)
+			
+			stats_label.text = "NEXT FIGHT STATS: HP " + str(result["hp"]) + " | SP " + str(result["sp"])
+			stats_label.modulate = Color.GREEN # Make it look like a preview
+	
+	if id >= 73 and id <= 76:
+		if is_class_locked: return
+		_select_class(id)
+		return
+		
+	if id in owned_ids:
+		# If we click an OWNED node, try to refund it
+		_try_deselect_action(id)
+	elif id in unlocked_ids:
+		owned_ids.append(id)
+		_unlock_neighbors(id)
+		_update_tree_visuals()
+		_recalculate_stats() # <--- Update stats when buying
+	else:
+		print("Locked!")
+
+func _select_class(class_id: int):
+	selected_class_id = class_id
+	owned_ids.clear()
+	unlocked_ids.clear()
+	owned_ids.append(class_id)
+	_unlock_neighbors(class_id)
+	_update_tree_visuals()
+	_recalculate_stats() # <--- Update stats when resetting
+
+# --- NEW: STATS CALCULATION LOGIC ---
+func _recalculate_stats():
+	# Default display if nothing selected
+	if selected_class_id == 0:
+		stats_label.text = "HP: 10 | SP: 3"
+		return
+
+	# 1. Convert the Tree's "Node ID" (73-76) into a proper "Class Enum"
+	var class_enum = CharacterData.ClassType.HEAVY # Default
+	match selected_class_id:
+		73: class_enum = CharacterData.ClassType.QUICK
+		74: class_enum = CharacterData.ClassType.TECHNICAL
+		75: class_enum = CharacterData.ClassType.PATIENT
+		76: class_enum = CharacterData.ClassType.HEAVY
+
+	# 2. Build a temporary deck from the nodes we own
+	var temp_deck: Array[ActionData] = []
+	
+	# Add the base starter cards for this class (so the calculator knows to ignore them properly)
+	# Note: ClassFactory.get_starting_deck returns resources, which is what we need.
+	temp_deck.append_array(ClassFactory.get_starting_deck(class_enum))
+	
+	# Add the extra cards we bought in the tree
+	for id in owned_ids:
+		if id >= 73: continue # Skip class nodes
+		
+		var a_name = id_to_name.get(id)
+		var card = _find_action_resource(a_name)
+		if card:
+			temp_deck.append(card)
+	
+	# 3. ASK THE FACTORY: "If I had this deck, what would my stats be?"
+	var result = ClassFactory.calculate_stats_for_deck(class_enum, temp_deck)
+	
+	# 4. Update UI
+	current_max_hp = result["hp"]
+	current_max_sp = result["sp"]
+	stats_label.text = "HP: " + str(current_max_hp) + " | SP: " + str(current_max_sp)
+
+func _unlock_neighbors(node_id: int):
+	if node_id in action_tree_dict:
+		for neighbor_id in action_tree_dict[node_id]:
+			if neighbor_id not in unlocked_ids and neighbor_id not in owned_ids:
+				unlocked_ids.append(neighbor_id)
+
+func _update_tree_visuals():
+	for child in nodes_layer.get_children():
+		var id = int(str(child.name))
+		
+		if id in owned_ids:
+			child.set_status(2) 
+		elif id in unlocked_ids:
+			child.set_status(1) 
+		else:
+			child.set_status(0) 
+			
+		# NEW: Highlight the pending selection
+		if RunManager.is_arcade_mode and id == pending_unlock_id:
+			child.modulate = Color(1.5, 1.5, 1.5) # Make it glow bright
+		else:
+			child.modulate = Color.WHITE # Reset
+			
+		if id >= 73 and id <= 76:
+			child.set_status(1)
+			if id == selected_class_id: child.set_status(2)
+
+func _find_action_resource(action_name: String) -> ActionData:
+	var clean_name = action_name.to_lower().replace(" ", "_")
+	var filename = clean_name + ".tres"
+	
+	var common_path = "res://Data/Actions/" + filename
+	if ResourceLoader.exists(common_path): return load(common_path)
+		
+	var class_folders = ["Heavy", "Patient", "Quick", "Technical"]
+	for folder in class_folders:
+		var class_path = "res://Data/Actions/Class/" + folder + "/" + filename
+		if ResourceLoader.exists(class_path): return load(class_path)
+			
+	return null
+
+func _on_confirm_button_pressed():
+	# --- ARCADE MODE LOGIC ---
+	if RunManager.is_arcade_mode:
+		if pending_unlock_id == 0:
+			print("Please select a new skill first!")
+			# Optional: Shake the screen or flash red
+			return
+			
+		print("Committing Reward: " + str(pending_unlock_id))
+		
+		# 1. PERMANENTLY Save the new ID to the run
+		RunManager.player_owned_tree_ids.append(pending_unlock_id)
+		
+		# 2. Add the actual Card Resource to the player's deck
+		var card_name = id_to_name.get(pending_unlock_id)
+		var new_card = _find_action_resource(card_name)
+		if new_card:
+			RunManager.player_run_data.deck.append(new_card)
+			
+		# 3. Update the Player's HP/SP Stats permanently
+		ClassFactory._recalculate_stats(RunManager.player_run_data)
+		
+		# 4. Heal the player (Optional: Arcade usually heals on level up)
+		RunManager.player_run_data.current_hp = RunManager.player_run_data.max_hp
+		RunManager.player_run_data.current_sp = RunManager.player_run_data.max_sp
+		
+		# 5. Launch the next fight!
+		RunManager.start_next_fight()
+		return
+	# -------------------------
+	
+	if selected_class_id == 0:
+		print("Please select a Class first!")
+		return
+
+	var final_character = CharacterData.new()
+	
+	# 1. Set Class Type
+	match selected_class_id:
+		73: final_character.class_type = CharacterData.ClassType.QUICK
+		74: final_character.class_type = CharacterData.ClassType.TECHNICAL
+		75: final_character.class_type = CharacterData.ClassType.PATIENT
+		76: final_character.class_type = CharacterData.ClassType.HEAVY
+
+	# 2. Add Base Deck (Starters + Basic)
+	var base_deck = ClassFactory.get_starting_deck(final_character.class_type)
+	var final_deck: Array[ActionData] = []
+	final_deck.append_array(base_deck)
+	
+	# 3. Add Unlocked Tree Cards
+	for id in owned_ids:
+		if id >= 73: continue 
+		var a_name = id_to_name.get(id)
+		var card_resource = _find_action_resource(a_name)
+		if card_resource:
+			final_deck.append(card_resource)
+			
+	# 4. Finalize Character with CALCULATED STATS
+	final_character.deck = final_deck
+	
+	# --- USE CALCULATED STATS HERE ---
+	final_character.max_hp = current_max_hp
+	final_character.max_sp = current_max_sp
+	# ---------------------------------
+	
+	final_character.reset_stats()
+	
+	# 2. Save to the correct slot
+	if GameManager.editing_player_index == 1:
+		# Use stored name if exists, else "Player 1"
+		var p1_name = GameManager.get("temp_p1_name")
+		final_character.character_name = p1_name if p1_name != "" else "Player 1"
+		
+		GameManager.next_match_p1_data = final_character
+		print("P1 Saved as: " + final_character.character_name)
+		
+		if GameManager.p2_is_custom:
+			print("Moving to Player 2 Setup...")
+			GameManager.editing_player_index = 2
+			_setup_for_current_player()
+			return 
+			
+	else:
+		# We are editing Player 2
+		var p2_name = GameManager.get("temp_p2_name")
+		final_character.character_name = p2_name if p2_name != "" else "Player 2"
+		
+		# DELETE THIS LINE:
+		# final_character.character_name = "Player 2" <-- DELETE THIS TOO
+		
+		GameManager.next_match_p2_data = final_character
+		print("P2 Saved as: " + final_character.character_name)
+
+	# 3. Launch Fight
+	# (Safety fallback if P2 data is somehow missing, create bot)
+	if GameManager.next_match_p2_data == null:
+		GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
+		
+	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+
+func _try_deselect_action(id_to_remove: int):
+	# 1. Create a hypothetical list of what ownership looks like AFTER removal
+	var remaining_ids = owned_ids.duplicate()
+	remaining_ids.erase(id_to_remove)
+	
+	# 2. FLOOD FILL: Check if we can reach every remaining node starting from the Class Node
+	var reachable_count = 0
+	var queue: Array[int] = [selected_class_id]
+	var visited = {selected_class_id: true}
+	
+	while queue.size() > 0:
+		var current = queue.pop_front()
+		
+		# If this node is in our remaining list, we count it as "Safe and Connected"
+		if current in remaining_ids:
+			reachable_count += 1
+		
+		# Add neighbors to queue
+		if current in action_tree_dict:
+			for neighbor in action_tree_dict[current]:
+				# Only traverse to nodes we actually OWN (in the remaining list)
+				# and haven't visited yet
+				if neighbor in remaining_ids and not neighbor in visited:
+					visited[neighbor] = true
+					queue.append(neighbor)
+	
+	# 3. VERDICT: Did we find everyone?
+	# If the BFS found fewer nodes than we own, it means some nodes got cut off.
+	if reachable_count < remaining_ids.size():
+		print("Cannot deselect: This action connects to others you own!")
+		return
+
+	# 4. SUCCESS: Commit the removal
+	owned_ids.erase(id_to_remove)
+	
+	# 5. Rebuild "Available" (Yellow) list from scratch
+	unlocked_ids.clear()
+	for owner_id in owned_ids:
+		_unlock_neighbors(owner_id)
+		
+	# 6. Update Visuals & Stats
+	_update_tree_visuals()
+	_recalculate_stats()
+
+func _on_reset_button_pressed():
+	if selected_class_id == 0: return
+	
+	# 1. Clear everything
+	owned_ids.clear()
+	unlocked_ids.clear()
+	
+	# 2. Re-add the Class Node
+	owned_ids.append(selected_class_id)
+	
+	# 3. Recalculate unlocks from the root
+	_unlock_neighbors(selected_class_id)
+	
+	# 4. Update UI
+	_update_tree_visuals()
+	_recalculate_stats()
+
+func _get_class_display_data(id: int) -> ActionData:
+	var data = ActionData.new()
+	data.cost = 0 # Classes don't have a cost
+	
+	match id:
+		76: # HEAVY
+			data.display_name = "CLASS: HEAVY"
+			data.type = ActionData.Type.OFFENCE # Red Theme
+			data.description = "[b]Action: Haymaker[/b]\nOpener, Cost 3, Dmg 2, Mom 3\n" + \
+			"[b]Action: Elbow Block[/b]\nBlock 1, Cost 2, Dmg 1\n" + \
+			"[b]Passive: Rage[/b]\nPay HP instead of SP when low.\n" + \
+			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\n" + \
+			"[b]Speed:[/b] 1"
+
+		75: # PATIENT
+			data.display_name = "CLASS: PATIENT"
+			data.type = ActionData.Type.DEFENCE # Blue Theme
+			data.description = "[b]Action: Preparation[/b]\nFall Back 2, Opp 1, Reco 1\n" + \
+			"[b]Action: Counter Strike[/b]\nDmg 2, Fall Back 2, Parry\n" + \
+			"[b]Passive: Keep-up[/b]\nSpend SP to prevent Fall Back.\n" + \
+			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +1 HP/SP\n" + \
+			"[b]Speed:[/b] 2"
+
+		73: # QUICK
+			data.display_name = "CLASS: QUICK"
+			data.type = ActionData.Type.OFFENCE
+			data.description = "[b]Action: Roll Punch[/b]\nDmg 1, Cost 1, Mom 1, Rep 3\n" + \
+			"[b]Action: Weave[/b]\nDodge 1, Fall Back 1\n" + \
+			"[b]Passive: Relentless[/b]\nEvery 3rd combo hit gains Reco 1.\n" + \
+			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +2 SP\n" + \
+			"[b]Speed:[/b] 4"
+
+		74: # TECHNICAL
+			data.display_name = "CLASS: TECHNICAL"
+			data.type = ActionData.Type.DEFENCE
+			data.description = "[b]Action: Discombobulate[/b]\nCost 1, Dmg 1, Tiring 1\n" + \
+			"[b]Action: Hand Catch[/b]\nBlock 1, Cost 1, Reversal\n" + \
+			"[b]Passive: Technique[/b]\nSpend 1 SP to add Opener, Tiring, or Momentum to action.\n" + \
+			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP/HP, [color=#99ccff]Defence:[/color] +1 SP\n" + \
+			"[b]Speed:[/b] 3"
+			
+	return data
+
+func _on_back_button_pressed():
+	print("Canceling customization...")
+	
+	# 1. CLEANUP: Wipe temporary data in GameManager
+	# This ensures the next time you click "Quick Fight" or "Build Deck",
+	# it starts fresh instead of remembering half-finished data.
+	GameManager.next_match_p1_data = null
+	GameManager.next_match_p2_data = null
+	GameManager.editing_player_index = 1
+	GameManager.p2_is_custom = false
+	GameManager.temp_p1_preset = null
+	GameManager.temp_p2_preset = null
+	
+	# Optional: Clear temp names if you want total reset
+	GameManager.temp_p1_name = ""
+	GameManager.temp_p2_name = ""
+	
+	# 2. CHANGE SCENE
+	# You can send them to "res://Scenes/CharacterSelect.tscn" if you prefer
+	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+
+
+========================================
+FILE PATH: res://Scripts/BattleUI.gd
+========================================
+extends CanvasLayer
+
+signal human_selected_card(action_card, extra_data)
+signal p1_mode_toggled(is_human)
+signal p2_mode_toggled(is_human)
+
+# --- REFERENCES ---
+@onready var p1_hud = $P1_HUD 
+@onready var p2_hud = $P2_HUD
+@onready var momentum_slider = $MomentumSlider
+@onready var momentum_label = $MomentumSlider/Label 
+@onready var combat_log = $CombatLog
+
+@onready var button_grid = %ButtonGrid
+@onready var preview_card = %PreviewCard
+@onready var tooltip_label = $MainLayout/PreviewAnchor/ToolTipLabel
+@onready var btn_offence = %Offence        
+@onready var btn_defence = %Defence      
+
+@onready var log_toggle = $LogToggle 
+
+# --- DATA ---
+var card_button_scene = preload("res://Scenes/CardButton.tscn")
+var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
+var current_deck: Array[ActionData] = []
+var current_tab = ActionData.Type.OFFENCE
+
+# State Constraints
+var current_sp_limit: int = 0 
+var current_hp_limit: int = 0
+var my_opportunity_val: int = 0
+var my_opening_value: int = 0
+var turn_cost_limit: int = 99 
+var opener_restriction: bool = false
+var super_allowed: bool = false 
+var feint_mode: bool = false 
+
+var skip_action: ActionData
+var is_locked = false
+
+# Toggle Buttons
+var p1_toggle: CheckButton
+var p2_toggle: CheckButton
+
+# --- NEW VARIABLES ---
+var rage_toggle: CheckButton
+var keep_up_toggle: CheckButton
+var tech_dropdown: OptionButton
+var shake_strength: float = 0.0
+var shake_decay: float = 5.0
+
+# --- KEYWORD DEFINITIONS ---
+const KEYWORD_DEFS = {
+	"Block": "Reduce incoming damage by X",
+	"Cost": "lose X stamina",
+	"Counter": "You must have used an action with Create Opening X or higher in the previous clash",
+	"Create Opening": "Your opponent’s next action cannot have a Cost trait higher than X",
+	"Damage": "Reduce your opponent’s health by X",
+	"Defence": "Can only be used on the defensive. This action gains the Recover 1 trait. You must have the stamina require to use this action.",
+	"Feint": "In addition to the action’s listed traits, it gains all the traits of another action that you can use. That action can be chosen after actions are revealed",
+	"Dodge": "You ignore the effects of your opponent’s action if its stamina cost is X or below",
+	"Fall Back": "Lose X momentum",
+	"Guard Break": "Ignore the ‘Block X’ trait of your opponent’s action",
+	"Heal": "Gain X HP",
+	"Injure": "Your opponent must lose 1 HP every clash after this until you use an action with the Recover X, Heal X or Fall Back X traits, or the combat ends",
+	"Momentum": "Gain X momentum",
+	"Multi": "After this action, you may use any other action that has a Cost trait of X or below, and that does not have the multi X trait. This action interacts with your opponent’s previous action. If your opponent’s action would end your combo, you do not get to use this trait. In addition, moves with this trait can be used to start a combo",
+	"Offence": "Can only be used on the offensive. If you are reduced to 0SP, your combo ends",
+	"Opener": "Only actions with this trait can be used to start a combo",
+	"Opportunity": "Increase your next actions momentum by X, and reduce its stamina cost by X",
+	"Parry": "Your action steals the Momentum X trait of your opponent’s action. If this causes the momentum tracker to move in your direction, your opponent’s action has no affect on you, and your opponent’s next action must have the Opener trait",
+	"Recover": "Gain X stamina",
+	"Repeat": "After this action, use the same action again, ignoring the Repeat X trait. This must continue X times. This action interacts with your opponent’s chosen action as normal",
+	"Retaliate": "Your opponent takes the same damage as they dealt to you in the previous clash",
+	"Reversal": "If the momentum tracker moves closer to your side from this clash, the current combo ends and you take the offence, even if you do not have the momentum advantage. This applies even in the inital clash",
+	"Super": "This action can only be used when the momentum tracker has reached the end of your side. You can only use an action with this trait once per combat",
+	"Sweep": "This action affects all opponents you are in combat with",
+	"Tiring": "Cause the opponent to lose X Stamina"
+}
+
+func _ready():
+	if not btn_offence or not btn_defence:
+		printerr("CRITICAL: Buttons missing in BattleUI")
+		return
+	
+	if clash_layer: clash_layer.visible = false
+	
+	log_toggle.button_pressed = false
+	combat_log.visible = false
+	
+	if log_toggle:
+		log_toggle.toggled.connect(_on_log_toggled)
+		# Sync the log visibility to the button's starting state
+		combat_log.visible = log_toggle.button_pressed
+	
+	btn_offence.pressed.connect(func(): _switch_tab(ActionData.Type.OFFENCE))
+	btn_defence.pressed.connect(func(): _switch_tab(ActionData.Type.DEFENCE))
+	
+	# Skip Action Init
+	skip_action = ActionData.new()
+	skip_action.display_name = "SKIP FEINT"
+	skip_action.description = "Stop combining and use your original action."
+	skip_action.cost = 0
+	
+	# Initially hide input grid
+	button_grid.visible = false
+	preview_card.visible = false
+	if tooltip_label: tooltip_label.visible = false
+	
+	# Connect Visual Signals
+	GameManager.damage_dealt.connect(_on_damage_dealt)
+	GameManager.healing_received.connect(_on_healing_received)
+	GameManager.status_applied.connect(_on_status_applied)	
+	GameManager.combat_log_updated.connect(_on_combat_log_updated)
+	GameManager.damage_dealt.connect(_on_damage_shake)
+	
+	_create_debug_toggles()
+	_create_passive_toggles() # Add this new function call
+
+func _process(delta):
+	# This applies the shake to the entire UI Layer
+	if shake_strength > 0:
+		shake_strength = lerpf(shake_strength, 0, shake_decay * delta)
+		
+		# Apply random offset to the CanvasLayer
+		offset = Vector2(
+			randf_range(-shake_strength, shake_strength),
+			randf_range(-shake_strength, shake_strength)
+		)
+	else:
+		offset = Vector2.ZERO
+
+func _create_passive_toggles():
+	var container = HBoxContainer.new()
+	add_child(container)
+	# Position this near the card grid or bottom of screen
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	container.position.y -= 200
+	container.position.x -= 570
+	rage_toggle = CheckButton.new()
+	rage_toggle.text = "RAGE (Pay HP)"
+	rage_toggle.visible = false
+	rage_toggle.toggled.connect(func(_on): _refresh_grid()) # Refresh card availability when clicked
+	container.add_child(rage_toggle)
+	
+	keep_up_toggle = CheckButton.new()
+	keep_up_toggle.text = "KEEP UP (Pay SP)"
+	keep_up_toggle.visible = false
+	# No refresh needed for Keep Up as it doesn't change card playability, only resolution
+	container.add_child(keep_up_toggle)
+	
+	# --- ADD THIS BLOCK ---
+	tech_dropdown = OptionButton.new()
+	tech_dropdown.add_item("Tech: None")
+	tech_dropdown.add_item("+Opener (1 SP)")
+	tech_dropdown.add_item("+Tiring 1 (1 SP)")
+	tech_dropdown.add_item("+Momentum 1 (1 SP)")
+	tech_dropdown.selected = 0
+	tech_dropdown.visible = false
+	# Refresh grid when selection changes to update costs/validity
+	tech_dropdown.item_selected.connect(func(_idx): _refresh_grid())
+	container.add_child(tech_dropdown)
+	
+# Helper to set correct toggle visibility (Call this from TestArena)
+func setup_passive_toggles(class_type: CharacterData.ClassType):
+	rage_toggle.visible = (class_type == CharacterData.ClassType.HEAVY)
+	keep_up_toggle.visible = (class_type == CharacterData.ClassType.PATIENT)
+	tech_dropdown.visible = (class_type == CharacterData.ClassType.TECHNICAL)
+	tech_dropdown.selected = 0 # Always reset to "None" at start of turn
+	
+	# Reset them to false at start of turn? Or keep them? Usually reset is safer.
+	rage_toggle.button_pressed = false
+	keep_up_toggle.button_pressed = false
+
+func _create_debug_toggles():
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	container.position.y += 60 
+	container.add_theme_constant_override("separation", 20)
+	
+	p1_toggle = CheckButton.new()
+	p1_toggle.text = "P1 Human"
+	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
+	container.add_child(p1_toggle)
+	
+	p2_toggle = CheckButton.new()
+	p2_toggle.text = "P2 Human"
+	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
+	container.add_child(p2_toggle)
+
+func setup_toggles(p1_is_human: bool, p2_is_human: bool):
+	if p1_toggle: p1_toggle.set_pressed_no_signal(p1_is_human)
+	if p2_toggle: p2_toggle.set_pressed_no_signal(p2_is_human)
+
+# --- VISUAL UPDATE FUNCTIONS ---
+
+func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
+	p1_hud.setup(p1_data)
+	p2_hud.setup(p2_data)
+	update_momentum(0) 
+
+func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
+	p1_hud.update_stats(p1, GameManager.p1_is_injured, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat)
+	p2_hud.update_stats(p2, GameManager.p2_is_injured, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat)
+	update_momentum(momentum)
+
+func update_momentum(val: int):
+	var visual_val = val
+	var text = "NEUTRAL"
+	if val == 0: visual_val = 4.5 
+	elif val <= 4: text = "P1 MOMENTUM"
+	else: text = "P2 MOMENTUM"
+		
+	var tween = create_tween()
+	tween.tween_property(momentum_slider, "value", visual_val, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if momentum_label: momentum_label.text = text
+
+# --- INPUT HANDLING ---
+
+func load_deck(deck: Array[ActionData]):
+	current_deck = deck
+	_refresh_grid()
+
+func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
+	button_grid.visible = true 
+	is_locked = false
+	current_sp_limit = player_current_sp
+	current_hp_limit = player_current_hp
+	opener_restriction = must_be_opener
+	turn_cost_limit = max_cost 
+	my_opening_value = opening_val
+	super_allowed = can_use_super 
+	my_opportunity_val = opportunity_val 
+	feint_mode = is_feint_mode 
+	
+	if forced_tab != null:
+		_switch_tab(forced_tab)
+		btn_offence.disabled = (forced_tab != ActionData.Type.OFFENCE)
+		btn_defence.disabled = (forced_tab != ActionData.Type.DEFENCE)
+		btn_offence.modulate = Color.WHITE if !btn_offence.disabled else Color(0.3, 0.3, 0.3)
+		btn_defence.modulate = Color.WHITE if !btn_defence.disabled else Color(0.3, 0.3, 0.3)
+	else:
+		btn_offence.disabled = false
+		btn_defence.disabled = false
+		_switch_tab(current_tab)
+
+func lock_ui():
+	is_locked = true
+	button_grid.visible = false 
+	_on_card_exited() # Clean up tooltips when locking
+
+func _on_card_selected(card: ActionData):
+	if is_locked: return
+	# --- NEW: GATHER TOGGLE DATA ---
+	var extra_data = {
+		"rage": rage_toggle.button_pressed if rage_toggle.visible else false,
+		"keep_up": keep_up_toggle.button_pressed if keep_up_toggle.visible else false,
+		"technique": tech_dropdown.selected if tech_dropdown.visible else 0 # <--- SEND SELECTION
+	}
+	emit_signal("human_selected_card", card, extra_data)
+	lock_ui() 
+
+func _switch_tab(type):
+	current_tab = type
+	_refresh_grid()
+	if !btn_offence.disabled: btn_offence.modulate = Color.WHITE if type == ActionData.Type.OFFENCE else Color(0.6, 0.6, 0.6)
+	if !btn_defence.disabled: btn_defence.modulate = Color.WHITE if type == ActionData.Type.DEFENCE else Color(0.6, 0.6, 0.6)
+
+# 1. THE UI MANAGER (Clean and readable)
+func _refresh_grid():
+	# Clear existing buttons
+	for child in button_grid.get_children():
+		child.queue_free()
+		
+	# Loop through deck
+	for card in current_deck:
+		if card == null: continue
+		if card.type != current_tab: continue # Skip cards from the wrong tab
+		
+		# --- STEP 1: CALCULATE NUMBERS ---
+		# We ask a helper function to do the math
+		var final_cost = _calculate_card_cost(card)
+		
+		# --- STEP 2: CHECK RULES ---
+		# We ask a helper function if this play is legal
+		var is_valid = _check_card_validity(card, final_cost)
+		
+		# --- STEP 3: UPDATE UI ---
+		var btn = card_button_scene.instantiate()
+		button_grid.add_child(btn)
+		
+		btn.setup(card)
+		btn.update_cost_display(final_cost) # Show the calculated cost
+		btn.set_available(is_valid)         # Grey out if invalid
+		
+		# Connect signals
+		btn.card_hovered.connect(_on_card_hovered)
+		btn.card_exited.connect(_on_card_exited) 
+		btn.card_selected.connect(_on_card_selected)
+
+	# (Keep your existing Feint/Skip button logic here at the bottom)
+	if feint_mode:
+		# Assuming _create_skip_button() is your existing logic for the skip button,
+		# or paste your original skip button code block here.
+		skip_action.type = current_tab 
+		var skip_btn = card_button_scene.instantiate()
+		button_grid.add_child(skip_btn)
+		skip_btn.setup(skip_action)
+		skip_btn.update_cost_display(0)
+		skip_btn.set_available(true)
+		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
+		skip_btn.card_hovered.connect(_on_card_hovered)
+		skip_btn.card_exited.connect(_on_card_exited)
+		skip_btn.card_selected.connect(_on_card_selected)
+
+# 2. THE MATH HELPER (Calculates how much SP it costs)
+func _calculate_card_cost(card: ActionData) -> int:
+	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
+	
+	# Apply "Opportunity" Discount
+	var effective_base_cost = max(0, card.cost - my_opportunity_val)
+	
+	# Apply "Technical" Class Tax (+1 SP cost for modifiers)
+	var tech_cost = 1 if tech_idx > 0 else 0
+	
+	return effective_base_cost + tech_cost
+
+# 3. THE RULE REFEREE (Returns True/False if playable)
+func _check_card_validity(card: ActionData, final_cost: int) -> bool:
+	# A. AFFORDABILITY CHECK
+	var can_afford = false
+	if rage_toggle.visible and rage_toggle.button_pressed:
+		# Heavy Class: Pay with HP
+		can_afford = (current_hp_limit > final_cost)
+	else:
+		# Standard: Pay with SP
+		can_afford = (final_cost <= current_sp_limit)
+	
+	if not can_afford: return false
+
+	# B. TECHNIQUE RESTRICTIONS (Technical Class)
+	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
+	# Rule: "Opener" tech can only be applied to OFFENCE cards
+	if tech_idx == 1 and card.type == ActionData.Type.DEFENCE:
+		return false
+
+	# C. OPENER CHECK
+	var effective_is_opener = card.is_opener
+	# Tech Rule: If "Opener" tech (Index 1) is selected, card BECOMES an opener
+	if tech_idx == 1 and card.type == ActionData.Type.OFFENCE:
+		effective_is_opener = true
+		
+	# Game Rule: If 'opener_restriction' is active (e.g. start of combo), 
+	# you MUST play an opener.
+	if opener_restriction and card.type == ActionData.Type.OFFENCE and not effective_is_opener:
+		return false
+
+	# D. SITUATIONAL CHECKS
+	# Multi-Hit Limit: Opponent limited our max cost
+	if card.cost > turn_cost_limit: return false
+	
+	# Counter: Requires opponent to have created an opening
+	if card.counter_value > 0 and my_opening_value < card.counter_value: return false
+	
+	# Super: Can only use if momentum meter is full
+	if card.is_super and not super_allowed: return false
+
+	return true
+
+# --- TOOLTIP LOGIC ---
+
+func _on_card_hovered(card: ActionData):
+	var effective_cost = max(0, card.cost - my_opportunity_val)
+	preview_card.set_card_data(card, effective_cost)
+	preview_card.visible = true
+	
+	_update_tooltip_text(card)
+
+func _on_card_exited():
+	preview_card.visible = false
+	if tooltip_label: tooltip_label.visible = false
+
+func _update_tooltip_text(card: ActionData):
+	if not tooltip_label: return
+	
+	var active_keys = []
+	
+	# Core Type
+	if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")
+	if card.type == ActionData.Type.DEFENCE: active_keys.append("Defence")
+	
+	# Basic Stats
+	if card.cost > 0: active_keys.append("Cost")
+	if card.damage > 0: active_keys.append("Damage")
+	if card.momentum_gain > 0: active_keys.append("Momentum")
+	
+	# Combat Values
+	if card.block_value > 0: active_keys.append("Block")
+	if card.dodge_value > 0: active_keys.append("Dodge")
+	if card.heal_value > 0: active_keys.append("Heal")
+	if card.recover_value > 0: active_keys.append("Recover")
+	if card.fall_back_value > 0: active_keys.append("Fall Back")
+	if card.counter_value > 0: active_keys.append("Counter")
+	if card.tiring > 0: active_keys.append("Tiring")
+	
+	# Booleans
+	if card.is_opener: active_keys.append("Opener")
+	if card.is_super: active_keys.append("Super")
+	if card.guard_break: active_keys.append("Guard Break")
+	if card.feint: active_keys.append("Ditto")
+	if card.injure: active_keys.append("Injure")
+	if card.retaliate: active_keys.append("Retaliate")
+	if card.reversal: active_keys.append("Reversal")
+	if card.is_parry: active_keys.append("Parry")
+	if card.sweep: active_keys.append("Sweep")
+	
+	# Advanced
+	if card.multi_limit > 0: active_keys.append("Multi")
+	if card.repeat_count > 1: active_keys.append("Repeat")
+	if card.create_opening > 0: active_keys.append("Create Opening")
+	if card.opportunity > 0: active_keys.append("Opportunity")
+	
+	if active_keys.is_empty():
+		tooltip_label.visible = false
+		return
+		
+	# Build Text
+	var full_text = ""
+	for k in active_keys:
+		if k in KEYWORD_DEFS:
+			full_text += "[b]" + k + ":[/b] " + KEYWORD_DEFS[k] + "\n"
+			
+	tooltip_label.text = full_text
+	tooltip_label.visible = true
+	
+	# --- POSITIONING LOGIC ---
+	
+	# 1. Force size update so calculations are accurate
+	tooltip_label.size.y = 0 
+	var padding = 20
+	# 2. Calculate Vertical Position (Grow Upwards)
+	# We align the BOTTOM of the tooltip with the BOTTOM of the card
+	var preview_bottom = preview_card.position.y + preview_card.size.y
+	tooltip_label.position.y = preview_bottom - tooltip_label.size.y - padding
+	
+	# 3. Calculate Horizontal Position (Place on RIGHT)
+	# Formula: Card X Position + Card Width + Padding
+	tooltip_label.position.x = preview_card.position.x - tooltip_label.size.x - padding
+
+# --- VISUAL HANDLERS (Floating Text etc) ---
+
+func _get_clash_text_pos(target_id: int) -> Vector2:
+	var hud = p1_hud if target_id == 1 else p2_hud
+	var pos = hud.global_position + (hud.size / 2)
+	var center_offset = 100 
+	pos.y += 75
+	if target_id == 1: pos.x += center_offset
+	else: pos.x -= center_offset
+	return pos
+
+func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	if is_blocked: _spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
+	else: _spawn_text(spawn_pos, str(amount), Color.RED)
+
+func _on_healing_received(target_id: int, amount: int):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	_spawn_text(spawn_pos, "+" + str(amount), Color.GREEN)
+
+func _on_status_applied(target_id: int, status: String):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	spawn_pos.y -= 40 
+	_spawn_text(spawn_pos, status, Color.YELLOW)
+
+func _spawn_text(pos: Vector2, text: String, color: Color):
+	var popup = floating_text_scene.instantiate()
+	add_child(popup)
+	popup.setup(text, color, pos)
+
+func _on_combat_log_updated(text: String):
+	if combat_log: combat_log.add_log(text)
+
+func _on_log_toggled(is_visible: bool):
+	combat_log.visible = is_visible
+
+# BattleUI.gd
+
+@onready var clash_layer = $ClashLayer # Make sure you created this node
+@onready var left_card_display = $ClashLayer/LeftCard # Assign these in editor
+@onready var right_card_display = $ClashLayer/RightCard
+
+func play_clash_animation(p1_card: ActionData, p2_card: ActionData):
+	clash_layer.visible = true
+	
+	# 1. Setup Data
+	left_card_display.set_card_data(p1_card)
+	right_card_display.set_card_data(p2_card)
+	
+	# --- FIX START: FORCE SIZE & PIVOT ---
+	# Force standard card size (Portrait)
+	var card_size = Vector2(250, 350) 
+	
+	left_card_display.custom_minimum_size = card_size
+	left_card_display.size = card_size
+	
+	right_card_display.custom_minimum_size = card_size
+	right_card_display.size = card_size
+	
+	# Set Pivot to center so they scale/rotate from the middle, not top-left
+	left_card_display.pivot_offset = card_size / 2
+	right_card_display.pivot_offset = card_size / 2
+	
+	# Reset Scale (Try 1.0, or 1.2 for big impact)
+	left_card_display.scale = Vector2(1.0, 1.0)
+	right_card_display.scale = Vector2(1.0, 1.0)
+	# --- FIX END ---
+	
+	# 2. Reset Positions (Off-screen)
+	var center = get_viewport().get_visible_rect().size / 2
+	
+	# Start far left/right
+	left_card_display.position.x = -400
+	right_card_display.position.x = get_viewport().get_visible_rect().size.x + 400
+	
+	# Center Y (adjusted for pivot)
+	left_card_display.position.y = center.y - (card_size.y / 2)
+	right_card_display.position.y = center.y - (card_size.y / 2)
+	
+	# 3. Animate Slam
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART)
+	tween.set_ease(Tween.EASE_OUT)
+	
+	# Move to center (Target positions)
+	# Left card stops slightly left of center
+	tween.tween_property(left_card_display, "position:x", center.x - card_size.x - 40, 0.4)
+	# Right card stops slightly right of center
+	tween.tween_property(right_card_display, "position:x", center.x + 20, 0.4)
+	
+	# Add a little shake/scale punch on impact
+	await tween.finished
+	HitStopManager.stop_frame(0.15) 
+	
+	# Hold for reading
+	await get_tree().create_timer(1.2).timeout
+	
+	# Fade out
+	clash_layer.visible = false
+	GameManager.clash_animation_finished.emit()
+
+func _on_damage_shake(_target, amount, is_blocked):
+	# The higher the damage, the harder the shake
+	if is_blocked:
+		shake_strength = 2.0 
+	else:
+		shake_strength = float(amount) * 5.0 # Increased multiplier for visibility
+
+
+========================================
+FILE PATH: res://Scripts/CardButton.gd
+========================================
+extends Button
+
+# Signals for UI Interaction
+signal card_hovered(action)
+signal card_exited() # <--- NEW SIGNAL
+signal card_selected(action)
+
+var my_action: ActionData
+
+func setup(action: ActionData):
+	my_action = action
+	text = action.display_name 
+	$CostLabel.text = str(action.cost) + " SP"
+	
+	# Visual Theme
+	if action.type == ActionData.Type.OFFENCE:
+		add_theme_color_override("font_color", Color("#ff9999")) 
+	else:
+		add_theme_color_override("font_color", Color("#99ccff")) 
+
+# Handles grey-out/disable logic
+func set_available(is_affordable: bool):
+	disabled = not is_affordable
+	
+	if is_affordable:
+		modulate = Color(1, 1, 1, 1) # Normal opacity
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	else:
+		modulate = Color(0.5, 0.5, 0.5, 0.5) # Greyed out
+		mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
+
+func _pressed():
+	if not disabled:
+		emit_signal("card_selected", my_action)
+
+func _on_mouse_entered():
+	emit_signal("card_hovered", my_action)
+
+# NEW: Handle mouse exit
+func _on_mouse_exited():
+	emit_signal("card_exited")
+
+# Dynamically updates cost text (e.g. for Opportunity discounts)
+func update_cost_display(new_cost: int):
+	$CostLabel.text = str(new_cost) + " SP"
+	
+	if new_cost < my_action.cost:
+		$CostLabel.modulate = Color(0.5, 1.0, 0.5) # Green text for discount
+	else:
+		$CostLabel.modulate = Color(1, 1, 1)
+
+
+========================================
+FILE PATH: res://Scripts/card_display.gd
+========================================
+extends Control
+
+# UI References
+@onready var background = $Background
+@onready var cost_label = $VBoxContainer/Header/CostLabel
+@onready var name_label = $VBoxContainer/Header/NameLabel
+@onready var art_rect = $VBoxContainer/Art
+@onready var stat_label = $VBoxContainer/StatsRow/StatLabel
+@onready var desc_label = $VBoxContainer/Description
+
+# Colors
+const OFFENCE_COLOR = Color("#d14d4d") # Red
+const DEFENCE_COLOR = Color("#4d8ad1") # Blue
+
+func set_card_data(action: ActionData, override_cost: int = -1):
+	# 1. Set Basic Text
+	name_label.text = action.display_name
+	
+	# Determine Cost Display
+	var final_cost = action.cost
+	if override_cost != -1:
+		final_cost = override_cost
+		
+	cost_label.text = str(final_cost) + " SP"
+	desc_label.text = action.description
+	
+	if final_cost == 0 and override_cost == -1:
+		cost_label.text = "" # Hide for classes
+	else:
+		cost_label.text = str(final_cost) + " SP"
+	
+	# 2. Set Art
+	if action.icon:
+		art_rect.texture = action.icon
+	
+	# 3. Set Color based on Type
+	var bg_style = StyleBoxFlat.new()
+	if action.type == ActionData.Type.OFFENCE:
+		bg_style.bg_color = OFFENCE_COLOR
+	else:
+		bg_style.bg_color = DEFENCE_COLOR
+	
+	bg_style.set_corner_radius_all(10)
+	background.add_theme_stylebox_override("panel", bg_style)
+	
+	# 4. Compile Stats String
+	var stats_text = ""
+	
+	if action.damage > 0: stats_text += str(action.damage) + " DMG  "
+	if action.block_value > 0: stats_text += str(action.block_value) + " BLK  "
+	if action.dodge_value > 0: stats_text += str(action.dodge_value) + " DDG  "
+	if action.heal_value > 0: stats_text += str(action.heal_value) + " HEAL "
+		
+	# Recover Logic (Visuals matching Game Logic)
+	var final_rec = action.recover_value
+	if action.type == ActionData.Type.DEFENCE:
+		final_rec += 1
+	if final_rec > 0: stats_text += str(final_rec) + " REC "
+	
+	# Boolean Tags
+	if action.tiring > 0: stats_text += str(action.tiring) + " TIRE "
+	if action.retaliate: stats_text += "RETAL "
+	if action.feint: stats_text += "FEINT "
+	if action.injure: stats_text += "INJURE "
+		
+	stat_label.text = stats_text
+
+
+========================================
+FILE PATH: res://Scripts/card_displayTEST.gd
+========================================
+extends "res://Scripts/card_display.gd"
+
+# Drag one of your Action Resources here in the Inspector
+@export var test_action: ActionData 
+
+func _ready():
+	if test_action:
+		set_card_data(test_action)
+
+
+========================================
+FILE PATH: res://Scripts/CharacterSelect.gd
+========================================
+extends Control
+
+@onready var p1_option = $HBoxContainer/P1_Column/ClassOption
+@onready var p1_info = $HBoxContainer/P1_Column/InfoLabel
+@onready var p2_option = $HBoxContainer/P2_Column/ClassOption
+@onready var p2_info = $HBoxContainer/P2_Column/InfoLabel
+@onready var p2_custom_check = $HBoxContainer/P2_Column/P2CustomCheck
+
+# New Buttons
+@onready var btn_quick = $HBoxContainer/Center_Column/QuickFightButton
+@onready var btn_custom = $HBoxContainer/Center_Column/CustomDeckButton
+@onready var btn_back = $HBoxContainer/Center_Column/BackButton
+@onready var difficulty_option = $HBoxContainer/Center_Column/DifficultyOption
+
+var classes = ["Heavy", "Patient", "Quick", "Technical"]
+
+# BASE CLASSES
+var base_classes = ["Heavy", "Patient", "Quick", "Technical"]
+
+# LOADED PRESETS
+var presets: Array[PresetCharacter] = []
+
+func _ready():
+	
+	_load_presets() # <--- Load files on startup
+	_setup_options(p1_option)
+	_setup_options(p2_option)
+	
+	_setup_difficulty()
+	
+	# Default selections
+	p1_option.selected = 0
+	p2_option.selected = 1
+	_update_info()
+	
+	p1_option.item_selected.connect(func(_idx): _update_info())
+	p2_option.item_selected.connect(func(_idx): _update_info())
+	
+	# --- BUTTON CONNECTIONS ---
+	btn_quick.pressed.connect(_on_quick_fight_pressed)
+	btn_custom.pressed.connect(_on_custom_deck_pressed)
+	btn_back.pressed.connect(func(): get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn"))
+
+func _load_presets():
+	presets.clear()
+	var path = "res://Data/Presets/"
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if dir.current_is_dir():
+				file_name = dir.get_next()
+				continue
+				
+			# --- EXPORT FIX STARTS HERE ---
+			# In exported games, files often have a '.remap' extension.
+			# We must strip it to get the correct load path.
+			var load_path = path + file_name
+			if file_name.ends_with(".remap"):
+				load_path = load_path.trim_suffix(".remap")
+				
+			# Now check the extension on the CLEANED path
+			if load_path.ends_with(".tres") or load_path.ends_with(".res"):
+				var res = load(load_path)
+				if res is PresetCharacter:
+					presets.append(res)
+			# ------------------------------
+			
+			file_name = dir.get_next()
+		dir.list_dir_end()
+
+func _setup_options(opt: OptionButton):
+	opt.clear()
+	for c in classes:
+		opt.add_item(c)
+	
+	# 2. Add Separator
+	if presets.size() > 0:
+		opt.add_separator("Presets")
+		
+	# 3. Add Presets
+	for p in presets:
+		# We use the local helper function '_class_enum_to_string' instead of calling it on 'p'
+		opt.add_item(p.character_name + " (" + _class_enum_to_string(p.class_type) + ")")
+		# Note: You might need a helper to convert Enum 0->Heavy string if you want it pretty
+
+func _get_character_data_from_selection(index: int, player_name: String) -> CharacterData:
+	# Index 0-3 are Base Classes
+	if index < base_classes.size():
+		# FIX: Cast the integer 'index' to the ClassType enum using 'as'
+		var type = index as CharacterData.ClassType
+		return ClassFactory.create_character(type, player_name)
+	
+	# ... (The rest of your preset logic remains the same) ...
+	
+	var preset_idx = index - base_classes.size() - 1 
+	if preset_idx >= 0 and preset_idx < presets.size():
+		var p = presets[preset_idx]
+		var char_data = ClassFactory.create_from_preset(p)
+		char_data.character_name = p.character_name
+		return char_data
+		
+	# FIX: Cast the 0 fallback here too just to be safe
+	return ClassFactory.create_character(0 as CharacterData.ClassType, "ErrorBot")
+
+func _update_info():
+	_display_stats(p1_option.selected, p1_info)
+	_display_stats(p2_option.selected, p2_info)
+
+func _display_stats(idx: int, label: RichTextLabel):
+	var temp = _get_character_data_from_selection(idx, "Preview")
+	
+	var txt = "[b]" + temp.character_name + "[/b] (" + _class_enum_to_string(temp.class_type) + ")\n"
+	txt += "[b]HP:[/b] " + str(temp.max_hp) + "\n"
+	txt += "[b]SP:[/b] " + str(temp.max_sp) + "\n"
+	txt += "[b]Speed:[/b] " + str(temp.speed) + "\n\n"
+	
+	# List Skills if it's a preset
+	if idx >= base_classes.size():
+		txt += "[u]Custom Skills:[/u]\n"
+		for card in temp.deck:
+			# Only show non-basic cards to save space
+			if not card.display_name.begins_with("Basic"):
+				txt += "- " + card.display_name + "\n"
+	
+	txt += "\n[color=yellow]" + temp.passive_desc + "[/color]"
+	label.text = txt
+
+# --- OPTION 1: QUICK FIGHT (Standard Decks) ---
+func _on_quick_fight_pressed():
+	# Use the helper function to translate the selection (Index -> Character Data)
+	var p1 = _get_character_data_from_selection(p1_option.selected, "Player 1")
+	var p2 = _get_character_data_from_selection(p2_option.selected, "Player 2")
+	
+	# Store in Manager
+	GameManager.next_match_p1_data = p1
+	GameManager.next_match_p2_data = p2
+	
+	# Go straight to Combat
+	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+
+# --- OPTION 2: CUSTOM DECK (Skill Tree) ---
+func _on_custom_deck_pressed():
+	# --- 1. HANDLE PLAYER 1 (The one we edit first) ---
+	var p1_sel = p1_option.selected
+	var p1_class_id = 0
+	
+	if p1_sel < base_classes.size():
+		# Base Class
+		p1_class_id = p1_sel
+		GameManager.temp_p1_name = "Player 1"
+		GameManager.temp_p1_preset = null # <--- Clear preset
+	else:
+		# Preset Character
+		var preset_idx = p1_sel - base_classes.size() - 1
+		if preset_idx >= 0:
+			var p = presets[preset_idx]
+			p1_class_id = p.class_type
+			GameManager.temp_p1_name = p.character_name
+			GameManager.temp_p1_preset = p # <--- Save preset
+
+	# --- 2. HANDLE PLAYER 2 (The opponent or next edit) ---
+	var p2_sel = p2_option.selected
+	var p2_class_id = 0
+	
+	if p2_sel < base_classes.size():
+		# Base Class
+		p2_class_id = p2_sel
+		GameManager.temp_p2_name = "Player 2"
+		GameManager.temp_p2_preset = null # <--- Clear preset
+	else:
+		# Preset Character
+		var preset_idx = p2_sel - base_classes.size() - 1
+		if preset_idx >= 0:
+			var p = presets[preset_idx]
+			p2_class_id = p.class_type
+			GameManager.temp_p2_name = p.character_name
+			GameManager.temp_p2_preset = p # <--- Save preset
+
+	# Store the CORRECT Class IDs (Enum ints), not the Dropdown Indices
+	GameManager.temp_p1_class_selection = p1_class_id
+	GameManager.temp_p2_class_selection = p2_class_id
+	
+	# --- 3. SETUP EDITING STATE ---
+	GameManager.editing_player_index = 1 # Start with Player 1
+	GameManager.p2_is_custom = p2_custom_check.button_pressed 
+	
+	# --- 4. HANDLE PLAYER 2 DATA ---
+	if GameManager.p2_is_custom:
+		# We will build P2 later in the tree
+		GameManager.next_match_p2_data = null 
+	else:
+		# Generate the Bot immediately using the helper
+		# (This ensures Presets get their stats/cards calculated correctly)
+		var p2 = _get_character_data_from_selection(p2_sel, "Player 2")
+		GameManager.next_match_p2_data = p2
+	
+	# 5. Load the Tree
+	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+
+# Helper to pretty print enum
+func _class_enum_to_string(type: int) -> String:
+	match type:
+		CharacterData.ClassType.HEAVY: return "Heavy"
+		CharacterData.ClassType.PATIENT: return "Patient"
+		CharacterData.ClassType.QUICK: return "Quick"
+		CharacterData.ClassType.TECHNICAL: return "Technical"
+	return "Unknown"
+
+func _setup_difficulty():
+	# Clear whatever dummy items might be in the editor
+	difficulty_option.clear()
+	
+	# Add items in the same order as the Enum (EASY=0, MEDIUM=1, HARD=2)
+	difficulty_option.add_item("Very Easy")
+	difficulty_option.add_item("Easy")   # Index 0
+	difficulty_option.add_item("Medium") # Index 1
+	difficulty_option.add_item("Hard")   # Index 2
+	
+	# Set Default (Medium)
+	difficulty_option.selected = 1
+	GameManager.ai_difficulty = GameManager.Difficulty.MEDIUM
+	
+	# Connect Signal
+	difficulty_option.item_selected.connect(_on_difficulty_changed)
+
+func _on_difficulty_changed(index: int):
+	# Directly map the dropdown index to the Enum
+	# 0 -> EASY, 1 -> MEDIUM, 2 -> HARD
+	GameManager.ai_difficulty = index as GameManager.Difficulty
+	print("Difficulty set to: " + str(index))
+
+
+func _on_start_arcade_pressed():
+	var selected_idx = p1_option.selected
+	# Check if it's a base class (Indices 0-3)
+	if selected_idx > 3:
+		print("Arcade Mode must start with a base class!")
+		return
+
+	var class_enum = selected_idx as CharacterData.ClassType
+	RunManager.start_run(class_enum)
+
+
+========================================
+FILE PATH: res://Scripts/ClassFactory.gd
+========================================
+extends Node
+# --- SHARED DATA: THE SKILL TREE MAP ---
+# (Moved here so both the UI and the Enemy Generator can read it)
+const TREE_CONNECTIONS = {
+	1:[12,5], 2:[6,7], 3:[8,15], 4:[11,12], 5:[1,6], 6:[2,5,13], 7:[2,14,8], 8:[7,3],
+	9:[15,16], 10:[11,19], 11:[4,10,20], 12:[4,1,13,20], 13:[12,6,21], 14:[7,15,21],
+	15:[3,14,9,22], 16:[9,22,17], 17:[16,23], 18:[19,25], 19:[10,18,20,28], 20:[19,11,12,29],
+	21:[13,14,29,31,30], 22:[15,16,23,31], 23:[22,17,24,32], 24:[23,26], 25:[18,27], 26:[24,33],
+	27:[34,28,25], 28:[27,19,35], 29:[20,21,35], 30:[21], 31:[21,22,38], 32:[23,38,33],
+	33:[32,26,39], 34:[27,40], 35:[28,41,29,42,36], 36:[35], 37:[38], 38:[31,32,44,45,37],
+	39:[33,46], 40:[34,41,47], 41:[40,50,35], 42:[35,51,52], 43:[52], 44:[52,38,53],
+	45:[38,46,54], 46:[45,48], 47:[40,49], 48:[46,55], 49:[47,50], 50:[49,41,51,56],
+	51:[50,42,58,57], 52:[42,43,44,59,60], 53:[44,54,61,62], 54:[53,45,55,63], 55:[48,54],
+	56:[50,57], 57:[56,51,64], 58:[51,64,59,70], 59:[52,66,58], 60:[52,67,61], 61:[53,72,69],
+	62:[53,63,69], 63:[54,62], 64:[57,58], 65:[70,66], 66:[59,65,71], 67:[68,60,71],
+	68:[67,72], 69:[61,62], 70:[58,65], 71:[66,67], 72:[68,61], 73:[2], 74:[34], 75:[39], 76:[71]
+}
+
+# Also need the ID-to-Name mapping for the generator to find files
+const ID_TO_NAME_MAP = {
+	1:"Toppling Kick", 2:"Pummel", 3:"One Two", 4:"Evading Dance", 5:"Slip Behind",
+	6:"Adept Dodge", 7:"Adept Light", 8:"Hundred Hand Slap", 9:"Precise Strike", 10:"Breakout",
+	11:"Read Offence", 12:"Quick Dodge", 13:"Master Dodge", 14:"Master Light", 15:"Flying Kick",
+	16:"Vital Strike", 17:"Unassailable Stance", 18:"Strike Back", 19:"Leg Sweep", 20:"Catch",
+	21:"Drop Prone", 22:"Perfect Strike", 23:"Step Up", 24:"Go with the Flow", 25:"Prime",
+	26:"Inner Peace", 27:"Adept Reversal", 28:"Master Reversal", 29:"Untouchable Dodge",
+	30:"Ultimate Barrage", 31:"Advancing Parry", 32:"Master Positioning", 33:"Adept Positioning",
+	34:"Grab", 35:"Wind Up", 36:"Vital Point Assault", 37:"Overwhelming Aura", 38:"Parry FollowUp",
+	39:"Adjust Stance", 40:"Adept Tech", 41:"Master Tech", 42:"Crushing Block", 43:"Final Strike",
+	44:"Redirect", 45:"Master Parry", 46:"Adept Parry", 47:"Throw", 48:"Resounding Parry",
+	49:"Push", 50:"Twist Arm", 51:"Suplex", 52:"Perfect Block", 53:"Active Block",
+	54:"Retreating Defence", 55:"Resounding Counter", 56:"Read Defence", 57:"Headbutt", 58:"Lariat",
+	59:"Master Heavy", 60:"Master Block", 61:"Draining Defence", 62:"Slapping Parry", 63:"Tiring Parry",
+	64:"Roundhouse Kick", 65:"Uppercut", 66:"Adept Heavy", 67:"Adept Block", 68:"Push Kick",
+	69:"Drop Punch", 70:"Knee Crush", 71:"Drop Kick", 72:"Immovable Stance",
+	73:"Quick", 74:"Technical", 75:"Patient", 76:"Heavy"
+}
+
+# --- NEW: ENEMY GENERATOR ---
+func create_random_enemy(level: int, difficulty: GameManager.Difficulty) -> CharacterData:
+	# 1. Pick a Random Class
+	var classes = [CharacterData.ClassType.HEAVY, CharacterData.ClassType.QUICK, CharacterData.ClassType.TECHNICAL, CharacterData.ClassType.PATIENT]
+	var selected_class = classes.pick_random()
+	var bot_name = "Lv." + str(level) + " " + _class_enum_to_string(selected_class)
+	
+	var bot_data = create_character(selected_class, bot_name)
+	
+	# 2. Identify Starting Node
+	var start_node = 76 # Heavy
+	match selected_class:
+		CharacterData.ClassType.QUICK: start_node = 73
+		CharacterData.ClassType.TECHNICAL: start_node = 74
+		CharacterData.ClassType.PATIENT: start_node = 75
+	
+	# 3. Walk the tree to simulate leveling up
+	# Level 1 = 0 extra cards. Level 5 = 4 extra cards.
+	var extra_cards_count = max(0, level - 1)
+	
+	var owned_ids = [start_node]
+	var available_ids = []
+	
+	# Initial unlock
+	_add_neighbors_to_list(start_node, owned_ids, available_ids)
+	
+	for i in range(extra_cards_count):
+		if available_ids.is_empty(): break
+		
+		# Pick a random valid neighbor
+		var new_id = available_ids.pick_random()
+		
+		# Add to bot
+		owned_ids.append(new_id)
+		
+		# Update available pool
+		available_ids.erase(new_id)
+		_add_neighbors_to_list(new_id, owned_ids, available_ids)
+		
+		# Actually add the card resource to the deck
+		var card_name = ID_TO_NAME_MAP.get(new_id)
+		if card_name:
+			var card = _find_action_resource(card_name)
+			if card: bot_data.deck.append(card)
+	
+	# 4. Recalculate stats based on the new deck
+	_recalculate_stats(bot_data)
+	
+	return bot_data
+
+func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
+	if node_id in TREE_CONNECTIONS:
+		for neighbor in TREE_CONNECTIONS[node_id]:
+			if neighbor not in owned and neighbor not in available:
+				available.append(neighbor)
+
+# Helper for string names
+func _class_enum_to_string(type: int) -> String:
+	match type:
+		CharacterData.ClassType.HEAVY: return "Bot"
+		CharacterData.ClassType.PATIENT: return "Defender"
+		CharacterData.ClassType.QUICK: return "Speedster"
+		CharacterData.ClassType.TECHNICAL: return "Tactician"
+	return "Enemy"
+# Generates a fully playable CharacterData resource based on the chosen class
+func create_character(class_type: CharacterData.ClassType, player_name: String) -> CharacterData:
+	var char_data = CharacterData.new()
+	char_data.character_name = player_name
+	char_data.class_type = class_type
+	
+	# 1. Set Base Stats & Passives
+	match class_type:
+		CharacterData.ClassType.HEAVY:
+			char_data.max_hp = 10
+			char_data.max_sp = 10
+			char_data.speed = 1
+			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
+			
+		CharacterData.ClassType.PATIENT:
+			char_data.max_hp = 10
+			char_data.max_sp = 10
+			char_data.speed = 2
+			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
+			
+		CharacterData.ClassType.QUICK:
+			char_data.max_hp = 10
+			char_data.max_sp = 10
+			char_data.speed = 4
+			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
+			
+		CharacterData.ClassType.TECHNICAL:
+			char_data.max_hp = 10
+			char_data.max_sp = 10
+			char_data.speed = 3
+			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
+
+	# 2. Build the Deck (Basic Cards + Class Exclusives)
+	char_data.deck = get_starting_deck(class_type)
+	
+	# 3. Reset Runtime state
+	char_data.reset_stats()
+	return char_data
+
+func get_starting_deck(type: CharacterData.ClassType) -> Array[ActionData]:
+	var deck: Array[ActionData] = []
+	
+	# --- ADD BASIC CARDS (Common to all) ---
+	# We use load() to turn the file path into a usable Object
+	deck.append(load("res://Data/Actions/basic_light.tres"))
+	deck.append(load("res://Data/Actions/basic_heavy.tres"))
+	deck.append(load("res://Data/Actions/basic_technical.tres"))
+	deck.append(load("res://Data/Actions/basic_positioning.tres"))
+	deck.append(load("res://Data/Actions/basic_block.tres"))
+	deck.append(load("res://Data/Actions/basic_dodge.tres")) # This fixes line 41
+	deck.append(load("res://Data/Actions/basic_parry.tres"))
+	deck.append(load("res://Data/Actions/basic_reversal.tres"))
+	
+	# --- ADD CLASS EXCLUSIVES ---
+	match type:
+		CharacterData.ClassType.HEAVY:
+			deck.append(load("res://Data/Actions/haymaker.tres"))
+			deck.append(load("res://Data/Actions/elbow_block.tres"))
+			
+		CharacterData.ClassType.PATIENT:
+			deck.append(load("res://Data/Actions/preparation.tres"))
+			deck.append(load("res://Data/Actions/counter_strike.tres"))
+			
+		CharacterData.ClassType.QUICK:
+			deck.append(load("res://Data/Actions/roll_punch.tres"))
+			deck.append(load("res://Data/Actions/weave.tres"))
+			
+		CharacterData.ClassType.TECHNICAL:
+			deck.append(load("res://Data/Actions/discombobulate.tres"))
+			deck.append(load("res://Data/Actions/hand_catch.tres"))
+			
+	return deck
+
+func create_from_preset(preset: PresetCharacter) -> CharacterData:
+	# 1. Start with the Base Class (Starters + Basic Actions)
+	var char_data = create_character(preset.class_type, preset.character_name)
+	
+	# 2. Add the Extra Skills defined in the preset
+	for skill_name in preset.extra_skills:
+		var card = _find_action_resource(skill_name)
+		if card:
+			# Avoid duplicates if necessary, or allow multiples if that's your game design
+			char_data.deck.append(card)
+		else:
+			printerr("Warning: Preset '" + preset.character_name + "' could not find skill: " + skill_name)
+
+	# 3. Auto-Calculate Stats based on Class Rules
+	_recalculate_stats(char_data)
+	
+	return char_data
+
+# --- HELPER: Stat Calculation Logic (Same rules as ActionTree) ---
+# ClassFactory.gd
+
+func _recalculate_stats(char_data: CharacterData):
+	# Ask the master calculator for the numbers
+	var result = calculate_stats_for_deck(char_data.class_type, char_data.deck)
+	
+	# Apply them
+	char_data.max_hp = result["hp"]
+	char_data.max_sp = result["sp"]
+	char_data.current_hp = result["hp"]
+	char_data.current_sp = result["sp"]
+
+
+# --- HELPER: Find Resource (Moved from ActionTree) ---
+func _find_action_resource(action_name: String) -> ActionData:
+	var clean_name = action_name.to_lower().replace(" ", "_")
+	var filename = clean_name + ".tres"
+	
+	# Check Common folder
+	var common_path = "res://Data/Actions/" + filename
+	if ResourceLoader.exists(common_path): return load(common_path)
+		
+	# Check Class folders
+	var class_folders = ["Heavy", "Patient", "Quick", "Technical"]
+	for folder in class_folders:
+		var class_path = "res://Data/Actions/Class/" + folder + "/" + filename
+		if ResourceLoader.exists(class_path): return load(class_path)
+			
+	return null
+
+# New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
+func calculate_stats_for_deck(class_type: CharacterData.ClassType, deck: Array[ActionData]) -> Dictionary:
+	var final_hp = 10
+	var final_sp = 3
+	
+	# 1. Get the list of "Free" cards to ignore (Starters + Basic)
+	# We reuse your existing logic here to ensure consistency
+	var starter_deck = get_starting_deck(class_type)
+	var ignore_names: Array[String] = []
+	for c in starter_deck:
+		ignore_names.append(c.display_name)
+		
+	# 2. Iterate through the provided deck
+	for card in deck:
+		# Safety Check
+		if card == null: continue
+		
+		# Skip cards that shouldn't give stats (Starters or explicitly "Basic")
+		if card.display_name in ignore_names or card.display_name.begins_with("Basic"):
+			continue
+			
+		# 3. Apply the Class Growth Rules (The "One True Logic")
+		match class_type:
+			CharacterData.ClassType.QUICK:
+				if card.type == ActionData.Type.OFFENCE: final_hp += 1
+				elif card.type == ActionData.Type.DEFENCE: final_sp += 2
+				
+			CharacterData.ClassType.TECHNICAL:
+				if card.type == ActionData.Type.OFFENCE: 
+					final_hp += 1; final_sp += 1
+				elif card.type == ActionData.Type.DEFENCE: 
+					final_sp += 1
+					
+			CharacterData.ClassType.PATIENT:
+				if card.type == ActionData.Type.OFFENCE: final_hp += 1
+				elif card.type == ActionData.Type.DEFENCE:
+					final_hp += 1; final_sp += 1
+					
+			CharacterData.ClassType.HEAVY:
+				if card.type == ActionData.Type.OFFENCE: final_sp += 1
+				elif card.type == ActionData.Type.DEFENCE: final_hp += 2
+				
+	return {"hp": final_hp, "sp": final_sp}
+
+
+========================================
+FILE PATH: res://Scripts/CombatLog.gd
+========================================
+extends PanelContainer
+
+@onready var log_label = $MarginContainer/LogLabel
+
+# Colors for formatting
+const P1_COLOR = "#ff9999" # Red-ish
+const P2_COLOR = "#99ccff" # Blue-ish
+const DMG_COLOR = "#ff4444" # Bright Red
+const WIN_COLOR = "#ffd700" # Gold
+const SUB_COLOR = "#aaaaaa" # Gray for detailed logs (>>)
+
+func add_log(text: String):
+	var formatted_text = _format_text(text)
+	
+	# Append text with a newline
+	if log_label.text != "":
+		log_label.text += "\n"
+	
+	log_label.text += formatted_text
+	
+	# Auto-scroll to bottom
+	# We wait a frame for the UI to update the text size
+	await get_tree().process_frame 
+	log_label.scroll_to_line(log_label.get_line_count() - 1)
+
+func _format_text(raw: String) -> String:
+	var txt = raw
+	
+	# 1. Color Player Names
+	txt = txt.replace("P1", "[color=" + P1_COLOR + "]P1[/color]")
+	txt = txt.replace("P2", "[color=" + P2_COLOR + "]P2[/color]")
+	
+	# 2. Highlight Winners
+	if "Winner" in txt or "VICTORY" in txt:
+		txt = "[color=" + WIN_COLOR + "][b]" + txt + "[/b][/color]"
+		
+	# 3. Dim Sub-events (starting with >> or >)
+	elif txt.begins_with("   >") or txt.begins_with(">>"):
+		txt = "[color=" + SUB_COLOR + "][i]" + txt + "[/i][/color]"
+		
+	# 4. Highlight specific keywords
+	txt = txt.replace("Damage", "[color=" + DMG_COLOR + "]Damage[/color]")
+	txt = txt.replace("HP", "[color=" + DMG_COLOR + "]HP[/color]")
+	txt = txt.replace("hits", "[color=" + DMG_COLOR + "]hits[/color]")
+	
+	# 5. Highlight Phase headers
+	if txt.begins_with("| ---"):
+		txt = "[center][b]" + txt + "[/b][/center]"
+		
+	return txt
+
+func clear_log():
+	log_label.text = ""
+
+
+========================================
+FILE PATH: res://Scripts/FloatingText.gd
+========================================
+extends Label
+
+func setup(text_value: String, color: Color, start_pos: Vector2):
+	text = text_value
+	modulate = color
+	position = start_pos
+	
+	# Reset pivot for scaling
+	pivot_offset = size / 2
+	
+	# Animation Sequence
+	var tween = create_tween()
+	tween.set_parallel(true)
+	
+	# 1. Float Up
+	tween.tween_property(self, "position:y", start_pos.y - 80, 1.0).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	
+	# 2. Fade Out
+	tween.tween_property(self, "modulate:a", 0.0, 1.0).set_ease(Tween.EASE_IN)
+	
+	# 3. Scale Punch (Optional "Juice")
+	scale = Vector2(0.5, 0.5)
+	tween.tween_property(self, "scale", Vector2(1.5, 1.5), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	
+	# Cleanup
+	await tween.finished
+	queue_free()
+
+
+========================================
+FILE PATH: res://Scripts/GameOverScreen.gd
+========================================
+extends Control
+
+@onready var winner_label = $Panel/VBoxContainer/WinnerLabel
+
+func _ready():
+	$Panel/VBoxContainer/RematchButton.pressed.connect(_on_rematch_pressed)
+	$Panel/VBoxContainer/MenuButton.pressed.connect(_on_menu_pressed)
+
+func setup(winner_id: int):
+	if winner_id == 1:
+		winner_label.text = "PLAYER 1 WINS!"
+		winner_label.modulate = Color("#ff9999") # Red tint
+	elif winner_id == 2:
+		winner_label.text = "PLAYER 2 WINS!"
+		winner_label.modulate = Color("#99ccff") # Blue tint
+	else:
+		winner_label.text = "DRAW!"
+	
+	# ARCADE LOGIC
+	if RunManager.is_arcade_mode:
+		if winner_id == 1:
+			# Player Won
+			$Panel/VBoxContainer/RematchButton.text = "CLAIM REWARD"
+			$Panel/VBoxContainer/RematchButton.pressed.disconnect(_on_rematch_pressed)
+			$Panel/VBoxContainer/RematchButton.pressed.connect(func(): RunManager.handle_win())
+		else:
+			# Player Lost
+			$Panel/VBoxContainer/RematchButton.visible = false # No retry in arcade!
+			$Panel/VBoxContainer/MenuButton.text = "RUN OVER"
+
+func _on_rematch_pressed():
+	# IMPORTANT: Reset logic ensures stats are clean for new round
+	GameManager.reset_combat() 
+	# Reload the current arena scene
+	get_tree().reload_current_scene()
+
+func _on_menu_pressed():
+	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+
+
+========================================
+FILE PATH: res://Scripts/HitStopManager.gd
+========================================
+extends Node
+
+func _ready():
+	process_mode = Node.PROCESS_MODE_ALWAYS # Must run even when paused
+	GameManager.damage_dealt.connect(_on_damage)
+
+func _on_damage(_target, amount, is_blocked):
+	if is_blocked: return # No freeze on blocks
+	
+	# Only freeze on significant hits (e.g. damage >= 3)
+	if amount >= 3:
+		stop_frame(0.15)
+	elif amount > 0:
+		stop_frame(0.05)
+
+func stop_frame(duration: float):
+	# Freeze the game logic
+	get_tree().paused = true
+	
+	# Wait using a timer that ignores the pause
+	await get_tree().create_timer(duration, true, false, true).timeout
+	
+	# Unfreeze
+	get_tree().paused = false
+
+
+========================================
+FILE PATH: res://Scripts/LinesLayer.gd
+========================================
+# LinesLayer.gd
+extends Control
+
+@export var line_color: Color = Color.WHITE
+@export var line_width: float = 2.0
+
+func _draw():
+	var tree_root = owner         # <-- This finds the actual ActionTree root
+
+	# Safety check to prevent errors if the scene isn't fully ready
+	if not tree_root or not "action_tree_dict" in tree_root:
+		return
+
+	var dict = tree_root.action_tree_dict
+	
+	# We can grab the nodes_layer directly from the root now that you fixed the path there
+	var nodes_container = tree_root.nodes_layer
+	
+	if not nodes_container:
+		return
+	# We need to find where the nodes are
+	var node_map = {}
+	for child in nodes_container.get_children():
+		node_map[int(str(child.name))] = child
+		
+	# Draw lines
+	for start_id in dict:
+		if not start_id in node_map: continue
+		var start_node = node_map[start_id]
+		var start_pos = start_node.position + (start_node.size / 2)
+		
+		for end_id in dict[start_id]:
+			if not end_id in node_map: continue
+			var end_node = node_map[end_id]
+			var end_pos = end_node.position + (end_node.size / 2)
+			
+			draw_line(start_pos, end_pos, line_color, line_width)
+
+
+========================================
+FILE PATH: res://Scripts/MainMenu.gd
+========================================
+extends Control
+
+func _ready():
+	# Connect buttons dynamically or via editor signals
+	$VBoxContainer/StartButton.pressed.connect(_on_start_pressed)
+	$VBoxContainer/QuitButton.pressed.connect(_on_quit_pressed)
+
+func _on_start_pressed():
+	# Assumes your main arena scene is saved here
+	#get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/CharacterSelect.tscn")
+
+func _on_quit_pressed():
+	get_tree().quit()
+
+
+========================================
+FILE PATH: res://Scripts/pausemenu.gd
+========================================
+extends CanvasLayer
+
+@onready var background = $ColorRect # Assuming your ColorRect is named "ColorRect"
+
+func _ready():
+	# Start hidden and unpaused
+	visible = false
+	
+func _input(event):
+	if event.is_action_pressed("ui_cancel"): # Default is 'Escape' key
+		_toggle_pause()
+
+func _toggle_pause():
+	# Flip the paused state
+	var new_state = not get_tree().paused
+	get_tree().paused = new_state
+	visible = new_state
+
+func _on_resume_pressed():
+	_toggle_pause()
+
+func _on_main_menu_pressed():
+	# 1. Unpause before changing scenes (otherwise the new scene stays frozen!)
+	_toggle_pause()
+	
+	# 2. CLEANUP: Wipe game state so next match starts fresh
+	# (Similar to your ActionTree back button logic) [cite: 121]
+	GameManager.next_match_p1_data = null
+	GameManager.next_match_p2_data = null
+	GameManager.p1_data = null
+	GameManager.p2_data = null
+	
+	GameManager.editing_player_index = 1
+	GameManager.p2_is_custom = false
+	
+	# 3. Go to Menu
+	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+
+
+========================================
+FILE PATH: res://Scripts/PlayerHud.gd
+========================================
+extends Control
+
+@onready var name_label = $VBoxContainer/NameLabel
+@onready var hp_bar = $VBoxContainer/HPBar
+@onready var hp_text = $VBoxContainer/HPBar/HPLabel
+@onready var sp_bar = $VBoxContainer/SPBar
+@onready var sp_text = $VBoxContainer/SPBar/SPLabel
+@onready var status_label = $VBoxContainer/StatusLabel
+
+func setup(character: CharacterData):
+	name_label.text = character.character_name
+	hp_bar.max_value = character.max_hp
+	hp_bar.value = character.current_hp
+	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
+	
+	sp_bar.max_value = character.max_sp
+	sp_bar.value = character.current_sp
+	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
+
+# Call this every time stats change
+func update_stats(character: CharacterData, is_injured: bool, opportunity: int, opening: int):
+	# Animate bars for "juice"
+	var tween = create_tween()
+	tween.tween_property(hp_bar, "value", character.current_hp, 0.3).set_trans(Tween.TRANS_SINE)
+	tween.parallel().tween_property(sp_bar, "value", character.current_sp, 0.3)
+	
+	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
+	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
+	
+	# Status Text
+	var status_txt = ""
+	if is_injured: status_txt += "[INJURED] "
+	if opportunity > 0: status_txt += "[OPPORTUNITY] "
+	if opening > 0: status_txt += "[OPENING: " + str(opening) + "]"
+	
+	status_label.text = status_txt
+	# Make status red if injured, yellow if opportunity, etc. (Optional styling)
+	if is_injured: status_label.modulate = Color.ORANGE_RED
+	elif opportunity > 0: status_label.modulate = Color.YELLOW
+	else: status_label.modulate = Color.WHITE
+
+
+========================================
+FILE PATH: res://Scripts/Resources/ActionData.gd
+========================================
+class_name ActionData
+extends Resource
+
+# Enums allow for dropdown selection in the Inspector, preventing typos.
+enum Type { OFFENCE, DEFENCE }
+
+# --- VISUALS ---
+@export_group("Visuals")
+@export var id: String             # Unique ID (e.g., "basic_strike_01")
+@export var display_name: String   # The name displayed to the player
+@export var icon: Texture2D        # The card art/icon
+@export_multiline var description: String # Tooltip description of effects
+
+# --- CORE STATS ---
+@export_group("Core Stats")
+@export var type: Type             # OFFENCE (Red) or DEFENCE (Blue)
+@export var cost: int = 0          # Stamina (SP) cost to play this card
+@export var damage: int = 0        # Base damage dealt to opponent
+@export var momentum_gain: int = 0 # Amount this card pushes the momentum tracker
+
+# --- COMBAT VALUES ---
+@export_group("Combat Values")
+@export var block_value: int = 0   # Reduces incoming Damage
+@export var dodge_value: int = 0   # Reduces incoming Damage (thematically distinct)
+@export var heal_value: int = 0    # Restores HP
+@export var recover_value: int = 0 # Restores SP
+@export var fall_back_value: int = 0 # Pushes momentum backwards (counteracts gain)
+@export var counter_value: int = 0 # Required "Opening" level on opponent to play this
+@export var tiring: int = 0        # Drains opponent's SP on hit
+
+# --- SPECIAL BOOLEANS ---
+@export_group("Special Mechanics")
+@export var is_opener: bool = false      # Can be played at 0 Momentum or start of combo
+@export var is_super: bool = false       # Requires specific Momentum; 1 use per match
+@export var guard_break: bool = false    # Ignores opponent's Block/Dodge
+@export var feint: bool = false          # Triggers Secondary Selection phase
+@export var injure: bool = false         # Applies "Injured" status (DoT)
+@export var sweep: bool = false          # (Mass combat flag - unused in 1v1)
+@export var retaliate: bool = false      # Reflects damage back to attacker
+@export var reversal: bool = false       # Seizes initiative if momentum moves closer
+@export var is_parry: bool = false       # Steals momentum; grants Immunity if successful
+
+# --- ADVANCED LOGIC ---
+@export_group("Advanced Logic")
+@export var multi_limit: int = 0         # Limits opponent's max cost next turn
+@export var repeat_count: int = 1        # Number of times the effect loop runs (e.g., Flurry)
+@export var create_opening: int = 0      # Sets opponent's Opening Stat (enables Counters)
+@export var opportunity: int = 0         # Reduces cost/Increases momentum next turn
+
+
+========================================
+FILE PATH: res://Scripts/Resources/CharacterData.gd
+========================================
+class_name CharacterData
+extends Resource
+
+enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL }
+
+# --- STATIC DATA ---
+@export_group("Identity")
+@export var character_name: String
+@export var portrait: Texture2D
+@export var class_type: ClassType
+
+@export_group("Stats")
+@export var max_hp: int = 10     
+@export var max_sp: int = 3      
+@export var speed: int = 1       
+
+@export_group("Progression")
+@export var deck: Array[ActionData] 
+
+@export_group("Passive")
+@export_multiline var passive_desc: String 
+
+# --- RUNTIME STATE ---
+@export_group("Runtime State")
+var current_hp: int
+var current_sp: int
+var has_used_super: bool = false 
+var combo_action_count: int = 0 # Track for Relentless passive
+
+# --- LOGIC ---
+
+func reset_stats():
+	current_hp = max_hp
+	current_sp = max_sp
+	has_used_super = false
+	combo_action_count = 0
+
+# Call this when the player "Learns" a new card to apply Class Stat Growth
+func unlock_action(new_action: ActionData):
+	if new_action in deck: return
+	
+	deck.append(new_action)
+	_apply_level_up_stats(new_action.type)
+
+func _apply_level_up_stats(card_type):
+	# Rules derived from PDF v0.2 Class Section
+	match class_type:
+		ClassType.HEAVY:
+			if card_type == ActionData.Type.OFFENCE: max_sp += 1
+			elif card_type == ActionData.Type.DEFENCE: max_hp += 2
+			
+		ClassType.PATIENT:
+			if card_type == ActionData.Type.OFFENCE: max_hp += 1
+			elif card_type == ActionData.Type.DEFENCE: 
+				max_hp += 1
+				max_sp += 1
+				
+		ClassType.QUICK:
+			if card_type == ActionData.Type.OFFENCE: max_hp += 1
+			elif card_type == ActionData.Type.DEFENCE: max_sp += 2
+			
+		ClassType.TECHNICAL:
+			if card_type == ActionData.Type.OFFENCE: 
+				max_hp += 1
+				max_sp += 1
+			elif card_type == ActionData.Type.DEFENCE: max_sp += 1
+			
+	# Heal to full on level up? Optional, but usually good.
+	current_hp = max_hp
+	current_sp = max_sp
+	print("Level Up! New Stats - HP: " + str(max_hp) + " | SP: " + str(max_sp))
+
+
+========================================
+FILE PATH: res://Scripts/Resources/GameManager.gd
+========================================
+extends Node
+
+# --- SIGNALS ---
+signal state_changed(new_state)
+signal clash_resolved(winner_id, log_text)
+signal combat_log_updated(text)
+signal game_over(winner_id)
+signal damage_dealt(target_id: int, amount: int, is_blocked: bool)
+signal healing_received(target_id: int, amount: int)
+signal status_applied(target_id: int, status_name: String)
+signal request_clash_animation(p1_card, p2_card)
+signal clash_animation_finished
+
+# --- STATE MACHINE ---
+enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
+var current_state = State.SETUP
+var temp_p1_class_selection: int = 0
+var temp_p2_class_selection: int = 0 # New: Remember P2's class choice
+var editing_player_index: int = 1    # New: Are we building P1 (1) or P2 (2)?
+var p2_is_custom: bool = false       # New: Did the user ask to customize P2?
+enum Difficulty { VERY_EASY, EASY, MEDIUM, HARD }
+var ai_difficulty: Difficulty = Difficulty.MEDIUM # Default
+
+# --- PERSISTENT GAME SETUP ---
+var next_match_p1_data: CharacterData
+var next_match_p2_data: CharacterData
+
+# --- CORE DATA ---
+var p1_data: CharacterData
+var p2_data: CharacterData
+var priority_player: int = 1 
+var momentum: int = 0 
+var current_combo_attacker: int = 0
+
+# --- TURN CONSTRAINTS ---
+var p1_cost_limit: int = 99; var p2_cost_limit: int = 99
+var p1_opening_stat: int = 0; var p2_opening_stat: int = 0
+var p1_opportunity_stat: int = 0; var p2_opportunity_stat: int = 0
+var p1_must_opener: bool = false; var p2_must_opener: bool = false
+
+# --- STATUS EFFECTS ---
+var p1_is_injured: bool = false
+var p2_is_injured: bool = false
+
+# --- TURN STATE ---
+var p1_action_queue: ActionData
+var p2_action_queue: ActionData
+var p1_locked_card: ActionData = null
+var p2_locked_card: ActionData = null
+
+# --- FEINT HELPERS ---
+var p1_pending_feint: bool = false
+var p2_pending_feint: bool = false
+
+# --- PASSIVES ---
+var p1_rage_active: bool = false
+var p2_rage_active: bool = false
+var p1_keep_up_active: bool = false
+var p2_keep_up_active: bool = false
+
+var temp_p1_name: String = ""
+var temp_p2_name: String = ""
+var temp_p1_preset: Resource = null
+var temp_p2_preset: Resource = null
+
+# ==============================================================================
+# INITIALIZATION
+# ==============================================================================
+
+func start_combat(p1: CharacterData, p2: CharacterData):
+	p1_data = p1
+	p2_data = p2
+	reset_combat()
+
+func reset_combat():
+	p1_data.reset_stats()
+	p2_data.reset_stats()
+	momentum = 0 
+	current_combo_attacker = 0
+	p1_locked_card = null; p2_locked_card = null
+	
+	p1_cost_limit = 99; p2_cost_limit = 99
+	p1_opening_stat = 0; p2_opening_stat = 0
+	p1_opportunity_stat = 0; p2_opportunity_stat = 0
+	p1_must_opener = false; p2_must_opener = false
+	p1_is_injured = false; p2_is_injured = false
+	p1_pending_feint = false; p2_pending_feint = false
+	
+	p1_rage_active = false; p2_rage_active = false
+	p1_keep_up_active = false; p2_keep_up_active = false
+	
+	if p1_data.speed > p2_data.speed: priority_player = 1
+	elif p2_data.speed > p1_data.speed: priority_player = 2
+	else: priority_player = randi_range(1, 2)
+		
+	print("\n>>> COMBAT RESET! Starting from Initial Clash (Neutral) <<<")
+	change_state(State.SELECTION)
+
+func get_attacker() -> int:
+	if current_combo_attacker != 0: return current_combo_attacker
+	if momentum == 0: return 0 
+	if momentum <= 4: return 1 
+	return 2 
+
+# ==============================================================================
+# STATE MACHINE
+# ==============================================================================
+
+func change_state(new_state: State):
+	current_state = new_state
+	emit_signal("state_changed", current_state)
+	
+	match current_state:
+		State.SELECTION:
+			if p1_locked_card: player_select_action(1, p1_locked_card)
+			if p2_locked_card: player_select_action(2, p2_locked_card)
+		State.REVEAL:
+			_enter_reveal_phase()
+		State.FEINT_CHECK:
+			pass 
+		State.RESOLUTION:
+			resolve_clash()
+
+func player_select_action(player_id: int, action: ActionData, extra_data: Dictionary = {}):
+	# 1. Process the Action based on Technique
+	var final_action = action
+	var tech_idx = extra_data.get("technique", 0)
+	
+	# Only modify if a technique was actually selected AND action is not null (Skip)
+	if action != null and tech_idx > 0:
+		final_action = action.duplicate() # CRITICAL: Don't edit the original file!
+		final_action.cost += 1 # Auto-deduct the 1 SP cost
+		
+		match tech_idx:
+			1: # Opener
+				if final_action.type == ActionData.Type.OFFENCE:
+					final_action.is_opener = true
+					final_action.display_name += "+" # Visual indicator
+			2: # Tiring
+				final_action.tiring += 1
+				final_action.display_name += "+"
+			3: # Momentum
+				final_action.momentum_gain += 1
+				final_action.display_name += "+"
+	
+	# 2. Standard Logic (Using final_action instead of action)
+	if player_id == 1:
+		p1_action_queue = final_action
+		p1_rage_active = extra_data.get("rage", false)
+		p1_keep_up_active = extra_data.get("keep_up", false)
+	else:
+		p2_action_queue = final_action
+		p2_rage_active = extra_data.get("rage", false)
+		p2_keep_up_active = extra_data.get("keep_up", false)
+		
+	if current_state == State.SELECTION:
+		if p1_action_queue and p2_action_queue:
+			change_state(State.REVEAL)
+	elif current_state == State.FEINT_CHECK:
+		# Note: Feints use the modified card as the "secondary" card
+		_handle_feint_selection(player_id, final_action)
+
+# ==============================================================================
+# FEINT MECHANICS
+# ==============================================================================
+
+func _enter_reveal_phase():
+	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
+	
+	# --- NEW VISUAL STEP ---
+	# 1. Tell UI to play animation
+	emit_signal("request_clash_animation", p1_action_queue, p2_action_queue)
+	
+	# 2. Wait for it to finish
+	await self.clash_animation_finished
+	# -----------------------
+	
+	p1_pending_feint = p1_action_queue.feint
+	p2_pending_feint = p2_action_queue.feint
+
+	if p1_pending_feint or p2_pending_feint:
+		change_state(State.FEINT_CHECK)
+	else:
+		change_state(State.RESOLUTION)
+
+func _handle_feint_selection(player_id: int, secondary_action: ActionData):
+	if secondary_action == null:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " skips Feint combination.")
+		_clear_feint_flag(player_id)
+		_check_feint_completion()
+		return
+
+	var base_card = p1_action_queue if player_id == 1 else p2_action_queue
+	var character = p1_data if player_id == 1 else p2_data
+	
+	var total_cost = base_card.cost + secondary_action.cost
+	var opp_val = _get_opportunity_value(player_id)
+	var effective_total = max(0, total_cost - opp_val)
+	
+	var combined_card = _combine_actions(base_card, secondary_action)
+	var total_reps = max(1, combined_card.repeat_count)
+	var total_required = effective_total * total_reps
+	
+	# Affordability check (Handles Rage Passive for Feints too)
+	var can_afford = false
+	if character.current_sp >= total_required:
+		can_afford = true
+	elif character.class_type == CharacterData.ClassType.HEAVY and (character.current_sp + character.current_hp) > total_required:
+		can_afford = true # Rage Logic
+		
+	if can_afford:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined_card.display_name)
+		if player_id == 1: p1_action_queue = combined_card
+		else: p2_action_queue = combined_card
+	else:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint. Action applies normally.")
+	
+	_clear_feint_flag(player_id)
+	_check_feint_completion()
+
+func _clear_feint_flag(player_id):
+	if player_id == 1: p1_pending_feint = false
+	else: p2_pending_feint = false
+
+func _check_feint_completion():
+	if not p1_pending_feint and not p2_pending_feint:
+		change_state(State.RESOLUTION)
+
+func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
+	var new_card = base.duplicate()
+	new_card.display_name = base.display_name + " + " + sec.display_name
+	
+	new_card.cost += sec.cost
+	new_card.damage += sec.damage
+	new_card.block_value += sec.block_value
+	new_card.dodge_value += sec.dodge_value
+	new_card.momentum_gain += sec.momentum_gain
+	new_card.heal_value += sec.heal_value
+	new_card.recover_value += sec.recover_value
+	new_card.fall_back_value += sec.fall_back_value
+	new_card.tiring += sec.tiring
+	new_card.create_opening += sec.create_opening
+	new_card.multi_limit += sec.multi_limit
+	new_card.opportunity += sec.opportunity
+	
+	new_card.counter_value = max(new_card.counter_value, sec.counter_value) 
+	new_card.repeat_count = max(new_card.repeat_count, sec.repeat_count)
+	
+	if sec.guard_break: new_card.guard_break = true
+	if sec.injure: new_card.injure = true
+	if sec.retaliate: new_card.retaliate = true
+	if sec.is_parry: new_card.is_parry = true
+	if sec.is_super: new_card.is_super = true
+	if sec.is_opener: new_card.is_opener = true
+	
+	new_card.feint = false 
+	return new_card
+
+# ==============================================================================
+# RESOLUTION LOGIC
+# ==============================================================================
+
+func resolve_clash():
+	var winner_id = 0
+	
+	# 1. DETERMINE WINNER
+	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
+	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
+	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
+	elif p2_action_queue.cost < p1_action_queue.cost: winner_id = 2
+	else:
+		emit_signal("combat_log_updated", "Tie! Priority Token Used.")
+		winner_id = priority_player
+		swap_priority()
+
+	emit_signal("clash_resolved", winner_id, "Clash Winner: P" + str(winner_id))
+	
+	var is_initial_clash = (momentum == 0)
+	var start_momentum = momentum 
+	
+	# Update Combo Counts (For Quick Passive)
+	# Logic: If I won and I am attacking, combo grows. Else reset.
+	# Note: Simplification -> Just checking consecutive wins for now
+	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE: p1_data.combo_action_count += 1
+	else: p1_data.combo_action_count = 0
+	
+	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE: p2_data.combo_action_count += 1
+	else: p2_data.combo_action_count = 0
+	
+	# --- SNAPSHOT STATUS ---
+	var p1_started_injured = p1_is_injured
+	var p2_started_injured = p2_is_injured
+	
+	# --- PHASE 0: PAY COSTS ---
+	var p1_active = _pay_cost(1, p1_action_queue)
+	var p2_active = _pay_cost(2, p2_action_queue)
+
+	if p1_active and p1_action_queue.is_super:
+		p1_data.has_used_super = true
+		emit_signal("combat_log_updated", ">> P1 unleashes their Ultimate Art!")
+	if p2_active and p2_action_queue.is_super:
+		p2_data.has_used_super = true
+		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
+
+	# --- PHASE 1: SELF EFFECTS ---
+	if p1_active: _apply_phase_1_self_effects(1, p1_action_queue)
+	if p2_active: _apply_phase_1_self_effects(2, p2_action_queue)
+
+	# --- MOMENTUM PRE-CALCULATION ---
+	
+	# 1. Dodge Check
+	var p1_is_dodged = false
+	var p2_is_dodged = false
+	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_action_queue.cost:
+		p1_is_dodged = true
+	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_action_queue.cost:
+		p2_is_dodged = true
+		
+	# 2. Parry Check
+	var p1_parries = (p1_active and p1_action_queue.is_parry)
+	var p2_parries = (p2_active and p2_action_queue.is_parry)
+	
+	# 3. Base Gains
+	var p1_base_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
+	var p2_base_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
+	
+	# 4. Final Push
+	var p1_contribution = p1_base_gain
+	if p2_parries: p1_contribution = 0 
+	elif p1_is_dodged: p1_contribution = 0 
+	
+	var p2_contribution = p2_base_gain
+	if p1_parries: p2_contribution = 0 
+	elif p2_is_dodged: p2_contribution = 0 
+	
+	var p1_stolen = p2_base_gain if p1_parries else 0
+	var p2_stolen = p1_base_gain if p2_parries else 0
+	
+	var p1_final_push = p1_contribution + p1_stolen
+	var p2_final_push = p2_contribution + p2_stolen
+	
+	# 5. Delta Calculation (FALLBACK)
+	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
+	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
+	
+	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
+	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
+	
+	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
+	
+	# 6. Parry Success
+	var p1_parry_success = (p1_parries and delta < 0)
+	var p2_parry_success = (p2_parries and delta > 0)
+	
+	# --- PHASE 2: COMBAT EFFECTS ---
+	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
+	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
+	
+	var p2_immune_or_dodged = p2_parry_success or p1_is_dodged
+	var p1_immune_or_dodged = p1_parry_success or p2_is_dodged
+	
+	if p1_active: p1_results = _apply_phase_2_combat_effects(1, 2, p1_action_queue, p2_action_queue, p2_immune_or_dodged)
+	if p2_active: p2_results = _apply_phase_2_combat_effects(2, 1, p2_action_queue, p1_action_queue, p1_immune_or_dodged)
+	
+	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue, p1_parry_success, p2_parry_success)
+	
+	if p1_results["fatal"] or p2_results["fatal"]:
+		_handle_death(winner_id)
+		return 
+	
+	# --- PHASE 3: MOMENTUM ---
+	var p1_is_offence = (p1_action_queue.type == ActionData.Type.OFFENCE)
+	var p2_is_offence = (p2_action_queue.type == ActionData.Type.OFFENCE)
+	
+	if p1_active and p1_is_offence: _apply_phase_3_momentum(1, p1_action_queue, p1_final_push)
+	if p2_active and p2_is_offence: _apply_phase_3_momentum(2, p2_action_queue, p2_final_push)
+	
+	if p1_active and not p1_is_offence: _apply_phase_3_momentum(1, p1_action_queue, p1_final_push)
+	if p2_active and not p2_is_offence: _apply_phase_3_momentum(2, p2_action_queue, p2_final_push)
+	
+	# --- PHASE 4: STATUS TICK ---
+	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
+
+	# --- CLEANUP ---
+	if is_initial_clash:
+		momentum = 4 if winner_id == 1 else 5
+		emit_signal("combat_log_updated", "Initial Clash Set! Momentum: " + str(momentum))
+	
+	_check_reversal(winner_id, start_momentum)
+	_handle_locks(winner_id)
+
+	p1_action_queue = null
+	p2_action_queue = null
+	
+	change_state(State.POST_CLASH)
+	change_state(State.SELECTION)
+
+# ==============================================================================
+# PHASE IMPLEMENTATIONS
+# ==============================================================================
+
+func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
+	var character = p1_data if owner_id == 1 else p2_data
+	var total_hits = max(1, my_card.repeat_count)
+	
+	# FIX: Use 'character' instead of 'owner'
+	if character.class_type == CharacterData.ClassType.QUICK:
+		if character.combo_action_count > 0 and (character.combo_action_count % 3 == 0):
+			character.current_sp = min(character.current_sp + 1, character.max_sp)
+			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
+	
+	for i in range(total_hits):
+		var actual_recover = my_card.recover_value
+		if my_card.type == ActionData.Type.DEFENCE: actual_recover += 1
+		
+		if actual_recover > 0: 
+			# FIX: Use 'character' here
+			character.current_sp = min(character.current_sp + actual_recover, character.max_sp)
+			
+		if my_card.heal_value > 0: 
+			# FIX: Use 'character' here
+			character.current_hp = min(character.current_hp + my_card.heal_value, character.max_hp)
+			emit_signal("healing_received", owner_id, my_card.heal_value)
+
+		if my_card.heal_value > 0 or my_card.fall_back_value > 0:
+			if owner_id == 1 and p1_is_injured:
+				p1_is_injured = false
+				emit_signal("combat_log_updated", ">> P1 cures Injury!")
+				emit_signal("status_applied", 1, "CURED!")
+			elif owner_id == 2 and p2_is_injured:
+				p2_is_injured = false
+				emit_signal("combat_log_updated", ">> P2 cures Injury!")
+				emit_signal("status_applied", 2, "CURED!")
+
+func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool) -> Dictionary:
+	var character = p1_data if owner_id == 1 else p2_data
+	var target = p2_data if owner_id == 1 else p1_data
+	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
+	
+	if target_is_immune:
+		emit_signal("combat_log_updated", "P" + str(owner_id) + " attack NULLIFIED (Dodge/Parry)!")
+		emit_signal("status_applied", owner_id, "MISS")
+		emit_signal("status_applied", target_id, "DODGED")
+		return result
+
+	var total_hits = max(1, my_card.repeat_count)
+	for i in range(total_hits):
+		var enemy_block = enemy_card.block_value 
+		if my_card.guard_break: enemy_block = 0
+		var net_damage = max(0, my_card.damage - enemy_block)
+		
+		# --- STATUS EFFECTS ---
+		if my_card.tiring > 0:
+			# PASSIVE: RAGE (Heavy Class) - Losing SP from Tiring can be taken as HP
+			if target.class_type == CharacterData.ClassType.HEAVY and target.current_sp < my_card.tiring:
+				# Simple Logic: If SP runs out, take remaining as damage
+				var drain_amount = my_card.tiring
+				var sp_avail = target.current_sp
+				var hp_cost = drain_amount - sp_avail
+				target.current_sp = 0
+				target.current_hp -= hp_cost
+				emit_signal("combat_log_updated", ">> Rage! P" + str(target_id) + " takes " + str(hp_cost) + " HP dmg instead of SP.")
+				emit_signal("damage_dealt", target_id, hp_cost, false)
+			else:
+				target.current_sp = max(0, target.current_sp - my_card.tiring)
+				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
+		
+		if my_card.injure:
+			if target_id == 1 and not p1_is_injured:
+				p1_is_injured = true
+				emit_signal("combat_log_updated", ">> P1 is Injured!")
+			elif target_id == 2 and not p2_is_injured:
+				p2_is_injured = true
+				emit_signal("combat_log_updated", ">> P2 is Injured!")
+
+		if my_card.create_opening > 0:
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
+			result["opening"] = my_card.create_opening
+		
+		if my_card.opportunity > 0:
+			result["opportunity"] = my_card.opportunity
+
+		# --- DAMAGE ---
+		if net_damage > 0:
+			target.current_hp -= net_damage
+			emit_signal("damage_dealt", target_id, net_damage, false)
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
+		elif my_card.damage > 0:
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
+			emit_signal("damage_dealt", target_id, 0, true)
+
+		# --- RETALIATE ---
+		if my_card.damage > 0 and enemy_card.retaliate:
+			var raw_recoil = my_card.damage
+			var self_block = my_card.block_value + my_card.dodge_value 
+			var net_recoil = max(0, raw_recoil - self_block)
+			if net_recoil > 0:
+				# FIX: Use 'character' instead of 'owner'
+				character.current_hp -= net_recoil
+				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
+				
+				# FIX: Use 'character' here too
+				if character.current_hp <= 0:
+					result["fatal"] = true
+					return result
+			else:
+				emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
+
+		if target.current_hp <= 0:
+			result["fatal"] = true
+			return result
+			
+	return result
+
+func _apply_phase_3_momentum(owner_id: int, my_card: ActionData, effective_gain: int):
+	var character = p1_data if owner_id == 1 else p2_data
+	var keep_up_is_on = (p1_keep_up_active if owner_id == 1 else p2_keep_up_active)
+	
+	var reps = max(1, my_card.repeat_count)
+	var total_loss = my_card.fall_back_value * reps
+	
+	#keep up logic
+	if keep_up_is_on and character.class_type == CharacterData.ClassType.PATIENT and total_loss > 0:
+		if character.current_sp >= total_loss:
+			character.current_sp -= total_loss
+			total_loss = 0
+			emit_signal("combat_log_updated", ">> KEEP-UP! P" + str(owner_id) + " spent SP to hold ground.")
+	
+	if owner_id == 1:
+		momentum = clampi(momentum - effective_gain + total_loss, 1, 8)
+	else:
+		momentum = clampi(momentum + effective_gain - total_loss, 1, 8)
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+func _calculate_projected_momentum(player_id: int, card: ActionData, is_active: bool) -> int:
+	if not is_active: return 0
+	var opp_val = _get_opportunity_value(player_id)
+	var single_gain = card.momentum_gain + opp_val
+	var total_gain = single_gain * max(1, card.repeat_count)
+	return total_gain
+
+func _get_opportunity_value(player_id: int) -> int:
+	return p1_opportunity_stat if player_id == 1 else p2_opportunity_stat
+
+func _pay_cost(player_id: int, card: ActionData) -> bool:
+	var character = p1_data if player_id == 1 else p2_data
+	var is_free = (p1_locked_card != null if player_id == 1 else p2_locked_card != null)
+	var rage_is_on = (p1_rage_active if player_id == 1 else p2_rage_active)
+	
+	var raw_cost = card.cost
+	var opp_val = _get_opportunity_value(player_id)
+	var effective_single_cost = max(0, raw_cost - opp_val)
+	var total_reps = max(1, card.repeat_count)
+	var total_cost = effective_single_cost * total_reps
+	
+	if is_free: total_cost = 0
+	
+	# --- RAGE LOGIC ---
+	# If Rage is ON, we pay with HP.
+	if rage_is_on and character.class_type == CharacterData.ClassType.HEAVY:
+		if character.current_hp > total_cost:
+			character.current_hp -= total_cost
+			emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
+			emit_signal("damage_dealt", player_id, total_cost, false)
+			return true
+		else:
+			emit_signal("combat_log_updated", ">> RAGE failed! Not enough HP.")
+			return false
+	
+	if character.current_sp >= total_cost:
+		character.current_sp -= total_cost
+		return true
+	else:
+		# PASSIVE: RAGE (Heavy Class)
+		# "Whenever you would lose SP, you can instead choose to lose the same amount of HP."
+		if character.class_type == CharacterData.ClassType.HEAVY:
+			if (character.current_sp + character.current_hp) > total_cost:
+				var sp_avail = character.current_sp
+				var hp_cost = total_cost - sp_avail
+				character.current_sp = 0
+				character.current_hp -= hp_cost
+				emit_signal("combat_log_updated", ">> Rage! P" + str(player_id) + " pays " + str(hp_cost) + " HP for action.")
+				emit_signal("damage_dealt", player_id, hp_cost, false)
+				return true
+		
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
+		return false
+
+func _handle_status_damage(winner_id, p1_started_injured: bool, p2_started_injured: bool):
+	if p1_is_injured and p1_started_injured:
+		p1_data.current_hp -= 1
+		emit_signal("combat_log_updated", ">> P1 takes 1 damage from Injury.")
+		if p1_data.current_hp <= 0: _handle_death(winner_id)
+
+	if p2_is_injured and p2_started_injured:
+		p2_data.current_hp -= 1
+		emit_signal("combat_log_updated", ">> P2 takes 1 damage from Injury.")
+		if p2_data.current_hp <= 0: _handle_death(winner_id)
+
+func _handle_death(winner_id):
+	var game_winner = 0
+	if p1_data.current_hp > 0: game_winner = 1
+	elif p2_data.current_hp > 0: game_winner = 2
+	else: game_winner = winner_id 
+	emit_signal("game_over", game_winner)
+	reset_combat() 
+
+func _check_reversal(winner_id, start_momentum):
+	var loser_id = 3 - winner_id
+	var loser_card = p1_action_queue if loser_id == 1 else p2_action_queue
+	
+	var reversal_triggered = false
+	if loser_card.reversal:
+		var moved_closer = false
+		if loser_id == 1 and momentum < start_momentum: moved_closer = true
+		if loser_id == 2 and momentum > start_momentum: moved_closer = true
+		
+		if moved_closer:
+			current_combo_attacker = loser_id 
+			reversal_triggered = true
+			if loser_id == 1: p1_must_opener = true
+			else: p2_must_opener = true
+			emit_signal("combat_log_updated", ">>> REVERSAL! Player " + str(loser_id) + " seizes the Combo! (Must use Opener) <<<")
+
+	var active_attacker = get_attacker()
+	if active_attacker != 0:
+		var att_data = p1_data if active_attacker == 1 else p2_data
+		if att_data.current_sp <= 0:
+			emit_signal("combat_log_updated", ">> Attacker Out of SP. Combo Ends.")
+			current_combo_attacker = 0 
+		else:
+			if not reversal_triggered:
+				current_combo_attacker = active_attacker
+
+func _handle_locks(winner_id):
+	p1_locked_card = null; p2_locked_card = null
+	var winner_card = p1_action_queue if winner_id == 1 else p2_action_queue
+	var loser_card_obj = p2_action_queue if winner_id == 1 else p1_action_queue 
+	if winner_card.multi_limit > 0:
+		emit_signal("combat_log_updated", "Multi Triggered! Loser Locked.")
+		if winner_id == 1: p2_locked_card = loser_card_obj
+		else: p1_locked_card = loser_card_obj
+
+func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bool, p2_parry_win: bool):
+	var next_p1_limit = 99; var next_p2_limit = 99
+	var next_p1_opening = 0; var next_p2_opening = 0
+	p1_must_opener = false; p2_must_opener = false
+	
+	if p1_res["opening"] > 0:
+		next_p2_limit = min(next_p2_limit, p1_res["opening"]) 
+		next_p1_opening = p1_res["opening"] 
+	if p2_res["opening"] > 0:
+		next_p1_limit = min(next_p1_limit, p2_res["opening"])
+		next_p2_opening = p2_res["opening"]
+	
+	if p1_card.multi_limit > 0: next_p1_limit = min(next_p1_limit, p1_card.multi_limit)
+	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
+		
+	if p1_parry_win:
+		p2_must_opener = true
+		emit_signal("combat_log_updated", ">> P2 is unbalanced! Must use Opener next turn.")
+	if p2_parry_win:
+		p1_must_opener = true
+		emit_signal("combat_log_updated", ">> P1 is unbalanced! Must use Opener next turn.")
+
+	p1_cost_limit = next_p1_limit
+	p2_cost_limit = next_p2_limit
+	p1_opening_stat = next_p1_opening
+	p2_opening_stat = next_p2_opening
+
+	p1_opportunity_stat = p1_res["opportunity"]
+	p2_opportunity_stat = p2_res["opportunity"]
+	
+	if p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity.")
+	if p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity.")
+
+func swap_priority():
+	priority_player = 3 - priority_player
+
+
+# Returns the data for the requested player ID
+func get_player(id: int) -> CharacterData:
+	return p1_data if id == 1 else p2_data
+
+# Returns the data for the OTHER player (the enemy of 'id')
+func get_opponent(id: int) -> CharacterData:
+	return p2_data if id == 1 else p1_data
+
+
+========================================
+FILE PATH: res://Scripts/Resources/PresetCharacter.gd
+========================================
+extends Resource
+class_name PresetCharacter
+
+@export_group("Identity")
+@export var character_name: String = "New Hero"
+@export var class_type: CharacterData.ClassType = CharacterData.ClassType.HEAVY
+@export var level: int = 1 # Mostly for flavor, or you could display it
+
+@export_group("Build")
+@export var extra_skills: Array[String] = [] # List the EXACT names of actions here (e.g. "Drop Kick")
+
+
+========================================
+FILE PATH: res://Scripts/RunManager.gd
+========================================
+extends Node
+
+var is_arcade_mode: bool = false
+var current_level: int = 1
+var player_run_data: CharacterData
+var player_owned_tree_ids: Array[int] = [] # Track which nodes we own across fights
+
+func start_run(starting_class: CharacterData.ClassType):
+	is_arcade_mode = true
+	current_level = 1
+	
+	# 1. Create fresh Level 1 Character
+	player_run_data = ClassFactory.create_character(starting_class, "You")
+	
+	# 2. Initialize Tree State (Starting Node)
+	player_owned_tree_ids.clear()
+	match starting_class:
+		CharacterData.ClassType.QUICK: player_owned_tree_ids.append(73)
+		CharacterData.ClassType.TECHNICAL: player_owned_tree_ids.append(74)
+		CharacterData.ClassType.PATIENT: player_owned_tree_ids.append(75)
+		CharacterData.ClassType.HEAVY: player_owned_tree_ids.append(76)
+		
+	start_next_fight()
+
+func start_next_fight():
+	# 1. Setup Player
+	GameManager.next_match_p1_data = player_run_data
+	
+	# 2. Generate Enemy (Same Level)
+	var enemy = ClassFactory.create_random_enemy(current_level, GameManager.ai_difficulty)
+	GameManager.next_match_p2_data = enemy
+	
+	# 3. Launch
+	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+
+func handle_win():
+	current_level += 1
+	# Go to Skill Tree to pick reward
+	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+
+func handle_loss():
+	is_arcade_mode = false
+	# Go to Game Over or Menu
+	# (The GameOverScreen already handles this via buttons)
+
+
+========================================
+FILE PATH: res://Scripts/TestArena.gd
+========================================
+extends Node2D
+
+@export_group("Setup")
+@export var p1_resource: CharacterData
+@export var p2_resource: CharacterData
+@export var stop_on_game_over: bool = true 
+
+@export_group("Debug Controls")
+@export var is_player_1_human: bool = true 
+@export var is_player_2_human: bool = false 
+@export var p2_debug_force_card: ActionData 
+
+# NEW: Preload the Game Over Screen
+var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
+
+@onready var battle_ui = $BattleUI
+var _simulation_active: bool = true
+var _current_input_player: int = 1 
+
+func _ready():
+	await get_tree().process_frame
+	battle_ui.combat_log.clear_log()
+	
+	# Force difficulty for testing
+	#GameManager.ai_difficulty = GameManager.Difficulty.HARD
+	
+	# --- NEW LOGIC: CHECK FOR SELECTION ---
+	if GameManager.next_match_p1_data != null:
+		p1_resource = GameManager.next_match_p1_data
+		
+	if GameManager.next_match_p2_data != null:
+		p2_resource = GameManager.next_match_p2_data
+	# --------------------------------------
+	
+	# Connect Signals
+	GameManager.state_changed.connect(_on_state_changed)
+	GameManager.combat_log_updated.connect(_on_log_updated)
+	GameManager.clash_resolved.connect(_on_clash_resolved)
+	GameManager.game_over.connect(_on_game_over)
+	GameManager.request_clash_animation.connect(battle_ui.play_clash_animation)
+	
+	battle_ui.human_selected_card.connect(_on_human_input_received)
+	
+	# NEW: Connect Toggles
+	battle_ui.p1_mode_toggled.connect(_on_p1_mode_toggled)
+	battle_ui.p2_mode_toggled.connect(_on_p2_mode_toggled)
+	
+	battle_ui.load_deck(p1_resource.deck)
+	
+	print("--- INITIALIZING MATCH ---")
+	GameManager.start_combat(p1_resource, p2_resource)
+	
+	# Setup Visuals & Toggles
+	battle_ui.initialize_hud(p1_resource, p2_resource)
+	battle_ui.setup_toggles(is_player_1_human, is_player_2_human)
+	
+	# --- NEW: DISPLAY DIFFICULTY ON HUD ---
+	# We determine the string suffix based on the setting
+	var diff_suffix = ""
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.VERY_EASY: diff_suffix = " (Very Easy)"
+		GameManager.Difficulty.EASY: diff_suffix = " (Easy)"
+		GameManager.Difficulty.MEDIUM: diff_suffix = " (Medium)"
+		GameManager.Difficulty.HARD: diff_suffix = " (Hard)"
+	
+	# If Player 1 is a bot, update their name tag
+	if not is_player_1_human:
+		if battle_ui.p1_hud and battle_ui.p1_hud.name_label:
+			battle_ui.p1_hud.name_label.text += diff_suffix
+			
+	# If Player 2 is a bot, update their name tag
+	if not is_player_2_human:
+		if battle_ui.p2_hud and battle_ui.p2_hud.name_label:
+			battle_ui.p2_hud.name_label.text += diff_suffix
+	# --------------------------------------
+	
+func _update_visuals():
+	battle_ui.update_all_visuals(p1_resource, p2_resource, GameManager.momentum)
+
+# --- TOGGLE LOGIC ---
+
+func _on_p1_mode_toggled(is_human: bool):
+	is_player_1_human = is_human
+	print("[DEBUG] P1 Human Mode: " + str(is_human))
+	_check_mid_turn_state_change(1, is_human)
+
+func _on_p2_mode_toggled(is_human: bool):
+	is_player_2_human = is_human
+	print("[DEBUG] P2 Human Mode: " + str(is_human))
+	_check_mid_turn_state_change(2, is_human)
+
+# Handles the case where we toggle Bot mode ON while waiting for that player
+func _check_mid_turn_state_change(player_id: int, is_human: bool):
+	# Only intervene if we are currently waiting for input from THIS player
+	if _current_input_player != player_id: return
+	
+	# Check valid states for input
+	if GameManager.current_state != GameManager.State.SELECTION and GameManager.current_state != GameManager.State.FEINT_CHECK:
+		return
+
+	# If switched TO BOT, force the bot to run immediately
+	if not is_human:
+		print(">>> TAKEOVER: Bot taking control of P" + str(player_id))
+		battle_ui.lock_ui() # Hide the human UI
+		_run_bot_turn(player_id)
+	
+	# If switched TO HUMAN, unlock the UI
+	elif is_human:
+		print(">>> TAKEOVER: Human taking control of P" + str(player_id))
+		_prepare_human_turn(player_id)
+
+# --- GAME LOOP ---
+
+func _on_state_changed(new_state):
+	if not _simulation_active: return
+
+	match new_state:
+		GameManager.State.SELECTION:
+			await get_tree().create_timer(0.5).timeout
+			_start_turn_sequence()
+			
+		GameManager.State.FEINT_CHECK:
+			await get_tree().create_timer(0.3).timeout
+			print("| --- FEINT PHASE --- |")
+			_start_feint_input()
+
+		GameManager.State.POST_CLASH:
+			_print_status_report()
+
+func _start_turn_sequence():
+	if is_player_1_human: _prepare_human_turn(1)
+	else:
+		print("\n| --- NEW TURN: AI P1 --- |")
+		_run_bot_turn(1)
+
+func _start_feint_input():
+	if GameManager.p1_pending_feint:
+		print("| --- WAITING FOR P1 FEINT SELECTION --- |")
+		if is_player_1_human: _prepare_human_turn(1)
+		else: _run_bot_turn(1)
+	elif GameManager.p2_pending_feint:
+		print("| --- WAITING FOR P2 FEINT SELECTION --- |")
+		if is_player_2_human: _prepare_human_turn(2)
+		else: _run_bot_turn(2)
+
+func _get_player_constraints(player_id: int) -> Dictionary:
+	var attacker_id = GameManager.get_attacker()
+	var is_combo = (GameManager.current_combo_attacker != 0)
+	var mom = GameManager.momentum
+	
+	var c = {
+		"filter": null, "required_tab": null, "needs_opener": false,
+		"max_cost": 99, "opening_stat": 0, "can_use_super": false, "opportunity_stat": 0 
+	}
+	
+	if player_id == 1:
+		c.max_cost = GameManager.p1_cost_limit
+		c.opening_stat = GameManager.p1_opening_stat
+		c.opportunity_stat = GameManager.p1_opportunity_stat 
+		if mom == 1 and not p1_resource.has_used_super: c.can_use_super = true
+		if GameManager.p1_must_opener: c.needs_opener = true
+	else:
+		c.max_cost = GameManager.p2_cost_limit
+		c.opening_stat = GameManager.p2_opening_stat
+		c.opportunity_stat = GameManager.p2_opportunity_stat 
+		if mom == 8 and not p2_resource.has_used_super: c.can_use_super = true
+		if GameManager.p2_must_opener: c.needs_opener = true
+
+	if attacker_id != 0:
+		if attacker_id == player_id:
+			c.filter = ActionData.Type.OFFENCE
+			c.required_tab = ActionData.Type.OFFENCE
+		else:
+			c.filter = ActionData.Type.DEFENCE
+			c.required_tab = ActionData.Type.DEFENCE
+			
+	if mom == 0: c.needs_opener = true
+	elif attacker_id == player_id and not is_combo: c.needs_opener = true
+		
+	return c
+
+func _prepare_human_turn(player_id: int):
+	_current_input_player = player_id
+	var character = p1_resource if player_id == 1 else p2_resource
+	
+	# --- NEW: SETUP UI TOGGLES ---
+	battle_ui.setup_passive_toggles(character.class_type)
+	# -----------------------------
+	battle_ui.load_deck(character.deck)
+	
+	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
+	if locked_card and GameManager.current_state == GameManager.State.SELECTION:
+		print(">>> P" + str(player_id) + " LOCKED into: " + locked_card.display_name)
+		_on_human_input_received(locked_card)
+		return
+
+	var c = _get_player_constraints(player_id)
+	var is_feinting = (GameManager.current_state == GameManager.State.FEINT_CHECK)
+	
+	if is_feinting:
+		print("[GUIDE P" + str(player_id) + "] Feint! Choose a card to combine, or 'SKIP FEINT'.")
+	else:
+		if c.required_tab == ActionData.Type.OFFENCE: print("[GUIDE P" + str(player_id) + "] Attack!")
+		elif c.required_tab == ActionData.Type.DEFENCE: print("[GUIDE P" + str(player_id) + "] Defend!")
+		else: print("[GUIDE P" + str(player_id) + "] Neutral.")
+	
+	_update_visuals() 
+	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
+	
+	battle_ui.unlock_for_input(
+		c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
+		c.can_use_super, c.opportunity_stat, is_feinting
+	)
+
+func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # Updated Signature
+	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
+	
+	var action_to_submit = card
+	if card.display_name == "SKIP FEINT": action_to_submit = null
+	
+	# Pass the extra data (toggles) to GameManager
+	GameManager.player_select_action(_current_input_player, action_to_submit, extra_data)
+	
+	if GameManager.current_state == GameManager.State.SELECTION:
+		if _current_input_player == 1:
+			if is_player_2_human:
+				await get_tree().create_timer(0.2).timeout
+				_prepare_human_turn(2)
+			else: _run_bot_turn(2)
+				
+	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
+		await get_tree().create_timer(0.2).timeout
+		_start_feint_input() 
+
+func _run_bot_turn(player_id: int):
+	_current_input_player = player_id # Ensure tracker is correct for mid-turn switches
+	var character = p1_resource if player_id == 1 else p2_resource
+	
+	if player_id == 2 and p2_debug_force_card != null and GameManager.current_state == GameManager.State.SELECTION:
+		print(">>> DEBUG FORCE P2: " + p2_debug_force_card.display_name)
+		GameManager.player_select_action(2, p2_debug_force_card)
+		return
+
+	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
+	if locked_card and GameManager.current_state == GameManager.State.SELECTION:
+		print(">>> BOT P" + str(player_id) + " LOCKED into: " + locked_card.display_name)
+		_handle_bot_completion(player_id)
+		return
+
+	var c = _get_player_constraints(player_id)
+	
+	var card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
+	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
+	GameManager.player_select_action(player_id, card)
+	
+	if GameManager.current_state == GameManager.State.SELECTION: _handle_bot_completion(player_id)
+	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
+		await get_tree().create_timer(0.2).timeout
+		_start_feint_input()
+
+func _handle_bot_completion(player_id):
+	if player_id == 1:
+		if is_player_2_human: _prepare_human_turn(2)
+		else: _run_bot_turn(2)
+
+# TestArena.gd
+
+# TestArena.gd
+
+func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
+	var valid_options = []
+	var affordable_backups = [] 
+	
+	# A. FILTER (Same as before)
+	for card in character.deck:
+		if type_filter != null and card.type != type_filter: continue
+		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
+		if card.cost > max_cost: continue
+		if card.counter_value > 0 and my_opening < card.counter_value: continue
+		if card.is_super and not allow_super: continue
+		
+		var effective_cost = max(0, card.cost - my_opportunity)
+		var can_pay = (effective_cost <= character.current_sp)
+		
+		if character.class_type == CharacterData.ClassType.HEAVY:
+			if (character.current_sp + character.current_hp) > effective_cost:
+				can_pay = true
+				
+		if can_pay:
+			valid_options.append(card)
+		elif effective_cost == 0:
+			affordable_backups.append(card)
+	
+	if valid_options.is_empty():
+		if affordable_backups.size() > 0: return affordable_backups.pick_random()
+		return character.deck[0] 
+
+	# B. STRATEGY
+	var best_card = valid_options[0]
+	
+	# --- NEW LOGIC START ---
+	var is_very_easy = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
+	
+	# If Very Easy: We want the LOWEST score, so start High.
+	# If Normal: We want the HIGHEST score, so start Low.
+	var best_score = 99999.0 if is_very_easy else -99999.0
+	
+	var my_id = 1 if character == p1_resource else 2
+	var opponent = p2_resource if my_id == 1 else p1_resource
+	
+	# Noise Setup
+	var noise_range = 0.0
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.VERY_EASY: noise_range = 0.0 # No noise, just pure bad decisions
+		GameManager.Difficulty.EASY: noise_range = 100.0
+		GameManager.Difficulty.MEDIUM: noise_range = 25.0
+		GameManager.Difficulty.HARD: noise_range = 2.0
+	
+	for card in valid_options:
+		var score = _score_card_utility(card, character, opponent, my_id)
+		score += randf_range(-noise_range, noise_range)
+		
+		if is_very_easy:
+			# INVERTED LOGIC: Pick the WORST score
+			if score < best_score:
+				best_score = score
+				best_card = card
+		else:
+			# STANDARD LOGIC: Pick the BEST score
+			if score > best_score:
+				best_score = score
+				best_card = card
+	
+	return best_card
+
+# 2. THE BRAIN (Assigns value to actions)
+func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
+	var score = 0.0
+	
+	# --- 1. KILL INSTINCT ---
+	# If this card kills the opponent, prioritize it above all else!
+	if card.damage >= opp.current_hp:
+		score += 1000.0
+		
+	# --- 2. SURVIVAL INSTINCT ---
+	# If I am dying (HP < 4), prioritize staying alive
+	if me.current_hp < 4:
+		score += card.block_value * 10
+		score += card.heal_value * 15
+		score += card.dodge_value * 10
+		if card.type == ActionData.Type.DEFENCE: score += 20
+		
+	# --- 3. MOMENTUM STRATEGY ---
+	var mom = GameManager.momentum
+	# Helper: "My Side" is 1-4 for P1, 5-8 for P2.
+	var winning_momentum = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
+	var losing_momentum = (my_id == 1 and mom >= 5) or (my_id == 2 and mom <= 4)
+	
+	if winning_momentum:
+		# PRESS THE ADVANTAGE: Value Damage and Momentum Gain
+		score += card.damage * 10
+		score += card.momentum_gain * 5
+		if card.type == ActionData.Type.OFFENCE: score += 10
+	
+	elif losing_momentum:
+		# TURN THE TIDE: Value Reversals, Parries, and Pushback
+		if card.reversal: score += 50
+		if card.is_parry: score += 40
+		score += card.fall_back_value * 8
+		score += card.block_value * 5 # Play safe
+		
+	# --- 4. TACTICAL COMBOS ---
+	# If I have a combo opening (e.g., Opponent is off-balance), use Counters!
+	var my_opening = GameManager.p1_opening_stat if my_id == 1 else GameManager.p2_opening_stat
+	if my_opening > 0:
+		# If this card takes advantage of the opening, boost it
+		if card.counter_value > 0 and card.counter_value <= my_opening:
+			score += 40
+			
+	# --- 5. CLASS SPECIFIC BIAS ---
+	match me.class_type:
+		CharacterData.ClassType.HEAVY:
+			score += card.damage * 5 # Loves damage
+			score += card.block_value * 5 # Loves blocking
+		CharacterData.ClassType.PATIENT:
+			score += card.recover_value * 5 # Loves recovery
+			if card.is_parry: score += 10 # love parry
+		CharacterData.ClassType.QUICK:
+			if card.cost <= 1: score += 10 # Loves cheap cards
+			score += card.dodge_value * 5 #love dodge
+		CharacterData.ClassType.TECHNICAL:
+			if card.reversal: score += 10 #loves reversal
+			score += card.tiring * 5
+			if card.create_opening: score += 10
+			
+	# --- 6. COST EFFICIENCY ---
+	# Don't spend all SP unless necessary
+	if card.cost > 0:
+		var sp_ratio = float(me.current_sp) / float(me.max_sp)
+		if sp_ratio < 0.3: 
+			# Low SP? Penalize expensive cards heavily
+			score -= card.cost * 15
+	
+	return score
+
+# --- LOGGING ---
+func _on_game_over(winner_id):
+	print("\n*** VICTORY FOR PLAYER " + str(winner_id) + "! ***")
+	if stop_on_game_over: _simulation_active = false
+	
+	# 1. Wait a moment for the final hit impact to register visually
+	await get_tree().create_timer(1.5).timeout
+	
+	# 2. Lock UI so no more cards can be clicked
+	if battle_ui:
+		battle_ui.lock_ui()
+	
+	# 3. Spawn Game Over Screen
+	var screen = game_over_scene.instantiate()
+	# Add to CanvasLayer (BattleUI) so it draws on top of everything, 
+	# or add to self if you want it part of the world. 
+	# Adding to BattleUI is usually safer for Z-index.
+	battle_ui.add_child(screen) 
+	screen.setup(winner_id)
+	
+	
+func _on_clash_resolved(winner_id, _text): 
+	print("\n>>> Clash Winner: P" + str(winner_id))
+	_update_visuals()
+func _on_log_updated(text): print("   > " + text)
+func _print_status_report():
+	var p1 = p1_resource; var p2 = p2_resource
+	var visual = "[ "; for i in range(1, 5): visual += ("P1 " if GameManager.momentum == i else str(i) + " ")
+	visual += "| "; for i in range(5, 9): visual += ("P2 " if GameManager.momentum == i else str(i) + " ")
+	visual += "]"
+	print("\n[STATUS] P1: " + str(p1.current_hp) + "HP/" + str(p1.current_sp) + "SP  vs  P2: " + str(p2.current_hp) + "HP/" + str(p2.current_sp) + "SP")
+	print("[MOMENTUM] " + visual)
+
+
+========================================
+FILE PATH: res://Scripts/Tools/ActionImporter.gd
+========================================
+@tool
+extends EditorScript
+
+const CSV_PATH = "res://Data/ALLACTIONS.csv"
+const SAVE_DIR = "res://Data/Actions/"
+
+func _run():
+	if not FileAccess.file_exists(CSV_PATH):
+		print("Error: Could not find " + CSV_PATH)
+		return
+
+	var file = FileAccess.open(CSV_PATH, FileAccess.READ)
+	
+	# Create the directory if it doesn't exist
+	var dir = DirAccess.open("res://")
+	if not dir.dir_exists(SAVE_DIR):
+		dir.make_dir_recursive(SAVE_DIR)
+		
+	print("--- Starting Import from ALLACTIONS.csv ---")
+	
+	while not file.eof_reached():
+		var line = file.get_csv_line()
+		if line.size() < 27: continue # Skip empty lines
+		
+		# 1. Create the Resource Instance
+		var action = ActionData.new()
+		
+		# 2. Map Columns (0-27)
+		action.display_name = line[0]
+		action.description = line[1]
+		
+		action.block_value = int(line[2])
+		action.cost = int(line[3])
+		action.counter_value = int(line[4])
+		action.create_opening = int(line[5])
+		action.damage = int(line[6])
+		
+		# Type Logic: Offence column (16) takes priority, otherwise Defence (7)
+		var is_offence = (line[16].to_lower() == "true")
+		if is_offence:
+			action.type = ActionData.Type.OFFENCE
+		else:
+			action.type = ActionData.Type.DEFENCE
+			
+		action.feint = (line[8].to_lower() == "true") # Column 8 is "Ditto" (Feint)
+		action.dodge_value = int(line[9])
+		action.fall_back_value = int(line[10])
+		action.guard_break = (line[11].to_lower() == "true")
+		action.heal_value = int(line[12])
+		action.injure = (line[13].to_lower() == "true")
+		action.momentum_gain = int(line[14])
+		action.multi_limit = int(line[15])
+		action.is_opener = (line[17].to_lower() == "true")
+		action.opportunity = int(line[18])
+		action.is_parry = (line[19].to_lower() == "true")
+		action.recover_value = int(line[20])
+		action.repeat_count = int(line[21])
+		action.retaliate = (line[22].to_lower() == "true")
+		action.reversal = (line[23].to_lower() == "true")
+		action.is_super = (line[24].to_lower() == "true")
+		action.sweep = (line[25].to_lower() == "true")
+		action.tiring = int(line[26])
+		
+		# 3. Apply Hard-Coded Fixes (The "Harsh" Audit)
+		if action.display_name == "Vital Point Assault" and action.repeat_count == 3:
+			print("Applying v0.3 Fix: Vital Point Assault Repeat 3 -> 2")
+			action.repeat_count = 2
+			
+		# 4. Generate Filename (snake_case)
+		# "Basic Light" -> "basic_light.tres"
+		var filename = action.display_name.to_lower().replace(" ", "_").replace("'", "") + ".tres"
+		action.id = filename.replace(".tres", "") # internal ID matches filename
+		
+		# 5. Save
+		var err = ResourceSaver.save(action, SAVE_DIR + filename)
+		if err == OK:
+			print("Saved: " + filename)
+		else:
+			print("Failed to save: " + filename)
+
+	print("--- Import Complete ---")
+	# Refresh Editor
+	var editor = EditorInterface.get_resource_filesystem()
+	editor.scan()
+
+
+========================================
+FILE PATH: res://Scripts/Tools/BulkIconAssigner.gd
+========================================
+@tool
+extends EditorScript
+
+# --- CONFIGURATION ---
+const ACTIONS_FOLDER = "res://Data/Actions/"
+
+# REPLACE THESE WITH YOUR ACTUAL ICON PATHS
+const OFFENCE_ICON_PATH = "res://Art/OffenceBasic.jpg"
+const DEFENCE_ICON_PATH = "res://Art/DefenceBasic.jpg"
+
+func _run():
+	# 1. Load the icons
+	var off_icon = load(OFFENCE_ICON_PATH)
+	var def_icon = load(DEFENCE_ICON_PATH)
+
+	# Safety Check
+	if not off_icon or not def_icon:
+		printerr("Error: Could not load one or both icons. Check the paths!")
+		return
+
+	print("--- STARTING SMART BULK UPDATE ---")
+	
+	# 2. Start scanning
+	_scan_directory(ACTIONS_FOLDER, off_icon, def_icon)
+	
+	print("--- COMPLETE! ---")
+
+func _scan_directory(path: String, off_icon: Texture2D, def_icon: Texture2D):
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		
+		while file_name != "":
+			if dir.current_is_dir():
+				if file_name != "." and file_name != "..":
+					_scan_directory(path + file_name + "/", off_icon, def_icon)
+			else:
+				if file_name.ends_with(".tres"):
+					_apply_icon_to_file(path + file_name, off_icon, def_icon)
+			
+			file_name = dir.get_next()
+
+func _apply_icon_to_file(file_path: String, off_icon: Texture2D, def_icon: Texture2D):
+	var resource = ResourceLoader.load(file_path)
+	
+	if resource is ActionData:
+		var target_icon = null
+		
+		# --- LOGIC: CHOOSE ICON BASED ON TYPE ---
+		if resource.type == ActionData.Type.OFFENCE:
+			target_icon = off_icon
+		elif resource.type == ActionData.Type.DEFENCE:
+			target_icon = def_icon
+			
+		# Apply if we found a valid type
+		if target_icon:
+			# OPTIONAL: Check 'if resource.icon == null:' if you only want to fill empty ones.
+			# Currently, this overwrites everything so you can fix incorrect icons.
+			if resource.icon != target_icon:
+				resource.icon = target_icon
+				ResourceSaver.save(resource, file_path)
+				print("Updated: " + file_path + " -> " + ("Offence" if resource.type == 0 else "Defence"))
+
+
+========================================
+FILE PATH: res://Scripts/Tools/ProjectDumper.gd
+========================================
+@tool
+extends EditorScript
+
+# Files to ignore (e.g. addons usually don't need reviewing)
+const IGNORE_DIRS = [".", "..", ".godot", "addons", "android", "ios"]
+
+func _run():
+	var all_code = "--- START OF PROJECT DUMP ---\n"
+	all_code += _scan_directory("res://")
+	
+	# Save to the root of your project
+	var save_path = "res://FullProjectCode.txt"
+	var file = FileAccess.open(save_path, FileAccess.WRITE)
+	if file:
+		file.store_string(all_code)
+		file.close()
+		print("SUCCESS! All scripts dumped to: " + save_path)
+		print("You can now upload 'FullProjectCode.txt' to the chat.")
+	else:
+		printerr("Failed to save dump file.")
+
+func _scan_directory(path: String) -> String:
+	var output = ""
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		
+		while file_name != "":
+			if dir.current_is_dir():
+				if not file_name in IGNORE_DIRS:
+					output += _scan_directory(path + file_name + "/")
+			else:
+				# We only care about scripts (.gd) and maybe headers (.tscn if you want structure)
+				# For code cleanup, .gd is usually enough.
+				if file_name.ends_with(".gd"):
+					output += "\n\n========================================\n"
+					output += "FILE PATH: " + path + file_name + "\n"
+					output += "========================================\n"
+					
+					var f = FileAccess.open(path + file_name, FileAccess.READ)
+					if f:
+						output += f.get_as_text()
+						f.close()
+			
+			file_name = dir.get_next()
+	return output

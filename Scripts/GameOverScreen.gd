@@ -15,6 +15,18 @@ func setup(winner_id: int):
 		winner_label.modulate = Color("#99ccff") # Blue tint
 	else:
 		winner_label.text = "DRAW!"
+	
+	# ARCADE LOGIC
+	if RunManager.is_arcade_mode:
+		if winner_id == 1:
+			# Player Won
+			$Panel/VBoxContainer/RematchButton.text = "CLAIM REWARD"
+			$Panel/VBoxContainer/RematchButton.pressed.disconnect(_on_rematch_pressed)
+			$Panel/VBoxContainer/RematchButton.pressed.connect(func(): RunManager.handle_win())
+		else:
+			# Player Lost
+			$Panel/VBoxContainer/RematchButton.visible = false # No retry in arcade!
+			$Panel/VBoxContainer/MenuButton.text = "RUN OVER"
 
 func _on_rematch_pressed():
 	# IMPORTANT: Reset logic ensures stats are clean for new round

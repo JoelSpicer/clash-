@@ -230,3 +230,14 @@ func _on_difficulty_changed(index: int):
 	# 0 -> EASY, 1 -> MEDIUM, 2 -> HARD
 	GameManager.ai_difficulty = index as GameManager.Difficulty
 	print("Difficulty set to: " + str(index))
+
+
+func _on_start_arcade_pressed():
+	var selected_idx = p1_option.selected
+	# Check if it's a base class (Indices 0-3)
+	if selected_idx > 3:
+		print("Arcade Mode must start with a base class!")
+		return
+
+	var class_enum = selected_idx as CharacterData.ClassType
+	RunManager.start_run(class_enum)

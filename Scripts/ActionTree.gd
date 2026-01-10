@@ -1,42 +1,8 @@
 extends Control
 
-# --- DATA ---
-# (Keep your existing dictionaries here)
-var action_tree_key_dict = {
-	"Toppling Kick":1, "Pummel":2, "One Two":3, "Evading Dance":4, "Slip Behind":5,
-	"Adept Dodge":6, "Adept Light":7, "Hundred Hand Slap":8, "Precise Strike":9, "Breakout":10,
-	"Read Offence":11, "Quick Dodge":12, "Master Dodge":13, "Master Light":14, "Flying Kick":15,
-	"Vital Strike":16, "Unassailable Stance":17, "Strike Back":18, "Leg Sweep":19, "Catch":20,
-	"Drop Prone":21, "Perfect Strike":22, "Step Up":23, "Go with the Flow":24, "Prime":25,
-	"Inner Peace":26, "Adept Reversal":27, "Master Reversal":28, "Untouchable Dodge":29,
-	"Ultimate Barrage":30, "Advancing Parry":31, "Master Positioning":32, "Adept Positioning":33,
-	"Grab":34, "Wind Up":35, "Vital Point Assault":36, "Overwhelming Aura":37, "Parry FollowUp":38,
-	"Adjust Stance":39, "Adept Tech":40, "Master Tech":41, "Crushing Block":42, "Final Strike":43,
-	"Redirect":44, "Master Parry":45, "Adept Parry":46, "Throw":47, "Resounding Parry":48,
-	"Push":49, "Twist Arm":50, "Suplex":51, "Perfect Block":52, "Active Block":53,
-	"Retreating Defence":54, "Resounding Counter":55, "Read Defence":56, "Headbutt":57, "Lariat":58,
-	"Master Heavy":59, "Master Block":60, "Draining Defence":61, "Slapping Parry":62, "Tiring Parry":63,
-	"Roundhouse Kick":64, "Uppercut":65, "Adept Heavy":66, "Adept Block":67, "Push Kick":68,
-	"Drop Punch":69, "Knee Crush":70, "Drop Kick":71, "Immovable Stance":72,
-	"Quick":73, "Technical":74, "Patient":75, "Heavy":76
-}
-
-var action_tree_dict = {
-	1:[12,5], 2:[6,7], 3:[8,15], 4:[11,12], 5:[1,6], 6:[2,5,13], 7:[2,14,8], 8:[7,3],
-	9:[15,16], 10:[11,19], 11:[4,10,20], 12:[4,1,13,20], 13:[12,6,21], 14:[7,15,21],
-	15:[3,14,9,22], 16:[9,22,17], 17:[16,23], 18:[19,25], 19:[10,18,20,28], 20:[19,11,12,29],
-	21:[13,14,29,31,30], 22:[15,16,23,31], 23:[22,17,24,32], 24:[23,26], 25:[18,27], 26:[24,33],
-	27:[34,28,25], 28:[27,19,35], 29:[20,21,35], 30:[21], 31:[21,22,38], 32:[23,38,33],
-	33:[32,26,39], 34:[27,40], 35:[28,41,29,42,36], 36:[35], 37:[38], 38:[31,32,44,45,37],
-	39:[33,46], 40:[34,41,47], 41:[40,50,35], 42:[35,51,52], 43:[52], 44:[52,38,53],
-	45:[38,46,54], 46:[45,48], 47:[40,49], 48:[46,55], 49:[47,50], 50:[49,41,51,56],
-	51:[50,42,58,57], 52:[42,43,44,59,60], 53:[44,54,61,62], 54:[53,45,55,63], 55:[48,54],
-	56:[50,57], 57:[56,51,64], 58:[51,64,59,70], 59:[52,66,58], 60:[52,67,61], 61:[53,72,69],
-	62:[53,63,69], 63:[54,62], 64:[57,58], 65:[70,66], 66:[59,65,71], 67:[68,60,71],
-	68:[67,72], 69:[61,62], 70:[58,65], 71:[66,67], 72:[68,61], 73:[2], 74:[34], 75:[39], 76:[71]
-}
-
+var action_tree_dict = {}     # Empty placeholder
 var id_to_name = {}
+var name_to_id = {}
 
 const NODE_QUICK = 73
 const NODE_TECHNICAL = 74
@@ -52,7 +18,7 @@ var unlocked_ids: Array[int] = []
 var owned_ids: Array[int] = []
 var selected_class_id: int = 0
 var is_class_locked: bool = false
-
+var pending_unlock_id: int = 0 # Track the ONE card the player wants to pick
 # --- NEW: STATS TRACKING ---
 var current_max_hp: int = 10
 var current_max_sp: int = 3
@@ -63,9 +29,13 @@ var card_scene = preload("res://Scenes/CardDisplay.tscn")
 var popup_card: Control
 
 func _ready():
-	# 1. Build ID lookup
-	for key in action_tree_key_dict:
-		id_to_name[action_tree_key_dict[key]] = key
+	action_tree_dict = ClassFactory.TREE_CONNECTIONS
+	id_to_name = ClassFactory.ID_TO_NAME_MAP
+	
+	# Build a reverse lookup (Name -> ID) for Presets to use
+	name_to_id.clear()
+	for id in id_to_name:
+		name_to_id[id_to_name[id]] = id
 	
 	# 2. Setup Nodes
 	for child in nodes_layer.get_children():
@@ -84,9 +54,36 @@ func _ready():
 	stats_label.position.y += 20 # Offset from top
 	add_child(stats_label)
 	
-	var btn_back = $TreeContainer/BackButton 
-	if btn_back:
-		btn_back.pressed.connect(_on_back_button_pressed)
+	if RunManager.is_arcade_mode:
+		print("ActionTree: Loading Arcade Run Data...")
+		
+		# A. Load state from RunManager instead of GameManager temp vars
+		# We clone the list so we don't accidentally modify the 'real' list until confirmed
+		owned_ids = RunManager.player_owned_tree_ids.duplicate()
+		
+		# The first node in the list is always the Class Node (73-76)
+		if owned_ids.size() > 0:
+			selected_class_id = owned_ids[0] 
+		
+		# B. Lock the UI 'Back' button so they can't leave without picking
+		var btn_back = $TreeContainer/BackButton
+		if btn_back: btn_back.visible = false 
+		
+		# C. Change the Confirm button text
+		var btn_confirm = $TreeContainer/ConfirmButton 
+		if btn_confirm: btn_confirm.text = "UNLOCK & FIGHT"
+		
+		# D. Calculate unlocks based on what we already own
+		_unlock_neighbors(selected_class_id)
+		for oid in owned_ids: 
+			_unlock_neighbors(oid)
+	else:
+		_setup_for_current_player()
+		var btn_back = $TreeContainer/BackButton
+		if btn_back:
+			btn_back.pressed.connect(_on_back_button_pressed)
+		
+	
 	
 	# 4. --- NEW: CREATE POPUP CARD ---
 	var canvas = CanvasLayer.new() # Use CanvasLayer to float above everything
@@ -109,8 +106,6 @@ func _ready():
 	popup_card.mouse_filter = Control.MOUSE_FILTER_IGNORE # Don't block mouse
 	canvas.add_child(popup_card)
 
-	# 4. Check for Pre-Selection
-	_setup_for_current_player()
 	
 	_update_tree_visuals()
 	_recalculate_stats() # Initial calc
@@ -199,15 +194,15 @@ func _setup_for_current_player():
 		print("Applying Preset Skills: ", target_preset.extra_skills)
 		
 		for skill_name in target_preset.extra_skills:
-			# Look up the ID using your existing Name->ID dictionary
-			if skill_name in action_tree_key_dict:
-				var id = action_tree_key_dict[skill_name]
+			# FIX: Use 'name_to_id' instead of the deleted 'action_tree_key_dict'
+			if skill_name in name_to_id:
+				var id = name_to_id[skill_name]
 				
 				# Add to owned if not already there
 				if id not in owned_ids:
 					owned_ids.append(id)
 			else:
-				printerr("Warning: Preset skill '" + skill_name + "' not found in ActionTree dict.")
+				printerr("Warning: Preset skill '" + skill_name + "' not found.")
 		
 		# IMPORTANT: Now that we forced nodes into 'owned_ids', 
 		# we must re-run the unlock logic so their neighbors turn yellow.
@@ -251,6 +246,39 @@ func _update_popup_position():
 	popup_card.position = final_pos
 
 func _on_node_clicked(id: int, _name: String):
+	if RunManager.is_arcade_mode:
+		# Rule 1: You can't un-learn skills you already have
+		if id in owned_ids: 
+			return 
+			
+		# Rule 2: You can only pick yellow (unlocked) nodes
+		if id not in unlocked_ids: 
+			return 
+		
+		# Rule 3: Set this as the "Pending Reward"
+		pending_unlock_id = id
+		print("Selected reward candidate: " + str(id))
+		
+		# Visual Feedback: Show what stats this NEW card would give
+		# We create a fake deck consisting of (Current Deck + New Card)
+		var temp_deck = RunManager.player_run_data.deck.duplicate()
+		var card_name = id_to_name.get(id)
+		var new_card = _find_action_resource(card_name)
+		
+		if new_card:
+			temp_deck.append(new_card)
+			# Ask Factory to calculate stats for this potential future
+			var result = ClassFactory.calculate_stats_for_deck(RunManager.player_run_data.class_type, temp_deck)
+			
+			stats_label.text = "NEXT FIGHT STATS: HP " + str(result["hp"]) + " | SP " + str(result["sp"])
+			stats_label.modulate = Color.GREEN # Make it look like a preview
+			
+			# Update visuals to show the glow on the new selection
+		_update_tree_visuals()
+		
+		# --- CRITICAL FIX: STOP HERE! ---
+		return
+	
 	if id >= 73 and id <= 76:
 		if is_class_locked: return
 		_select_class(id)
@@ -332,6 +360,12 @@ func _update_tree_visuals():
 		else:
 			child.set_status(0) 
 			
+		# NEW: Highlight the pending selection
+		if RunManager.is_arcade_mode and id == pending_unlock_id:
+			child.modulate = Color(1.5, 1.5, 1.5) # Make it glow bright
+		else:
+			child.modulate = Color.WHITE # Reset
+			
 		if id >= 73 and id <= 76:
 			child.set_status(1)
 			if id == selected_class_id: child.set_status(2)
@@ -351,6 +385,36 @@ func _find_action_resource(action_name: String) -> ActionData:
 	return null
 
 func _on_confirm_button_pressed():
+	# --- ARCADE MODE LOGIC ---
+	if RunManager.is_arcade_mode:
+		if pending_unlock_id == 0:
+			print("Please select a new skill first!")
+			# Optional: Shake the screen or flash red
+			return
+			
+		print("Committing Reward: " + str(pending_unlock_id))
+		
+		# 1. PERMANENTLY Save the new ID to the run
+		RunManager.player_owned_tree_ids.append(pending_unlock_id)
+		
+		# 2. Add the actual Card Resource to the player's deck
+		var card_name = id_to_name.get(pending_unlock_id)
+		var new_card = _find_action_resource(card_name)
+		if new_card:
+			RunManager.player_run_data.deck.append(new_card)
+			
+		# 3. Update the Player's HP/SP Stats permanently
+		ClassFactory._recalculate_stats(RunManager.player_run_data)
+		
+		# 4. Heal the player (Optional: Arcade usually heals on level up)
+		RunManager.player_run_data.current_hp = RunManager.player_run_data.max_hp
+		RunManager.player_run_data.current_sp = RunManager.player_run_data.max_sp
+		
+		# 5. Launch the next fight!
+		RunManager.start_next_fight()
+		return
+	# -------------------------
+	
 	if selected_class_id == 0:
 		print("Please select a Class first!")
 		return
