@@ -22,7 +22,7 @@ func _ready():
 	battle_ui.combat_log.clear_log()
 	
 	# Force difficulty for testing
-	GameManager.ai_difficulty = GameManager.Difficulty.HARD
+	#GameManager.ai_difficulty = GameManager.Difficulty.HARD
 	
 	# --- NEW LOGIC: CHECK FOR SELECTION ---
 	if GameManager.next_match_p1_data != null:
@@ -53,7 +53,27 @@ func _ready():
 	# Setup Visuals & Toggles
 	battle_ui.initialize_hud(p1_resource, p2_resource)
 	battle_ui.setup_toggles(is_player_1_human, is_player_2_human)
-
+	
+	# --- NEW: DISPLAY DIFFICULTY ON HUD ---
+	# We determine the string suffix based on the setting
+	var diff_suffix = ""
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.VERY_EASY: diff_suffix = " (Very Easy)"
+		GameManager.Difficulty.EASY: diff_suffix = " (Easy)"
+		GameManager.Difficulty.MEDIUM: diff_suffix = " (Medium)"
+		GameManager.Difficulty.HARD: diff_suffix = " (Hard)"
+	
+	# If Player 1 is a bot, update their name tag
+	if not is_player_1_human:
+		if battle_ui.p1_hud and battle_ui.p1_hud.name_label:
+			battle_ui.p1_hud.name_label.text += diff_suffix
+			
+	# If Player 2 is a bot, update their name tag
+	if not is_player_2_human:
+		if battle_ui.p2_hud and battle_ui.p2_hud.name_label:
+			battle_ui.p2_hud.name_label.text += diff_suffix
+	# --------------------------------------
+	
 func _update_visuals():
 	battle_ui.update_all_visuals(p1_resource, p2_resource, GameManager.momentum)
 
@@ -245,11 +265,13 @@ func _handle_bot_completion(player_id):
 
 # TestArena.gd
 
+# TestArena.gd
+
 func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
 	var valid_options = []
 	var affordable_backups = [] 
 	
-	# A. FILTER (Find all legally playable cards)
+	# A. FILTER (Same as before)
 	for card in character.deck:
 		if type_filter != null and card.type != type_filter: continue
 		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
@@ -260,7 +282,6 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		var effective_cost = max(0, card.cost - my_opportunity)
 		var can_pay = (effective_cost <= character.current_sp)
 		
-		# Heavy Class "Rage" Logic
 		if character.class_type == CharacterData.ClassType.HEAVY:
 			if (character.current_sp + character.current_hp) > effective_cost:
 				can_pay = true
@@ -270,39 +291,47 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		elif effective_cost == 0:
 			affordable_backups.append(card)
 	
-	# Fallback if no moves are possible
 	if valid_options.is_empty():
 		if affordable_backups.size() > 0: return affordable_backups.pick_random()
 		return character.deck[0] 
 
-	# B. STRATEGY (Score the options based on difficulty)
+	# B. STRATEGY
 	var best_card = valid_options[0]
-	var best_score = -99999.0 # Start really low
+	
+	# --- NEW LOGIC START ---
+	var is_very_easy = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
+	
+	# If Very Easy: We want the LOWEST score, so start High.
+	# If Normal: We want the HIGHEST score, so start Low.
+	var best_score = 99999.0 if is_very_easy else -99999.0
 	
 	var my_id = 1 if character == p1_resource else 2
 	var opponent = p2_resource if my_id == 1 else p1_resource
 	
-	# --- DETERMINE "NOISE" BASED ON DIFFICULTY ---
+	# Noise Setup
 	var noise_range = 0.0
 	match GameManager.ai_difficulty:
-		GameManager.Difficulty.EASY: noise_range = 100.0   # Massive randomness (Chaos)
-		GameManager.Difficulty.MEDIUM: noise_range = 25.0  # Moderate randomness (Human error)
-		GameManager.Difficulty.HARD: noise_range = 2.0     # Tiny randomness (Variety only)
+		GameManager.Difficulty.VERY_EASY: noise_range = 0.0 # No noise, just pure bad decisions
+		GameManager.Difficulty.EASY: noise_range = 100.0
+		GameManager.Difficulty.MEDIUM: noise_range = 25.0
+		GameManager.Difficulty.HARD: noise_range = 2.0
 	
 	for card in valid_options:
 		var score = _score_card_utility(card, character, opponent, my_id)
-		
-		# Apply the "Brain Fog"
 		score += randf_range(-noise_range, noise_range)
 		
-		# Debug: See what the bot is thinking
-		print("Bot P%s considers %s: Score %d" % [my_id, card.display_name, score])
-		
-		if score > best_score:
-			best_score = score
-			best_card = card
-			
-	return best_card 
+		if is_very_easy:
+			# INVERTED LOGIC: Pick the WORST score
+			if score < best_score:
+				best_score = score
+				best_card = card
+		else:
+			# STANDARD LOGIC: Pick the BEST score
+			if score > best_score:
+				best_score = score
+				best_card = card
+	
+	return best_card
 
 # 2. THE BRAIN (Assigns value to actions)
 func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
@@ -352,10 +381,17 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 	match me.class_type:
 		CharacterData.ClassType.HEAVY:
 			score += card.damage * 5 # Loves damage
-		CharacterData.ClassType.PATIENT:
 			score += card.block_value * 5 # Loves blocking
+		CharacterData.ClassType.PATIENT:
+			score += card.recover_value * 5 # Loves recovery
+			if card.is_parry: score += 10 # love parry
 		CharacterData.ClassType.QUICK:
 			if card.cost <= 1: score += 10 # Loves cheap cards
+			score += card.dodge_value * 5 #love dodge
+		CharacterData.ClassType.TECHNICAL:
+			if card.reversal: score += 10 #loves reversal
+			score += card.tiring * 5
+			if card.create_opening: score += 10
 			
 	# --- 6. COST EFFICIENCY ---
 	# Don't spend all SP unless necessary

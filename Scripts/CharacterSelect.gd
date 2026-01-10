@@ -10,6 +10,7 @@ extends Control
 @onready var btn_quick = $HBoxContainer/Center_Column/QuickFightButton
 @onready var btn_custom = $HBoxContainer/Center_Column/CustomDeckButton
 @onready var btn_back = $HBoxContainer/Center_Column/BackButton
+@onready var difficulty_option = $HBoxContainer/Center_Column/DifficultyOption
 
 var classes = ["Heavy", "Patient", "Quick", "Technical"]
 
@@ -24,6 +25,8 @@ func _ready():
 	_load_presets() # <--- Load files on startup
 	_setup_options(p1_option)
 	_setup_options(p2_option)
+	
+	_setup_difficulty()
 	
 	# Default selections
 	p1_option.selected = 0
@@ -190,3 +193,26 @@ func _class_enum_to_string(type: int) -> String:
 		CharacterData.ClassType.QUICK: return "Quick"
 		CharacterData.ClassType.TECHNICAL: return "Technical"
 	return "Unknown"
+
+func _setup_difficulty():
+	# Clear whatever dummy items might be in the editor
+	difficulty_option.clear()
+	
+	# Add items in the same order as the Enum (EASY=0, MEDIUM=1, HARD=2)
+	difficulty_option.add_item("Very Easy")
+	difficulty_option.add_item("Easy")   # Index 0
+	difficulty_option.add_item("Medium") # Index 1
+	difficulty_option.add_item("Hard")   # Index 2
+	
+	# Set Default (Medium)
+	difficulty_option.selected = 1
+	GameManager.ai_difficulty = GameManager.Difficulty.MEDIUM
+	
+	# Connect Signal
+	difficulty_option.item_selected.connect(_on_difficulty_changed)
+
+func _on_difficulty_changed(index: int):
+	# Directly map the dropdown index to the Enum
+	# 0 -> EASY, 1 -> MEDIUM, 2 -> HARD
+	GameManager.ai_difficulty = index as GameManager.Difficulty
+	print("Difficulty set to: " + str(index))

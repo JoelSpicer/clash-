@@ -66,6 +66,14 @@ text = "Build P1 Movelist"
 layout_mode = 2
 text = "Back"
 
+[node name="DifficultyLabel" type="Label" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+text = "Difficulty"
+horizontal_alignment = 1
+
+[node name="DifficultyOption" type="OptionButton" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+
 [node name="P2_Column" type="VBoxContainer" parent="HBoxContainer"]
 layout_mode = 2
 
