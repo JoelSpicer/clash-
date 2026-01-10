@@ -49,10 +49,24 @@ func _load_presets():
 		dir.list_dir_begin()
 		var file_name = dir.get_next()
 		while file_name != "":
-			if file_name.ends_with(".tres") or file_name.ends_with(".res"):
-				var res = load(path + file_name)
+			if dir.current_is_dir():
+				file_name = dir.get_next()
+				continue
+				
+			# --- EXPORT FIX STARTS HERE ---
+			# In exported games, files often have a '.remap' extension.
+			# We must strip it to get the correct load path.
+			var load_path = path + file_name
+			if file_name.ends_with(".remap"):
+				load_path = load_path.trim_suffix(".remap")
+				
+			# Now check the extension on the CLEANED path
+			if load_path.ends_with(".tres") or load_path.ends_with(".res"):
+				var res = load(load_path)
 				if res is PresetCharacter:
 					presets.append(res)
+			# ------------------------------
+			
 			file_name = dir.get_next()
 		dir.list_dir_end()
 
