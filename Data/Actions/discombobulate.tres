@@ -11,4 +11,5 @@ icon = ExtResource("1_b5sg4")
 description = "Offence, Cost 1, Tiring 1, Damage 1"
 cost = 1
 damage = 1
+tiring = 1
 repeat_count = 0

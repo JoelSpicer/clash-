@@ -37,7 +37,7 @@ const ID_TO_NAME_MAP = {
 }
 
 # --- NEW: ENEMY GENERATOR ---
-func create_random_enemy(level: int, difficulty: GameManager.Difficulty) -> CharacterData:
+func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
 	var classes = [CharacterData.ClassType.HEAVY, CharacterData.ClassType.QUICK, CharacterData.ClassType.TECHNICAL, CharacterData.ClassType.PATIENT]
 	var selected_class = classes.pick_random()

@@ -89,43 +89,9 @@ FILE PATH: res://Scripts/ActionTree.gd
 ========================================
 extends Control
 
-# --- DATA ---
-# (Keep your existing dictionaries here)
-var action_tree_key_dict = {
-	"Toppling Kick":1, "Pummel":2, "One Two":3, "Evading Dance":4, "Slip Behind":5,
-	"Adept Dodge":6, "Adept Light":7, "Hundred Hand Slap":8, "Precise Strike":9, "Breakout":10,
-	"Read Offence":11, "Quick Dodge":12, "Master Dodge":13, "Master Light":14, "Flying Kick":15,
-	"Vital Strike":16, "Unassailable Stance":17, "Strike Back":18, "Leg Sweep":19, "Catch":20,
-	"Drop Prone":21, "Perfect Strike":22, "Step Up":23, "Go with the Flow":24, "Prime":25,
-	"Inner Peace":26, "Adept Reversal":27, "Master Reversal":28, "Untouchable Dodge":29,
-	"Ultimate Barrage":30, "Advancing Parry":31, "Master Positioning":32, "Adept Positioning":33,
-	"Grab":34, "Wind Up":35, "Vital Point Assault":36, "Overwhelming Aura":37, "Parry FollowUp":38,
-	"Adjust Stance":39, "Adept Tech":40, "Master Tech":41, "Crushing Block":42, "Final Strike":43,
-	"Redirect":44, "Master Parry":45, "Adept Parry":46, "Throw":47, "Resounding Parry":48,
-	"Push":49, "Twist Arm":50, "Suplex":51, "Perfect Block":52, "Active Block":53,
-	"Retreating Defence":54, "Resounding Counter":55, "Read Defence":56, "Headbutt":57, "Lariat":58,
-	"Master Heavy":59, "Master Block":60, "Draining Defence":61, "Slapping Parry":62, "Tiring Parry":63,
-	"Roundhouse Kick":64, "Uppercut":65, "Adept Heavy":66, "Adept Block":67, "Push Kick":68,
-	"Drop Punch":69, "Knee Crush":70, "Drop Kick":71, "Immovable Stance":72,
-	"Quick":73, "Technical":74, "Patient":75, "Heavy":76
-}
-
-var action_tree_dict = {
-	1:[12,5], 2:[6,7], 3:[8,15], 4:[11,12], 5:[1,6], 6:[2,5,13], 7:[2,14,8], 8:[7,3],
-	9:[15,16], 10:[11,19], 11:[4,10,20], 12:[4,1,13,20], 13:[12,6,21], 14:[7,15,21],
-	15:[3,14,9,22], 16:[9,22,17], 17:[16,23], 18:[19,25], 19:[10,18,20,28], 20:[19,11,12,29],
-	21:[13,14,29,31,30], 22:[15,16,23,31], 23:[22,17,24,32], 24:[23,26], 25:[18,27], 26:[24,33],
-	27:[34,28,25], 28:[27,19,35], 29:[20,21,35], 30:[21], 31:[21,22,38], 32:[23,38,33],
-	33:[32,26,39], 34:[27,40], 35:[28,41,29,42,36], 36:[35], 37:[38], 38:[31,32,44,45,37],
-	39:[33,46], 40:[34,41,47], 41:[40,50,35], 42:[35,51,52], 43:[52], 44:[52,38,53],
-	45:[38,46,54], 46:[45,48], 47:[40,49], 48:[46,55], 49:[47,50], 50:[49,41,51,56],
-	51:[50,42,58,57], 52:[42,43,44,59,60], 53:[44,54,61,62], 54:[53,45,55,63], 55:[48,54],
-	56:[50,57], 57:[56,51,64], 58:[51,64,59,70], 59:[52,66,58], 60:[52,67,61], 61:[53,72,69],
-	62:[53,63,69], 63:[54,62], 64:[57,58], 65:[70,66], 66:[59,65,71], 67:[68,60,71],
-	68:[67,72], 69:[61,62], 70:[58,65], 71:[66,67], 72:[68,61], 73:[2], 74:[34], 75:[39], 76:[71]
-}
-
+var action_tree_dict = {}     # Empty placeholder
 var id_to_name = {}
+var name_to_id = {}
 
 const NODE_QUICK = 73
 const NODE_TECHNICAL = 74
@@ -152,10 +118,13 @@ var card_scene = preload("res://Scenes/CardDisplay.tscn")
 var popup_card: Control
 
 func _ready():
+	action_tree_dict = ClassFactory.TREE_CONNECTIONS
+	id_to_name = ClassFactory.ID_TO_NAME_MAP
 	
-	# 1. Build ID lookup
-	for key in action_tree_key_dict:
-		id_to_name[action_tree_key_dict[key]] = key
+	# Build a reverse lookup (Name -> ID) for Presets to use
+	name_to_id.clear()
+	for id in id_to_name:
+		name_to_id[id_to_name[id]] = id
 	
 	# 2. Setup Nodes
 	for child in nodes_layer.get_children():
@@ -314,15 +283,15 @@ func _setup_for_current_player():
 		print("Applying Preset Skills: ", target_preset.extra_skills)
 		
 		for skill_name in target_preset.extra_skills:
-			# Look up the ID using your existing Name->ID dictionary
-			if skill_name in action_tree_key_dict:
-				var id = action_tree_key_dict[skill_name]
+			# FIX: Use 'name_to_id' instead of the deleted 'action_tree_key_dict'
+			if skill_name in name_to_id:
+				var id = name_to_id[skill_name]
 				
 				# Add to owned if not already there
 				if id not in owned_ids:
 					owned_ids.append(id)
 			else:
-				printerr("Warning: Preset skill '" + skill_name + "' not found in ActionTree dict.")
+				printerr("Warning: Preset skill '" + skill_name + "' not found.")
 		
 		# IMPORTANT: Now that we forced nodes into 'owned_ids', 
 		# we must re-run the unlock logic so their neighbors turn yellow.
@@ -392,6 +361,12 @@ func _on_node_clicked(id: int, _name: String):
 			
 			stats_label.text = "NEXT FIGHT STATS: HP " + str(result["hp"]) + " | SP " + str(result["sp"])
 			stats_label.modulate = Color.GREEN # Make it look like a preview
+			
+			# Update visuals to show the glow on the new selection
+		_update_tree_visuals()
+		
+		# --- CRITICAL FIX: STOP HERE! ---
+		return
 	
 	if id >= 73 and id <= 76:
 		if is_class_locked: return
@@ -1043,17 +1018,23 @@ func _refresh_grid():
 		skip_btn.card_exited.connect(_on_card_exited)
 		skip_btn.card_selected.connect(_on_card_selected)
 
-# 2. THE MATH HELPER (Calculates how much SP it costs)
+# 2. THE MATH HELPER
 func _calculate_card_cost(card: ActionData) -> int:
 	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
 	
-	# Apply "Opportunity" Discount
-	var effective_base_cost = max(0, card.cost - my_opportunity_val)
-	
-	# Apply "Technical" Class Tax (+1 SP cost for modifiers)
+	# 1. Determine Base Cost (Card + Tech Modifier)
+	# We add the Tech cost BEFORE the discount to match GameManager logic
 	var tech_cost = 1 if tech_idx > 0 else 0
+	var base_cost = card.cost + tech_cost
 	
-	return effective_base_cost + tech_cost
+	# 2. Apply "Opportunity" Discount
+	var effective_single_cost = max(0, base_cost - my_opportunity_val)
+	
+	# 3. Multiply by Repeats (THE FIX)
+	# If a card repeats 3 times, you must pay for all 3 upfront.
+	var total_reps = max(1, card.repeat_count)
+	
+	return effective_single_cost * total_reps
 
 # 3. THE RULE REFEREE (Returns True/False if playable)
 func _check_card_validity(card: ActionData, final_cost: int) -> bool:
@@ -1210,8 +1191,8 @@ func _spawn_text(pos: Vector2, text: String, color: Color):
 func _on_combat_log_updated(text: String):
 	if combat_log: combat_log.add_log(text)
 
-func _on_log_toggled(is_visible: bool):
-	combat_log.visible = is_visible
+func _on_log_toggled(toggled_on: bool):
+	combat_log.visible = toggled_on
 
 # BattleUI.gd
 
@@ -1716,7 +1697,7 @@ const ID_TO_NAME_MAP = {
 }
 
 # --- NEW: ENEMY GENERATOR ---
-func create_random_enemy(level: int, difficulty: GameManager.Difficulty) -> CharacterData:
+func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
 	var classes = [CharacterData.ClassType.HEAVY, CharacterData.ClassType.QUICK, CharacterData.ClassType.TECHNICAL, CharacterData.ClassType.PATIENT]
 	var selected_class = classes.pick_random()
@@ -1730,7 +1711,7 @@ func create_random_enemy(level: int, difficulty: GameManager.Difficulty) -> Char
 		CharacterData.ClassType.QUICK: start_node = 73
 		CharacterData.ClassType.TECHNICAL: start_node = 74
 		CharacterData.ClassType.PATIENT: start_node = 75
-	
+		CharacterData.ClassType.HEAVY: start_node = 76
 	# 3. Walk the tree to simulate leveling up
 	# Level 1 = 0 extra cards. Level 5 = 4 extra cards.
 	var extra_cards_count = max(0, level - 1)
@@ -1763,6 +1744,18 @@ func create_random_enemy(level: int, difficulty: GameManager.Difficulty) -> Char
 	# 4. Recalculate stats based on the new deck
 	_recalculate_stats(bot_data)
 	
+	# --- NEW: DEBUG PRINT ---
+	print("\n=== ARCADE ENEMY GENERATED ===")
+	print("Name: " + bot_data.character_name)
+	print("Stats: HP " + str(bot_data.max_hp) + " | SP " + str(bot_data.max_sp))
+	print("Deck List (" + str(bot_data.deck.size()) + " Actions):")
+	
+	for card in bot_data.deck:
+		print(" - " + card.display_name + " (" + ("Offence" if card.type == 0 else "Defence") + ")")
+		
+	print("==============================\n")
+	# ------------------------
+	
 	return bot_data
 
 func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
@@ -1774,7 +1767,7 @@ func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
 # Helper for string names
 func _class_enum_to_string(type: int) -> String:
 	match type:
-		CharacterData.ClassType.HEAVY: return "Bot"
+		CharacterData.ClassType.HEAVY: return "Bruiser"
 		CharacterData.ClassType.PATIENT: return "Defender"
 		CharacterData.ClassType.QUICK: return "Speedster"
 		CharacterData.ClassType.TECHNICAL: return "Tactician"
@@ -1789,25 +1782,25 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 	match class_type:
 		CharacterData.ClassType.HEAVY:
 			char_data.max_hp = 10
-			char_data.max_sp = 10
+			char_data.max_sp = 3
 			char_data.speed = 1
 			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
 			
 		CharacterData.ClassType.PATIENT:
 			char_data.max_hp = 10
-			char_data.max_sp = 10
+			char_data.max_sp = 3
 			char_data.speed = 2
 			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
 			
 		CharacterData.ClassType.QUICK:
 			char_data.max_hp = 10
-			char_data.max_sp = 10
+			char_data.max_sp = 3
 			char_data.speed = 4
 			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
 			
 		CharacterData.ClassType.TECHNICAL:
 			char_data.max_hp = 10
-			char_data.max_sp = 10
+			char_data.max_sp = 3
 			char_data.speed = 3
 			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
 
@@ -2983,11 +2976,13 @@ func _handle_status_damage(winner_id, p1_started_injured: bool, p2_started_injur
 	if p1_is_injured and p1_started_injured:
 		p1_data.current_hp -= 1
 		emit_signal("combat_log_updated", ">> P1 takes 1 damage from Injury.")
+		emit_signal("damage_dealt", 1, 1, false) # Trigger VFX (Target 1, Amount 1, Not Blocked)
 		if p1_data.current_hp <= 0: _handle_death(winner_id)
 
 	if p2_is_injured and p2_started_injured:
 		p2_data.current_hp -= 1
 		emit_signal("combat_log_updated", ">> P2 takes 1 damage from Injury.")
+		emit_signal("damage_dealt", 2, 1, false) # Trigger VFX
 		if p2_data.current_hp <= 0: _handle_death(winner_id)
 
 func _handle_death(winner_id):
@@ -3793,3 +3788,247 @@ func _scan_directory(path: String) -> String:
 			
 			file_name = dir.get_next()
 	return output
+
+
+========================================
+FILE PATH: res://Scripts/VFXManager.gd
+========================================
+extends CanvasLayer
+
+func _ready():
+	layer = 5 
+	GameManager.clash_resolved.connect(_on_clash_resolved)
+	GameManager.damage_dealt.connect(_on_damage_dealt)
+	GameManager.healing_received.connect(_on_healing_received)
+	
+	# NEW: Listen for status updates to trigger Dodge effects
+	GameManager.status_applied.connect(_on_status_applied)
+	
+	print("VFX Manager Initialized")
+
+# ==============================================================================
+# 1. PARTICLE GENERATORS (Templates)
+# ==============================================================================
+
+# ... (Keep _create_clash_particles as is) ...
+func _create_clash_particles() -> GPUParticles2D:
+	var p = GPUParticles2D.new()
+	p.amount = 30
+	p.lifetime = 0.5
+	p.one_shot = true
+	p.explosiveness = 1.0
+	var img = Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	p.texture = ImageTexture.create_from_image(img)
+	var mat = ParticleProcessMaterial.new()
+	mat.direction = Vector3(0, 0, 0)
+	mat.spread = 180
+	mat.initial_velocity_min = 300
+	mat.initial_velocity_max = 500
+	mat.gravity = Vector3(0, 0, 0)
+	mat.scale_min = 4.0
+	mat.scale_max = 4.0
+	var grad = Gradient.new()
+	grad.set_color(0, Color.YELLOW)
+	grad.set_color(1, Color(1, 0.5, 0, 0))
+	var grad_tex = GradientTexture1D.new()
+	grad_tex.gradient = grad
+	mat.color_ramp = grad_tex
+	p.process_material = mat
+	return p
+
+# ... (Keep _create_block_particles as is) ...
+func _create_block_particles() -> GPUParticles2D:
+	var p = GPUParticles2D.new()
+	p.amount = 1; p.lifetime = 0.4; p.one_shot = true
+	var tex = GradientTexture2D.new()
+	tex.width = 128; tex.height = 128; tex.fill = GradientTexture2D.FILL_RADIAL
+	var grad = Gradient.new()
+	grad.remove_point(0)
+	grad.add_point(0.5, Color(1, 1, 1, 0))
+	grad.add_point(0.65, Color(1, 1, 1, 1))
+	grad.add_point(0.7, Color(1, 1, 1, 0))
+	tex.gradient = grad
+	p.texture = tex
+	var mat = ParticleProcessMaterial.new()
+	mat.gravity = Vector3(0, 0, 0)
+	mat.color = Color(0.2, 0.8, 1.0, 0.8)
+	var curve = Curve.new()
+	curve.add_point(Vector2(0, 0.5)); curve.add_point(Vector2(1, 1.2))
+	var curve_tex = CurveTexture.new()
+	curve_tex.curve = curve
+	mat.scale_curve = curve_tex
+	p.process_material = mat
+	return p
+
+# ... (Keep _create_hit_particles as is) ...
+func _create_hit_particles() -> GPUParticles2D:
+	var p = GPUParticles2D.new()
+	p.amount = 15; p.lifetime = 0.6; p.one_shot = true; p.explosiveness = 0.9
+	var img = Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	p.texture = ImageTexture.create_from_image(img)
+	var mat = ParticleProcessMaterial.new()
+	mat.direction = Vector3(0, -1, 0); mat.spread = 45
+	mat.initial_velocity_min = 200; mat.initial_velocity_max = 400
+	mat.gravity = Vector3(0, 900, 0); mat.scale_min = 3.0; mat.scale_max = 5.0
+	var grad = Gradient.new()
+	grad.set_color(0, Color(1, 0.1, 0.1)); grad.set_color(1, Color(0.5, 0, 0, 0))
+	var grad_tex = GradientTexture1D.new()
+	grad_tex.gradient = grad
+	mat.color_ramp = grad_tex
+	p.process_material = mat
+	return p
+
+# ... (Keep _create_heal_particles as is) ...
+func _create_heal_particles() -> GPUParticles2D:
+	var p = GPUParticles2D.new()
+	p.amount = 8; p.lifetime = 1.0; p.one_shot = true
+	var img = Image.create(3, 3, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	p.texture = ImageTexture.create_from_image(img)
+	var mat = ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	mat.emission_sphere_radius = 40.0; mat.gravity = Vector3(0, -100, 0)
+	mat.scale_min = 2.0; mat.scale_max = 4.0
+	var grad = Gradient.new()
+	grad.set_color(0, Color(0.2, 1.0, 0.2)); grad.set_color(1, Color(0.2, 1.0, 0.2, 0))
+	var grad_tex = GradientTexture1D.new()
+	grad_tex.gradient = grad
+	mat.color_ramp = grad_tex
+	p.process_material = mat
+	return p
+
+# --- NEW: DODGE PARTICLES (Ghostly Wind) ---
+func _create_dodge_particles() -> GPUParticles2D:
+	var p = GPUParticles2D.new()
+	p.amount = 10
+	p.lifetime = 0.5
+	p.one_shot = true
+	p.explosiveness = 0.8
+	
+	# Texture: Horizontal Streak
+	var img = Image.create(16, 2, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	p.texture = ImageTexture.create_from_image(img)
+	
+	var mat = ParticleProcessMaterial.new()
+	mat.direction = Vector3(0, 0, 0) # Just float
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_SPHERE
+	mat.emission_sphere_radius = 40.0
+	mat.gravity = Vector3(0, -50, 0) # Rise slightly
+	mat.scale_min = 1.0
+	mat.scale_max = 2.0
+	
+	# Color: White -> Transparent
+	var grad = Gradient.new()
+	grad.set_color(0, Color(0.8, 0.9, 1.0, 0.5)) # Misty Blue-White
+	grad.set_color(1, Color(1, 1, 1, 0))
+	var grad_tex = GradientTexture1D.new()
+	grad_tex.gradient = grad
+	mat.color_ramp = grad_tex
+	
+	p.process_material = mat
+	return p
+
+# --- NEW: SUPER PARTICLES (Rising Aura) ---
+func _create_super_particles() -> GPUParticles2D:
+	var p = GPUParticles2D.new()
+	p.amount = 50
+	p.lifetime = 1.5
+	p.one_shot = true
+	p.explosiveness = 0.0 # Stream
+	
+	var img = Image.create(4, 4, false, Image.FORMAT_RGBA8)
+	img.fill(Color.WHITE)
+	p.texture = ImageTexture.create_from_image(img)
+	
+	var mat = ParticleProcessMaterial.new()
+	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	mat.emission_box_extents = Vector3(40, 10, 1) # Floor area
+	mat.direction = Vector3(0, -1, 0) # Up
+	mat.spread = 0
+	mat.initial_velocity_min = 100
+	mat.initial_velocity_max = 200
+	mat.gravity = Vector3(0, 0, 0)
+	
+	# Color: Gold/Purple
+	var grad = Gradient.new()
+	grad.set_color(0, Color(1, 0.8, 0.2)) # Gold
+	grad.set_color(1, Color(0.5, 0, 0.5, 0)) # Purple fade
+	var grad_tex = GradientTexture1D.new()
+	grad_tex.gradient = grad
+	mat.color_ramp = grad_tex
+	
+	p.process_material = mat
+	return p
+
+# ==============================================================================
+# SPAWN LOGIC
+# ==============================================================================
+
+func _get_target_pos(id: int) -> Vector2:
+	var screen_size = get_viewport().get_visible_rect().size
+	var y_pos = screen_size.y * 0.4 
+	if id == 1: return Vector2(screen_size.x * 0.25, y_pos)
+	else: return Vector2(screen_size.x * 0.75, y_pos)
+
+func _spawn_vfx(particle_node: GPUParticles2D, pos: Vector2):
+	particle_node.position = pos
+	add_child(particle_node)
+	particle_node.emitting = true
+	await get_tree().create_timer(particle_node.lifetime + 0.1).timeout
+	particle_node.queue_free()
+
+func _on_clash_resolved(winner_id, _text):
+	# 1. Standard Clash Explosion
+	var center = get_viewport().get_visible_rect().size / 2
+	_spawn_vfx(_create_clash_particles(), center)
+	
+	# 2. CHECK FOR SUPER MOVES (Visual Juiciness)
+	# We peek at the GameManager to see if a Super was used
+	if GameManager.p1_action_queue and GameManager.p1_action_queue.is_super:
+		_trigger_super_visuals(1)
+	if GameManager.p2_action_queue and GameManager.p2_action_queue.is_super:
+		_trigger_super_visuals(2)
+
+func _trigger_super_visuals(player_id: int):
+	# Darken screen slightly
+	var dark = ColorRect.new()
+	dark.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	dark.color = Color.BLACK
+	dark.modulate.a = 0.0
+	add_child(dark)
+	
+	var tween = create_tween()
+	tween.tween_property(dark, "modulate:a", 0.5, 0.2)
+	tween.tween_property(dark, "modulate:a", 0.0, 0.5).set_delay(0.5)
+	
+	# Play Rising Aura
+	var pos = _get_target_pos(player_id)
+	# Shift aura down to feet
+	pos.y += 100 
+	_spawn_vfx(_create_super_particles(), pos)
+	
+	await tween.finished
+	dark.queue_free()
+
+func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
+	var pos = _get_target_pos(target_id)
+	
+	if is_blocked:
+		_spawn_vfx(_create_block_particles(), pos)
+		await get_tree().create_timer(0.1).timeout
+		_spawn_vfx(_create_block_particles(), pos)
+	elif amount > 0:
+		_spawn_vfx(_create_hit_particles(), pos)
+
+func _on_healing_received(target_id: int, _amount: int):
+	var pos = _get_target_pos(target_id)
+	_spawn_vfx(_create_heal_particles(), pos)
+
+# NEW: Specific handler for Dodge
+func _on_status_applied(target_id: int, status: String):
+	if status == "DODGED":
+		var pos = _get_target_pos(target_id)
+		_spawn_vfx(_create_dodge_particles(), pos)

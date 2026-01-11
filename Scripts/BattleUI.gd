@@ -314,17 +314,23 @@ func _refresh_grid():
 		skip_btn.card_exited.connect(_on_card_exited)
 		skip_btn.card_selected.connect(_on_card_selected)
 
-# 2. THE MATH HELPER (Calculates how much SP it costs)
+# 2. THE MATH HELPER
 func _calculate_card_cost(card: ActionData) -> int:
 	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
 	
-	# Apply "Opportunity" Discount
-	var effective_base_cost = max(0, card.cost - my_opportunity_val)
-	
-	# Apply "Technical" Class Tax (+1 SP cost for modifiers)
+	# 1. Determine Base Cost (Card + Tech Modifier)
+	# We add the Tech cost BEFORE the discount to match GameManager logic
 	var tech_cost = 1 if tech_idx > 0 else 0
+	var base_cost = card.cost + tech_cost
 	
-	return effective_base_cost + tech_cost
+	# 2. Apply "Opportunity" Discount
+	var effective_single_cost = max(0, base_cost - my_opportunity_val)
+	
+	# 3. Multiply by Repeats (THE FIX)
+	# If a card repeats 3 times, you must pay for all 3 upfront.
+	var total_reps = max(1, card.repeat_count)
+	
+	return effective_single_cost * total_reps
 
 # 3. THE RULE REFEREE (Returns True/False if playable)
 func _check_card_validity(card: ActionData, final_cost: int) -> bool:
@@ -481,8 +487,8 @@ func _spawn_text(pos: Vector2, text: String, color: Color):
 func _on_combat_log_updated(text: String):
 	if combat_log: combat_log.add_log(text)
 
-func _on_log_toggled(is_visible: bool):
-	combat_log.visible = is_visible
+func _on_log_toggled(toggled_on: bool):
+	combat_log.visible = toggled_on
 
 # BattleUI.gd
 

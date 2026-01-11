@@ -593,11 +593,13 @@ func _handle_status_damage(winner_id, p1_started_injured: bool, p2_started_injur
 	if p1_is_injured and p1_started_injured:
 		p1_data.current_hp -= 1
 		emit_signal("combat_log_updated", ">> P1 takes 1 damage from Injury.")
+		emit_signal("damage_dealt", 1, 1, false) # Trigger VFX (Target 1, Amount 1, Not Blocked)
 		if p1_data.current_hp <= 0: _handle_death(winner_id)
 
 	if p2_is_injured and p2_started_injured:
 		p2_data.current_hp -= 1
 		emit_signal("combat_log_updated", ">> P2 takes 1 damage from Injury.")
+		emit_signal("damage_dealt", 2, 1, false) # Trigger VFX
 		if p2_data.current_hp <= 0: _handle_death(winner_id)
 
 func _handle_death(winner_id):
