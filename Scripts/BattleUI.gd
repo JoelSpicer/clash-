@@ -22,6 +22,7 @@ signal p2_mode_toggled(is_human)
 # --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
 var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
+var compendium_scene = preload("res://Scenes/Compendium.tscn")
 var current_deck: Array[ActionData] = []
 var current_tab = ActionData.Type.OFFENCE
 
@@ -87,6 +88,10 @@ func _ready():
 	
 	_create_debug_toggles()
 	_create_passive_toggles() # Add this new function call
+	
+	var btn = get_node_or_null("MenuButton")
+	if btn:
+		btn.pressed.connect(_on_menu_pressed)
 
 func _process(delta):
 	# This applies the shake to the entire UI Layer
@@ -533,3 +538,14 @@ func _on_damage_shake(_target, amount, is_blocked):
 		shake_strength = 2.0 
 	else:
 		shake_strength = float(amount) * 5.0 # Increased multiplier for visibility
+
+
+func _on_menu_pressed():
+	# 3. Create the Compendium
+	var compendium = compendium_scene.instantiate()
+	
+	# 4. Configure it as an overlay
+	compendium.is_overlay = true
+	
+	# 5. Add it to the UI (It will cover the screen)
+	add_child(compendium)
