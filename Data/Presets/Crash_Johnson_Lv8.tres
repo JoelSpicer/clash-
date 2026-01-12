@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_a56lg")
-character_name = "Test Heavy"
-level = 2
-extra_skills = Array[String](["Drop Kick", "Adept Block"])
+character_name = "'Crash' Johnson"
+level = 8
+extra_skills = Array[String](["Drop Kick", "Adept Block", "Adept Heavy", "Master Heavy", "Push Kick", "Immovable Stance", "Draining Defence", "Active Block"])
 metadata/_custom_type_script = "uid://l0hennmoy7yn"

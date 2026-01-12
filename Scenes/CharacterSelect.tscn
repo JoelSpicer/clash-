@@ -78,6 +78,10 @@ layout_mode = 2
 layout_mode = 2
 text = "Start Arcade Run"
 
+[node name="ModesButton" type="Button" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+text = "?"
+
 [node name="P2_Column" type="VBoxContainer" parent="HBoxContainer"]
 layout_mode = 2
 

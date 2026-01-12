@@ -726,6 +726,7 @@ signal p2_mode_toggled(is_human)
 # --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
 var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
+var compendium_scene = preload("res://Scenes/Compendium.tscn")
 var current_deck: Array[ActionData] = []
 var current_tab = ActionData.Type.OFFENCE
 
@@ -752,35 +753,6 @@ var keep_up_toggle: CheckButton
 var tech_dropdown: OptionButton
 var shake_strength: float = 0.0
 var shake_decay: float = 5.0
-
-# --- KEYWORD DEFINITIONS ---
-const KEYWORD_DEFS = {
-	"Block": "Reduce incoming damage by X",
-	"Cost": "lose X stamina",
-	"Counter": "You must have used an action with Create Opening X or higher in the previous clash",
-	"Create Opening": "Your opponent’s next action cannot have a Cost trait higher than X",
-	"Damage": "Reduce your opponent’s health by X",
-	"Defence": "Can only be used on the defensive. This action gains the Recover 1 trait. You must have the stamina require to use this action.",
-	"Feint": "In addition to the action’s listed traits, it gains all the traits of another action that you can use. That action can be chosen after actions are revealed",
-	"Dodge": "You ignore the effects of your opponent’s action if its stamina cost is X or below",
-	"Fall Back": "Lose X momentum",
-	"Guard Break": "Ignore the ‘Block X’ trait of your opponent’s action",
-	"Heal": "Gain X HP",
-	"Injure": "Your opponent must lose 1 HP every clash after this until you use an action with the Recover X, Heal X or Fall Back X traits, or the combat ends",
-	"Momentum": "Gain X momentum",
-	"Multi": "After this action, you may use any other action that has a Cost trait of X or below, and that does not have the multi X trait. This action interacts with your opponent’s previous action. If your opponent’s action would end your combo, you do not get to use this trait. In addition, moves with this trait can be used to start a combo",
-	"Offence": "Can only be used on the offensive. If you are reduced to 0SP, your combo ends",
-	"Opener": "Only actions with this trait can be used to start a combo",
-	"Opportunity": "Increase your next actions momentum by X, and reduce its stamina cost by X",
-	"Parry": "Your action steals the Momentum X trait of your opponent’s action. If this causes the momentum tracker to move in your direction, your opponent’s action has no affect on you, and your opponent’s next action must have the Opener trait",
-	"Recover": "Gain X stamina",
-	"Repeat": "After this action, use the same action again, ignoring the Repeat X trait. This must continue X times. This action interacts with your opponent’s chosen action as normal",
-	"Retaliate": "Your opponent takes the same damage as they dealt to you in the previous clash",
-	"Reversal": "If the momentum tracker moves closer to your side from this clash, the current combo ends and you take the offence, even if you do not have the momentum advantage. This applies even in the inital clash",
-	"Super": "This action can only be used when the momentum tracker has reached the end of your side. You can only use an action with this trait once per combat",
-	"Sweep": "This action affects all opponents you are in combat with",
-	"Tiring": "Cause the opponent to lose X Stamina"
-}
 
 func _ready():
 	if not btn_offence or not btn_defence:
@@ -820,6 +792,10 @@ func _ready():
 	
 	_create_debug_toggles()
 	_create_passive_toggles() # Add this new function call
+	
+	var btn = get_node_or_null("MenuButton")
+	if btn:
+		btn.pressed.connect(_on_menu_pressed)
 
 func _process(delta):
 	# This applies the shake to the entire UI Layer
@@ -1138,8 +1114,8 @@ func _update_tooltip_text(card: ActionData):
 	# Build Text
 	var full_text = ""
 	for k in active_keys:
-		if k in KEYWORD_DEFS:
-			full_text += "[b]" + k + ":[/b] " + KEYWORD_DEFS[k] + "\n"
+		if k in GameManager.KEYWORD_DEFS:
+			full_text += "[b]" + k + ":[/b] " + GameManager.KEYWORD_DEFS[k] + "\n"
 			
 	tooltip_label.text = full_text
 	tooltip_label.visible = true
@@ -1266,6 +1242,17 @@ func _on_damage_shake(_target, amount, is_blocked):
 		shake_strength = 2.0 
 	else:
 		shake_strength = float(amount) * 5.0 # Increased multiplier for visibility
+
+
+func _on_menu_pressed():
+	# 3. Create the Compendium
+	var compendium = compendium_scene.instantiate()
+	
+	# 4. Configure it as an overlay
+	compendium.is_overlay = true
+	
+	# 5. Add it to the UI (It will cover the screen)
+	add_child(compendium)
 
 
 ========================================
@@ -1998,6 +1985,128 @@ func clear_log():
 
 
 ========================================
+FILE PATH: res://Scripts/compendium.gd
+========================================
+extends Control
+
+@onready var keyword_container = $TabContainer/Traits/VBoxContainer
+@onready var combat_container = $TabContainer/Combat/VBoxContainer
+@onready var card_grid = $"TabContainer/Card Library/GridContainer"
+@onready var rules_container = $"TabContainer/Rules/VBoxContainer"
+@onready var back_button = $BackButton
+
+const RULES_DEFS = {
+	"Actions": "An action is a move, technique or attack that is used in combat. Every action has a number of traits that convey how the action works.",
+	"Passive Abilities": "Passive enhancements that affect all actions. Everyone gets a passive ability from their chosen class.",
+	"Combo": "A combo is one or more Offence actions used in a row, without having to check the momentum advantage.",
+	"Traits": "All actions have one or more traits. A trait is a keyword that conveys information about how an action interacts with other rules elements or traits. Traits can stack unless otherwise noted. Actions are sometimes named for their traits, e.g. an action with the Offence trait is called and Offence action.", 
+	"Stamina": "Every combatant has a number of stamina points (SP), which is used to keep track of their current stamina as it increases and falls throughout a combat. Player characters start with 3 SP. Stamina can be increased and reduced by you or your opponent’s actions and special abilities.", 
+	"Health": "Every combatant has a number of hit points (HP) that they must keep track of. Player characters start with 10 HP. Actions can deal damage to you to reduce your HP, or heal yourself to increase your HP (up to your max HP).", 
+	"Momentum": "Momentum keeps track of who has taken the advantage in combat. It is suggested that momentum is tracked using one polyhedral die, but any even number can be used. Each combatant chooses either high or low numbers to be theirs. Any time a player is in their ‘half’ of the tracker, they have the momentum advantage, and can use offence actions in combat. Example: With a momentum of 8, player A chooses high numbers, so 5-8, and player B chooses low numbers, so 1-4. Whenever player A would gain momentum, through actions or special abilities, they would increase the number. Conversely, whenever player B would gain momentum, they would decrease the number. For example, if momentum is on 2, player B has the momentum advantage, and if the momentum was 1, player B would be able to choose their action after seeing their opponent’s action.", 
+	"Order of Actions": "When you apply the traits from an action to yourself, please use the following rules: • Apply traits from your action to yourself before you apply traits from your opponent’s action to yourself • Apply traits that affect the momentum tracker from Offence actions first, then Defence actions."
+}
+
+const COMBAT_DEFS = {
+	"Combat Rules": "A combat is a 1v1 fight between two 'combatants'. These could be between player characters, non-player characters, or any combination of the two.",
+	"Structure": "A ‘Combat’ is played out in a series of ‘Clashes’.",
+	"Clash": "Two combatants choose an action secretly, and resolve the results.",
+	"Combat": "Combatants resolve clashes until one of them is defeated by losing all their health.",
+	"Step 1: Set Stamina and Health": "At the start of every combat, each combatant normally has their maximum stamina and health, however this could be reduced by things like previous fights or environmental effects.",
+	"Step 2: Choose Momentum": "The momentum tracker is chosen by the referee, and each combatant chooses which half of the tracker they wish to use, high or low. A priority token is also awarded to the player whose class has the highest speed. If the classes are the same, decide randomly, such as with a coin flip.",
+	"Step 3: Initial Clash ": "The combatants then start with an initial clash, where both combatants secretly choose an action. As no one has a momentum advantage yet, both combatants can choose Offence or Defence actions. The combatants then reveal their actions, and the momentum advantage is awarded as follows: •	If one combatant chooses an action with the Offence trait, and one combatant chooses and action with the Defense trait, the combatant that chose the Offence action is awarded the momentum advantage. •	If the traits are the same, the action with lower stamina interrupts the other, taking the momentum advantage. If the stamina is also the same, the player with the priority token goes first, and the priority token switches to the other player. Whichever combatant is awarded the momentum advantage sets the momentum tracker to the number on their half closest to the center (e.g. 4 for Low, 5 for High).. The combatant with the momentum advantage is now on the attack, and can only use actions with the Offence trait, while the other combatant can only use actions with the Defence trait.",
+	"Step 4: Resolve Initial Actions ": "The combatants now resolve the effects of their actions, such as using stamina, but ignore any momentum gain or loss from their actions.",
+	"Step 5: Clashes ": "Now that the initial clash is resolved, combat can continue as normal. The combatant that is on the attack can continue their combo. When a combo is over, the momentum is checked. A combatant can choose to end their own combo at any time. Whichever combatant has the momentum advantage is now on the offence, and the other combatant is now on the defence. Each clash, combatants secretly choose a move, a his repeats until a combatant loses all their health."
+}
+
+# We need the CardDisplay scene to spawn cards
+var card_scene = preload("res://Scenes/CardDisplay.tscn")
+
+var is_overlay: bool = false # Default is False (Main Menu Mode)
+
+func _ready():
+	back_button.pressed.connect(_on_back_pressed)
+	
+	_populate_rules()
+	_populate_combat()
+	_populate_keywords()
+	_populate_card_library()
+	
+	if is_overlay:
+		back_button.text = "Resume Combat"
+
+func _populate_keywords():
+	# Loop through the global dictionary
+	for key in GameManager.KEYWORD_DEFS:
+		var definition = GameManager.KEYWORD_DEFS[key]
+		
+		# Create a Label for each
+		var l = RichTextLabel.new()
+		l.bbcode_enabled = true
+		l.text = "[b][color=yellow]" + key + ":[/color][/b] " + definition
+		l.fit_content = true
+		l.custom_minimum_size.y = 50 # Give it some space
+		
+		keyword_container.add_child(l)
+
+func _populate_rules():
+	# Loop through the global dictionary
+	for key in RULES_DEFS:
+		var rules = RULES_DEFS[key]
+		
+		# Create a Label for each
+		var l = RichTextLabel.new()
+		l.bbcode_enabled = true
+		l.text = "[b][color=yellow]" + key + ":[/color][/b] " + rules
+		l.fit_content = true
+		l.custom_minimum_size.y = 50 # Give it some space
+		
+		rules_container.add_child(l)
+		
+func _populate_combat():
+	# Loop through the global dictionary
+	for key in COMBAT_DEFS:
+		var combat = COMBAT_DEFS[key]
+		
+		# Create a Label for each
+		var l = RichTextLabel.new()
+		l.bbcode_enabled = true
+		l.text = "[b][color=yellow]" + key + ":[/color][/b] " + combat
+		l.fit_content = true
+		l.custom_minimum_size.y = 50 # Give it some space
+		
+		combat_container.add_child(l)
+
+func _populate_card_library():
+	# We use the ID map from ClassFactory to find every card
+	var all_ids = ClassFactory.ID_TO_NAME_MAP.keys()
+	all_ids.sort() # Keep them in order
+	
+	for id in all_ids:
+		# skip class nodes
+		if id >= 73: continue 
+		
+		var card_name = ClassFactory.ID_TO_NAME_MAP[id]
+		var card_data = ClassFactory._find_action_resource(card_name)
+		
+		if card_data:
+			var display = card_scene.instantiate()
+			card_grid.add_child(display)
+			
+			# Setup visuals
+			display.set_card_data(card_data)
+			display.custom_minimum_size = Vector2(200, 280) # Smaller version
+			display.scale = Vector2(0.8, 0.8) # Shrink to fit more
+
+func _on_back_pressed():
+	if is_overlay:
+		# Just close this window, don't restart the game!
+		queue_free()
+	else:
+		# Go back to Main Menu
+		get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+
+
+========================================
 FILE PATH: res://Scripts/FloatingText.gd
 ========================================
 extends Label
@@ -2152,7 +2261,11 @@ func _ready():
 	# Connect buttons dynamically or via editor signals
 	$VBoxContainer/StartButton.pressed.connect(_on_start_pressed)
 	$VBoxContainer/QuitButton.pressed.connect(_on_quit_pressed)
-
+	
+	var btn_compendium = find_child("CompendiumButton") # Or reference it directly if you prefer
+	if btn_compendium:
+		btn_compendium.pressed.connect(_on_compendium_pressed)
+	
 func _on_start_pressed():
 	# Assumes your main arena scene is saved here
 	#get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
@@ -2160,6 +2273,9 @@ func _on_start_pressed():
 
 func _on_quit_pressed():
 	get_tree().quit()
+
+func _on_compendium_pressed():
+	get_tree().change_scene_to_file("res://Scenes/Compendium.tscn")
 
 
 ========================================
@@ -2382,6 +2498,34 @@ func _apply_level_up_stats(card_type):
 FILE PATH: res://Scripts/Resources/GameManager.gd
 ========================================
 extends Node
+
+const KEYWORD_DEFS = {
+	"Block": "Reduce incoming damage by X",
+	"Cost": "lose X stamina",
+	"Counter": "You must have used an action with Create Opening X or higher in the previous clash",
+	"Create Opening": "Your opponent’s next action cannot have a Cost trait higher than X",
+	"Damage": "Reduce your opponent’s health by X",
+	"Defence": "Can only be used on the defensive. This action gains the Recover 1 trait.",
+	"Feint": "In addition to the action’s listed traits, it gains all the traits of another action that you can use. That action can be chosen after actions are revealed",
+	"Dodge": "You ignore the effects of your opponent’s action if its stamina cost is X or below",
+	"Fall Back": "Lose X momentum",
+	"Guard Break": "Ignore the ‘Block X’ trait of your opponent’s action",
+	"Heal": "Gain X HP",
+	"Injure": "Your opponent must lose 1 HP every clash after this until you use an action with the Recover X, Heal X or Fall Back X traits, or the combat ends",
+	"Momentum": "Gain X momentum",
+	"Multi": "After this action, you may use any other action that has a Cost trait of X or below, and that does not have the multi X trait. This action interacts with your opponent’s previous action. If your opponent’s action would end your combo, you do not get to use this trait. In addition, moves with this trait can be used to start a combo",
+	"Offence": "Can only be used on the offensive. If you are reduced to 0SP, your combo ends",
+	"Opener": "Only actions with this trait can be used to start a combo",
+	"Opportunity": "Increase your next actions momentum by X, and reduce its stamina cost by X",
+	"Parry": "Your action steals the Momentum X trait of your opponent’s action. If this causes the momentum tracker to move in your direction, your opponent’s action has no affect on you, and your opponent’s next action must have the Opener trait",
+	"Recover": "Gain X stamina",
+	"Repeat": "After this action, use the same action again, ignoring the Repeat X trait. This must continue X times. This action interacts with your opponent’s chosen action as normal",
+	"Retaliate": "Your opponent takes the same damage as they dealt to you in the previous clash",
+	"Reversal": "If the momentum tracker moves closer to your side from this clash, the current combo ends and you take the offence, even if you do not have the momentum advantage. This applies even in the inital clash",
+	"Super": "This action can only be used when the momentum tracker has reached the end of your side. You can only use an action with this trait once per combat",
+	"Sweep": "This action affects all opponents you are in combat with",
+	"Tiring": "Cause the opponent to lose X Stamina"
+}
 
 # --- SIGNALS ---
 signal state_changed(new_state)

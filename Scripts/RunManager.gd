@@ -4,6 +4,8 @@ var is_arcade_mode: bool = false
 var current_level: int = 1
 var player_run_data: CharacterData
 var player_owned_tree_ids: Array[int] = [] # Track which nodes we own across fights
+var free_unlocks_remaining: int = 0
+
 
 func start_run(starting_class: CharacterData.ClassType):
 	is_arcade_mode = true
@@ -19,8 +21,13 @@ func start_run(starting_class: CharacterData.ClassType):
 		CharacterData.ClassType.TECHNICAL: player_owned_tree_ids.append(74)
 		CharacterData.ClassType.PATIENT: player_owned_tree_ids.append(75)
 		CharacterData.ClassType.HEAVY: player_owned_tree_ids.append(76)
+	
+	# --- NEW: DRAFT MODE START ---
+	free_unlocks_remaining = 2 # Give 2 free picks
+	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	# -----------------------------
 		
-	start_next_fight()
+	#start_next_fight()
 
 func start_next_fight():
 	# 1. Setup Player

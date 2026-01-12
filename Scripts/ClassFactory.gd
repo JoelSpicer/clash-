@@ -37,64 +37,81 @@ const ID_TO_NAME_MAP = {
 }
 
 # --- NEW: ENEMY GENERATOR ---
+# ClassFactory.gd
+
 func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
-	var classes = [CharacterData.ClassType.HEAVY, CharacterData.ClassType.QUICK, CharacterData.ClassType.TECHNICAL, CharacterData.ClassType.PATIENT]
-	var selected_class = classes.pick_random()
-	var bot_name = "Lv." + str(level) + " " + _class_enum_to_string(selected_class)
+	var types = [
+		CharacterData.ClassType.HEAVY, 
+		CharacterData.ClassType.QUICK, 
+		CharacterData.ClassType.TECHNICAL, 
+		CharacterData.ClassType.PATIENT
+	]
+	var selected_class = types.pick_random()
 	
-	var bot_data = create_character(selected_class, bot_name)
+	# 2. Create the Base Character (Starter Deck)
+	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
 	
-	# 2. Identify Starting Node
-	var start_node = 76 # Heavy
+	# 3. Calculate how many extra cards they get
+	# Level 1 Player gets 2 Free Drafts.
+	# Level 2 Player gets 2 Free + 1 Reward = 3 extra cards.
+	# Formula: Level + 1
+	var cards_to_draft = level + 1
+	
+	# 4. "Draft" cards legally by walking the tree
+	# We need to simulate the bot unlocking nodes one by one
+	var owned_ids = []
+	var unlockable_options = []
+	
+	# Identify the starting Root Node for this class
+	var root_id = 0
 	match selected_class:
-		CharacterData.ClassType.QUICK: start_node = 73
-		CharacterData.ClassType.TECHNICAL: start_node = 74
-		CharacterData.ClassType.PATIENT: start_node = 75
-		CharacterData.ClassType.HEAVY: start_node = 76
-	# 3. Walk the tree to simulate leveling up
-	# Level 1 = 0 extra cards. Level 5 = 4 extra cards.
-	var extra_cards_count = max(0, level - 1)
+		CharacterData.ClassType.QUICK: root_id = 73
+		CharacterData.ClassType.TECHNICAL: root_id = 74
+		CharacterData.ClassType.PATIENT: root_id = 75
+		CharacterData.ClassType.HEAVY: root_id = 76
 	
-	var owned_ids = [start_node]
-	var available_ids = []
-	
-	# Initial unlock
-	_add_neighbors_to_list(start_node, owned_ids, available_ids)
-	
-	for i in range(extra_cards_count):
-		if available_ids.is_empty(): break
+	# Initialize the 'shop' with the root's neighbors
+	owned_ids.append(root_id)
+	if root_id in TREE_CONNECTIONS:
+		for neighbor in TREE_CONNECTIONS[root_id]:
+			unlockable_options.append(neighbor)
+			
+	# Draft Loop
+	for i in range(cards_to_draft):
+		if unlockable_options.is_empty():
+			break # Run out of valid moves (rare)
+			
+		# Pick a random valid card
+		var picked_id = unlockable_options.pick_random()
 		
-		# Pick a random valid neighbor
-		var new_id = available_ids.pick_random()
-		
-		# Add to bot
-		owned_ids.append(new_id)
-		
-		# Update available pool
-		available_ids.erase(new_id)
-		_add_neighbors_to_list(new_id, owned_ids, available_ids)
-		
-		# Actually add the card resource to the deck
-		var card_name = ID_TO_NAME_MAP.get(new_id)
+		# "Buy" it
+		var card_name = ID_TO_NAME_MAP.get(picked_id)
 		if card_name:
-			var card = _find_action_resource(card_name)
-			if card: bot_data.deck.append(card)
+			var new_card = _find_action_resource(card_name)
+			if new_card:
+				bot_data.deck.append(new_card)
+		
+		# Update the tree state for the next pick
+		owned_ids.append(picked_id)
+		unlockable_options.erase(picked_id) # Can't pick it again
+		
+		# Add new neighbors to the pool
+		if picked_id in TREE_CONNECTIONS:
+			for neighbor in TREE_CONNECTIONS[picked_id]:
+				# Only add if we don't own it and it's not already in the list
+				if neighbor not in owned_ids and neighbor not in unlockable_options:
+					unlockable_options.append(neighbor)
 	
-	# 4. Recalculate stats based on the new deck
+	# 5. Recalculate stats based on the new legal deck
 	_recalculate_stats(bot_data)
 	
-	# --- NEW: DEBUG PRINT ---
-	print("\n=== ARCADE ENEMY GENERATED ===")
-	print("Name: " + bot_data.character_name)
-	print("Stats: HP " + str(bot_data.max_hp) + " | SP " + str(bot_data.max_sp))
-	print("Deck List (" + str(bot_data.deck.size()) + " Actions):")
-	
-	for card in bot_data.deck:
-		print(" - " + card.display_name + " (" + ("Offence" if card.type == 0 else "Defence") + ")")
-		
+	# Debug Print to verify
+	print("\n=== ENEMY GENERATED (" + str(selected_class) + ") ===")
+	print("Level: " + str(level) + " | Drafted: " + str(cards_to_draft))
+	print("HP: " + str(bot_data.max_hp) + " | SP: " + str(bot_data.max_sp))
+	print("Deck Size: " + str(bot_data.deck.size()))
 	print("==============================\n")
-	# ------------------------
 	
 	return bot_data
 
@@ -121,26 +138,26 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 	# 1. Set Base Stats & Passives
 	match class_type:
 		CharacterData.ClassType.HEAVY:
-			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_hp = 7
+			char_data.max_sp = 4
 			char_data.speed = 1
 			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
 			
 		CharacterData.ClassType.PATIENT:
-			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_hp = 7
+			char_data.max_sp = 4
 			char_data.speed = 2
 			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
 			
 		CharacterData.ClassType.QUICK:
-			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_hp = 7
+			char_data.max_sp = 4
 			char_data.speed = 4
 			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
 			
 		CharacterData.ClassType.TECHNICAL:
-			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_hp = 7
+			char_data.max_sp = 4
 			char_data.speed = 3
 			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
 
@@ -236,8 +253,8 @@ func _find_action_resource(action_name: String) -> ActionData:
 
 # New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
 func calculate_stats_for_deck(class_type: CharacterData.ClassType, deck: Array[ActionData]) -> Dictionary:
-	var final_hp = 10
-	var final_sp = 3
+	var final_hp = 7
+	var final_sp = 4
 	
 	# 1. Get the list of "Free" cards to ignore (Starters + Basic)
 	# We reuse your existing logic here to ensure consistency

@@ -185,7 +185,7 @@ func _spawn_vfx(particle_node: GPUParticles2D, pos: Vector2):
 	await get_tree().create_timer(particle_node.lifetime + 0.1).timeout
 	particle_node.queue_free()
 
-func _on_clash_resolved(winner_id, _text):
+func _on_clash_resolved(_winner_id, _text):
 	# 1. Standard Clash Explosion
 	var center = get_viewport().get_visible_rect().size / 2
 	_spawn_vfx(_create_clash_particles(), center)

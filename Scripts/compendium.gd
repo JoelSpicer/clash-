@@ -18,7 +18,15 @@ const RULES_DEFS = {
 }
 
 const COMBAT_DEFS = {
-	"Combat": "A combat is a 1v1 fight between two 'combatants'. These could be between player characters, non-player characters, or any combination of the two."
+	"Combat Rules": "A combat is a 1v1 fight between two 'combatants'. These could be between player characters, non-player characters, or any combination of the two.",
+	"Structure": "A ‘Combat’ is played out in a series of ‘Clashes’.",
+	"Clash": "Two combatants choose an action secretly, and resolve the results.",
+	"Combat": "Combatants resolve clashes until one of them is defeated by losing all their health.",
+	"Step 1: Set Stamina and Health": "At the start of every combat, each combatant normally has their maximum stamina and health, however this could be reduced by things like previous fights or environmental effects.",
+	"Step 2: Choose Momentum": "The momentum tracker is chosen by the referee, and each combatant chooses which half of the tracker they wish to use, high or low. A priority token is also awarded to the player whose class has the highest speed. If the classes are the same, decide randomly, such as with a coin flip.",
+	"Step 3: Initial Clash ": "The combatants then start with an initial clash, where both combatants secretly choose an action. As no one has a momentum advantage yet, both combatants can choose Offence or Defence actions. The combatants then reveal their actions, and the momentum advantage is awarded as follows: •	If one combatant chooses an action with the Offence trait, and one combatant chooses and action with the Defense trait, the combatant that chose the Offence action is awarded the momentum advantage. •	If the traits are the same, the action with lower stamina interrupts the other, taking the momentum advantage. If the stamina is also the same, the player with the priority token goes first, and the priority token switches to the other player. Whichever combatant is awarded the momentum advantage sets the momentum tracker to the number on their half closest to the center (e.g. 4 for Low, 5 for High).. The combatant with the momentum advantage is now on the attack, and can only use actions with the Offence trait, while the other combatant can only use actions with the Defence trait.",
+	"Step 4: Resolve Initial Actions ": "The combatants now resolve the effects of their actions, such as using stamina, but ignore any momentum gain or loss from their actions.",
+	"Step 5: Clashes ": "Now that the initial clash is resolved, combat can continue as normal. The combatant that is on the attack can continue their combo. When a combo is over, the momentum is checked. A combatant can choose to end their own combo at any time. Whichever combatant has the momentum advantage is now on the offence, and the other combatant is now on the defence. Each clash, combatants secretly choose a move, a his repeats until a combatant loses all their health."
 }
 
 # We need the CardDisplay scene to spawn cards

@@ -71,7 +71,11 @@ func _ready():
 		
 		# C. Change the Confirm button text
 		var btn_confirm = $TreeContainer/ConfirmButton 
-		if btn_confirm: btn_confirm.text = "UNLOCK & FIGHT"
+		if btn_confirm:
+			if RunManager.free_unlocks_remaining > 0:
+				btn_confirm.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
+			else:
+				btn_confirm.text = "UNLOCK & FIGHT"
 		
 		# D. Calculate unlocks based on what we already own
 		_unlock_neighbors(selected_class_id)
@@ -385,55 +389,94 @@ func _find_action_resource(action_name: String) -> ActionData:
 	return null
 
 func _on_confirm_button_pressed():
-	# --- ARCADE MODE LOGIC ---
+	# ==========================================================
+	# 1. ARCADE / RUN MODE
+	# ==========================================================
 	if RunManager.is_arcade_mode:
-		if pending_unlock_id == 0:
-			print("Please select a new skill first!")
-			# Optional: Shake the screen or flash red
+		
+		# --- PHASE A: DRAFTING (Shopping Spree) ---
+		if RunManager.free_unlocks_remaining > 0:
+			if pending_unlock_id == 0:
+				print("Please select a free card to unlock!")
+				return
+				
+			print("Drafting Card: " + str(pending_unlock_id))
+			
+			# 1. Commit the Reward
+			RunManager.player_owned_tree_ids.append(pending_unlock_id)
+			owned_ids.append(pending_unlock_id)
+			
+			# 2. Add to Deck
+			var card_name = id_to_name.get(pending_unlock_id)
+			var new_card = _find_action_resource(card_name)
+			if new_card:
+				RunManager.player_run_data.deck.append(new_card)
+				
+			# 3. Update Stats & Tree
+			ClassFactory._recalculate_stats(RunManager.player_run_data)
+			_unlock_neighbors(pending_unlock_id)
+			
+			# 4. Decrement Counter
+			RunManager.free_unlocks_remaining -= 1
+			pending_unlock_id = 0 
+			
+			# --- THE FIX: START IMMEDIATELY ON FINISH ---
+			if RunManager.free_unlocks_remaining <= 0:
+				print("Draft Complete! Launching Fight...")
+				RunManager.start_next_fight()
+				return
+			# --------------------------------------------
+			
+			# 5. If we still have picks left, refresh the screen
+			_update_tree_visuals()
+			_recalculate_stats()
+			lines_layer.queue_redraw()
+			
+			var btn_confirm = $TreeContainer/ConfirmButton
+			btn_confirm.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
+				
+			return 
+			
+		# --- PHASE B: NORMAL LEVEL REWARD (Level 2+) ---
+		if pending_unlock_id != 0:
+			print("Committing Level Reward: " + str(pending_unlock_id))
+			RunManager.player_owned_tree_ids.append(pending_unlock_id)
+			
+			var card_name = id_to_name.get(pending_unlock_id)
+			var new_card = _find_action_resource(card_name)
+			if new_card:
+				RunManager.player_run_data.deck.append(new_card)
+			
+			ClassFactory._recalculate_stats(RunManager.player_run_data)
+			
+			# Full Heal on Level Up
+			RunManager.player_run_data.current_hp = RunManager.player_run_data.max_hp
+			RunManager.player_run_data.current_sp = RunManager.player_run_data.max_sp
+			
+			RunManager.start_next_fight()
 			return
-			
-		print("Committing Reward: " + str(pending_unlock_id))
-		
-		# 1. PERMANENTLY Save the new ID to the run
-		RunManager.player_owned_tree_ids.append(pending_unlock_id)
-		
-		# 2. Add the actual Card Resource to the player's deck
-		var card_name = id_to_name.get(pending_unlock_id)
-		var new_card = _find_action_resource(card_name)
-		if new_card:
-			RunManager.player_run_data.deck.append(new_card)
-			
-		# 3. Update the Player's HP/SP Stats permanently
-		ClassFactory._recalculate_stats(RunManager.player_run_data)
-		
-		# 4. Heal the player (Optional: Arcade usually heals on level up)
-		RunManager.player_run_data.current_hp = RunManager.player_run_data.max_hp
-		RunManager.player_run_data.current_sp = RunManager.player_run_data.max_sp
-		
-		# 5. Launch the next fight!
-		RunManager.start_next_fight()
-		return
-	# -------------------------
-	
+		else:
+			print("Please select a new skill first!")
+			return
+
+	# ==========================================================
+	# 2. CUSTOM DECK CREATOR (Main Menu Mode)
+	# ==========================================================
 	if selected_class_id == 0:
 		print("Please select a Class first!")
 		return
 
 	var final_character = CharacterData.new()
-	
-	# 1. Set Class Type
 	match selected_class_id:
 		73: final_character.class_type = CharacterData.ClassType.QUICK
 		74: final_character.class_type = CharacterData.ClassType.TECHNICAL
 		75: final_character.class_type = CharacterData.ClassType.PATIENT
 		76: final_character.class_type = CharacterData.ClassType.HEAVY
 
-	# 2. Add Base Deck (Starters + Basic)
 	var base_deck = ClassFactory.get_starting_deck(final_character.class_type)
 	var final_deck: Array[ActionData] = []
 	final_deck.append_array(base_deck)
 	
-	# 3. Add Unlocked Tree Cards
 	for id in owned_ids:
 		if id >= 73: continue 
 		var a_name = id_to_name.get(id)
@@ -441,44 +484,25 @@ func _on_confirm_button_pressed():
 		if card_resource:
 			final_deck.append(card_resource)
 			
-	# 4. Finalize Character with CALCULATED STATS
 	final_character.deck = final_deck
-	
-	# --- USE CALCULATED STATS HERE ---
 	final_character.max_hp = current_max_hp
 	final_character.max_sp = current_max_sp
-	# ---------------------------------
-	
 	final_character.reset_stats()
 	
-	# 2. Save to the correct slot
 	if GameManager.editing_player_index == 1:
-		# Use stored name if exists, else "Player 1"
 		var p1_name = GameManager.get("temp_p1_name")
 		final_character.character_name = p1_name if p1_name != "" else "Player 1"
-		
 		GameManager.next_match_p1_data = final_character
-		print("P1 Saved as: " + final_character.character_name)
 		
 		if GameManager.p2_is_custom:
-			print("Moving to Player 2 Setup...")
 			GameManager.editing_player_index = 2
 			_setup_for_current_player()
 			return 
-			
 	else:
-		# We are editing Player 2
 		var p2_name = GameManager.get("temp_p2_name")
 		final_character.character_name = p2_name if p2_name != "" else "Player 2"
-		
-		# DELETE THIS LINE:
-		# final_character.character_name = "Player 2" <-- DELETE THIS TOO
-		
 		GameManager.next_match_p2_data = final_character
-		print("P2 Saved as: " + final_character.character_name)
 
-	# 3. Launch Fight
-	# (Safety fallback if P2 data is somehow missing, create bot)
 	if GameManager.next_match_p2_data == null:
 		GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
 		
