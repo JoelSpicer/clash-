@@ -74,7 +74,7 @@ text = "Start Arcade Run"
 
 [node name="DifficultyLabel" type="Label" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
-text = "Difficulty"
+text = "CPU Difficulty"
 horizontal_alignment = 1
 
 [node name="DifficultyOption" type="OptionButton" parent="HBoxContainer/Center_Column"]
@@ -98,10 +98,16 @@ layout_mode = 2
 alignment = 1
 text_overrun_behavior = 1
 
+[node name="P2ModeButton" type="Button" parent="HBoxContainer/P2_Column"]
+layout_mode = 2
+text = "OPPONENT: CPU"
+
 [node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P2_Column"]
+visible = false
 layout_mode = 2
 
 [node name="P2CustomCheck" type="CheckBox" parent="HBoxContainer/P2_Column"]
+visible = false
 layout_mode = 2
 text = "Also build movelist for P2?"
 

@@ -160,7 +160,11 @@ func _ready():
 		
 		# C. Change the Confirm button text
 		var btn_confirm = $TreeContainer/ConfirmButton 
-		if btn_confirm: btn_confirm.text = "UNLOCK & FIGHT"
+		if btn_confirm:
+			if RunManager.free_unlocks_remaining > 0:
+				btn_confirm.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
+			else:
+				btn_confirm.text = "UNLOCK & FIGHT"
 		
 		# D. Calculate unlocks based on what we already own
 		_unlock_neighbors(selected_class_id)
@@ -474,55 +478,94 @@ func _find_action_resource(action_name: String) -> ActionData:
 	return null
 
 func _on_confirm_button_pressed():
-	# --- ARCADE MODE LOGIC ---
+	# ==========================================================
+	# 1. ARCADE / RUN MODE
+	# ==========================================================
 	if RunManager.is_arcade_mode:
-		if pending_unlock_id == 0:
-			print("Please select a new skill first!")
-			# Optional: Shake the screen or flash red
+		
+		# --- PHASE A: DRAFTING (Shopping Spree) ---
+		if RunManager.free_unlocks_remaining > 0:
+			if pending_unlock_id == 0:
+				print("Please select a free card to unlock!")
+				return
+				
+			print("Drafting Card: " + str(pending_unlock_id))
+			
+			# 1. Commit the Reward
+			RunManager.player_owned_tree_ids.append(pending_unlock_id)
+			owned_ids.append(pending_unlock_id)
+			
+			# 2. Add to Deck
+			var card_name = id_to_name.get(pending_unlock_id)
+			var new_card = _find_action_resource(card_name)
+			if new_card:
+				RunManager.player_run_data.deck.append(new_card)
+				
+			# 3. Update Stats & Tree
+			ClassFactory._recalculate_stats(RunManager.player_run_data)
+			_unlock_neighbors(pending_unlock_id)
+			
+			# 4. Decrement Counter
+			RunManager.free_unlocks_remaining -= 1
+			pending_unlock_id = 0 
+			
+			# --- THE FIX: START IMMEDIATELY ON FINISH ---
+			if RunManager.free_unlocks_remaining <= 0:
+				print("Draft Complete! Launching Fight...")
+				RunManager.start_next_fight()
+				return
+			# --------------------------------------------
+			
+			# 5. If we still have picks left, refresh the screen
+			_update_tree_visuals()
+			_recalculate_stats()
+			lines_layer.queue_redraw()
+			
+			var btn_confirm = $TreeContainer/ConfirmButton
+			btn_confirm.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
+				
+			return 
+			
+		# --- PHASE B: NORMAL LEVEL REWARD (Level 2+) ---
+		if pending_unlock_id != 0:
+			print("Committing Level Reward: " + str(pending_unlock_id))
+			RunManager.player_owned_tree_ids.append(pending_unlock_id)
+			
+			var card_name = id_to_name.get(pending_unlock_id)
+			var new_card = _find_action_resource(card_name)
+			if new_card:
+				RunManager.player_run_data.deck.append(new_card)
+			
+			ClassFactory._recalculate_stats(RunManager.player_run_data)
+			
+			# Full Heal on Level Up
+			RunManager.player_run_data.current_hp = RunManager.player_run_data.max_hp
+			RunManager.player_run_data.current_sp = RunManager.player_run_data.max_sp
+			
+			RunManager.start_next_fight()
 			return
-			
-		print("Committing Reward: " + str(pending_unlock_id))
-		
-		# 1. PERMANENTLY Save the new ID to the run
-		RunManager.player_owned_tree_ids.append(pending_unlock_id)
-		
-		# 2. Add the actual Card Resource to the player's deck
-		var card_name = id_to_name.get(pending_unlock_id)
-		var new_card = _find_action_resource(card_name)
-		if new_card:
-			RunManager.player_run_data.deck.append(new_card)
-			
-		# 3. Update the Player's HP/SP Stats permanently
-		ClassFactory._recalculate_stats(RunManager.player_run_data)
-		
-		# 4. Heal the player (Optional: Arcade usually heals on level up)
-		RunManager.player_run_data.current_hp = RunManager.player_run_data.max_hp
-		RunManager.player_run_data.current_sp = RunManager.player_run_data.max_sp
-		
-		# 5. Launch the next fight!
-		RunManager.start_next_fight()
-		return
-	# -------------------------
-	
+		else:
+			print("Please select a new skill first!")
+			return
+
+	# ==========================================================
+	# 2. CUSTOM DECK CREATOR (Main Menu Mode)
+	# ==========================================================
 	if selected_class_id == 0:
 		print("Please select a Class first!")
 		return
 
 	var final_character = CharacterData.new()
-	
-	# 1. Set Class Type
 	match selected_class_id:
 		73: final_character.class_type = CharacterData.ClassType.QUICK
 		74: final_character.class_type = CharacterData.ClassType.TECHNICAL
 		75: final_character.class_type = CharacterData.ClassType.PATIENT
 		76: final_character.class_type = CharacterData.ClassType.HEAVY
 
-	# 2. Add Base Deck (Starters + Basic)
 	var base_deck = ClassFactory.get_starting_deck(final_character.class_type)
 	var final_deck: Array[ActionData] = []
 	final_deck.append_array(base_deck)
 	
-	# 3. Add Unlocked Tree Cards
 	for id in owned_ids:
 		if id >= 73: continue 
 		var a_name = id_to_name.get(id)
@@ -530,44 +573,25 @@ func _on_confirm_button_pressed():
 		if card_resource:
 			final_deck.append(card_resource)
 			
-	# 4. Finalize Character with CALCULATED STATS
 	final_character.deck = final_deck
-	
-	# --- USE CALCULATED STATS HERE ---
 	final_character.max_hp = current_max_hp
 	final_character.max_sp = current_max_sp
-	# ---------------------------------
-	
 	final_character.reset_stats()
 	
-	# 2. Save to the correct slot
 	if GameManager.editing_player_index == 1:
-		# Use stored name if exists, else "Player 1"
 		var p1_name = GameManager.get("temp_p1_name")
 		final_character.character_name = p1_name if p1_name != "" else "Player 1"
-		
 		GameManager.next_match_p1_data = final_character
-		print("P1 Saved as: " + final_character.character_name)
 		
 		if GameManager.p2_is_custom:
-			print("Moving to Player 2 Setup...")
 			GameManager.editing_player_index = 2
 			_setup_for_current_player()
 			return 
-			
 	else:
-		# We are editing Player 2
 		var p2_name = GameManager.get("temp_p2_name")
 		final_character.character_name = p2_name if p2_name != "" else "Player 2"
-		
-		# DELETE THIS LINE:
-		# final_character.character_name = "Player 2" <-- DELETE THIS TOO
-		
 		GameManager.next_match_p2_data = final_character
-		print("P2 Saved as: " + final_character.character_name)
 
-	# 3. Launch Fight
-	# (Safety fallback if P2 data is somehow missing, create bot)
 	if GameManager.next_match_p2_data == null:
 		GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
 		
@@ -1404,12 +1428,14 @@ extends Control
 @onready var p2_option = $HBoxContainer/P2_Column/ClassOption
 @onready var p2_info = $HBoxContainer/P2_Column/InfoLabel
 @onready var p2_custom_check = $HBoxContainer/P2_Column/P2CustomCheck
-
+var compendium_scene = preload("res://Scenes/Compendium.tscn")
 # New Buttons
 @onready var btn_quick = $HBoxContainer/Center_Column/QuickFightButton
 @onready var btn_custom = $HBoxContainer/Center_Column/CustomDeckButton
 @onready var btn_back = $HBoxContainer/Center_Column/BackButton
 @onready var difficulty_option = $HBoxContainer/Center_Column/DifficultyOption
+@onready var p2_mode_button = $HBoxContainer/P2_Column/P2ModeButton
+
 
 var classes = ["Heavy", "Patient", "Quick", "Technical"]
 
@@ -1428,8 +1454,8 @@ func _ready():
 	_setup_difficulty()
 	
 	# Default selections
-	p1_option.selected = 0
-	p2_option.selected = 1
+	p1_option.selected = 6
+	p2_option.selected = 5
 	_update_info()
 	
 	p1_option.item_selected.connect(func(_idx): _update_info())
@@ -1439,7 +1465,19 @@ func _ready():
 	btn_quick.pressed.connect(_on_quick_fight_pressed)
 	btn_custom.pressed.connect(_on_custom_deck_pressed)
 	btn_back.pressed.connect(func(): get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn"))
-
+	
+	if GameManager.p2_is_custom == null:
+		GameManager.p2_is_custom = false
+	
+	_update_p2_mode_visuals()
+	
+	# 2. Connect the signal
+	p2_mode_button.pressed.connect(_on_p2_mode_pressed)
+	
+	var btn_help = find_child("HelpButton") 
+	if btn_help:
+		btn_help.pressed.connect(_on_help_pressed)
+	
 func _load_presets():
 	presets.clear()
 	var path = "res://Data/Presets/"
@@ -1641,6 +1679,48 @@ func _on_start_arcade_pressed():
 	var class_enum = selected_idx as CharacterData.ClassType
 	RunManager.start_run(class_enum)
 
+func _on_help_pressed():
+	var compendium = compendium_scene.instantiate()
+	
+	# 1. Set it to Overlay Mode (so it doesn't change scenes)
+	compendium.is_overlay = true
+	
+	# 2. Tell it to open the 'Modes' tab
+	# (0 = Traits, 1 = Cards, 2 = Modes -> Adjust based on your tab order!)
+	compendium.initial_tab_index = 4 
+	
+	add_child(compendium)
+
+func _on_p2_mode_pressed():
+	# Toggle the boolean
+	GameManager.p2_is_custom = !GameManager.p2_is_custom
+	
+	# Update the look
+	_update_p2_mode_visuals()
+
+func _update_p2_mode_visuals():
+	if GameManager.p2_is_custom:
+		# VISUALS FOR HUMAN PLAYER
+		p2_mode_button.text = "OPPONENT: PLAYER 2"
+		p2_mode_button.modulate = Color(0.2, 1.0, 0.2) # Bright Green
+		
+		# Optional: If you have a Label saying "Select P2 Class", show it
+		# $P2Container/Header.text = "PLAYER 2 SELECT"
+		
+	else:
+		# VISUALS FOR CPU BOT
+		p2_mode_button.text = "OPPONENT: CPU BOT"
+		p2_mode_button.modulate = Color(0.8, 0.8, 0.8) # Grayish/White
+		
+		# Optional: Update header
+		# $P2Container/Header.text = "BOT DIFFICULTY"
+	var p2_controls = get_node_or_null("P2Container")
+	if p2_controls:
+		if GameManager.p2_is_custom:
+			p2_controls.modulate.a = 1.0 # Fully visible
+		else:
+			p2_controls.modulate.a = 0.7 # Slightly dimmed (implies AI control)
+
 
 ========================================
 FILE PATH: res://Scripts/ClassFactory.gd
@@ -1684,64 +1764,81 @@ const ID_TO_NAME_MAP = {
 }
 
 # --- NEW: ENEMY GENERATOR ---
+# ClassFactory.gd
+
 func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
-	var classes = [CharacterData.ClassType.HEAVY, CharacterData.ClassType.QUICK, CharacterData.ClassType.TECHNICAL, CharacterData.ClassType.PATIENT]
-	var selected_class = classes.pick_random()
-	var bot_name = "Lv." + str(level) + " " + _class_enum_to_string(selected_class)
+	var types = [
+		CharacterData.ClassType.HEAVY, 
+		CharacterData.ClassType.QUICK, 
+		CharacterData.ClassType.TECHNICAL, 
+		CharacterData.ClassType.PATIENT
+	]
+	var selected_class = types.pick_random()
 	
-	var bot_data = create_character(selected_class, bot_name)
+	# 2. Create the Base Character (Starter Deck)
+	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
 	
-	# 2. Identify Starting Node
-	var start_node = 76 # Heavy
+	# 3. Calculate how many extra cards they get
+	# Level 1 Player gets 2 Free Drafts.
+	# Level 2 Player gets 2 Free + 1 Reward = 3 extra cards.
+	# Formula: Level + 1
+	var cards_to_draft = level + 1
+	
+	# 4. "Draft" cards legally by walking the tree
+	# We need to simulate the bot unlocking nodes one by one
+	var owned_ids = []
+	var unlockable_options = []
+	
+	# Identify the starting Root Node for this class
+	var root_id = 0
 	match selected_class:
-		CharacterData.ClassType.QUICK: start_node = 73
-		CharacterData.ClassType.TECHNICAL: start_node = 74
-		CharacterData.ClassType.PATIENT: start_node = 75
-		CharacterData.ClassType.HEAVY: start_node = 76
-	# 3. Walk the tree to simulate leveling up
-	# Level 1 = 0 extra cards. Level 5 = 4 extra cards.
-	var extra_cards_count = max(0, level - 1)
+		CharacterData.ClassType.QUICK: root_id = 73
+		CharacterData.ClassType.TECHNICAL: root_id = 74
+		CharacterData.ClassType.PATIENT: root_id = 75
+		CharacterData.ClassType.HEAVY: root_id = 76
 	
-	var owned_ids = [start_node]
-	var available_ids = []
-	
-	# Initial unlock
-	_add_neighbors_to_list(start_node, owned_ids, available_ids)
-	
-	for i in range(extra_cards_count):
-		if available_ids.is_empty(): break
+	# Initialize the 'shop' with the root's neighbors
+	owned_ids.append(root_id)
+	if root_id in TREE_CONNECTIONS:
+		for neighbor in TREE_CONNECTIONS[root_id]:
+			unlockable_options.append(neighbor)
+			
+	# Draft Loop
+	for i in range(cards_to_draft):
+		if unlockable_options.is_empty():
+			break # Run out of valid moves (rare)
+			
+		# Pick a random valid card
+		var picked_id = unlockable_options.pick_random()
 		
-		# Pick a random valid neighbor
-		var new_id = available_ids.pick_random()
-		
-		# Add to bot
-		owned_ids.append(new_id)
-		
-		# Update available pool
-		available_ids.erase(new_id)
-		_add_neighbors_to_list(new_id, owned_ids, available_ids)
-		
-		# Actually add the card resource to the deck
-		var card_name = ID_TO_NAME_MAP.get(new_id)
+		# "Buy" it
+		var card_name = ID_TO_NAME_MAP.get(picked_id)
 		if card_name:
-			var card = _find_action_resource(card_name)
-			if card: bot_data.deck.append(card)
+			var new_card = _find_action_resource(card_name)
+			if new_card:
+				bot_data.deck.append(new_card)
+		
+		# Update the tree state for the next pick
+		owned_ids.append(picked_id)
+		unlockable_options.erase(picked_id) # Can't pick it again
+		
+		# Add new neighbors to the pool
+		if picked_id in TREE_CONNECTIONS:
+			for neighbor in TREE_CONNECTIONS[picked_id]:
+				# Only add if we don't own it and it's not already in the list
+				if neighbor not in owned_ids and neighbor not in unlockable_options:
+					unlockable_options.append(neighbor)
 	
-	# 4. Recalculate stats based on the new deck
+	# 5. Recalculate stats based on the new legal deck
 	_recalculate_stats(bot_data)
 	
-	# --- NEW: DEBUG PRINT ---
-	print("\n=== ARCADE ENEMY GENERATED ===")
-	print("Name: " + bot_data.character_name)
-	print("Stats: HP " + str(bot_data.max_hp) + " | SP " + str(bot_data.max_sp))
-	print("Deck List (" + str(bot_data.deck.size()) + " Actions):")
-	
-	for card in bot_data.deck:
-		print(" - " + card.display_name + " (" + ("Offence" if card.type == 0 else "Defence") + ")")
-		
+	# Debug Print to verify
+	print("\n=== ENEMY GENERATED (" + str(selected_class) + ") ===")
+	print("Level: " + str(level) + " | Drafted: " + str(cards_to_draft))
+	print("HP: " + str(bot_data.max_hp) + " | SP: " + str(bot_data.max_sp))
+	print("Deck Size: " + str(bot_data.deck.size()))
 	print("==============================\n")
-	# ------------------------
 	
 	return bot_data
 
@@ -1768,26 +1865,26 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 	# 1. Set Base Stats & Passives
 	match class_type:
 		CharacterData.ClassType.HEAVY:
-			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_hp = 7
+			char_data.max_sp = 4
 			char_data.speed = 1
 			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
 			
 		CharacterData.ClassType.PATIENT:
-			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_hp = 7
+			char_data.max_sp = 4
 			char_data.speed = 2
 			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
 			
 		CharacterData.ClassType.QUICK:
-			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_hp = 7
+			char_data.max_sp = 4
 			char_data.speed = 4
 			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
 			
 		CharacterData.ClassType.TECHNICAL:
-			char_data.max_hp = 10
-			char_data.max_sp = 3
+			char_data.max_hp = 7
+			char_data.max_sp = 4
 			char_data.speed = 3
 			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
 
@@ -1883,8 +1980,8 @@ func _find_action_resource(action_name: String) -> ActionData:
 
 # New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
 func calculate_stats_for_deck(class_type: CharacterData.ClassType, deck: Array[ActionData]) -> Dictionary:
-	var final_hp = 10
-	var final_sp = 3
+	var final_hp = 7
+	var final_sp = 4
 	
 	# 1. Get the list of "Free" cards to ignore (Starters + Basic)
 	# We reuse your existing logic here to ensure consistency
@@ -1989,11 +2086,16 @@ FILE PATH: res://Scripts/compendium.gd
 ========================================
 extends Control
 
-@onready var keyword_container = $TabContainer/Traits/VBoxContainer
-@onready var combat_container = $TabContainer/Combat/VBoxContainer
-@onready var card_grid = $"TabContainer/Card Library/GridContainer"
-@onready var rules_container = $"TabContainer/Rules/VBoxContainer"
+@onready var keyword_container = $TabContainer/Traits/MarginContainer/VBoxContainer
+@onready var combat_container = $TabContainer/Combat/MarginContainer/VBoxContainer
+@onready var card_grid = $"TabContainer/Card Library/MarginContainer/GridContainer"
+@onready var rules_container = $"TabContainer/Rules/MarginContainer/VBoxContainer"
+@onready var modes_container = $TabContainer/Modes/MarginContainer/VBoxContainer
+@onready var tab_container = $TabContainer # <--- NEW
 @onready var back_button = $BackButton
+
+# New variable to control which tab opens first
+var initial_tab_index: int = 0
 
 const RULES_DEFS = {
 	"Actions": "An action is a move, technique or attack that is used in combat. Every action has a number of traits that convey how the action works.",
@@ -2030,9 +2132,12 @@ func _ready():
 	_populate_combat()
 	_populate_keywords()
 	_populate_card_library()
+	_populate_modes()
 	
 	if is_overlay:
-		back_button.text = "Resume Combat"
+		back_button.text = "Close Help"
+		
+	tab_container.current_tab = initial_tab_index
 
 func _populate_keywords():
 	# Loop through the global dictionary
@@ -2104,6 +2209,31 @@ func _on_back_pressed():
 	else:
 		# Go back to Main Menu
 		get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+
+func _populate_modes():
+	# Define your text here
+	var modes_data = {
+		"Quick Match": "A single battle against an AI opponent. You choose a basic class loadout or a preset deck. Great for testing mechanics or a quick fight. \n\n- Simply choose a character for you and your opponent, choose a difficulty, then select Quick CLASH! to get right into the action, or select Quick CLASH! (build action list) to choose your exact loadout.",
+		
+		"Arcade Mode": "Continuous battles where you choose a new action after each victory. If you lose a match, the run ends. \n\n- Choose a class to start, choose the NPC difficulty, then select Start Arcade Run to choose your initial two actions."
+	}
+	
+	for title in modes_data:
+		var desc = modes_data[title]
+		
+		# Title Label
+		var l_title = Label.new()
+		l_title.text = "- " + title + " -"
+		l_title.add_theme_font_size_override("font_size", 24)
+		l_title.add_theme_color_override("font_color", Color.YELLOW)
+		modes_container.add_child(l_title)
+		
+		# Description Label
+		var l_desc = Label.new()
+		l_desc.text = desc
+		l_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l_desc.custom_minimum_size.y = 80 # Spacing
+		modes_container.add_child(l_desc)
 
 
 ========================================
@@ -3243,6 +3373,8 @@ var is_arcade_mode: bool = false
 var current_level: int = 1
 var player_run_data: CharacterData
 var player_owned_tree_ids: Array[int] = [] # Track which nodes we own across fights
+var free_unlocks_remaining: int = 0
+
 
 func start_run(starting_class: CharacterData.ClassType):
 	is_arcade_mode = true
@@ -3258,8 +3390,13 @@ func start_run(starting_class: CharacterData.ClassType):
 		CharacterData.ClassType.TECHNICAL: player_owned_tree_ids.append(74)
 		CharacterData.ClassType.PATIENT: player_owned_tree_ids.append(75)
 		CharacterData.ClassType.HEAVY: player_owned_tree_ids.append(76)
+	
+	# --- NEW: DRAFT MODE START ---
+	free_unlocks_remaining = 2 # Give 2 free picks
+	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	# -----------------------------
 		
-	start_next_fight()
+	#start_next_fight()
 
 func start_next_fight():
 	# 1. Setup Player
@@ -4124,7 +4261,7 @@ func _spawn_vfx(particle_node: GPUParticles2D, pos: Vector2):
 	await get_tree().create_timer(particle_node.lifetime + 0.1).timeout
 	particle_node.queue_free()
 
-func _on_clash_resolved(winner_id, _text):
+func _on_clash_resolved(_winner_id, _text):
 	# 1. Standard Clash Explosion
 	var center = get_viewport().get_visible_rect().size / 2
 	_spawn_vfx(_create_clash_particles(), center)

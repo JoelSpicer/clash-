@@ -18,44 +18,67 @@ var _simulation_active: bool = true
 var _current_input_player: int = 1 
 
 func _ready():
+	# 1. UI SETUP
+	# Since BattleUI is already in the scene tree, we just wait for it to be ready.
+	# We DO NOT instantiate() it or add_child() it again.
+	
+	# Wait one frame to ensure the UI's own _ready() has finished setting up nodes
 	await get_tree().process_frame
-	battle_ui.combat_log.clear_log()
 	
-	# Force difficulty for testing
-	#GameManager.ai_difficulty = GameManager.Difficulty.HARD
+	# Clear the log to start fresh
+	if battle_ui.has_method("combat_log") and battle_ui.combat_log:
+		battle_ui.combat_log.clear_log()
+	elif battle_ui.get("combat_log"): # Fallback access
+		battle_ui.combat_log.clear_log()
 	
-	# --- NEW LOGIC: CHECK FOR SELECTION ---
+	# 2. LOAD PLAYER RESOURCES
 	if GameManager.next_match_p1_data != null:
 		p1_resource = GameManager.next_match_p1_data
 		
 	if GameManager.next_match_p2_data != null:
 		p2_resource = GameManager.next_match_p2_data
-	# --------------------------------------
 	
-	# Connect Signals
-	GameManager.state_changed.connect(_on_state_changed)
-	GameManager.combat_log_updated.connect(_on_log_updated)
-	GameManager.clash_resolved.connect(_on_clash_resolved)
-	GameManager.game_over.connect(_on_game_over)
-	GameManager.request_clash_animation.connect(battle_ui.play_clash_animation)
+	# 3. DETERMINE HUMAN/AI STATUS
+	is_player_1_human = true # P1 is always human
 	
-	battle_ui.human_selected_card.connect(_on_human_input_received)
+	# Logic: If Arcade Mode -> AI. If Custom Mode & P2 Toggle was Human -> Human.
+	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		is_player_2_human = true
+		print("TestArena: P2 set to HUMAN")
+	else:
+		is_player_2_human = false
+		print("TestArena: P2 set to AI")
+
+	# 4. CONNECT SIGNALS
+	# Note: We check if connections exist to avoid errors if _ready runs twice (rare but safe)
+	if not GameManager.state_changed.is_connected(_on_state_changed):
+		GameManager.state_changed.connect(_on_state_changed)
+		GameManager.combat_log_updated.connect(_on_log_updated)
+		GameManager.clash_resolved.connect(_on_clash_resolved)
+		GameManager.game_over.connect(_on_game_over)
+		GameManager.request_clash_animation.connect(battle_ui.play_clash_animation)
 	
-	# NEW: Connect Toggles
-	battle_ui.p1_mode_toggled.connect(_on_p1_mode_toggled)
-	battle_ui.p2_mode_toggled.connect(_on_p2_mode_toggled)
+	if not battle_ui.human_selected_card.is_connected(_on_human_input_received):
+		battle_ui.human_selected_card.connect(_on_human_input_received)
 	
+	# Connect Debug Toggles
+	if not battle_ui.p1_mode_toggled.is_connected(_on_p1_mode_toggled):
+		battle_ui.p1_mode_toggled.connect(_on_p1_mode_toggled)
+		battle_ui.p2_mode_toggled.connect(_on_p2_mode_toggled)
+	
+	# 5. INITIALIZE UI ELEMENTS
 	battle_ui.load_deck(p1_resource.deck)
 	
 	print("--- INITIALIZING MATCH ---")
 	GameManager.start_combat(p1_resource, p2_resource)
 	
-	# Setup Visuals & Toggles
+	# 6. SETUP VISUALS & TOGGLES
 	battle_ui.initialize_hud(p1_resource, p2_resource)
+	
+	# Pass the calculated booleans so the checkboxes match the game state
 	battle_ui.setup_toggles(is_player_1_human, is_player_2_human)
 	
-	# --- NEW: DISPLAY DIFFICULTY ON HUD ---
-	# We determine the string suffix based on the setting
+	# 7. UPDATE NAME TAGS BASED ON DIFFICULTY
 	var diff_suffix = ""
 	match GameManager.ai_difficulty:
 		GameManager.Difficulty.VERY_EASY: diff_suffix = " (Very Easy)"
@@ -63,16 +86,13 @@ func _ready():
 		GameManager.Difficulty.MEDIUM: diff_suffix = " (Medium)"
 		GameManager.Difficulty.HARD: diff_suffix = " (Hard)"
 	
-	# If Player 1 is a bot, update their name tag
 	if not is_player_1_human:
 		if battle_ui.p1_hud and battle_ui.p1_hud.name_label:
 			battle_ui.p1_hud.name_label.text += diff_suffix
 			
-	# If Player 2 is a bot, update their name tag
 	if not is_player_2_human:
 		if battle_ui.p2_hud and battle_ui.p2_hud.name_label:
 			battle_ui.p2_hud.name_label.text += diff_suffix
-	# --------------------------------------
 	
 func _update_visuals():
 	battle_ui.update_all_visuals(p1_resource, p2_resource, GameManager.momentum)

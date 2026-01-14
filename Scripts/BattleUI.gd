@@ -88,6 +88,7 @@ func _ready():
 	
 	_create_debug_toggles()
 	_create_passive_toggles() # Add this new function call
+	setup_toggles()
 	
 	var btn = get_node_or_null("MenuButton")
 	if btn:
@@ -155,19 +156,37 @@ func _create_debug_toggles():
 	container.position.y += 60 
 	container.add_theme_constant_override("separation", 20)
 	
+	# 1. HIDE FOR DEBUG PURPOSES
+	# (Change to true if you need to see them for testing)
+	container.visible = false
+	container.name = "DebugContainer" # Named so you can find it in Remote view
+	
+	# 2. CALCULATE INITIAL STATES
+	# P1 is always Human by default
+	var p1_is_human = true 
+	
+	# P2 is Human only if we are NOT in Arcade Mode AND we selected "Opponent: Player 2"
+	var p2_is_human = false
+	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		p2_is_human = true
+	
+	# 3. CREATE P1 TOGGLE
 	p1_toggle = CheckButton.new()
 	p1_toggle.text = "P1 Human"
 	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
+	
+	# Set state (Godot emits "toggled" signal automatically when this changes from default)
+	p1_toggle.button_pressed = p1_is_human 
 	container.add_child(p1_toggle)
 	
+	# 4. CREATE P2 TOGGLE
 	p2_toggle = CheckButton.new()
 	p2_toggle.text = "P2 Human"
 	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
+	
+	# Set state based on menu selection
+	p2_toggle.button_pressed = p2_is_human
 	container.add_child(p2_toggle)
-
-func setup_toggles(p1_is_human: bool, p2_is_human: bool):
-	if p1_toggle: p1_toggle.set_pressed_no_signal(p1_is_human)
-	if p2_toggle: p2_toggle.set_pressed_no_signal(p2_is_human)
 
 # --- VISUAL UPDATE FUNCTIONS ---
 
@@ -549,3 +568,44 @@ func _on_menu_pressed():
 	
 	# 5. Add it to the UI (It will cover the screen)
 	add_child(compendium)
+
+# BattleUI.gd
+
+# We add "= null" to make these arguments optional.
+func setup_toggles(p1_override = null, p2_override = null):
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	container.position.y += 60 
+	container.add_theme_constant_override("separation", 20)
+	
+	container.visible = false
+	container.name = "DebugContainer"
+	
+	# 1. DEFAULT LOGIC (Automatic)
+	var p1_is_human = true 
+	var p2_is_human = false
+	
+	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		p2_is_human = true
+	
+	# 2. OVERRIDE LOGIC (If TestArena passed specific values, use them)
+	if p1_override != null:
+		p1_is_human = p1_override
+	
+	if p2_override != null:
+		p2_is_human = p2_override
+	
+	# 3. CREATE P1 TOGGLE
+	p1_toggle = CheckButton.new()
+	p1_toggle.text = "P1 Human"
+	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
+	p1_toggle.button_pressed = p1_is_human 
+	container.add_child(p1_toggle)
+	
+	# 4. CREATE P2 TOGGLE
+	p2_toggle = CheckButton.new()
+	p2_toggle.text = "P2 Human"
+	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
+	p2_toggle.button_pressed = p2_is_human
+	container.add_child(p2_toggle)

@@ -11,6 +11,8 @@ var compendium_scene = preload("res://Scenes/Compendium.tscn")
 @onready var btn_custom = $HBoxContainer/Center_Column/CustomDeckButton
 @onready var btn_back = $HBoxContainer/Center_Column/BackButton
 @onready var difficulty_option = $HBoxContainer/Center_Column/DifficultyOption
+@onready var p2_mode_button = $HBoxContainer/P2_Column/P2ModeButton
+
 
 var classes = ["Heavy", "Patient", "Quick", "Technical"]
 
@@ -40,6 +42,14 @@ func _ready():
 	btn_quick.pressed.connect(_on_quick_fight_pressed)
 	btn_custom.pressed.connect(_on_custom_deck_pressed)
 	btn_back.pressed.connect(func(): get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn"))
+	
+	if GameManager.p2_is_custom == null:
+		GameManager.p2_is_custom = false
+	
+	_update_p2_mode_visuals()
+	
+	# 2. Connect the signal
+	p2_mode_button.pressed.connect(_on_p2_mode_pressed)
 	
 	var btn_help = find_child("HelpButton") 
 	if btn_help:
@@ -146,57 +156,55 @@ func _on_quick_fight_pressed():
 
 # --- OPTION 2: CUSTOM DECK (Skill Tree) ---
 func _on_custom_deck_pressed():
-	# --- 1. HANDLE PLAYER 1 (The one we edit first) ---
+	# --- 1. HANDLE PLAYER 1 ---
 	var p1_sel = p1_option.selected
 	var p1_class_id = 0
 	
 	if p1_sel < base_classes.size():
-		# Base Class
 		p1_class_id = p1_sel
 		GameManager.temp_p1_name = "Player 1"
-		GameManager.temp_p1_preset = null # <--- Clear preset
+		GameManager.temp_p1_preset = null
 	else:
-		# Preset Character
 		var preset_idx = p1_sel - base_classes.size() - 1
 		if preset_idx >= 0:
 			var p = presets[preset_idx]
 			p1_class_id = p.class_type
 			GameManager.temp_p1_name = p.character_name
-			GameManager.temp_p1_preset = p # <--- Save preset
+			GameManager.temp_p1_preset = p
 
-	# --- 2. HANDLE PLAYER 2 (The opponent or next edit) ---
+	# --- 2. HANDLE PLAYER 2 (Class Selection Only) ---
 	var p2_sel = p2_option.selected
 	var p2_class_id = 0
 	
 	if p2_sel < base_classes.size():
-		# Base Class
 		p2_class_id = p2_sel
 		GameManager.temp_p2_name = "Player 2"
-		GameManager.temp_p2_preset = null # <--- Clear preset
+		GameManager.temp_p2_preset = null
 	else:
-		# Preset Character
 		var preset_idx = p2_sel - base_classes.size() - 1
 		if preset_idx >= 0:
 			var p = presets[preset_idx]
 			p2_class_id = p.class_type
 			GameManager.temp_p2_name = p.character_name
-			GameManager.temp_p2_preset = p # <--- Save preset
+			GameManager.temp_p2_preset = p
 
-	# Store the CORRECT Class IDs (Enum ints), not the Dropdown Indices
 	GameManager.temp_p1_class_selection = p1_class_id
 	GameManager.temp_p2_class_selection = p2_class_id
 	
 	# --- 3. SETUP EDITING STATE ---
-	GameManager.editing_player_index = 1 # Start with Player 1
-	GameManager.p2_is_custom = p2_custom_check.button_pressed 
+	GameManager.editing_player_index = 1 
+	
+	# --- DELETE THIS LINE ---
+	# GameManager.p2_is_custom = p2_custom_check.button_pressed 
+	# ------------------------
 	
 	# --- 4. HANDLE PLAYER 2 DATA ---
+	# We rely on the toggle button (P2ModeButton) having already set this variable
 	if GameManager.p2_is_custom:
-		# We will build P2 later in the tree
+		# If we are customizing P2, we clear the data so the Tree knows to build it later
 		GameManager.next_match_p2_data = null 
 	else:
-		# Generate the Bot immediately using the helper
-		# (This ensures Presets get their stats/cards calculated correctly)
+		# If it's a CPU, generate the data immediately
 		var p2 = _get_character_data_from_selection(p2_sel, "Player 2")
 		GameManager.next_match_p2_data = p2
 	
@@ -257,3 +265,33 @@ func _on_help_pressed():
 	compendium.initial_tab_index = 4 
 	
 	add_child(compendium)
+
+func _on_p2_mode_pressed():
+	# Toggle the boolean
+	GameManager.p2_is_custom = !GameManager.p2_is_custom
+	
+	# Update the look
+	_update_p2_mode_visuals()
+
+func _update_p2_mode_visuals():
+	if GameManager.p2_is_custom:
+		# VISUALS FOR HUMAN PLAYER
+		p2_mode_button.text = "OPPONENT: PLAYER 2"
+		p2_mode_button.modulate = Color(0.2, 1.0, 0.2) # Bright Green
+		
+		# Optional: If you have a Label saying "Select P2 Class", show it
+		# $P2Container/Header.text = "PLAYER 2 SELECT"
+		
+	else:
+		# VISUALS FOR CPU BOT
+		p2_mode_button.text = "OPPONENT: CPU BOT"
+		p2_mode_button.modulate = Color(0.8, 0.8, 0.8) # Grayish/White
+		
+		# Optional: Update header
+		# $P2Container/Header.text = "BOT DIFFICULTY"
+	var p2_controls = get_node_or_null("P2Container")
+	if p2_controls:
+		if GameManager.p2_is_custom:
+			p2_controls.modulate.a = 1.0 # Fully visible
+		else:
+			p2_controls.modulate.a = 0.7 # Slightly dimmed (implies AI control)
