@@ -1,10 +1,15 @@
 extends Control
 
-@onready var keyword_container = $TabContainer/Traits/VBoxContainer
-@onready var combat_container = $TabContainer/Combat/VBoxContainer
-@onready var card_grid = $"TabContainer/Card Library/GridContainer"
-@onready var rules_container = $"TabContainer/Rules/VBoxContainer"
+@onready var keyword_container = $TabContainer/Traits/MarginContainer/VBoxContainer
+@onready var combat_container = $TabContainer/Combat/MarginContainer/VBoxContainer
+@onready var card_grid = $"TabContainer/Card Library/MarginContainer/GridContainer"
+@onready var rules_container = $"TabContainer/Rules/MarginContainer/VBoxContainer"
+@onready var modes_container = $TabContainer/Modes/MarginContainer/VBoxContainer
+@onready var tab_container = $TabContainer # <--- NEW
 @onready var back_button = $BackButton
+
+# New variable to control which tab opens first
+var initial_tab_index: int = 0
 
 const RULES_DEFS = {
 	"Actions": "An action is a move, technique or attack that is used in combat. Every action has a number of traits that convey how the action works.",
@@ -41,9 +46,12 @@ func _ready():
 	_populate_combat()
 	_populate_keywords()
 	_populate_card_library()
+	_populate_modes()
 	
 	if is_overlay:
-		back_button.text = "Resume Combat"
+		back_button.text = "Close Help"
+		
+	tab_container.current_tab = initial_tab_index
 
 func _populate_keywords():
 	# Loop through the global dictionary
@@ -115,3 +123,28 @@ func _on_back_pressed():
 	else:
 		# Go back to Main Menu
 		get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+
+func _populate_modes():
+	# Define your text here
+	var modes_data = {
+		"Quick Match": "A single battle against an AI opponent. You choose a basic class loadout or a preset deck. Great for testing mechanics or a quick fight. \n\n- Simply choose a character for you and your opponent, choose a difficulty, then select Quick CLASH! to get right into the action, or select Quick CLASH! (build action list) to choose your exact loadout.",
+		
+		"Arcade Mode": "Continuous battles where you choose a new action after each victory. If you lose a match, the run ends. \n\n- Choose a class to start, choose the NPC difficulty, then select Start Arcade Run to choose your initial two actions."
+	}
+	
+	for title in modes_data:
+		var desc = modes_data[title]
+		
+		# Title Label
+		var l_title = Label.new()
+		l_title.text = "- " + title + " -"
+		l_title.add_theme_font_size_override("font_size", 24)
+		l_title.add_theme_color_override("font_color", Color.YELLOW)
+		modes_container.add_child(l_title)
+		
+		# Description Label
+		var l_desc = Label.new()
+		l_desc.text = desc
+		l_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l_desc.custom_minimum_size.y = 80 # Spacing
+		modes_container.add_child(l_desc)

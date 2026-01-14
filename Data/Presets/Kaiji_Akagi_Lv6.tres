@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="PresetCharacter" load_steps=2 format=3 uid="uid://d07lrfptoidvd"]
 
-[ext_resource type="Script" uid="uid://l0hennmoy7yn" path="res://Scripts/Resources/PresetCharacter.gd" id="1_4gn5t"]
+[ext_resource type="Script" uid="uid://l0hennmoy7yn" path="res://Scripts/Resources/PresetCharacter.gd" id="1_tgyhi"]
 
 [resource]
-script = ExtResource("1_4gn5t")
+script = ExtResource("1_tgyhi")
 character_name = "Kaiji Akagi"
 class_type = 2
-level = 8
+level = 6
 extra_skills = Array[String](["Pummel", "Adept Light", "Master Light", "Flying Kick", "Perfect Strike", "Adept Dodge", "Slip Behind", "Toppling Kick"])
 metadata/_custom_type_script = "uid://l0hennmoy7yn"

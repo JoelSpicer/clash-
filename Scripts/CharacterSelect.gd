@@ -5,7 +5,7 @@ extends Control
 @onready var p2_option = $HBoxContainer/P2_Column/ClassOption
 @onready var p2_info = $HBoxContainer/P2_Column/InfoLabel
 @onready var p2_custom_check = $HBoxContainer/P2_Column/P2CustomCheck
-
+var compendium_scene = preload("res://Scenes/Compendium.tscn")
 # New Buttons
 @onready var btn_quick = $HBoxContainer/Center_Column/QuickFightButton
 @onready var btn_custom = $HBoxContainer/Center_Column/CustomDeckButton
@@ -29,8 +29,8 @@ func _ready():
 	_setup_difficulty()
 	
 	# Default selections
-	p1_option.selected = 0
-	p2_option.selected = 1
+	p1_option.selected = 6
+	p2_option.selected = 5
 	_update_info()
 	
 	p1_option.item_selected.connect(func(_idx): _update_info())
@@ -40,7 +40,11 @@ func _ready():
 	btn_quick.pressed.connect(_on_quick_fight_pressed)
 	btn_custom.pressed.connect(_on_custom_deck_pressed)
 	btn_back.pressed.connect(func(): get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn"))
-
+	
+	var btn_help = find_child("HelpButton") 
+	if btn_help:
+		btn_help.pressed.connect(_on_help_pressed)
+	
 func _load_presets():
 	presets.clear()
 	var path = "res://Data/Presets/"
@@ -241,3 +245,15 @@ func _on_start_arcade_pressed():
 
 	var class_enum = selected_idx as CharacterData.ClassType
 	RunManager.start_run(class_enum)
+
+func _on_help_pressed():
+	var compendium = compendium_scene.instantiate()
+	
+	# 1. Set it to Overlay Mode (so it doesn't change scenes)
+	compendium.is_overlay = true
+	
+	# 2. Tell it to open the 'Modes' tab
+	# (0 = Traits, 1 = Cards, 2 = Modes -> Adjust based on your tab order!)
+	compendium.initial_tab_index = 4 
+	
+	add_child(compendium)

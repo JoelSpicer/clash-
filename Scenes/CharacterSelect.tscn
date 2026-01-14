@@ -40,9 +40,13 @@ layout_mode = 2
 [node name="P1Label" type="Label" parent="HBoxContainer/P1_Column"]
 layout_mode = 2
 text = "PLAYER 1"
+horizontal_alignment = 1
 
 [node name="ClassOption" type="OptionButton" parent="HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
 
 [node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P1_Column"]
 layout_mode = 2
@@ -53,6 +57,7 @@ layout_mode = 2
 [node name="VSLabel" type="Label" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
 text = "VS"
+horizontal_alignment = 1
 
 [node name="QuickFightButton" type="Button" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
@@ -60,11 +65,12 @@ text = "Quick CLASH!"
 
 [node name="CustomDeckButton" type="Button" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
-text = "Build P1 Movelist"
+text = "Quick CLASH! 
+(build action list)"
 
-[node name="BackButton" type="Button" parent="HBoxContainer/Center_Column"]
+[node name="ArcadeButton" type="Button" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
-text = "Back"
+text = "Start Arcade Run"
 
 [node name="DifficultyLabel" type="Label" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
@@ -74,13 +80,9 @@ horizontal_alignment = 1
 [node name="DifficultyOption" type="OptionButton" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
 
-[node name="ArcadeButton" type="Button" parent="HBoxContainer/Center_Column"]
+[node name="BackButton" type="Button" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
-text = "Start Arcade Run"
-
-[node name="ModesButton" type="Button" parent="HBoxContainer/Center_Column"]
-layout_mode = 2
-text = "?"
+text = "Back"
 
 [node name="P2_Column" type="VBoxContainer" parent="HBoxContainer"]
 layout_mode = 2
@@ -88,9 +90,13 @@ layout_mode = 2
 [node name="P2Label" type="Label" parent="HBoxContainer/P2_Column"]
 layout_mode = 2
 text = "PLAYER 2"
+horizontal_alignment = 1
 
 [node name="ClassOption" type="OptionButton" parent="HBoxContainer/P2_Column"]
+custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
 
 [node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P2_Column"]
 layout_mode = 2
@@ -98,5 +104,14 @@ layout_mode = 2
 [node name="P2CustomCheck" type="CheckBox" parent="HBoxContainer/P2_Column"]
 layout_mode = 2
 text = "Also build movelist for P2?"
+
+[node name="HelpButton" type="Button" parent="."]
+custom_minimum_size = Vector2(35, 35)
+layout_mode = 0
+offset_left = 1033.0
+offset_top = 12.0
+offset_right = 1068.0
+offset_bottom = 47.0
+text = "?"
 
 [connection signal="pressed" from="HBoxContainer/Center_Column/ArcadeButton" to="." method="_on_start_arcade_pressed"]
