@@ -10,6 +10,11 @@ extends Node2D
 @export var is_player_2_human: bool = false 
 @export var p2_debug_force_card: ActionData 
 
+# AI Memory System
+var p2_last_action_name: String = "" 
+var p1_last_action_type = null # Store ActionData.Type (0 or 1)
+var p1_last_cost: int = 0      # Track if player is tired
+
 # NEW: Preload the Game Over Screen
 var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
 
@@ -81,10 +86,10 @@ func _ready():
 	# 7. UPDATE NAME TAGS BASED ON DIFFICULTY
 	var diff_suffix = ""
 	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: diff_suffix = " (Very Easy)"
-		GameManager.Difficulty.EASY: diff_suffix = " (Easy)"
-		GameManager.Difficulty.MEDIUM: diff_suffix = " (Medium)"
-		GameManager.Difficulty.HARD: diff_suffix = " (Hard)"
+		GameManager.Difficulty.VERY_EASY: diff_suffix = " (V)"
+		GameManager.Difficulty.EASY: diff_suffix = " (E)"
+		GameManager.Difficulty.MEDIUM: diff_suffix = " (M)"
+		GameManager.Difficulty.HARD: diff_suffix = " (H)"
 	
 	if not is_player_1_human:
 		if battle_ui.p1_hud and battle_ui.p1_hud.name_label:
@@ -356,71 +361,126 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 # 2. THE BRAIN (Assigns value to actions)
 func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
 	var score = 0.0
+	var log_parts = [] # Stores reasons like "+10 Dmg" or "-100 Repetition"
 	
-	# --- 1. KILL INSTINCT ---
-	# If this card kills the opponent, prioritize it above all else!
-	if card.damage >= opp.current_hp:
+	# Weights
+	var w_dmg = 1.0; var w_def = 1.0; var w_tech = 1.0; var w_cost = 1.0
+	
+	match me.ai_archetype:
+		CharacterData.AIArchetype.AGGRESSIVE:
+			w_dmg = 1.5; w_def = 0.5; w_cost = 0.5
+		CharacterData.AIArchetype.DEFENSIVE:
+			w_dmg = 0.7; w_def = 1.5; w_cost = 1.2
+		CharacterData.AIArchetype.TRICKSTER:
+			w_dmg = 0.8; w_def = 0.8; w_tech = 1.5
+	
+	# --- 1. STRICT ANTI-REPETITION ---
+	if card.display_name == p2_last_action_name:
+		score -= 100.0
+		log_parts.append("-100 (Repetition)")
+
+	# --- 2. TACTICAL RESPONSE ---
+	if card.type == ActionData.Type.OFFENCE:
+		# Counter Opportunities
+		var opp_opening = GameManager.p1_opening_stat if my_id == 2 else GameManager.p2_opening_stat
+		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
+			var val = 50.0 * w_tech
+			score += val
+			log_parts.append("+" + str(val) + " (Counter Opportunity)")
+		
+		# Punish Tired
+		if p1_last_cost >= 2 or (float(opp.current_sp)/max(1, opp.max_sp) < 0.3):
+			var val = card.damage * 5 * w_dmg
+			score += val
+			log_parts.append("+" + str(val) + " (Punish Tired)")
+		
+		# Break Turtles
+		if p1_last_action_type == ActionData.Type.DEFENCE:
+			if card.guard_break: 
+				score += 30 * w_tech
+				log_parts.append("+30 (Guard Break)")
+			if card.feint: 
+				score += 20 * w_tech
+				log_parts.append("+20 (Feint vs Block)")
+			
+	elif card.type == ActionData.Type.DEFENCE:
+		# Heavy Incoming
+		if p1_last_cost >= 2:
+			if card.dodge_value > 0: 
+				score += 20 * w_def
+				log_parts.append("+20 (Dodge Heavy)")
+			if card.block_value >= 4: 
+				score += 15 * w_def
+				log_parts.append("+15 (Block Heavy)")
+			
+		# Light Incoming
+		elif p1_last_cost <= 1:
+			if card.cost >= 2: 
+				var pen = 15.0 * w_cost
+				score -= pen
+				log_parts.append("-" + str(pen) + " (Overkill Def)")
+			if card.block_value > 0 and card.cost <= 1: 
+				score += 10 * w_def
+				log_parts.append("+10 (Efficient Block)")
+
+		# Fishing for Reversals
+		if opp.current_hp <= 5 and card.reversal:
+			score += 15 * w_tech
+			log_parts.append("+15 (Execute Reversal)")
+
+	# --- 3. UTILITY SCORING ---
+	
+	# Kill Instinct
+	if card.damage >= opp.current_hp: 
 		score += 1000.0
-		
-	# --- 2. SURVIVAL INSTINCT ---
-	# If I am dying (HP < 4), prioritize staying alive
-	if me.current_hp < 4:
-		score += card.block_value * 10
-		score += card.heal_value * 15
-		score += card.dodge_value * 10
-		if card.type == ActionData.Type.DEFENCE: score += 20
-		
-	# --- 3. MOMENTUM STRATEGY ---
+		log_parts.append("+1000 (KILL SHOT)")
+	
+	# Survival Instinct
+	var panic = 5 if me.ai_archetype == CharacterData.AIArchetype.DEFENSIVE else 3
+	if me.current_hp < panic:
+		var s_val = (card.block_value * 10 * w_def) + (card.heal_value * 15 * w_def)
+		if card.type == ActionData.Type.DEFENCE: s_val += 20 * w_def
+		score += s_val
+		if s_val > 0: log_parts.append("+" + str(s_val) + " (Panic Mode)")
+
+	# Momentum Logic
 	var mom = GameManager.momentum
-	# Helper: "My Side" is 1-4 for P1, 5-8 for P2.
-	var winning_momentum = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
-	var losing_momentum = (my_id == 1 and mom >= 5) or (my_id == 2 and mom <= 4)
+	var winning = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
+	var losing = (my_id == 1 and mom >= 5) or (my_id == 2 and mom <= 4)
 	
-	if winning_momentum:
-		# PRESS THE ADVANTAGE: Value Damage and Momentum Gain
-		score += card.damage * 10
-		score += card.momentum_gain * 5
-		if card.type == ActionData.Type.OFFENCE: score += 10
+	if winning:
+		var m_val = (card.damage * 10 * w_dmg)
+		if card.type == ActionData.Type.OFFENCE: m_val += 10
+		score += m_val
+		if m_val > 0: log_parts.append("+" + str(m_val) + " (Winning Mom)")
+	elif losing:
+		var m_val = (card.fall_back_value * 10 * w_def) + (card.block_value * 5 * w_def)
+		if card.reversal: m_val += 20 * w_tech
+		score += m_val
+		if m_val > 0: log_parts.append("+" + str(m_val) + " (Losing Mom)")
+
+	# Base Stats
+	var stat_score = (card.damage * 5 * w_dmg) + (card.block_value * 5 * w_def) + (card.heal_value * 5 * w_def)
 	
-	elif losing_momentum:
-		# TURN THE TIDE: Value Reversals, Parries, and Pushback
-		if card.reversal: score += 50
-		if card.is_parry: score += 40
-		score += card.fall_back_value * 8
-		score += card.block_value * 5 # Play safe
-		
-	# --- 4. TACTICAL COMBOS ---
-	# If I have a combo opening (e.g., Opponent is off-balance), use Counters!
-	var my_opening = GameManager.p1_opening_stat if my_id == 1 else GameManager.p2_opening_stat
-	if my_opening > 0:
-		# If this card takes advantage of the opening, boost it
-		if card.counter_value > 0 and card.counter_value <= my_opening:
-			score += 40
-			
-	# --- 5. CLASS SPECIFIC BIAS ---
-	match me.class_type:
-		CharacterData.ClassType.HEAVY:
-			score += card.damage * 5 # Loves damage
-			score += card.block_value * 5 # Loves blocking
-		CharacterData.ClassType.PATIENT:
-			score += card.recover_value * 5 # Loves recovery
-			if card.is_parry: score += 10 # love parry
-		CharacterData.ClassType.QUICK:
-			if card.cost <= 1: score += 10 # Loves cheap cards
-			score += card.dodge_value * 5 #love dodge
-		CharacterData.ClassType.TECHNICAL:
-			if card.reversal: score += 10 #loves reversal
-			score += card.tiring * 5
-			if card.create_opening: score += 10
-			
-	# --- 6. COST EFFICIENCY ---
-	# Don't spend all SP unless necessary
+	if card.tiring > 0: stat_score += card.tiring * 5 * w_tech
+	if card.create_opening > 0: stat_score += card.create_opening * 5 * w_tech
+	if card.feint: stat_score += 10 * w_tech
+	
+	score += stat_score
+	log_parts.append("+" + str(stat_score) + " (Stats)")
+	
+	# Cost Efficiency
 	if card.cost > 0:
-		var sp_ratio = float(me.current_sp) / float(me.max_sp)
-		if sp_ratio < 0.3: 
-			# Low SP? Penalize expensive cards heavily
-			score -= card.cost * 15
-	
+		var sp_ratio = float(me.current_sp) / float(max(1, me.max_sp))
+		var scarcity = 1.0 if sp_ratio > 0.5 else 2.5
+		var c_pen = card.cost * (10 * w_cost * scarcity)
+		score -= c_pen
+		log_parts.append("-" + str(c_pen) + " (Cost)")
+
+	# --- PRINT LOG ---
+	# Format: [AI] CardName: 45.0 | Breakdown: +20 (Stats), -5 (Cost), +30 (Counter)
+	print("[AI] %s: %s | %s" % [card.display_name, str(snapped(score, 0.1)), ", ".join(log_parts)])
+
 	return score
 
 # --- LOGGING ---
@@ -444,9 +504,25 @@ func _on_game_over(winner_id):
 	screen.setup(winner_id)
 	
 	
-func _on_clash_resolved(winner_id, _text): 
+func _on_clash_resolved(winner_id, p1_card, p2_card, results): 
 	print("\n>>> Clash Winner: P" + str(winner_id))
 	_update_visuals()
+	# --- UPDATE AI MEMORY ---
+	if not is_player_2_human:
+		# 1. Remember what the Bot did (for anti-repetition)
+		if p2_card != null:
+			p2_last_action_name = p2_card.display_name
+			
+		# 2. Remember what the Human did (for counter-play)
+		if p1_card != null:
+			p1_last_action_type = p1_card.type
+			p1_last_cost = p1_card.cost
+			
+			# Reset if Human did nothing (stunned/empty)
+		else:
+			p1_last_action_type = null
+			p1_last_cost = 0
+		
 func _on_log_updated(text): print("   > " + text)
 func _print_status_report():
 	var p1 = p1_resource; var p2 = p2_resource

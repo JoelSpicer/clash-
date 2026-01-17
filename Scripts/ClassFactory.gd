@@ -36,6 +36,29 @@ const ID_TO_NAME_MAP = {
 	73:"Quick", 74:"Technical", 75:"Patient", 76:"Heavy"
 }
 
+const RANK_TITLES = [
+	"Foolish",      # Level 1
+	"Weak",         # Level 2
+	"Clumsy",       # Level 3
+	"Novice",       # Level 4
+	"Beginner",     # Level 5
+	"Rookie",       # Level 6
+	"Apprentice",   # Level 7
+	"Capable",      # Level 8
+	"Competent",    # Level 9
+	"Adept",        # Level 10
+	"Seasoned",     # Level 11
+	"Expert",       # Level 12
+	"Veteran",      # Level 13
+	"Elite",        # Level 14
+	"Master",       # Level 15
+	"Grandmaster",  # Level 16
+	"Legendary",    # Level 17
+	"Mythic",       # Level 18
+	"Transcendent", # Level 19
+	"Godly"         # Level 20+
+]
+
 # --- NEW: ENEMY GENERATOR ---
 # ClassFactory.gd
 
@@ -51,6 +74,27 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	
 	# 2. Create the Base Character (Starter Deck)
 	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
+	
+	# --- NEW: ASSIGN RANDOM PERSONALITY ---
+	var personalities = CharacterData.AIArchetype.values()
+	bot_data.ai_archetype = personalities.pick_random()
+	
+	# A. Get Rank Title based on Level
+	# Array is 0-indexed, so Level 1 = Index 0.
+	# We clamp it so Level 50 is still "Godly" (index 19).
+	var title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
+	var rank_title = RANK_TITLES[title_index]
+	
+	# Flavor: Rename the bot based on its brain
+	var prefix = ""
+	match bot_data.ai_archetype:
+		CharacterData.AIArchetype.AGGRESSIVE: prefix = "Furious "
+		CharacterData.AIArchetype.DEFENSIVE: prefix = "Guarded "
+		CharacterData.AIArchetype.TRICKSTER: prefix = "Tricky "
+		CharacterData.AIArchetype.BALANCED: prefix = "Steady "
+	
+	bot_data.character_name = rank_title + " " + prefix + _class_enum_to_string(selected_class)
+	# --------------------------------------
 	
 	# 3. Calculate how many extra cards they get
 	# Level 1 Player gets 2 Free Drafts.
@@ -138,25 +182,25 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 	# 1. Set Base Stats & Passives
 	match class_type:
 		CharacterData.ClassType.HEAVY:
-			char_data.max_hp = 7
+			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 1
 			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
 			
 		CharacterData.ClassType.PATIENT:
-			char_data.max_hp = 7
+			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 2
 			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
 			
 		CharacterData.ClassType.QUICK:
-			char_data.max_hp = 7
+			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 4
 			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
 			
 		CharacterData.ClassType.TECHNICAL:
-			char_data.max_hp = 7
+			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 3
 			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
@@ -253,7 +297,7 @@ func _find_action_resource(action_name: String) -> ActionData:
 
 # New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
 func calculate_stats_for_deck(class_type: CharacterData.ClassType, deck: Array[ActionData]) -> Dictionary:
-	var final_hp = 7
+	var final_hp = 5
 	var final_sp = 4
 	
 	# 1. Get the list of "Free" cards to ignore (Starters + Basic)

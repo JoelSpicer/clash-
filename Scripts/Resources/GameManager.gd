@@ -301,7 +301,7 @@ func resolve_clash():
 		winner_id = priority_player
 		swap_priority()
 
-	emit_signal("clash_resolved", winner_id, "Clash Winner: P" + str(winner_id))
+	emit_signal("clash_resolved", winner_id, p1_action_queue, p2_action_queue, "Clash Winner: P" + str(winner_id))
 	
 	var is_initial_clash = (momentum == 0)
 	var start_momentum = momentum 
