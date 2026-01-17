@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://dlyfkw6mqxsfk"]
+
+[ext_resource type="Script" uid="uid://dd8tt1dl70nfl" path="res://Scripts/BalanceTester.gd" id="1_5ka02"]
+
+[node name="BalanceTester" type="Node"]
+script = ExtResource("1_5ka02")
