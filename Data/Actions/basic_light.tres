@@ -11,6 +11,6 @@ icon = ExtResource("1_xgqnk")
 description = "Offence, Cost 1, Opener, Momentum 1, Damage 1"
 cost = 1
 damage = 1
-momentum_gain = 1
+recover_value = 1
 is_opener = true
 repeat_count = 0

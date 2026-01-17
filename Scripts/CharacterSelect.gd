@@ -5,7 +5,7 @@ extends Control
 @onready var p2_option = $HBoxContainer/P2_Column/ClassOption
 @onready var p2_info = $HBoxContainer/P2_Column/InfoLabel
 @onready var p2_custom_check = $HBoxContainer/P2_Column/P2CustomCheck
-var compendium_scene = preload("res://Scenes/Compendium.tscn")
+var compendium_scene = preload("res://Scenes/compendium.tscn")
 # New Buttons
 @onready var btn_quick = $HBoxContainer/Center_Column/QuickFightButton
 @onready var btn_custom = $HBoxContainer/Center_Column/CustomDeckButton

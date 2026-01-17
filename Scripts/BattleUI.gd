@@ -22,7 +22,7 @@ signal p2_mode_toggled(is_human)
 # --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
 var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
-var compendium_scene = preload("res://Scenes/Compendium.tscn")
+var compendium_scene = preload("res://Scenes/compendium.tscn")
 var current_deck: Array[ActionData] = []
 var current_tab = ActionData.Type.OFFENCE
 

@@ -8,7 +8,7 @@ const KEYWORD_DEFS = {
 	"Damage": "Reduce your opponent’s health by X",
 	"Defence": "Can only be used on the defensive. This action gains the Recover 1 trait.",
 	"Feint": "In addition to the action’s listed traits, it gains all the traits of another action that you can use. That action can be chosen after actions are revealed",
-	"Dodge": "You ignore the effects of your opponent’s action if its stamina cost is X or below",
+	"Dodge": "You ignore the effects of your opponent’s action if its total stamina cost is X or below",
 	"Fall Back": "Lose X momentum",
 	"Guard Break": "Ignore the ‘Block X’ trait of your opponent’s action",
 	"Heal": "Gain X HP",
@@ -334,40 +334,51 @@ func resolve_clash():
 	if p1_active: _apply_phase_1_self_effects(1, p1_action_queue)
 	if p2_active: _apply_phase_1_self_effects(2, p2_action_queue)
 
-	# --- MOMENTUM PRE-CALCULATION ---
+# --- MOMENTUM PRE-CALCULATION ---
 	
-	# 1. Dodge Check
+	# 1. Dodge Check (UPDATED: Uses Total Cost)
 	var p1_is_dodged = false
 	var p2_is_dodged = false
-	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_action_queue.cost:
+	
+	# Calculate TOTAL costs for fairness
+	var p1_total_cost = p1_action_queue.cost * max(1, p1_action_queue.repeat_count)
+	var p2_total_cost = p2_action_queue.cost * max(1, p2_action_queue.repeat_count)
+	
+	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_total_cost:
 		p1_is_dodged = true
-	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_action_queue.cost:
+	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_total_cost:
 		p2_is_dodged = true
 		
 	# 2. Parry Check
 	var p1_parries = (p1_active and p1_action_queue.is_parry)
 	var p2_parries = (p2_active and p2_action_queue.is_parry)
 	
-	# 3. Base Gains
-	var p1_base_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
-	var p2_base_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
+	# 3. Calculate Base vs Total Gains (UPDATED)
+	# We need the single trait value for stealing, but the total for pushing
+	var p1_single_gain = p1_action_queue.momentum_gain + _get_opportunity_value(1)
+	var p2_single_gain = p2_action_queue.momentum_gain + _get_opportunity_value(2)
 	
-	# 4. Final Push
-	var p1_contribution = p1_base_gain
-	if p2_parries: p1_contribution = 0 
-	elif p1_is_dodged: p1_contribution = 0 
+	var p1_total_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
+	var p2_total_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
 	
-	var p2_contribution = p2_base_gain
-	if p1_parries: p2_contribution = 0 
-	elif p2_is_dodged: p2_contribution = 0 
+	# 4. Final Push Calculation
+	# P1's push is their Total, UNLESS Parried (lose single) or Dodged (lose all)
+	var p1_contribution = p1_total_gain
+	if p2_parries: p1_contribution -= p1_single_gain # Only lose the TRAIT amount
+	if p1_is_dodged: p1_contribution = 0
 	
-	var p1_stolen = p2_base_gain if p1_parries else 0
-	var p2_stolen = p1_base_gain if p2_parries else 0
+	var p2_contribution = p2_total_gain
+	if p1_parries: p2_contribution -= p2_single_gain # Only lose the TRAIT amount
+	if p2_is_dodged: p2_contribution = 0
+	
+	# The Parrier gains the SINGLE trait amount they stole
+	var p1_stolen = p2_single_gain if p1_parries else 0
+	var p2_stolen = p1_single_gain if p2_parries else 0
 	
 	var p1_final_push = p1_contribution + p1_stolen
 	var p2_final_push = p2_contribution + p2_stolen
 	
-	# 5. Delta Calculation (FALLBACK)
+	# 5. Delta Calculation (Same as before)
 	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
 	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
 	
@@ -377,6 +388,7 @@ func resolve_clash():
 	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
 	
 	# 6. Parry Success
+	# "If this causes the momentum tracker to move in your direction..."
 	var p1_parry_success = (p1_parries and delta < 0)
 	var p2_parry_success = (p2_parries and delta > 0)
 	
