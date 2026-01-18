@@ -981,6 +981,9 @@ var compendium_scene = preload("res://Scenes/compendium.tscn")
 var current_deck: Array[ActionData] = []
 var current_tab = ActionData.Type.OFFENCE
 
+var _prev_p1_stats = { "hp": 0, "sp": 0 }
+var _prev_p2_stats = { "hp": 0, "sp": 0 }
+
 # State Constraints
 var current_sp_limit: int = 0 
 var current_hp_limit: int = 0
@@ -1043,6 +1046,15 @@ func _ready():
 	GameManager.status_applied.connect(_on_status_applied)	
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
 	GameManager.damage_dealt.connect(_on_damage_shake)
+	GameManager.clash_resolved.connect(_on_clash_resolved_log)
+	
+	# Connect to State Changed so we know when the turn ends
+	if not GameManager.state_changed.is_connected(_on_game_state_changed):
+		GameManager.state_changed.connect(_on_game_state_changed)
+	
+	# Initialize our stat snapshot
+	await get_tree().process_frame
+	_snapshot_stats()
 	
 	_create_debug_toggles()
 	_create_passive_toggles() # Add this new function call
@@ -1449,6 +1461,10 @@ func _spawn_text(pos: Vector2, text: String, color: Color):
 func _on_combat_log_updated(text: String):
 	if combat_log: combat_log.add_log(text)
 
+func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
+	if combat_log:
+		combat_log.add_clash_log(winner_id, p1_card, p2_card)
+
 func _on_log_toggled(toggled_on: bool):
 	combat_log.visible = toggled_on
 
@@ -1576,6 +1592,48 @@ func setup_toggles(p1_override = null, p2_override = null):
 	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
 	p2_toggle.button_pressed = p2_is_human
 	container.add_child(p2_toggle)
+
+# Add this new handler for state changes
+func _on_game_state_changed(new_state):
+	# existing state logic (if any) can go here...
+	
+	# When the clash math is finished, log the results
+	if new_state == GameManager.State.POST_CLASH:
+		_log_stat_changes()
+
+# Helper to calculate and send diffs
+func _log_stat_changes():
+	if not combat_log or not GameManager.p1_data or not GameManager.p2_data: return
+	
+	# 1. Get Current Stats
+	var p1_cur = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
+	var p2_cur = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
+	
+	# --- FIX START ---
+	# If this is the very first time (previous stats are 0), 
+	# just sync them silently and return. 
+	# (Assuming max HP is never actually 0).
+	if _prev_p1_stats.hp == 0 and _prev_p2_stats.hp == 0:
+		_snapshot_stats()
+		return
+	# --- FIX END ---
+	
+	# 2. Calculate Difference
+	var p1_diff = { "hp": p1_cur.hp - _prev_p1_stats.hp, "sp": p1_cur.sp - _prev_p1_stats.sp }
+	var p2_diff = { "hp": p2_cur.hp - _prev_p2_stats.hp, "sp": p2_cur.sp - _prev_p2_stats.sp }
+	
+	# 3. Send to Log (Only if something changed or to show momentum)
+	combat_log.add_round_summary(p1_diff, p2_diff, GameManager.momentum)
+	
+	# 4. Update Snapshot for next turn
+	_snapshot_stats()
+
+# Helper to update the "Previous" stats
+func _snapshot_stats():
+	if GameManager.p1_data:
+		_prev_p1_stats = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
+	if GameManager.p2_data:
+		_prev_p2_stats = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
 
 
 ========================================
@@ -1960,13 +2018,20 @@ func _on_difficulty_changed(index: int):
 
 func _on_start_arcade_pressed():
 	var selected_idx = p1_option.selected
-	# Check if it's a base class (Indices 0-3)
-	if selected_idx > 3:
-		print("Arcade Mode must start with a base class!")
-		return
-
-	var class_enum = selected_idx as CharacterData.ClassType
-	RunManager.start_run(class_enum)
+	
+	# CASE 1: BASE CLASS (Indices 0-3)
+	if selected_idx < base_classes.size():
+		var class_enum = selected_idx as CharacterData.ClassType
+		RunManager.start_run(class_enum)
+		
+	# CASE 2: PRESET CHARACTER (Indices 4+)
+	else:
+		var preset_idx = selected_idx - base_classes.size() - 1
+		if preset_idx >= 0 and preset_idx < presets.size():
+			var preset = presets[preset_idx]
+			RunManager.start_run_from_preset(preset)
+		else:
+			print("Error: Invalid Preset Selection")
 
 func _on_help_pressed():
 	var compendium = compendium_scene.instantiate()
@@ -2355,63 +2420,246 @@ func calculate_stats_for_deck(class_type: CharacterData.ClassType, deck: Array[A
 				
 	return {"hp": final_hp, "sp": final_sp}
 
+# NEW HELPER: Reverse lookup for Presets -> Tree Nodes
+func get_id_by_name(card_name: String) -> int:
+	for id in ID_TO_NAME_MAP:
+		if ID_TO_NAME_MAP[id] == card_name:
+			return id
+	return 0 # Not found
+
 
 ========================================
 FILE PATH: res://Scripts/CombatLog.gd
 ========================================
 extends PanelContainer
 
-@onready var log_label = $MarginContainer/LogLabel
+# --- VISUAL REFERENCES ---
+var scroll_container: ScrollContainer
+var log_list: VBoxContainer
+var tooltip_popup: PanelContainer
+var left_card_preview
+var right_card_preview
 
-# Colors for formatting
-const P1_COLOR = "#ff9999" # Red-ish
-const P2_COLOR = "#99ccff" # Blue-ish
-const DMG_COLOR = "#ff4444" # Bright Red
-const WIN_COLOR = "#ffd700" # Gold
-const SUB_COLOR = "#aaaaaa" # Gray for detailed logs (>>)
+# Colors
+const P1_COLOR = "#ff9999" 
+const P2_COLOR = "#99ccff"
+const HOVER_COLOR = Color(0.2, 0.2, 0.2, 0.8) 
+const NORMAL_COLOR = Color(0, 0, 0, 0)        
+
+var card_scene = preload("res://Scenes/CardDisplay.tscn")
+
+func _ready():
+	# 1. CLEANUP
+	for child in get_children():
+		child.queue_free()
+	
+	# 2. CREATE SCROLL LIST
+	scroll_container = ScrollContainer.new()
+	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_child(scroll_container)
+	
+	log_list = VBoxContainer.new()
+	log_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	log_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	log_list.add_theme_constant_override("separation", 2) 
+	scroll_container.add_child(log_list)
+	
+	# 3. CREATE TOOLTIP POPUP
+	_create_tooltip_popup()
+
+func _create_tooltip_popup():
+	tooltip_popup = PanelContainer.new()
+	tooltip_popup.visible = false
+	tooltip_popup.mouse_filter = Control.MOUSE_FILTER_IGNORE 
+	
+	# CRITICAL FIX: Break out of the ScrollContainer's bounds
+	tooltip_popup.set_as_top_level(true)
+	tooltip_popup.z_index = 100 
+	
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 10)
+	tooltip_popup.add_child(hbox)
+	
+	left_card_preview = card_scene.instantiate()
+	left_card_preview.custom_minimum_size = Vector2(150, 210)
+	left_card_preview.scale = Vector2(0.6, 0.6)
+	hbox.add_child(left_card_preview)
+	
+	var vs_lbl = Label.new()
+	vs_lbl.text = "VS"
+	hbox.add_child(vs_lbl)
+	
+	right_card_preview = card_scene.instantiate()
+	right_card_preview.custom_minimum_size = Vector2(150, 210)
+	right_card_preview.scale = Vector2(0.6, 0.6)
+	hbox.add_child(right_card_preview)
+	
+	# Add to self (CombatLog), but 'set_as_top_level' makes it float globally
+	add_child(tooltip_popup)
+
+# --- PUBLIC FUNCTIONS ---
 
 func add_log(text: String):
-	var formatted_text = _format_text(text)
+	var row = MarginContainer.new()
+	row.add_theme_constant_override("margin_left", 5)
 	
-	# Append text with a newline
-	if log_label.text != "":
-		log_label.text += "\n"
+	var label = _create_rich_label(text)
+	row.add_child(label)
 	
-	log_label.text += formatted_text
-	
-	# Auto-scroll to bottom
-	# We wait a frame for the UI to update the text size
-	await get_tree().process_frame 
-	log_label.scroll_to_line(log_label.get_line_count() - 1)
+	log_list.add_child(row)
+	_auto_scroll()
 
-func _format_text(raw: String) -> String:
-	var txt = raw
+func add_clash_log(winner_id: int, p1_card: ActionData, p2_card: ActionData):
+	# 1. ROOT CONTAINER (MarginContainer)
+	# Handles layout so rows don't crush each other
+	var row = MarginContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE 
 	
-	# 1. Color Player Names
-	txt = txt.replace("P1", "[color=" + P1_COLOR + "]P1[/color]")
-	txt = txt.replace("P2", "[color=" + P2_COLOR + "]P2[/color]")
+	# 2. TEXT CONTENT
+	var win_text = "COMPLETE"
+	var color = "#24ab4a"
+	if winner_id == 1: pass
+		#win_text = "P1 WON"
+		#color = P1_COLOR
+	elif winner_id == 2: pass
+		#win_text = "P2 WON"
+		#color = P2_COLOR
+		
+	var txt = "[color=%s]>>> CLASH!: %s (Hover to view)[/color]" % [color, win_text]
+	var label = _create_rich_label(txt)
 	
-	# 2. Highlight Winners
-	if "Winner" in txt or "VICTORY" in txt:
-		txt = "[color=" + WIN_COLOR + "][b]" + txt + "[/b][/color]"
-		
-	# 3. Dim Sub-events (starting with >> or >)
-	elif txt.begins_with("   >") or txt.begins_with(">>"):
-		txt = "[color=" + SUB_COLOR + "][i]" + txt + "[/i][/color]"
-		
-	# 4. Highlight specific keywords
-	txt = txt.replace("Damage", "[color=" + DMG_COLOR + "]Damage[/color]")
-	txt = txt.replace("HP", "[color=" + DMG_COLOR + "]HP[/color]")
-	txt = txt.replace("hits", "[color=" + DMG_COLOR + "]hits[/color]")
+	var text_margin = MarginContainer.new()
+	text_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text_margin.add_theme_constant_override("margin_left", 5)
+	text_margin.add_theme_constant_override("margin_top", 2)
+	text_margin.add_theme_constant_override("margin_bottom", 2)
+	text_margin.add_child(label)
 	
-	# 5. Highlight Phase headers
-	if txt.begins_with("| ---"):
-		txt = "[center][b]" + txt + "[/b][/center]"
-		
-	return txt
+	row.add_child(text_margin)
+	
+	# 3. BUTTON OVERLAY
+	# Handles Interaction
+	var btn = Button.new()
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.flat = true 
+	
+	# Styles
+	var style_hover = StyleBoxFlat.new()
+	style_hover.bg_color = HOVER_COLOR
+	btn.add_theme_stylebox_override("hover", style_hover)
+	btn.add_theme_stylebox_override("pressed", style_hover)
+	btn.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
+	btn.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	
+	# Signals
+	btn.mouse_entered.connect(func(): _on_row_hovered(btn, p1_card, p2_card))
+	btn.mouse_exited.connect(func(): _on_row_exited())
+	
+	row.add_child(btn)
+	log_list.add_child(row)
+	_auto_scroll()
 
 func clear_log():
-	log_label.text = ""
+	for child in log_list.get_children():
+		child.queue_free()
+
+# --- HELPERS ---
+
+func _create_rich_label(text: String) -> RichTextLabel:
+	var l = RichTextLabel.new()
+	l.bbcode_enabled = true
+	l.text = _format_text(text)
+	l.fit_content = true 
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE 
+	return l
+
+func _format_text(raw: String) -> String:
+	var txt = raw.replace("P1", "[color=" + P1_COLOR + "]P1[/color]")
+	txt = txt.replace("P2", "[color=" + P2_COLOR + "]P2[/color]")
+	if ">>" in txt: txt = "[color=#aaaaaa][i]" + txt + "[/i][/color]"
+	return txt
+
+func _auto_scroll():
+	await get_tree().process_frame
+	scroll_container.scroll_vertical = int(scroll_container.get_v_scroll_bar().max_value)
+
+# --- INTERACTIVITY ---
+
+func _on_row_hovered(_btn: Button, c1: ActionData, c2: ActionData):
+	# 1. Update Content
+	if left_card_preview.has_method("set_card_data"):
+		left_card_preview.set_card_data(c1)
+		right_card_preview.set_card_data(c2)
+	
+	# 2. Position Popup
+	tooltip_popup.visible = true
+	tooltip_popup.reset_size() 
+	
+	## 3. Calculate Global Position
+	## 'set_as_top_level' means we use screen coordinates.
+	## 'btn.global_position' gives us the button's exact screen location.
+	#var popup_height = 250
+	#var target_y = btn.global_position.y - popup_height - 70
+	#
+	## Logic: If row is too high (near top of screen), show BELOW the row instead
+	#if target_y < 0:
+		#target_y = btn.global_position.y + btn.size.y + 20
+		#
+	#var target_x = global_position.x + 200
+	#
+	#tooltip_popup.global_position = Vector2(target_x, target_y)
+	tooltip_popup.global_position = get_viewport().get_mouse_position()
+
+	
+func _on_row_exited():
+	tooltip_popup.visible = false
+
+func add_round_summary(p1_diff: Dictionary, p2_diff: Dictionary, mom_val: int):
+	# Create a simple row container
+	var row = MarginContainer.new()
+	row.add_theme_constant_override("margin_left", 20) # Indent slightly
+	row.add_theme_constant_override("margin_bottom", 5)
+	
+	# Format the text
+	var p1_text = _format_diff("P1", p1_diff, P1_COLOR)
+	var p2_text = _format_diff("P2", p2_diff, P2_COLOR)
+	var mom_text = " | Mom: [color=yellow]" + str(mom_val) + "[/color]"
+	
+	var final_bbcode = p1_text + "   " + p2_text + mom_text + "\n [b]----------- NEW CLASH -----------[/b]"
+	
+	var label = _create_rich_label(final_bbcode)
+	row.add_child(label)
+	
+	log_list.add_child(row)
+	_auto_scroll()
+
+# Helper to format changes (e.g., "-5 HP" in red, "+2 SP" in green)
+func _format_diff(player_label: String, diff: Dictionary, name_color: String) -> String:
+	var s = "[color=" + name_color + "]" + player_label + ":[/color] "
+	var changes = []
+	
+	# HP Change
+	if diff.hp != 0:
+		var c = "red" if diff.hp < 0 else "green"
+		# RENAMED VARIABLE: 'sign' -> 'sign_str'
+		var sign_str = "+" if diff.hp > 0 else ""
+		changes.append("[color=" + c + "]" + sign_str + str(diff.hp) + " HP[/color]")
+		
+	# SP Change
+	if diff.sp != 0:
+		var c = "red" if diff.sp < 0 else "green"
+		# RENAMED VARIABLE: 'sign' -> 'sign_str'
+		var sign_str = "+" if diff.sp > 0 else ""
+		changes.append("[color=" + c + "]" + sign_str + str(diff.sp) + " SP[/color]")
+		
+	if changes.is_empty():
+		return s + "[color=#888888]No Change[/color]"
+		
+	return s + ", ".join(changes)
 
 
 ========================================
@@ -3756,6 +4004,7 @@ var player_owned_tree_ids: Array[int] = [] # Track which nodes we own across fig
 var free_unlocks_remaining: int = 0
 
 
+# OPTION A: STANDARD RUN (Level 1, Drafting)
 func start_run(starting_class: CharacterData.ClassType):
 	is_arcade_mode = true
 	current_level = 1
@@ -3763,20 +4012,47 @@ func start_run(starting_class: CharacterData.ClassType):
 	# 1. Create fresh Level 1 Character
 	player_run_data = ClassFactory.create_character(starting_class, "You")
 	
-	# 2. Initialize Tree State (Starting Node)
+	# 2. Initialize Tree (Root Node only)
+	_init_tree_root(starting_class)
+	
+	# 3. Go to Draft Mode
+	free_unlocks_remaining = 2
+	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+
+# OPTION B: PRESET RUN (Higher Level, Skip Draft)
+func start_run_from_preset(preset: PresetCharacter):
+	is_arcade_mode = true
+	
+	# 1. Load Level from Preset (Default to 1 if missing)
+	current_level = max(1, preset.level)
+	print("Starting Arcade Run with Preset: " + preset.character_name + " (Lv. " + str(current_level) + ")")
+	
+	# 2. Create Character Data
+	player_run_data = ClassFactory.create_from_preset(preset)
+	# Override name to be "You" or keep preset name? Let's keep preset name for flavor.
+	
+	# 3. Reconstruct Tree Ownership
+	# We must tell the system that we "Bought" these skills already
+	_init_tree_root(preset.class_type)
+	
+	for skill_name in preset.extra_skills:
+		var id = ClassFactory.get_id_by_name(skill_name)
+		if id != 0:
+			if id not in player_owned_tree_ids:
+				player_owned_tree_ids.append(id)
+	
+	# 4. Skip Draft, go straight to Fight
+	free_unlocks_remaining = 0
+	start_next_fight()
+
+# Helper to avoid duplicate code
+func _init_tree_root(class_type: CharacterData.ClassType):
 	player_owned_tree_ids.clear()
-	match starting_class:
+	match class_type:
 		CharacterData.ClassType.QUICK: player_owned_tree_ids.append(73)
 		CharacterData.ClassType.TECHNICAL: player_owned_tree_ids.append(74)
 		CharacterData.ClassType.PATIENT: player_owned_tree_ids.append(75)
 		CharacterData.ClassType.HEAVY: player_owned_tree_ids.append(76)
-	
-	# --- NEW: DRAFT MODE START ---
-	free_unlocks_remaining = 2 # Give 2 free picks
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
-	# -----------------------------
-		
-	#start_next_fight()
 
 func start_next_fight():
 	# 1. Setup Player

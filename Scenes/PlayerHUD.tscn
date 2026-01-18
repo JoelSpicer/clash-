@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://yeraw55rlx1q"]
+[gd_scene load_steps=3 format=3 uid="uid://yeraw55rlx1q"]
 
 [ext_resource type="Script" uid="uid://b3yr2lrurg3au" path="res://Scripts/PlayerHud.gd" id="1_g363m"]
+[ext_resource type="Texture2D" uid="uid://c618p3j6o5ylb" path="res://Art/Portraits/heavy.png" id="2_yqw7w"]
 
 [node name="PlayerHUD" type="Control"]
 layout_mode = 3
@@ -26,6 +27,7 @@ text = "Player Name"
 [node name="HPBar" type="ProgressBar" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
+size_flags_vertical = 2
 show_percentage = false
 
 [node name="HPLabel" type="Label" parent="VBoxContainer/HPBar"]
@@ -39,6 +41,7 @@ text = "10/10"
 [node name="SPBar" type="ProgressBar" parent="VBoxContainer"]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
+size_flags_vertical = 2
 show_percentage = false
 
 [node name="SPLabel" type="Label" parent="VBoxContainer/SPBar"]
@@ -51,3 +54,13 @@ text = "10/10"
 
 [node name="StatusLabel" type="Label" parent="VBoxContainer"]
 layout_mode = 2
+
+[node name="Portrait" type="TextureRect" parent="."]
+z_index = -100
+layout_mode = 0
+offset_left = 220.0
+offset_top = 135.0
+offset_right = 520.0
+offset_bottom = 435.0
+texture = ExtResource("2_yqw7w")
+expand_mode = 1

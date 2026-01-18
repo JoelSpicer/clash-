@@ -59,6 +59,11 @@ const RANK_TITLES = [
 	"Godly"         # Level 20+
 ]
 
+var art_heavy = preload("res://Art/Portraits/Heavy.png") 
+var art_patient = preload("res://Art/Portraits/Patient.png")
+var art_quick = preload("res://Art/Portraits/Quick.png")
+var art_technical = preload("res://Art/Portraits/Technical.png")
+
 # --- NEW: ENEMY GENERATOR ---
 # ClassFactory.gd
 
@@ -186,25 +191,29 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 			char_data.max_sp = 4
 			char_data.speed = 1
 			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
+			char_data.portrait = art_heavy
 			
 		CharacterData.ClassType.PATIENT:
 			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 2
 			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
+			char_data.portrait = art_patient
 			
 		CharacterData.ClassType.QUICK:
 			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 4
 			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
+			char_data.portrait = art_quick
 			
 		CharacterData.ClassType.TECHNICAL:
 			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 3
 			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
-
+			char_data.portrait = art_technical
+			
 	# 2. Build the Deck (Basic Cards + Class Exclusives)
 	char_data.deck = get_starting_deck(class_type)
 	

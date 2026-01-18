@@ -26,6 +26,9 @@ var compendium_scene = preload("res://Scenes/compendium.tscn")
 var current_deck: Array[ActionData] = []
 var current_tab = ActionData.Type.OFFENCE
 
+var _prev_p1_stats = { "hp": 0, "sp": 0 }
+var _prev_p2_stats = { "hp": 0, "sp": 0 }
+
 # State Constraints
 var current_sp_limit: int = 0 
 var current_hp_limit: int = 0
@@ -88,6 +91,15 @@ func _ready():
 	GameManager.status_applied.connect(_on_status_applied)	
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
 	GameManager.damage_dealt.connect(_on_damage_shake)
+	GameManager.clash_resolved.connect(_on_clash_resolved_log)
+	
+	# Connect to State Changed so we know when the turn ends
+	if not GameManager.state_changed.is_connected(_on_game_state_changed):
+		GameManager.state_changed.connect(_on_game_state_changed)
+	
+	# Initialize our stat snapshot
+	await get_tree().process_frame
+	_snapshot_stats()
 	
 	_create_debug_toggles()
 	_create_passive_toggles() # Add this new function call
@@ -198,7 +210,15 @@ func _create_debug_toggles():
 func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	p1_hud.setup(p1_data)
 	p2_hud.setup(p2_data)
-	update_momentum(0) 
+	
+	# --- CONFIGURE SIDES ---
+	# P1: Portrait on Right side of bars
+	p1_hud.configure_visuals(false) 
+	
+	# P2: Portrait on Left side of bars
+	p2_hud.configure_visuals(true)
+	
+	update_momentum(0)
 
 func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
 	p1_hud.update_stats(p1, GameManager.p1_is_injured, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat)
@@ -474,8 +494,13 @@ func _get_clash_text_pos(target_id: int) -> Vector2:
 
 func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
 	var spawn_pos = _get_clash_text_pos(target_id)
-	if is_blocked: _spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
-	else: _spawn_text(spawn_pos, str(amount), Color.RED)
+	if is_blocked: 
+		_spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
+	else: 
+		_spawn_text(spawn_pos, str(amount), Color.RED)
+		# --- NEW: Trigger Hit Animation ---
+		if target_id == 1: p1_hud.play_hit_animation()
+		else: p2_hud.play_hit_animation()
 
 func _on_healing_received(target_id: int, amount: int):
 	var spawn_pos = _get_clash_text_pos(target_id)
@@ -493,6 +518,19 @@ func _spawn_text(pos: Vector2, text: String, color: Color):
 
 func _on_combat_log_updated(text: String):
 	if combat_log: combat_log.add_log(text)
+
+func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
+	if combat_log:
+		combat_log.add_clash_log(winner_id, p1_card, p2_card)
+		
+	# --- NEW: Trigger Attack Animations ---
+	# P1 Lunges Right (+50 pixels) if attacking
+	if p1_card.type == ActionData.Type.OFFENCE:
+		p1_hud.play_attack_animation(Vector2(50, 0))
+		
+	# P2 Lunges Left (-50 pixels) if attacking
+	if p2_card.type == ActionData.Type.OFFENCE:
+		p2_hud.play_attack_animation(Vector2(-50, 0))
 
 func _on_log_toggled(toggled_on: bool):
 	combat_log.visible = toggled_on
@@ -621,3 +659,45 @@ func setup_toggles(p1_override = null, p2_override = null):
 	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
 	p2_toggle.button_pressed = p2_is_human
 	container.add_child(p2_toggle)
+
+# Add this new handler for state changes
+func _on_game_state_changed(new_state):
+	# existing state logic (if any) can go here...
+	
+	# When the clash math is finished, log the results
+	if new_state == GameManager.State.POST_CLASH:
+		_log_stat_changes()
+
+# Helper to calculate and send diffs
+func _log_stat_changes():
+	if not combat_log or not GameManager.p1_data or not GameManager.p2_data: return
+	
+	# 1. Get Current Stats
+	var p1_cur = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
+	var p2_cur = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
+	
+	# --- FIX START ---
+	# If this is the very first time (previous stats are 0), 
+	# just sync them silently and return. 
+	# (Assuming max HP is never actually 0).
+	if _prev_p1_stats.hp == 0 and _prev_p2_stats.hp == 0:
+		_snapshot_stats()
+		return
+	# --- FIX END ---
+	
+	# 2. Calculate Difference
+	var p1_diff = { "hp": p1_cur.hp - _prev_p1_stats.hp, "sp": p1_cur.sp - _prev_p1_stats.sp }
+	var p2_diff = { "hp": p2_cur.hp - _prev_p2_stats.hp, "sp": p2_cur.sp - _prev_p2_stats.sp }
+	
+	# 3. Send to Log (Only if something changed or to show momentum)
+	combat_log.add_round_summary(p1_diff, p2_diff, GameManager.momentum)
+	
+	# 4. Update Snapshot for next turn
+	_snapshot_stats()
+
+# Helper to update the "Previous" stats
+func _snapshot_stats():
+	if GameManager.p1_data:
+		_prev_p1_stats = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
+	if GameManager.p2_data:
+		_prev_p2_stats = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
