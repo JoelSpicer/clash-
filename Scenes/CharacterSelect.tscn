@@ -42,6 +42,12 @@ layout_mode = 2
 text = "PLAYER 1"
 horizontal_alignment = 1
 
+[node name="P1_Portrait" type="TextureRect" parent="HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
 [node name="ClassOption" type="OptionButton" parent="HBoxContainer/P1_Column"]
 custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
@@ -91,6 +97,12 @@ layout_mode = 2
 layout_mode = 2
 text = "PLAYER 2"
 horizontal_alignment = 1
+
+[node name="P2_Portrait" type="TextureRect" parent="HBoxContainer/P2_Column"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ClassOption" type="OptionButton" parent="HBoxContainer/P2_Column"]
 custom_minimum_size = Vector2(250, 20)
