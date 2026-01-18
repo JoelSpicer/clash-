@@ -238,13 +238,20 @@ func _on_difficulty_changed(index: int):
 
 func _on_start_arcade_pressed():
 	var selected_idx = p1_option.selected
-	# Check if it's a base class (Indices 0-3)
-	if selected_idx > 3:
-		print("Arcade Mode must start with a base class!")
-		return
-
-	var class_enum = selected_idx as CharacterData.ClassType
-	RunManager.start_run(class_enum)
+	
+	# CASE 1: BASE CLASS (Indices 0-3)
+	if selected_idx < base_classes.size():
+		var class_enum = selected_idx as CharacterData.ClassType
+		RunManager.start_run(class_enum)
+		
+	# CASE 2: PRESET CHARACTER (Indices 4+)
+	else:
+		var preset_idx = selected_idx - base_classes.size() - 1
+		if preset_idx >= 0 and preset_idx < presets.size():
+			var preset = presets[preset_idx]
+			RunManager.start_run_from_preset(preset)
+		else:
+			print("Error: Invalid Preset Selection")
 
 func _on_help_pressed():
 	var compendium = compendium_scene.instantiate()

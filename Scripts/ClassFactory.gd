@@ -338,3 +338,10 @@ func calculate_stats_for_deck(class_type: CharacterData.ClassType, deck: Array[A
 				elif card.type == ActionData.Type.DEFENCE: final_hp += 2
 				
 	return {"hp": final_hp, "sp": final_sp}
+
+# NEW HELPER: Reverse lookup for Presets -> Tree Nodes
+func get_id_by_name(card_name: String) -> int:
+	for id in ID_TO_NAME_MAP:
+		if ID_TO_NAME_MAP[id] == card_name:
+			return id
+	return 0 # Not found
