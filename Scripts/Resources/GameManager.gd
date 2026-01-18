@@ -1,5 +1,6 @@
 extends Node
 
+#region vars
 const KEYWORD_DEFS = {
 	"Block": "Reduce incoming damage by X",
 	"Cost": "lose X stamina",
@@ -101,6 +102,7 @@ var temp_p1_name: String = ""
 var temp_p2_name: String = ""
 var temp_p1_preset: Resource = null
 var temp_p2_preset: Resource = null
+#endregion
 
 # ==============================================================================
 # INITIALIZATION
@@ -149,22 +151,14 @@ func reset_combat():
 	change_state(State.SELECTION)
 
 func get_attacker() -> int:
-	# 1. Combo Lock (Highest Priority - mid-combo)
 	if current_combo_attacker != 0: return current_combo_attacker
+	if attacker_override != 0: return attacker_override
 	
-	# 2. Reversal Override (Crucial Fix)
-	# If a reversal happened, this variable tells us who gets the turn,
-	# regardless of where the momentum slider actually is.
-	if attacker_override == 1: return 1
-	if attacker_override == 2: return 2
+	# Consolidated Momentum Logic
+	if momentum == 0: return 0 # Keep if TestArena checks for 0 explicitly
 	
-	# 3. Neutral State (Initial Clash)
-	if momentum == 0: return 0 
-	
-	# 4. Standard Momentum Position (Dynamic)
-	# Uses the calculated variable instead of hardcoded '4'
-	if momentum <= MOMENTUM_P1_MAX: return 1 
-	return 2
+	# Simple check
+	return 1 if momentum <= MOMENTUM_P1_MAX else 2
 
 # ==============================================================================
 # STATE MACHINE

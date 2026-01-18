@@ -132,7 +132,7 @@ func _on_node_hovered(id, a_name):
 
 	# Standard Action Node Logic (Existing Code)
 	# 1. Try to load the real file
-	var res = _find_action_resource(a_name)
+	var res = ClassFactory.find_action_resource(a_name)
 	
 	# 2. If missing, create a "Dummy" card so the UI still works
 	if res == null:
@@ -267,7 +267,7 @@ func _on_node_clicked(id: int, _name: String):
 		# We create a fake deck consisting of (Current Deck + New Card)
 		var temp_deck = RunManager.player_run_data.deck.duplicate()
 		var card_name = id_to_name.get(id)
-		var new_card = _find_action_resource(card_name)
+		var new_card = ClassFactory.find_action_resource(card_name)
 		
 		if new_card:
 			temp_deck.append(new_card)
@@ -335,7 +335,7 @@ func _recalculate_stats():
 		if id >= 73: continue # Skip class nodes
 		
 		var a_name = id_to_name.get(id)
-		var card = _find_action_resource(a_name)
+		var card = ClassFactory.find_action_resource(a_name)
 		if card:
 			temp_deck.append(card)
 	
@@ -374,20 +374,6 @@ func _update_tree_visuals():
 			child.set_status(1)
 			if id == selected_class_id: child.set_status(2)
 
-func _find_action_resource(action_name: String) -> ActionData:
-	var clean_name = action_name.to_lower().replace(" ", "_")
-	var filename = clean_name + ".tres"
-	
-	var common_path = "res://Data/Actions/" + filename
-	if ResourceLoader.exists(common_path): return load(common_path)
-		
-	var class_folders = ["Heavy", "Patient", "Quick", "Technical"]
-	for folder in class_folders:
-		var class_path = "res://Data/Actions/Class/" + folder + "/" + filename
-		if ResourceLoader.exists(class_path): return load(class_path)
-			
-	return null
-
 func _on_confirm_button_pressed():
 	# ==========================================================
 	# 1. ARCADE / RUN MODE
@@ -408,7 +394,7 @@ func _on_confirm_button_pressed():
 			
 			# 2. Add to Deck
 			var card_name = id_to_name.get(pending_unlock_id)
-			var new_card = _find_action_resource(card_name)
+			var new_card = ClassFactory.find_action_resource(card_name)
 			if new_card:
 				RunManager.player_run_data.deck.append(new_card)
 				
@@ -443,7 +429,7 @@ func _on_confirm_button_pressed():
 			RunManager.player_owned_tree_ids.append(pending_unlock_id)
 			
 			var card_name = id_to_name.get(pending_unlock_id)
-			var new_card = _find_action_resource(card_name)
+			var new_card = ClassFactory.find_action_resource(card_name)
 			if new_card:
 				RunManager.player_run_data.deck.append(new_card)
 			
@@ -480,7 +466,7 @@ func _on_confirm_button_pressed():
 	for id in owned_ids:
 		if id >= 73: continue 
 		var a_name = id_to_name.get(id)
-		var card_resource = _find_action_resource(a_name)
+		var card_resource = ClassFactory.find_action_resource(a_name)
 		if card_resource:
 			final_deck.append(card_resource)
 			

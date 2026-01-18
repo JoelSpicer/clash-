@@ -93,7 +93,7 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 		CharacterData.AIArchetype.TRICKSTER: prefix = "Tricky "
 		CharacterData.AIArchetype.BALANCED: prefix = "Steady "
 	
-	bot_data.character_name = rank_title + " " + prefix + _class_enum_to_string(selected_class)
+	bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
 	# --------------------------------------
 	
 	# 3. Calculate how many extra cards they get
@@ -132,7 +132,7 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 		# "Buy" it
 		var card_name = ID_TO_NAME_MAP.get(picked_id)
 		if card_name:
-			var new_card = _find_action_resource(card_name)
+			var new_card = find_action_resource(card_name)
 			if new_card:
 				bot_data.deck.append(new_card)
 		
@@ -166,7 +166,7 @@ func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
 				available.append(neighbor)
 
 # Helper for string names
-func _class_enum_to_string(type: int) -> String:
+func class_enum_to_string(type: int) -> String:
 	match type:
 		CharacterData.ClassType.HEAVY: return "Bruiser"
 		CharacterData.ClassType.PATIENT: return "Defender"
@@ -252,7 +252,7 @@ func create_from_preset(preset: PresetCharacter) -> CharacterData:
 	
 	# 2. Add the Extra Skills defined in the preset
 	for skill_name in preset.extra_skills:
-		var card = _find_action_resource(skill_name)
+		var card = find_action_resource(skill_name)
 		if card:
 			# Avoid duplicates if necessary, or allow multiples if that's your game design
 			char_data.deck.append(card)
@@ -279,7 +279,7 @@ func _recalculate_stats(char_data: CharacterData):
 
 
 # --- HELPER: Find Resource (Moved from ActionTree) ---
-func _find_action_resource(action_name: String) -> ActionData:
+func find_action_resource(action_name: String) -> ActionData:
 	var clean_name = action_name.to_lower().replace(" ", "_")
 	var filename = clean_name + ".tres"
 	

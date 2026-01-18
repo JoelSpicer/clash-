@@ -34,6 +34,12 @@ const COMBAT_DEFS = {
 	"Step 5: Clashes ": "Now that the initial clash is resolved, combat can continue as normal. The combatant that is on the attack can continue their combo. When a combo is over, the momentum is checked. A combatant can choose to end their own combo at any time. Whichever combatant has the momentum advantage is now on the offence, and the other combatant is now on the defence. Each clash, combatants secretly choose a move, a his repeats until a combatant loses all their health."
 }
 
+var MODES_DEFS = {
+		"Quick Match": "A single battle against an AI opponent. You choose a basic class loadout or a preset deck. Great for testing mechanics or a quick fight. \n\n- Simply choose a character for you and your opponent, toggle between CPU and Human for player 2, choose a CPU difficulty, then select Quick CLASH! to get right into the action",
+		"Quick Match (build action list)": "Just like regular Quick Match, except you create an action loadout for P1, and P2 if they are human!",
+		"Arcade Mode": "Continuous battles against random opponents where you choose a new action after each victory. If you lose a match, the run ends. \n\n- Choose a basic class to start, choose the NPC difficulty, then select Start Arcade Run to choose your initial two actions."
+	}
+
 # We need the CardDisplay scene to spawn cards
 var card_scene = preload("res://Scenes/CardDisplay.tscn")
 
@@ -42,58 +48,18 @@ var is_overlay: bool = false # Default is False (Main Menu Mode)
 func _ready():
 	back_button.pressed.connect(_on_back_pressed)
 	
-	_populate_rules()
-	_populate_combat()
-	_populate_keywords()
+	# Consolidated calls
+	_populate_section(keyword_container, GameManager.KEYWORD_DEFS)
+	_populate_section(rules_container, RULES_DEFS)
+	_populate_section(combat_container, COMBAT_DEFS)
+	_populate_section(modes_container, MODES_DEFS)
+	
 	_populate_card_library()
-	_populate_modes()
 	
 	if is_overlay:
 		back_button.text = "Close Help"
-		
+	
 	tab_container.current_tab = initial_tab_index
-
-func _populate_keywords():
-	# Loop through the global dictionary
-	for key in GameManager.KEYWORD_DEFS:
-		var definition = GameManager.KEYWORD_DEFS[key]
-		
-		# Create a Label for each
-		var l = RichTextLabel.new()
-		l.bbcode_enabled = true
-		l.text = "[b][color=yellow]" + key + ":[/color][/b] " + definition
-		l.fit_content = true
-		l.custom_minimum_size.y = 50 # Give it some space
-		
-		keyword_container.add_child(l)
-
-func _populate_rules():
-	# Loop through the global dictionary
-	for key in RULES_DEFS:
-		var rules = RULES_DEFS[key]
-		
-		# Create a Label for each
-		var l = RichTextLabel.new()
-		l.bbcode_enabled = true
-		l.text = "[b][color=yellow]" + key + ":[/color][/b] " + rules
-		l.fit_content = true
-		l.custom_minimum_size.y = 50 # Give it some space
-		
-		rules_container.add_child(l)
-		
-func _populate_combat():
-	# Loop through the global dictionary
-	for key in COMBAT_DEFS:
-		var combat = COMBAT_DEFS[key]
-		
-		# Create a Label for each
-		var l = RichTextLabel.new()
-		l.bbcode_enabled = true
-		l.text = "[b][color=yellow]" + key + ":[/color][/b] " + combat
-		l.fit_content = true
-		l.custom_minimum_size.y = 50 # Give it some space
-		
-		combat_container.add_child(l)
 
 func _populate_card_library():
 	# We use the ID map from ClassFactory to find every card
@@ -105,7 +71,7 @@ func _populate_card_library():
 		if id >= 73: continue 
 		
 		var card_name = ClassFactory.ID_TO_NAME_MAP[id]
-		var card_data = ClassFactory._find_action_resource(card_name)
+		var card_data = ClassFactory.find_action_resource(card_name)
 		
 		if card_data:
 			var display = card_scene.instantiate()
@@ -124,27 +90,14 @@ func _on_back_pressed():
 		# Go back to Main Menu
 		get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
 
-func _populate_modes():
-	# Define your text here
-	var modes_data = {
-		"Quick Match": "A single battle against an AI opponent. You choose a basic class loadout or a preset deck. Great for testing mechanics or a quick fight. \n\n- Simply choose a character for you and your opponent, toggle between CPU and Human for player 2, choose a CPU difficulty, then select Quick CLASH! to get right into the action",
-		"Quick Match (build action list)": "Just like regular Quick Match, except you create an action loadout for P1, and P2 if they are human!",
-		"Arcade Mode": "Continuous battles against random opponents where you choose a new action after each victory. If you lose a match, the run ends. \n\n- Choose a basic class to start, choose the NPC difficulty, then select Start Arcade Run to choose your initial two actions."
-	}
-	
-	for title in modes_data:
-		var desc = modes_data[title]
+func _populate_section(container: Control, data: Dictionary):
+	for key in data:
+		var text_value = data[key]
 		
-		# Title Label
-		var l_title = Label.new()
-		l_title.text = "- " + title + " -"
-		l_title.add_theme_font_size_override("font_size", 24)
-		l_title.add_theme_color_override("font_color", Color.YELLOW)
-		modes_container.add_child(l_title)
+		var l = RichTextLabel.new()
+		l.bbcode_enabled = true
+		l.text = "[b][color=yellow]" + key + ":[/color][/b] " + text_value
+		l.fit_content = true
+		l.custom_minimum_size.y = 50 
 		
-		# Description Label
-		var l_desc = Label.new()
-		l_desc.text = desc
-		l_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l_desc.custom_minimum_size.y = 80 # Spacing
-		modes_container.add_child(l_desc)
+		container.add_child(l)

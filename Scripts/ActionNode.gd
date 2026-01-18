@@ -4,9 +4,14 @@ signal action_clicked(node_id, node_name)
 signal hovered(node_id, node_name)
 signal exited()
 
+# Define status constants for readability
+const STATUS_LOCKED = 0
+const STATUS_AVAILABLE = 1
+const STATUS_OWNED = 2
+
 var id: int = 0
 var action_name: String = ""
-var status: int = 0 
+var status: int = STATUS_LOCKED
 
 # Variables to hold the visual parts
 var label: Label
@@ -56,23 +61,16 @@ func setup(new_id: int, new_name: String):
 
 func set_status(new_status: int):
 	status = new_status
+	disabled = false # Always enabled to allow tooltips
 	
 	if background:
 		match status:
-			0: # LOCKED
-				background.modulate = Color(0.2, 0.2, 0.2) # Dark Grey
-				# --- FIX 2: DO NOT DISABLE ---
-				# disabled = true  <-- DELETE THIS LINE
-				# We keep it enabled so it can receive 'mouse_entered' signals.
-				# The ActionTree script already prevents clicking locked nodes.
-				disabled = false 
-				
-			1: # AVAILABLE
-				background.modulate = Color(1, 1, 0) # Yellow
-				disabled = false
-			2: # OWNED
-				background.modulate = Color(0, 1, 0) # Green
-				disabled = false
+			STATUS_LOCKED:
+				background.modulate = Color(0.2, 0.2, 0.2) 
+			STATUS_AVAILABLE:
+				background.modulate = Color(1, 1, 0) 
+			STATUS_OWNED:
+				background.modulate = Color(0, 1, 0)
 
 func _pressed():
 	action_clicked.emit(id, action_name)

@@ -96,7 +96,7 @@ func _setup_options(opt: OptionButton):
 	# 3. Add Presets
 	for p in presets:
 		# We use the local helper function '_class_enum_to_string' instead of calling it on 'p'
-		opt.add_item(p.character_name + " (" + _class_enum_to_string(p.class_type) + ")")
+		opt.add_item(p.character_name + " (" + ClassFactory.class_enum_to_string(p.class_type) + ")")
 		# Note: You might need a helper to convert Enum 0->Heavy string if you want it pretty
 
 func _get_character_data_from_selection(index: int, player_name: String) -> CharacterData:
@@ -125,7 +125,7 @@ func _update_info():
 func _display_stats(idx: int, label: RichTextLabel):
 	var temp = _get_character_data_from_selection(idx, "Preview")
 	
-	var txt = "[b]" + temp.character_name + "[/b] (" + _class_enum_to_string(temp.class_type) + ")\n"
+	var txt = "[b]" + temp.character_name + "[/b] (" + ClassFactory.class_enum_to_string(temp.class_type) + ")\n"
 	txt += "[b]HP:[/b] " + str(temp.max_hp) + "\n"
 	txt += "[b]SP:[/b] " + str(temp.max_sp) + "\n"
 	txt += "[b]Speed:[/b] " + str(temp.speed) + "\n\n"
@@ -211,14 +211,6 @@ func _on_custom_deck_pressed():
 	# 5. Load the Tree
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
-# Helper to pretty print enum
-func _class_enum_to_string(type: int) -> String:
-	match type:
-		CharacterData.ClassType.HEAVY: return "Heavy"
-		CharacterData.ClassType.PATIENT: return "Patient"
-		CharacterData.ClassType.QUICK: return "Quick"
-		CharacterData.ClassType.TECHNICAL: return "Technical"
-	return "Unknown"
 
 func _setup_difficulty():
 	# Clear whatever dummy items might be in the editor
