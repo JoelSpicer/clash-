@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://c3jl31vkltf5h"]
+[gd_scene load_steps=3 format=3 uid="uid://c3jl31vkltf5h"]
 
 [ext_resource type="Script" uid="uid://bkm6gg67mwbyu" path="res://Scripts/CharacterSelect.gd" id="1_r5nmx"]
+[ext_resource type="Texture2D" uid="uid://d0oodbqfjx62d" path="res://Art/background/1.png" id="2_amipf"]
 
 [node name="CharacterSelect" type="Control"]
 layout_mode = 3
@@ -11,14 +12,16 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_r5nmx")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0.44313726)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.288518, 0.28851798, 0.28851798, 1)
+texture = ExtResource("2_amipf")
+expand_mode = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="."]
 layout_mode = 1
