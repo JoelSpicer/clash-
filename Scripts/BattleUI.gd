@@ -55,6 +55,9 @@ func _ready():
 		printerr("CRITICAL: Buttons missing in BattleUI")
 		return
 	
+	momentum_slider.max_value = GameManager.TOTAL_MOMENTUM_SLOTS
+	momentum_slider.min_value = 1
+	
 	if clash_layer: clash_layer.visible = false
 	
 	log_toggle.button_pressed = false
@@ -94,6 +97,8 @@ func _ready():
 	if btn:
 		btn.pressed.connect(_on_menu_pressed)
 
+	$MomentumSlider/Label2.text = str(GameManager.momentum)
+	
 func _process(delta):
 	# This applies the shake to the entire UI Layer
 	if shake_strength > 0:
@@ -199,13 +204,20 @@ func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
 	p1_hud.update_stats(p1, GameManager.p1_is_injured, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat)
 	p2_hud.update_stats(p2, GameManager.p2_is_injured, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat)
 	update_momentum(momentum)
+	$MomentumSlider/Label2.text = str(GameManager.momentum)
 
 func update_momentum(val: int):
 	var visual_val = val
 	var text = "NEUTRAL"
-	if val == 0: visual_val = 4.5 
-	elif val <= 4: text = "P1 MOMENTUM"
-	else: text = "P2 MOMENTUM"
+	
+	if val == 0: 
+		# Position visual slider in the exact middle
+		visual_val = float(GameManager.TOTAL_MOMENTUM_SLOTS) / 2.0 + 0.5
+		
+	elif val <= GameManager.MOMENTUM_P1_MAX: 
+		text = "P1 MOMENTUM"
+	else: 
+		text = "P2 MOMENTUM"
 		
 	var tween = create_tween()
 	tween.tween_property(momentum_slider, "value", visual_val, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)

@@ -132,6 +132,14 @@ offset_top = 20.0
 offset_right = 132.0
 offset_bottom = 43.0
 
+[node name="Label2" type="Label" parent="MomentumSlider"]
+layout_mode = 0
+offset_left = 89.0
+offset_top = 37.0
+offset_right = 129.0
+offset_bottom = 60.0
+text = "TEST"
+
 [node name="P1_HUD" parent="." instance=ExtResource("3_vxmu1")]
 
 [node name="P2_HUD" parent="." instance=ExtResource("3_vxmu1")]

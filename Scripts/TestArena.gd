@@ -169,6 +169,8 @@ func _start_feint_input():
 		else: _run_bot_turn(2)
 
 func _get_player_constraints(player_id: int) -> Dictionary:
+	# This function asks GameManager who is attacking. 
+	# Now that we fixed 'get_attacker', this will return the correct ID!
 	var attacker_id = GameManager.get_attacker()
 	var is_combo = (GameManager.current_combo_attacker != 0)
 	var mom = GameManager.momentum
@@ -178,19 +180,31 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 		"max_cost": 99, "opening_stat": 0, "can_use_super": false, "opportunity_stat": 0 
 	}
 	
+	# 1. Setup Limits & Stats
 	if player_id == 1:
 		c.max_cost = GameManager.p1_cost_limit
 		c.opening_stat = GameManager.p1_opening_stat
 		c.opportunity_stat = GameManager.p1_opportunity_stat 
-		if mom == 1 and not p1_resource.has_used_super: c.can_use_super = true
+		
+		# SUPER CHECK (Updated for Dynamic Momentum)
+		# Checks if momentum is at P1's Wall (e.g. 1)
+		if mom == GameManager.get_wall_momentum(1) and not p1_resource.has_used_super:
+			c.can_use_super = true
+			
 		if GameManager.p1_must_opener: c.needs_opener = true
 	else:
 		c.max_cost = GameManager.p2_cost_limit
 		c.opening_stat = GameManager.p2_opening_stat
 		c.opportunity_stat = GameManager.p2_opportunity_stat 
-		if mom == 8 and not p2_resource.has_used_super: c.can_use_super = true
+		
+		# SUPER CHECK (Updated for Dynamic Momentum)
+		# Checks if momentum is at P2's Wall (e.g. 8 or 12)
+		if mom == GameManager.get_wall_momentum(2) and not p2_resource.has_used_super:
+			c.can_use_super = true
+			
 		if GameManager.p2_must_opener: c.needs_opener = true
 
+	# 2. Determine Required Tab (Offence vs Defence)
 	if attacker_id != 0:
 		if attacker_id == player_id:
 			c.filter = ActionData.Type.OFFENCE
@@ -199,8 +213,12 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 			c.filter = ActionData.Type.DEFENCE
 			c.required_tab = ActionData.Type.DEFENCE
 			
-	if mom == 0: c.needs_opener = true
-	elif attacker_id == player_id and not is_combo: c.needs_opener = true
+	# 3. Neutral / Opener Logic
+	if mom == 0: 
+		c.needs_opener = true
+	elif attacker_id == player_id and not is_combo: 
+		# If I am attacking and NOT in a combo, I must use an opener to start one
+		c.needs_opener = true
 		
 	return c
 
@@ -504,7 +522,7 @@ func _on_game_over(winner_id):
 	screen.setup(winner_id)
 	
 	
-func _on_clash_resolved(winner_id, p1_card, p2_card, results): 
+func _on_clash_resolved(winner_id, p1_card, p2_card, _results): 
 	print("\n>>> Clash Winner: P" + str(winner_id))
 	_update_visuals()
 	# --- UPDATE AI MEMORY ---

@@ -39,6 +39,16 @@ signal status_applied(target_id: int, status_name: String)
 signal request_clash_animation(p1_card, p2_card)
 signal clash_animation_finished
 
+# --- CONFIGURATION ---
+const TOTAL_MOMENTUM_SLOTS: int = 8  #Change this to 4, 6, 10, 12, etc.
+
+# --- DYNAMIC CALCULATIONS ---
+# These run once to set the boundaries based on the config above.
+# Example for 8 slots: P1_MAX = 4, P2_START = 5.
+var MOMENTUM_P1_MAX: int = 4
+var MOMENTUM_P2_START: int = 5
+
+
 # --- STATE MACHINE ---
 enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
 var current_state = State.SETUP
@@ -48,6 +58,7 @@ var editing_player_index: int = 1    # New: Are we building P1 (1) or P2 (2)?
 var p2_is_custom: bool = false       # New: Did the user ask to customize P2?
 enum Difficulty { VERY_EASY, EASY, MEDIUM, HARD }
 var ai_difficulty: Difficulty = Difficulty.MEDIUM # Default
+var attacker_override: int = 0 # 0 = None, 1 = P1 Force Attack, 2 = P2 Force Attack
 
 # --- PERSISTENT GAME SETUP ---
 var next_match_p1_data: CharacterData
@@ -95,6 +106,19 @@ var temp_p2_preset: Resource = null
 # INITIALIZATION
 # ==============================================================================
 
+func _ready():
+	# 1. CALCULATE BOUNDARIES SAFELY
+	# We use float division / 2.0 to silence the integer division warning
+	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
+	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
+	
+	print("--- GAME MANAGER READY ---")
+	print("Momentum Config: Total=", TOTAL_MOMENTUM_SLOTS, " | P1_Max=", MOMENTUM_P1_MAX, " | P2_Start=", MOMENTUM_P2_START)
+	
+	# 2. INITIALIZE LOGIC
+	priority_player = 1
+	momentum = 0
+
 func start_combat(p1: CharacterData, p2: CharacterData):
 	p1_data = p1
 	p2_data = p2
@@ -125,10 +149,22 @@ func reset_combat():
 	change_state(State.SELECTION)
 
 func get_attacker() -> int:
+	# 1. Combo Lock (Highest Priority - mid-combo)
 	if current_combo_attacker != 0: return current_combo_attacker
+	
+	# 2. Reversal Override (Crucial Fix)
+	# If a reversal happened, this variable tells us who gets the turn,
+	# regardless of where the momentum slider actually is.
+	if attacker_override == 1: return 1
+	if attacker_override == 2: return 2
+	
+	# 3. Neutral State (Initial Clash)
 	if momentum == 0: return 0 
-	if momentum <= 4: return 1 
-	return 2 
+	
+	# 4. Standard Momentum Position (Dynamic)
+	# Uses the calculated variable instead of hardcoded '4'
+	if momentum <= MOMENTUM_P1_MAX: return 1 
+	return 2
 
 # ==============================================================================
 # STATE MACHINE
@@ -289,9 +325,12 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 # ==============================================================================
 
 func resolve_clash():
+	# 1. RESET OVERRIDE
+	attacker_override = 0
+	
 	var winner_id = 0
 	
-	# 1. DETERMINE WINNER
+	# 2. DETERMINE WINNER (Standard Priority)
 	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
 	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
 	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
@@ -304,22 +343,18 @@ func resolve_clash():
 	emit_signal("clash_resolved", winner_id, p1_action_queue, p2_action_queue, "Clash Winner: P" + str(winner_id))
 	
 	var is_initial_clash = (momentum == 0)
-	var start_momentum = momentum 
 	
-	# Update Combo Counts (For Quick Passive)
-	# Logic: If I won and I am attacking, combo grows. Else reset.
-	# Note: Simplification -> Just checking consecutive wins for now
+	# Update Combo Counts (For Passives)
 	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE: p1_data.combo_action_count += 1
 	else: p1_data.combo_action_count = 0
 	
 	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE: p2_data.combo_action_count += 1
 	else: p2_data.combo_action_count = 0
 	
-	# --- SNAPSHOT STATUS ---
+	# --- PHASE 0: PAY COSTS ---
 	var p1_started_injured = p1_is_injured
 	var p2_started_injured = p2_is_injured
 	
-	# --- PHASE 0: PAY COSTS ---
 	var p1_active = _pay_cost(1, p1_action_queue)
 	var p2_active = _pay_cost(2, p2_action_queue)
 
@@ -334,51 +369,41 @@ func resolve_clash():
 	if p1_active: _apply_phase_1_self_effects(1, p1_action_queue)
 	if p2_active: _apply_phase_1_self_effects(2, p2_action_queue)
 
-# --- MOMENTUM PRE-CALCULATION ---
+	# --- MOMENTUM CALCULATION ---
 	
-	# 1. Dodge Check (UPDATED: Uses Total Cost)
-	var p1_is_dodged = false
-	var p2_is_dodged = false
-	
-	# Calculate TOTAL costs for fairness
+	# A. Dodge & Parry Checks
+	var p1_is_dodged = false; var p2_is_dodged = false
 	var p1_total_cost = p1_action_queue.cost * max(1, p1_action_queue.repeat_count)
 	var p2_total_cost = p2_action_queue.cost * max(1, p2_action_queue.repeat_count)
 	
-	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_total_cost:
-		p1_is_dodged = true
-	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_total_cost:
-		p2_is_dodged = true
-		
-	# 2. Parry Check
+	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_total_cost: p1_is_dodged = true
+	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_total_cost: p2_is_dodged = true
+	
 	var p1_parries = (p1_active and p1_action_queue.is_parry)
 	var p2_parries = (p2_active and p2_action_queue.is_parry)
 	
-	# 3. Calculate Base vs Total Gains (UPDATED)
-	# We need the single trait value for stealing, but the total for pushing
+	# B. Push/Pull Calculation
 	var p1_single_gain = p1_action_queue.momentum_gain + _get_opportunity_value(1)
 	var p2_single_gain = p2_action_queue.momentum_gain + _get_opportunity_value(2)
 	
 	var p1_total_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
 	var p2_total_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
 	
-	# 4. Final Push Calculation
-	# P1's push is their Total, UNLESS Parried (lose single) or Dodged (lose all)
 	var p1_contribution = p1_total_gain
-	if p2_parries: p1_contribution -= p1_single_gain # Only lose the TRAIT amount
+	if p2_parries: p1_contribution -= p1_single_gain
 	if p1_is_dodged: p1_contribution = 0
 	
 	var p2_contribution = p2_total_gain
-	if p1_parries: p2_contribution -= p2_single_gain # Only lose the TRAIT amount
+	if p1_parries: p2_contribution -= p2_single_gain
 	if p2_is_dodged: p2_contribution = 0
 	
-	# The Parrier gains the SINGLE trait amount they stole
 	var p1_stolen = p2_single_gain if p1_parries else 0
 	var p2_stolen = p1_single_gain if p2_parries else 0
 	
 	var p1_final_push = p1_contribution + p1_stolen
 	var p2_final_push = p2_contribution + p2_stolen
 	
-	# 5. Delta Calculation (Same as before)
+	# C. Delta Calculation
 	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
 	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
 	
@@ -387,8 +412,6 @@ func resolve_clash():
 	
 	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
 	
-	# 6. Parry Success
-	# "If this causes the momentum tracker to move in your direction..."
 	var p1_parry_success = (p1_parries and delta < 0)
 	var p2_parry_success = (p2_parries and delta > 0)
 	
@@ -408,25 +431,44 @@ func resolve_clash():
 		_handle_death(winner_id)
 		return 
 	
-	# --- PHASE 3: MOMENTUM ---
-	var p1_is_offence = (p1_action_queue.type == ActionData.Type.OFFENCE)
-	var p2_is_offence = (p2_action_queue.type == ActionData.Type.OFFENCE)
+	# --- PHASE 3: APPLY MOMENTUM & REVERSAL (FIXED) ---
 	
-	if p1_active and p1_is_offence: _apply_phase_3_momentum(1, p1_action_queue, p1_final_push)
-	if p2_active and p2_is_offence: _apply_phase_3_momentum(2, p2_action_queue, p2_final_push)
-	
-	if p1_active and not p1_is_offence: _apply_phase_3_momentum(1, p1_action_queue, p1_final_push)
-	if p2_active and not p2_is_offence: _apply_phase_3_momentum(2, p2_action_queue, p2_final_push)
-	
-	# --- PHASE 4: STATUS TICK ---
-	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
+	var p1_reversed = (p1_active and p1_action_queue.reversal and delta < 0)
+	var p2_reversed = (p2_active and p2_action_queue.reversal and delta > 0)
+
+	if is_initial_clash:
+		# A. Initial Clash: Winner sets the physical Momentum Position
+		momentum = MOMENTUM_P1_MAX if winner_id == 1 else MOMENTUM_P2_START
+		print("DEBUG: Initial Clash Winner: P", winner_id, " | Set Mom: ", momentum)
+		
+		# B. But Reversal can steal the TURN
+		if p1_reversed:
+			attacker_override = 1
+			emit_signal("combat_log_updated", ">> P1 Reverses! Seizing Offence.")
+		elif p2_reversed:
+			attacker_override = 2
+			emit_signal("combat_log_updated", ">> P2 Reverses! Seizing Offence.")
+			
+	else:
+		# Standard Gameplay
+		# 1. Apply Physics (Delta) regardless of reversal
+		momentum = clamp_momentum(momentum + delta)
+		
+		# 2. Apply Turn Override if Reversal happened
+		if p1_reversed:
+			attacker_override = 1
+			emit_signal("combat_log_updated", ">> P1 REVERSAL SUCCESSFUL!")
+		elif p2_reversed:
+			attacker_override = 2
+			emit_signal("combat_log_updated", ">> P2 REVERSAL SUCCESSFUL!")
 
 	# --- CLEANUP ---
-	if is_initial_clash:
-		momentum = 4 if winner_id == 1 else 5
-		emit_signal("combat_log_updated", "Initial Clash Set! Momentum: " + str(momentum))
+	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
 	
-	_check_reversal(winner_id, start_momentum)
+	# Pass the start momentum to check reversal logic
+	# (Note: In standard flow, we use the current momentum state to decide next turn)
+	_check_reversal_state() 
+	
 	_handle_locks(winner_id)
 
 	p1_action_queue = null
@@ -567,9 +609,10 @@ func _apply_phase_3_momentum(owner_id: int, my_card: ActionData, effective_gain:
 			emit_signal("combat_log_updated", ">> KEEP-UP! P" + str(owner_id) + " spent SP to hold ground.")
 	
 	if owner_id == 1:
-		momentum = clampi(momentum - effective_gain + total_loss, 1, 8)
+		momentum = clamp_momentum(momentum - effective_gain + total_loss)
 	else:
-		momentum = clampi(momentum + effective_gain - total_loss, 1, 8)
+		momentum = clamp_momentum(momentum + effective_gain - total_loss)
+		
 
 # ==============================================================================
 # HELPER FUNCTIONS
@@ -650,32 +693,38 @@ func _handle_death(winner_id):
 	emit_signal("game_over", game_winner)
 	reset_combat() 
 
-func _check_reversal(winner_id, start_momentum):
-	var loser_id = 3 - winner_id
-	var loser_card = p1_action_queue if loser_id == 1 else p2_action_queue
+func _check_reversal_state():
+	# 1. Check if a Reversal Triggered (Logic copied from resolve_clash for safety)
+	# But actually, we already set attacker_override in resolve_clash.
+	# We just need to update 'current_combo_attacker' based on the FINAL state.
 	
-	var reversal_triggered = false
-	if loser_card.reversal:
-		var moved_closer = false
-		if loser_id == 1 and momentum < start_momentum: moved_closer = true
-		if loser_id == 2 and momentum > start_momentum: moved_closer = true
-		
-		if moved_closer:
-			current_combo_attacker = loser_id 
-			reversal_triggered = true
-			if loser_id == 1: p1_must_opener = true
-			else: p2_must_opener = true
-			emit_signal("combat_log_updated", ">>> REVERSAL! Player " + str(loser_id) + " seizes the Combo! (Must use Opener) <<<")
-
 	var active_attacker = get_attacker()
+	
+	# Handle Reversal "Must Opener" penalty
+	if attacker_override != 0:
+		# A reversal happened this turn
+		current_combo_attacker = attacker_override # Reverser starts new combo
+		
+		# The VICTIM of the reversal must use an opener next time they get a turn
+		if attacker_override == 1: p2_must_opener = true
+		else: p1_must_opener = true
+		return
+
+	# Handle Standard Flow
 	if active_attacker != 0:
 		var att_data = p1_data if active_attacker == 1 else p2_data
+		
+		# If Attacker is out of SP, combo breaks
 		if att_data.current_sp <= 0:
 			emit_signal("combat_log_updated", ">> Attacker Out of SP. Combo Ends.")
 			current_combo_attacker = 0 
 		else:
-			if not reversal_triggered:
-				current_combo_attacker = active_attacker
+			# CRITICAL FIX: Maintain the combo state!
+			# If I am the attacker now, I am starting/continuing a combo.
+			current_combo_attacker = active_attacker
+	else:
+		# Neutral state (Momentum 0?)
+		current_combo_attacker = 0
 
 func _handle_locks(winner_id):
 	p1_locked_card = null; p2_locked_card = null
@@ -730,3 +779,37 @@ func get_player(id: int) -> CharacterData:
 # Returns the data for the OTHER player (the enemy of 'id')
 func get_opponent(id: int) -> CharacterData:
 	return p2_data if id == 1 else p1_data
+
+
+
+func is_p1_attacker() -> bool:
+	# 1. Check Overrides (Reversals)
+	if attacker_override == 1: return true
+	if attacker_override == 2: return false
+	
+	# 2. Check Momentum
+	# If momentum is 0 (error case), default to P1
+	if momentum == 0: return true
+	
+	# Standard Check: Is momentum on the left side (1 to P1_MAX)?
+	return momentum <= MOMENTUM_P1_MAX
+
+# Clamps momentum to the configured range
+func clamp_momentum(val: int) -> int:
+	return clampi(val, 1, TOTAL_MOMENTUM_SLOTS)
+
+# Returns the "Winning" momentum value for a specific player (Used for Reversals/Initial Clash)
+func get_advantage_momentum(player_id: int) -> int:
+	if player_id == 1:
+		# P1 wants to be one step inward from their max.
+		# E.g. (4 slots -> 1), (8 slots -> 3), (10 slots -> 4)
+		return max(1, MOMENTUM_P1_MAX - 1)
+	else:
+		# P2 wants to be one step inward from their start.
+		# E.g. (4 slots -> 4), (8 slots -> 6), (10 slots -> 7)
+		return min(TOTAL_MOMENTUM_SLOTS, MOMENTUM_P2_START + 1)
+
+# Returns the "Wall" momentum value (Used for cornered logic)
+func get_wall_momentum(player_id: int) -> int:
+	if player_id == 1: return 1
+	else: return TOTAL_MOMENTUM_SLOTS
