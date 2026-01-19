@@ -243,7 +243,7 @@ func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
 
 func update_momentum(val: int):
 	var visual_val = val
-	var text = "NEUTRAL" + GameManager.current_environment_name
+	var text = "NEUTRAL: " + GameManager.current_environment_name
 	if val == 0: 
 		visual_val = float(GameManager.TOTAL_MOMENTUM_SLOTS) / 2.0 + 0.5
 	elif val <= GameManager.MOMENTUM_P1_MAX: 

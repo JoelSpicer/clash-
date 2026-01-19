@@ -486,6 +486,27 @@ func _on_confirm_button_pressed():
 		
 		# --- CASE 1: START FIGHT (Ready to go) ---
 		if RunManager.free_unlocks_remaining <= 0 and pending_unlock_id == 0:
+			
+			# --- NEW: LOADOUT VALIDATION ---
+			var has_offence = false
+			var has_defence = false
+			
+			for card in RunManager.player_run_data.deck:
+				if card.type == ActionData.Type.OFFENCE: has_offence = true
+				if card.type == ActionData.Type.DEFENCE: has_defence = true
+				
+			if not has_offence or not has_defence:
+				print("Cannot Start: Invalid Loadout.")
+				# Visual Feedback using the Stats Label
+				stats_label.text = "REQ: 1 OFFENCE & 1 DEFENCE!"
+				stats_label.modulate = Color(1, 0.3, 0.3) # Red Warning
+				
+				# Reset the label after 2 seconds
+				await get_tree().create_timer(2.0).timeout
+				_recalculate_stats()
+				return
+			# -------------------------------
+			
 			RunManager.start_next_fight()
 			return
 
@@ -526,8 +547,6 @@ func _on_confirm_button_pressed():
 			return
 
 		# --- CASE 3: FALLBACK ---
-		# Since we block selection when free_unlocks <= 0, this should rarely be reached in Arcade,
-		# but we leave it safe just in case.
 		if pending_unlock_id != 0:
 			print("Warning: Unsanctioned purchase attempt blocked.")
 			pending_unlock_id = 0
