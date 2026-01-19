@@ -496,8 +496,13 @@ func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
 	var spawn_pos = _get_clash_text_pos(target_id)
 	if is_blocked: 
 		_spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
+		AudioManager.play_sfx("block", 0.1)
 	else: 
 		_spawn_text(spawn_pos, str(amount), Color.RED)
+		if amount >= 5:
+			AudioManager.play_sfx("hit_heavy", 0.1) # <--- NEW
+		else:
+			AudioManager.play_sfx("hit_light", 0.2) # <--- NEW
 		# --- NEW: Trigger Hit Animation ---
 		if target_id == 1: p1_hud.play_hit_animation()
 		else: p2_hud.play_hit_animation()
@@ -531,6 +536,8 @@ func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
 	# P2 Lunges Left (-50 pixels) if attacking
 	if p2_card.type == ActionData.Type.OFFENCE:
 		p2_hud.play_attack_animation(Vector2(-50, 0))
+	# Play Clash Sound (Metal hitting metal)
+	AudioManager.play_sfx("clash", 0.1)
 
 func _on_log_toggled(toggled_on: bool):
 	combat_log.visible = toggled_on

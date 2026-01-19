@@ -36,7 +36,10 @@ func _ready():
 		custom_minimum_size = Vector2(50, 50)
 		size = Vector2(50, 50)
 		
-	mouse_entered.connect(func(): hovered.emit(id, action_name))
+	mouse_entered.connect(func(): 
+		hovered.emit(id, action_name)
+		AudioManager.play_sfx("ui_hover", 0.2) # <--- NEW
+	)
 	mouse_exited.connect(func(): exited.emit())	
 
 func _build_ui():

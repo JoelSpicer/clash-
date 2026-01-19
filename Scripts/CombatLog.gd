@@ -112,6 +112,10 @@ func add_clash_log(winner_id: int, p1_card: ActionData, p2_card: ActionData):
 	# 3. BUTTON OVERLAY
 	# Handles Interaction
 	var btn = Button.new()
+	
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+	
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	btn.flat = true 
