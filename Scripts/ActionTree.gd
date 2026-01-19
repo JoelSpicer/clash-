@@ -1,6 +1,7 @@
 extends Control
 
-var action_tree_dict = {}     # Empty placeholder
+# --- DATA ---
+var action_tree_dict = {}     
 var id_to_name = {}
 var name_to_id = {}
 
@@ -18,58 +19,67 @@ var unlocked_ids: Array[int] = []
 var owned_ids: Array[int] = []
 var selected_class_id: int = 0
 var is_class_locked: bool = false
-var pending_unlock_id: int = 0 # Track the ONE card the player wants to pick
-# --- NEW: STATS TRACKING ---
+var pending_unlock_id: int = 0 
+
+# --- STATS TRACKING ---
 var current_max_hp: int = 10
 var current_max_sp: int = 3
-var stats_label: Label 
 
-# --- NEW: POPUP REFERENCES ---
-var card_scene = preload("res://Scenes/CardDisplay.tscn")
+# --- UI REFS ---
+var ui_layer: CanvasLayer
+var stats_label: Label 
 var popup_card: Control
+var card_scene = preload("res://Scenes/CardDisplay.tscn")
+
+# Loadout Manager Refs
+var loadout_panel: PanelContainer
+var active_container: HBoxContainer
+var reserve_container: HFlowContainer 
+var toggle_btn: Button
 
 func _ready():
 	action_tree_dict = ClassFactory.TREE_CONNECTIONS
 	id_to_name = ClassFactory.ID_TO_NAME_MAP
 	
-	# Build a reverse lookup (Name -> ID) for Presets to use
+	# Reverse lookup
 	name_to_id.clear()
 	for id in id_to_name:
 		name_to_id[id_to_name[id]] = id
 	
-	# 2. Setup Nodes
+	# 1. SETUP NODES
 	for child in nodes_layer.get_children():
 		if child.has_method("setup"):
 			var id = int(str(child.name)) 
 			var a_name = id_to_name.get(id, "Unknown")
 			child.setup(id, a_name)
-			child.action_clicked.connect(_on_node_clicked)
-			child.hovered.connect(_on_node_hovered) # <--- ADD THIS
-			child.exited.connect(_on_node_exited)
-	# 3. Create Stats Label UI
-	stats_label = Label.new()
-	stats_label.text = "HP: 10 | SP: 3"
-	stats_label.add_theme_font_size_override("font_size", 32)
-	stats_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	stats_label.position.y += 20 # Offset from top
-	add_child(stats_label)
+			
+			# Connect Signals
+			if not child.action_clicked.is_connected(_on_node_clicked):
+				child.action_clicked.connect(_on_node_clicked)
+			if not child.hovered.is_connected(_on_node_hovered):
+				child.hovered.connect(_on_node_hovered)
+			if not child.exited.is_connected(_on_node_exited):
+				child.exited.connect(_on_node_exited)
+
+	# 2. CREATE UI LAYER (Draws on top of Tree)
+	ui_layer = CanvasLayer.new()
+	ui_layer.layer = 10 
+	add_child(ui_layer)
+
+	# 3. BUILD UI ELEMENTS
+	_build_ui_overlay()
+	_setup_popup()
 	
 	if RunManager.is_arcade_mode:
 		print("ActionTree: Loading Arcade Run Data...")
-		
-		# A. Load state from RunManager instead of GameManager temp vars
-		# We clone the list so we don't accidentally modify the 'real' list until confirmed
 		owned_ids = RunManager.player_owned_tree_ids.duplicate()
+		if owned_ids.size() > 0: selected_class_id = owned_ids[0] 
 		
-		# The first node in the list is always the Class Node (73-76)
-		if owned_ids.size() > 0:
-			selected_class_id = owned_ids[0] 
-		
-		# B. Lock the UI 'Back' button so they can't leave without picking
+		# Hide unnecessary buttons
 		var btn_back = $TreeContainer/BackButton
 		if btn_back: btn_back.visible = false 
 		
-		# C. Change the Confirm button text
+		# Update Confirm Button text
 		var btn_confirm = $TreeContainer/ConfirmButton 
 		if btn_confirm:
 			if RunManager.free_unlocks_remaining > 0:
@@ -77,147 +87,254 @@ func _ready():
 			else:
 				btn_confirm.text = "UNLOCK & FIGHT"
 		
-		# D. Calculate unlocks based on what we already own
+		# Recalculate unlocks
 		_unlock_neighbors(selected_class_id)
 		for oid in owned_ids: 
 			_unlock_neighbors(oid)
+			
 	else:
 		_setup_for_current_player()
 		var btn_back = $TreeContainer/BackButton
-		if btn_back:
-			btn_back.pressed.connect(_on_back_button_pressed)
-		
+		if btn_back: btn_back.pressed.connect(_on_back_button_pressed)
 	
-	
-	# 4. --- NEW: CREATE POPUP CARD ---
-	var canvas = CanvasLayer.new() # Use CanvasLayer to float above everything
-	canvas.layer = 100
-	add_child(canvas)
-	
-	popup_card = card_scene.instantiate()
-	popup_card.visible = false
-	# --- FIX START: FORCE SIZE AND SHAPE ---
-	# 1. Stop it from stretching to fill the screen (Reset Anchors)
-	popup_card.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	
-	# 2. Force it to the correct standard card size
-	# (Matching custom_minimum_size from CardDisplay.tscn)
-	popup_card.size = Vector2(250, 350) 
-	
-	# 3. Set Scale (1.0 is standard size, adjust if you want it smaller/larger)
-	popup_card.scale = Vector2(0.6, 0.6) 
-	# ---------------------------------------rger
-	popup_card.mouse_filter = Control.MOUSE_FILTER_IGNORE # Don't block mouse
-	canvas.add_child(popup_card)
-
-	
-	_update_tree_visuals()
-	_recalculate_stats() # Initial calc
-	lines_layer.queue_redraw()
-
-func _on_node_hovered(id, a_name):
-	
-	# --- NEW: DETECT CLASS NODES (73-76) ---
-	if id >= 73 and id <= 76:
-		var class_info = _get_class_display_data(id)
-		popup_card.set_card_data(class_info)
-		
-		# Optional: Hide the "0 SP" cost label if you want (requires CardDisplay tweaks), 
-		# but for now we just show the info.
-		
-		popup_card.visible = true
-		_update_popup_position()
-		return
-	# ---------------------------------------
-
-	# Standard Action Node Logic (Existing Code)
-	# 1. Try to load the real file
-	var res = ClassFactory.find_action_resource(a_name)
-	
-	# 2. If missing, create a "Dummy" card so the UI still works
-	if res == null:
-		print("Debug: File missing for '" + a_name + "'") # Console check
-		res = ActionData.new()
-		res.display_name = a_name
-		res.description = "(File not created yet)"
-		res.type = ActionData.Type.OFFENCE # Default color
-		res.cost = 0
-	
-	
-# --- CHANGE 2: USE THE CORRECT METHOD FOR THE FULL CARD ---
-	# In BattleUI, you use 'set_card_data(card, cost)' for the preview card.
-	# We replicate that here.
-	if popup_card.has_method("set_card_data"):
-		popup_card.set_card_data(res, res.cost)
-	elif popup_card.has_method("setup"):
-		# Fallback in case your card script uses 'setup' instead
-		popup_card.setup(res)
-		
-	popup_card.visible = true
-	_update_popup_position()
-
-# ActionTree.gd
-
-func _setup_for_current_player():
-	# 1. Determine which class/preset to load
-	var target_selection = 0
-	var player_name = ""
-	var target_preset = null # <--- New variable
-	
-	if GameManager.editing_player_index == 1:
-		target_selection = GameManager.get("temp_p1_class_selection")
-		target_preset = GameManager.get("temp_p1_preset") # Get P1 Preset
-		player_name = "PLAYER 1"
-	else:
-		target_selection = GameManager.get("temp_p2_class_selection")
-		target_preset = GameManager.get("temp_p2_preset") # Get P2 Preset
-		player_name = "PLAYER 2"
-		
-	print("Building Loadout for: " + player_name) 
-	
-	# 3. Reset Tree State
-	owned_ids.clear()
-	unlocked_ids.clear()
-	is_class_locked = false
-	
-	# 4. Select the Class Node (Resets the tree to base class state)
-	if target_selection != null:
-		var node_id = 0
-		match target_selection:
-			0: node_id = 76 # Heavy
-			1: node_id = 75 # Patient
-			2: node_id = 73 # Quick
-			3: node_id = 74 # Technical
-			
-		if node_id != 0:
-			_select_class(node_id)
-			is_class_locked = true 
-	
-	# --- NEW: PRE-FILL PRESET MOVES ---
-	if target_preset != null:
-		print("Applying Preset Skills: ", target_preset.extra_skills)
-		
-		for skill_name in target_preset.extra_skills:
-			# FIX: Use 'name_to_id' instead of the deleted 'action_tree_key_dict'
-			if skill_name in name_to_id:
-				var id = name_to_id[skill_name]
-				
-				# Add to owned if not already there
-				if id not in owned_ids:
-					owned_ids.append(id)
-			else:
-				printerr("Warning: Preset skill '" + skill_name + "' not found.")
-		
-		# IMPORTANT: Now that we forced nodes into 'owned_ids', 
-		# we must re-run the unlock logic so their neighbors turn yellow.
-		for owner_id in owned_ids:
-			_unlock_neighbors(owner_id)
-	# ----------------------------------
-			
-	# 5. Refresh Visuals
+	_refresh_loadout_manager()
 	_update_tree_visuals()
 	_recalculate_stats()
 	lines_layer.queue_redraw()
+
+# ==============================================================================
+# UI CONSTRUCTION
+# ==============================================================================
+
+func _build_ui_overlay():
+	# 1. Stats Label (Top Center)
+	stats_label = Label.new()
+	stats_label.text = "HP: ? | SP: ?"
+	stats_label.add_theme_font_size_override("font_size", 32)
+	stats_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	stats_label.position.y += 20 
+	ui_layer.add_child(stats_label)
+
+	# 2. Loadout Manager Panel (Bottom Center, Initially Hidden)
+	# Created BEFORE the button so it renders BEHIND it
+	loadout_panel = PanelContainer.new()
+	loadout_panel.visible = false 
+	
+	# Anchor to Bottom Full Width
+	loadout_panel.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	loadout_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	loadout_panel.custom_minimum_size.y = 300 
+	
+	# Add a background style
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.1, 0.95) 
+	loadout_panel.add_theme_stylebox_override("panel", style)
+	
+	ui_layer.add_child(loadout_panel)
+	
+	# Layout
+	var main_vbox = VBoxContainer.new()
+	main_vbox.add_theme_constant_override("separation", 10)
+	loadout_panel.add_child(main_vbox)
+	
+	# --- ROW 1: ACTIVE HAND ---
+	var lbl_active = Label.new()
+	lbl_active.text = "ACTIVE HAND (Max 8)"
+	lbl_active.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	main_vbox.add_child(lbl_active)
+	
+	active_container = HBoxContainer.new()
+	active_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	active_container.custom_minimum_size.y = 80
+	active_container.add_theme_constant_override("separation", 10)
+	main_vbox.add_child(active_container)
+	
+	# Separator
+	var sep = HSeparator.new()
+	main_vbox.add_child(sep)
+	
+	# --- ROW 2: RESERVES ---
+	var lbl_reserve = Label.new()
+	lbl_reserve.text = "RESERVE LIBRARY (Click to Equip)"
+	lbl_reserve.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	main_vbox.add_child(lbl_reserve)
+	
+	# ScrollContainer
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size.y = 150
+	main_vbox.add_child(scroll)
+	
+	reserve_container = HFlowContainer.new() 
+	reserve_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	reserve_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	reserve_container.alignment = FlowContainer.ALIGNMENT_CENTER
+	scroll.add_child(reserve_container)
+
+	# 3. Toggle Button (Bottom Right)
+	# Created LAST so it renders ON TOP
+	toggle_btn = Button.new()
+	toggle_btn.text = "EDIT LOADOUT"
+	toggle_btn.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	toggle_btn.position -= Vector2(20, 20) # Padding
+	toggle_btn.custom_minimum_size = Vector2(150, 50)
+	toggle_btn.pressed.connect(_on_toggle_loadout_pressed)
+	ui_layer.add_child(toggle_btn)
+
+func _setup_popup():
+	popup_card = card_scene.instantiate()
+	popup_card.visible = false
+	popup_card.mouse_filter = Control.MOUSE_FILTER_IGNORE 
+	
+	# FIX 1: Break existing layout constraints (The Warning Fix)
+	# This ensures the card doesn't try to stretch to the full screen size
+	popup_card.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	
+	# Ensure it is on top of the UI layer
+	popup_card.set_as_top_level(true) 
+	popup_card.z_index = 4096 
+	
+	# FIX 2: Explicit Dimensions (Portrait Mode)
+	popup_card.size = Vector2(250, 350)
+	
+	# FIX 3: Scale
+	popup_card.scale = Vector2(0.6, 0.6) 
+	
+	ui_layer.add_child(popup_card)
+
+# ==============================================================================
+# LOGIC
+# ==============================================================================
+
+func _on_toggle_loadout_pressed():
+	loadout_panel.visible = !loadout_panel.visible
+	if loadout_panel.visible:
+		toggle_btn.text = "CLOSE LOADOUT"
+		_refresh_loadout_manager()
+	else:
+		toggle_btn.text = "EDIT LOADOUT"
+
+func _refresh_loadout_manager():
+	if not loadout_panel.visible: return
+	
+	# 1. Clear old buttons
+	for c in active_container.get_children(): c.queue_free()
+	for c in reserve_container.get_children(): c.queue_free()
+	
+	var active_deck: Array[ActionData] = []
+	var library: Array[ActionData] = []
+	
+	# 2. Get Data
+	if RunManager.is_arcade_mode:
+		active_deck = RunManager.player_run_data.deck
+		library = RunManager.player_run_data.unlocked_actions
+	else:
+		# Custom Mode Logic
+		if selected_class_id == 0: return
+		var class_enum = _get_class_enum_from_id(selected_class_id)
+		
+		# Starter cards
+		var starters = ClassFactory.get_starting_deck(class_enum)
+		library.append_array(starters)
+		
+		# Tree cards
+		for id in owned_ids:
+			if id >= 73: continue
+			var c = ClassFactory.find_action_resource(id_to_name.get(id))
+			if c: library.append(c)
+			
+		# Temporary: Custom Mode just fills active with everything.
+		active_deck = library.duplicate()
+		library = [] 
+
+	# 3. Populate Active Row
+	for card in active_deck:
+		var btn = _create_card_button(card, true)
+		active_container.add_child(btn)
+		
+	# 4. Populate Reserve Row
+	# Logic: Show cards in 'library' that are NOT in 'active_deck'
+	for card in library:
+		if not _is_card_in_list(card, active_deck):
+			var btn = _create_card_button(card, false)
+			reserve_container.add_child(btn)
+
+func _create_card_button(card: ActionData, is_active: bool) -> Button:
+	var btn = Button.new()
+	btn.custom_minimum_size = Vector2(60, 80)
+	btn.tooltip_text = card.display_name + "\n" + card.description
+	
+	if card.icon:
+		btn.icon = card.icon
+		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		btn.expand_icon = true
+	else:
+		btn.text = card.display_name.left(3)
+		
+	if card.type == ActionData.Type.OFFENCE:
+		btn.modulate = Color(1.0, 0.6, 0.6)
+	else:
+		btn.modulate = Color(0.6, 0.8, 1.0)
+		
+	# LOGIC:
+	if is_active:
+		# Click to UNEQUIP
+		btn.pressed.connect(func(): _on_unequip_card(card))
+	else:
+		# Click to EQUIP
+		btn.pressed.connect(func(): _on_equip_card(card))
+		
+	return btn
+
+func _on_unequip_card(card: ActionData):
+	if not RunManager.is_arcade_mode: return
+	var player = RunManager.player_run_data
+	
+	if player.deck.size() <= 1:
+		print("Cannot have empty deck.")
+		return
+		
+	_remove_from_deck(player, card)
+	_refresh_loadout_manager()
+	_update_tree_visuals()
+	_recalculate_stats()
+
+func _on_equip_card(card: ActionData):
+	if not RunManager.is_arcade_mode: return
+	var player = RunManager.player_run_data
+	
+	if player.deck.size() >= ClassFactory.HAND_LIMIT:
+		print("Hand Full! Remove a card first.")
+		return
+		
+	player.deck.append(card)
+	_refresh_loadout_manager()
+	_update_tree_visuals()
+	_recalculate_stats()
+
+# --- TOOLTIP LOGIC ---
+func _on_node_hovered(id, a_name):
+	# CLASS NODES
+	if id >= 73 and id <= 76:
+		var class_info = _get_class_display_data(id)
+		popup_card.set_card_data(class_info)
+		popup_card.visible = true
+		_update_popup_position()
+		return
+
+	# ACTION NODES
+	var res = ClassFactory.find_action_resource(a_name)
+	if res == null:
+		res = ActionData.new()
+		res.display_name = a_name
+		res.description = "(File not created yet)"
+		res.cost = 0
+	
+	if popup_card.has_method("set_card_data"):
+		popup_card.set_card_data(res, res.cost)
+	
+	popup_card.visible = true
+	_update_popup_position()
 
 func _on_node_exited():
 	popup_card.visible = false
@@ -229,75 +346,65 @@ func _process(_delta):
 func _update_popup_position():
 	var m_pos = get_viewport().get_mouse_position()
 	var screen_size = get_viewport_rect().size
-	
-	# Calculate actual size including scale (just in case you scale it later)
 	var card_size = popup_card.size * popup_card.scale
 	var offset = Vector2(30, 30)
 	
-	# 1. Default Position: Bottom-Right of mouse
 	var final_pos = m_pos + offset
 	
-	# 2. Check Horizontal Bounds (Right Edge)
+	# Keep on screen
 	if final_pos.x + card_size.x > screen_size.x:
-		# If it goes off right, flip to the LEFT of the mouse
 		final_pos.x = m_pos.x - card_size.x - offset.x
-	
-	# 3. Check Vertical Bounds (Bottom Edge)
 	if final_pos.y + card_size.y > screen_size.y:
-		# If it goes off bottom, flip to ABOVE the mouse
 		final_pos.y = m_pos.y - card_size.y - offset.y
 	
 	popup_card.position = final_pos
 
+# --- INTERACTION LOGIC (Tree) ---
 func _on_node_clicked(id: int, _name: String):
 	if RunManager.is_arcade_mode:
-		# Rule 1: You can't un-learn skills you already have
-		if id in owned_ids: 
-			return 
-			
-		# Rule 2: You can only pick yellow (unlocked) nodes
-		if id not in unlocked_ids: 
-			return 
 		
-		# Rule 3: Set this as the "Pending Reward"
+		# A. Clicking Owned Node -> Just Highlight
+		if id in owned_ids:
+			if id >= 73: return
+			return
+			
+		# B. Drafting (Buying new)
+		if id not in unlocked_ids: return 
+		
+		# --- FIX: PREVENT SELECTION IF NO UNLOCKS LEFT ---
+		if RunManager.free_unlocks_remaining <= 0:
+			# Optional: Visual feedback like a sound or shake
+			print("No unlocks remaining! Click START FIGHT.")
+			return
+		# -------------------------------------------------
+		
 		pending_unlock_id = id
-		print("Selected reward candidate: " + str(id))
 		
-		# Visual Feedback: Show what stats this NEW card would give
-		# We create a fake deck consisting of (Current Deck + New Card)
-		var temp_deck = RunManager.player_run_data.deck.duplicate()
-		var card_name = id_to_name.get(id)
-		var new_card = ClassFactory.find_action_resource(card_name)
-		
-		if new_card:
-			temp_deck.append(new_card)
-			# Ask Factory to calculate stats for this potential future
-			var result = ClassFactory.calculate_stats_for_deck(RunManager.player_run_data.class_type, temp_deck)
-			
-			stats_label.text = "NEXT FIGHT STATS: HP " + str(result["hp"]) + " | SP " + str(result["sp"])
-			stats_label.modulate = Color.GREEN # Make it look like a preview
-			
-			# Update visuals to show the glow on the new selection
 		_update_tree_visuals()
 		
-		# --- CRITICAL FIX: STOP HERE! ---
+		# FIX: Force recalculate so the UI updates IMMEDIATELY with the new card preview
+		_recalculate_stats()
 		return
 	
-	if id >= 73 and id <= 76:
+	# === CUSTOM DECK LOGIC ===
+	if id >= 73: 
 		if is_class_locked: return
 		_select_class(id)
-		return
-		
-	if id in owned_ids:
-		# If we click an OWNED node, try to refund it
+	elif id in owned_ids: 
 		_try_deselect_action(id)
 	elif id in unlocked_ids:
 		owned_ids.append(id)
 		_unlock_neighbors(id)
 		_update_tree_visuals()
-		_recalculate_stats() # <--- Update stats when buying
+		_recalculate_stats()
 	else:
 		print("Locked!")
+
+# --- HELPERS ---
+func _is_card_in_list(card: ActionData, list: Array[ActionData]) -> bool:
+	for c in list:
+		if c.display_name == card.display_name: return true
+	return false
 
 func _select_class(class_id: int):
 	selected_class_id = class_id
@@ -306,46 +413,48 @@ func _select_class(class_id: int):
 	owned_ids.append(class_id)
 	_unlock_neighbors(class_id)
 	_update_tree_visuals()
-	_recalculate_stats() # <--- Update stats when resetting
+	_recalculate_stats()
+	_refresh_loadout_manager()
 
-# --- NEW: STATS CALCULATION LOGIC ---
 func _recalculate_stats():
-	# Default display if nothing selected
-	if selected_class_id == 0:
-		stats_label.text = "HP: 10 | SP: 3"
-		return
-
-	# 1. Convert the Tree's "Node ID" (73-76) into a proper "Class Enum"
-	var class_enum = CharacterData.ClassType.HEAVY # Default
-	match selected_class_id:
-		73: class_enum = CharacterData.ClassType.QUICK
-		74: class_enum = CharacterData.ClassType.TECHNICAL
-		75: class_enum = CharacterData.ClassType.PATIENT
-		76: class_enum = CharacterData.ClassType.HEAVY
-
-	# 2. Build a temporary deck from the nodes we own
-	var temp_deck: Array[ActionData] = []
+	var stats = { "hp": 10, "sp": 3 }
 	
-	# Add the base starter cards for this class (so the calculator knows to ignore them properly)
-	# Note: ClassFactory.get_starting_deck returns resources, which is what we need.
-	temp_deck.append_array(ClassFactory.get_starting_deck(class_enum))
-	
-	# Add the extra cards we bought in the tree
-	for id in owned_ids:
-		if id >= 73: continue # Skip class nodes
+	if RunManager.is_arcade_mode:
+		var p = RunManager.player_run_data
 		
-		var a_name = id_to_name.get(id)
-		var card = ClassFactory.find_action_resource(a_name)
-		if card:
-			temp_deck.append(card)
+		# FIX: CALCULATE WITH PREVIEW
+		# Create a temporary list of what we own + what we are about to buy
+		var cards_to_count = p.unlocked_actions.duplicate()
+		
+		if pending_unlock_id != 0:
+			var card_name = id_to_name.get(pending_unlock_id)
+			var pending_card = ClassFactory.find_action_resource(card_name)
+			if pending_card:
+				cards_to_count.append(pending_card)
+		
+		stats = ClassFactory.calculate_stats_for_deck(p.class_type, cards_to_count)
+		
+	else:
+		if selected_class_id == 0: return
+		var class_enum = _get_class_enum_from_id(selected_class_id)
+		var temp_deck = ClassFactory.get_starting_deck(class_enum)
+		for id in owned_ids:
+			if id >= 73: continue
+			var card = ClassFactory.find_action_resource(id_to_name.get(id))
+			if card: temp_deck.append(card)
+		stats = ClassFactory.calculate_stats_for_deck(class_enum, temp_deck)
 	
-	# 3. ASK THE FACTORY: "If I had this deck, what would my stats be?"
-	var result = ClassFactory.calculate_stats_for_deck(class_enum, temp_deck)
-	
-	# 4. Update UI
-	current_max_hp = result["hp"]
-	current_max_sp = result["sp"]
-	stats_label.text = "HP: " + str(current_max_hp) + " | SP: " + str(current_max_sp)
+	current_max_hp = stats["hp"]
+	current_max_sp = stats["sp"]
+		
+	if stats_label:
+		stats_label.text = "HP: " + str(current_max_hp) + " | SP: " + str(current_max_sp)
+		
+		# Visual feedback for preview
+		if RunManager.is_arcade_mode and pending_unlock_id != 0:
+			stats_label.modulate = Color(0.5, 1.0, 0.5) # Greenish text
+		else:
+			stats_label.modulate = Color.WHITE
 
 func _unlock_neighbors(node_id: int):
 	if node_id in action_tree_dict:
@@ -357,264 +466,239 @@ func _update_tree_visuals():
 	for child in nodes_layer.get_children():
 		var id = int(str(child.name))
 		
-		if id in owned_ids:
-			child.set_status(2) 
-		elif id in unlocked_ids:
-			child.set_status(1) 
+		if id == pending_unlock_id:
+			child.set_status(1) # Available (Selected)
+			child.modulate = Color(1.5, 1.5, 1.5)
 		else:
-			child.set_status(0) 
+			child.modulate = Color.WHITE
 			
-		# NEW: Highlight the pending selection
-		if RunManager.is_arcade_mode and id == pending_unlock_id:
-			child.modulate = Color(1.5, 1.5, 1.5) # Make it glow bright
-		else:
-			child.modulate = Color.WHITE # Reset
-			
-		if id >= 73 and id <= 76:
-			child.set_status(1)
-			if id == selected_class_id: child.set_status(2)
+			if id in owned_ids:
+				# FIX: Force ALL owned nodes (including Class Node) to Green (Status 3)
+				# We no longer distinguish between 'Equipped' and 'Reserve' on the tree visual itself.
+				child.set_status(3) 
+			elif id in unlocked_ids:
+				child.set_status(1) # AVAILABLE (Yellow)
+			else:
+				child.set_status(0) # LOCKED
 
 func _on_confirm_button_pressed():
-	# ==========================================================
-	# 1. ARCADE / RUN MODE
-	# ==========================================================
 	if RunManager.is_arcade_mode:
 		
-		# --- PHASE A: DRAFTING (Shopping Spree) ---
+		# --- CASE 1: START FIGHT (Ready to go) ---
+		if RunManager.free_unlocks_remaining <= 0 and pending_unlock_id == 0:
+			RunManager.start_next_fight()
+			return
+
+		# --- CASE 2: DRAFTING (Spending Free Unlocks) ---
+		# This now handles BOTH the initial draft AND level-up rewards
 		if RunManager.free_unlocks_remaining > 0:
-			if pending_unlock_id == 0:
-				print("Please select a free card to unlock!")
-				return
-				
-			print("Drafting Card: " + str(pending_unlock_id))
+			if pending_unlock_id == 0: return 
 			
-			# 1. Commit the Reward
+			# 1. Commit
 			RunManager.player_owned_tree_ids.append(pending_unlock_id)
 			owned_ids.append(pending_unlock_id)
 			
-			# 2. Add to Deck
 			var card_name = id_to_name.get(pending_unlock_id)
 			var new_card = ClassFactory.find_action_resource(card_name)
 			if new_card:
-				RunManager.player_run_data.deck.append(new_card)
-				
-			# 3. Update Stats & Tree
-			ClassFactory._recalculate_stats(RunManager.player_run_data)
+				RunManager.player_run_data.unlocked_actions.append(new_card)
+				if RunManager.player_run_data.deck.size() < ClassFactory.HAND_LIMIT:
+					RunManager.player_run_data.deck.append(new_card)
+			
+			# 2. Update
 			_unlock_neighbors(pending_unlock_id)
-			
-			# 4. Decrement Counter
 			RunManager.free_unlocks_remaining -= 1
-			pending_unlock_id = 0 
+			pending_unlock_id = 0
 			
-			# --- THE FIX: START IMMEDIATELY ON FINISH ---
-			if RunManager.free_unlocks_remaining <= 0:
-				print("Draft Complete! Launching Fight...")
-				RunManager.start_next_fight()
-				return
-			# --------------------------------------------
-			
-			# 5. If we still have picks left, refresh the screen
+			_refresh_loadout_manager()
 			_update_tree_visuals()
-			_recalculate_stats()
-			lines_layer.queue_redraw()
 			
-			var btn_confirm = $TreeContainer/ConfirmButton
-			btn_confirm.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
-				
-			return 
-			
-		# --- PHASE B: NORMAL LEVEL REWARD (Level 2+) ---
-		if pending_unlock_id != 0:
-			print("Committing Level Reward: " + str(pending_unlock_id))
-			RunManager.player_owned_tree_ids.append(pending_unlock_id)
-			
-			var card_name = id_to_name.get(pending_unlock_id)
-			var new_card = ClassFactory.find_action_resource(card_name)
-			if new_card:
-				RunManager.player_run_data.deck.append(new_card)
-			
+			# 3. Heal & Stats (This covers the "Full Heal on Level Up" requirement)
 			ClassFactory._recalculate_stats(RunManager.player_run_data)
+			_recalculate_stats() # Update UI
 			
-			# Full Heal on Level Up
-			RunManager.player_run_data.current_hp = RunManager.player_run_data.max_hp
-			RunManager.player_run_data.current_sp = RunManager.player_run_data.max_sp
-			
-			RunManager.start_next_fight()
+			# 4. Check Status
+			var btn = $TreeContainer/ConfirmButton
+			if RunManager.free_unlocks_remaining <= 0:
+				btn.text = "START FIGHT"
+			else:
+				btn.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
 			return
-		else:
-			print("Please select a new skill first!")
+
+		# --- CASE 3: FALLBACK ---
+		# Since we block selection when free_unlocks <= 0, this should rarely be reached in Arcade,
+		# but we leave it safe just in case.
+		if pending_unlock_id != 0:
+			print("Warning: Unsanctioned purchase attempt blocked.")
+			pending_unlock_id = 0
+			_update_tree_visuals()
 			return
-
-	# ==========================================================
-	# 2. CUSTOM DECK CREATOR (Main Menu Mode)
-	# ==========================================================
-	if selected_class_id == 0:
-		print("Please select a Class first!")
-		return
-
-	var final_character = CharacterData.new()
-	match selected_class_id:
-		73: final_character.class_type = CharacterData.ClassType.QUICK
-		74: final_character.class_type = CharacterData.ClassType.TECHNICAL
-		75: final_character.class_type = CharacterData.ClassType.PATIENT
-		76: final_character.class_type = CharacterData.ClassType.HEAVY
-
-	var base_deck = ClassFactory.get_starting_deck(final_character.class_type)
-	var final_deck: Array[ActionData] = []
-	final_deck.append_array(base_deck)
-	
-	for id in owned_ids:
-		if id >= 73: continue 
-		var a_name = id_to_name.get(id)
-		var card_resource = ClassFactory.find_action_resource(a_name)
-		if card_resource:
-			final_deck.append(card_resource)
 			
-	final_character.deck = final_deck
-	final_character.max_hp = current_max_hp
-	final_character.max_sp = current_max_sp
-	final_character.reset_stats()
-	
-	if GameManager.editing_player_index == 1:
-		var p1_name = GameManager.get("temp_p1_name")
-		final_character.character_name = p1_name if p1_name != "" else "Player 1"
-		GameManager.next_match_p1_data = final_character
-		
-		if GameManager.p2_is_custom:
-			GameManager.editing_player_index = 2
-			_setup_for_current_player()
-			return 
 	else:
-		var p2_name = GameManager.get("temp_p2_name")
-		final_character.character_name = p2_name if p2_name != "" else "Player 2"
-		GameManager.next_match_p2_data = final_character
+		# --- CUSTOM DECK LAUNCH ---
+		if selected_class_id == 0: return
+		var final_character = CharacterData.new()
+		match selected_class_id:
+			73: final_character.class_type = CharacterData.ClassType.QUICK
+			74: final_character.class_type = CharacterData.ClassType.TECHNICAL
+			75: final_character.class_type = CharacterData.ClassType.PATIENT
+			76: final_character.class_type = CharacterData.ClassType.HEAVY
 
-	if GameManager.next_match_p2_data == null:
-		GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
+		var base_deck = ClassFactory.get_starting_deck(final_character.class_type)
+		var final_deck: Array[ActionData] = []
+		final_deck.append_array(base_deck)
 		
-	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
-
-func _try_deselect_action(id_to_remove: int):
-	# 1. Create a hypothetical list of what ownership looks like AFTER removal
-	var remaining_ids = owned_ids.duplicate()
-	remaining_ids.erase(id_to_remove)
-	
-	# 2. FLOOD FILL: Check if we can reach every remaining node starting from the Class Node
-	var reachable_count = 0
-	var queue: Array[int] = [selected_class_id]
-	var visited = {selected_class_id: true}
-	
-	while queue.size() > 0:
-		var current = queue.pop_front()
+		for id in owned_ids:
+			if id >= 73: continue 
+			var a_name = id_to_name.get(id)
+			var card_resource = ClassFactory.find_action_resource(a_name)
+			if card_resource: final_deck.append(card_resource)
+				
+		final_character.deck = final_deck
+		final_character.max_hp = current_max_hp
+		final_character.max_sp = current_max_sp
+		final_character.reset_stats()
 		
-		# If this node is in our remaining list, we count it as "Safe and Connected"
-		if current in remaining_ids:
-			reachable_count += 1
-		
-		# Add neighbors to queue
-		if current in action_tree_dict:
-			for neighbor in action_tree_dict[current]:
-				# Only traverse to nodes we actually OWN (in the remaining list)
-				# and haven't visited yet
-				if neighbor in remaining_ids and not neighbor in visited:
-					visited[neighbor] = true
-					queue.append(neighbor)
-	
-	# 3. VERDICT: Did we find everyone?
-	# If the BFS found fewer nodes than we own, it means some nodes got cut off.
-	if reachable_count < remaining_ids.size():
-		print("Cannot deselect: This action connects to others you own!")
-		return
-
-	# 4. SUCCESS: Commit the removal
-	owned_ids.erase(id_to_remove)
-	
-	# 5. Rebuild "Available" (Yellow) list from scratch
-	unlocked_ids.clear()
-	for owner_id in owned_ids:
-		_unlock_neighbors(owner_id)
-		
-	# 6. Update Visuals & Stats
-	_update_tree_visuals()
-	_recalculate_stats()
-
-func _on_reset_button_pressed():
-	if selected_class_id == 0: return
-	
-	# 1. Clear everything
-	owned_ids.clear()
-	unlocked_ids.clear()
-	
-	# 2. Re-add the Class Node
-	owned_ids.append(selected_class_id)
-	
-	# 3. Recalculate unlocks from the root
-	_unlock_neighbors(selected_class_id)
-	
-	# 4. Update UI
-	_update_tree_visuals()
-	_recalculate_stats()
-
-func _get_class_display_data(id: int) -> ActionData:
-	var data = ActionData.new()
-	data.cost = 0 # Classes don't have a cost
-	
-	match id:
-		76: # HEAVY
-			data.display_name = "CLASS: HEAVY"
-			data.type = ActionData.Type.OFFENCE # Red Theme
-			data.description = "[b]Action: Haymaker[/b]\nOpener, Cost 3, Dmg 2, Mom 3\n" + \
-			"[b]Action: Elbow Block[/b]\nBlock 1, Cost 2, Dmg 1\n" + \
-			"[b]Passive: Rage[/b]\nPay HP instead of SP when low.\n" + \
-			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\n" + \
-			"[b]Speed:[/b] 1"
-
-		75: # PATIENT
-			data.display_name = "CLASS: PATIENT"
-			data.type = ActionData.Type.DEFENCE # Blue Theme
-			data.description = "[b]Action: Preparation[/b]\nFall Back 2, Opp 1, Reco 1\n" + \
-			"[b]Action: Counter Strike[/b]\nDmg 2, Fall Back 2, Parry\n" + \
-			"[b]Passive: Keep-up[/b]\nSpend SP to prevent Fall Back.\n" + \
-			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +1 HP/SP\n" + \
-			"[b]Speed:[/b] 2"
-
-		73: # QUICK
-			data.display_name = "CLASS: QUICK"
-			data.type = ActionData.Type.OFFENCE
-			data.description = "[b]Action: Roll Punch[/b]\nDmg 1, Cost 1, Mom 1, Rep 3\n" + \
-			"[b]Action: Weave[/b]\nDodge 1, Fall Back 1\n" + \
-			"[b]Passive: Relentless[/b]\nEvery 3rd combo hit gains Reco 1.\n" + \
-			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +2 SP\n" + \
-			"[b]Speed:[/b] 4"
-
-		74: # TECHNICAL
-			data.display_name = "CLASS: TECHNICAL"
-			data.type = ActionData.Type.DEFENCE
-			data.description = "[b]Action: Discombobulate[/b]\nCost 1, Dmg 1, Tiring 1\n" + \
-			"[b]Action: Hand Catch[/b]\nBlock 1, Cost 1, Reversal\n" + \
-			"[b]Passive: Technique[/b]\nSpend 1 SP to add Opener, Tiring, or Momentum to action.\n" + \
-			"[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP/HP, [color=#99ccff]Defence:[/color] +1 SP\n" + \
-			"[b]Speed:[/b] 3"
+		if GameManager.editing_player_index == 1:
+			var p1_name = GameManager.get("temp_p1_name")
+			final_character.character_name = p1_name if p1_name != "" else "Player 1"
+			GameManager.next_match_p1_data = final_character
 			
-	return data
+			if GameManager.p2_is_custom:
+				GameManager.editing_player_index = 2
+				_setup_for_current_player()
+				return 
+		else:
+			var p2_name = GameManager.get("temp_p2_name")
+			final_character.character_name = p2_name if p2_name != "" else "Player 2"
+			GameManager.next_match_p2_data = final_character
+
+		if GameManager.next_match_p2_data == null:
+			GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
+			
+		get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
 
 func _on_back_button_pressed():
 	print("Canceling customization...")
-	
-	# 1. CLEANUP: Wipe temporary data in GameManager
-	# This ensures the next time you click "Quick Fight" or "Build Deck",
-	# it starts fresh instead of remembering half-finished data.
 	GameManager.next_match_p1_data = null
 	GameManager.next_match_p2_data = null
 	GameManager.editing_player_index = 1
 	GameManager.p2_is_custom = false
 	GameManager.temp_p1_preset = null
 	GameManager.temp_p2_preset = null
-	
-	# Optional: Clear temp names if you want total reset
 	GameManager.temp_p1_name = ""
 	GameManager.temp_p2_name = ""
-	
-	# 2. CHANGE SCENE
-	# You can send them to "res://Scenes/CharacterSelect.tscn" if you prefer
 	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+
+func _try_deselect_action(id_to_remove: int):
+	var remaining_ids = owned_ids.duplicate()
+	remaining_ids.erase(id_to_remove)
+	
+	# Flood fill check
+	var reachable_count = 0
+	var queue: Array[int] = [selected_class_id]
+	var visited = {selected_class_id: true}
+	
+	while queue.size() > 0:
+		var current = queue.pop_front()
+		if current in remaining_ids: reachable_count += 1
+		if current in action_tree_dict:
+			for neighbor in action_tree_dict[current]:
+				if neighbor in remaining_ids and not neighbor in visited:
+					visited[neighbor] = true
+					queue.append(neighbor)
+	
+	if reachable_count < remaining_ids.size():
+		print("Cannot deselect: Disconnects tree!")
+		return
+
+	owned_ids.erase(id_to_remove)
+	unlocked_ids.clear()
+	for owner_id in owned_ids:
+		_unlock_neighbors(owner_id)
+		
+	_update_tree_visuals()
+	_recalculate_stats()
+	_refresh_loadout_manager()
+
+func _setup_for_current_player():
+	var target_selection = 0
+	if GameManager.editing_player_index == 1:
+		target_selection = GameManager.get("temp_p1_class_selection")
+	else:
+		target_selection = GameManager.get("temp_p2_class_selection")
+		
+	owned_ids.clear()
+	unlocked_ids.clear()
+	is_class_locked = false
+	
+	if target_selection != null:
+		var node_id = 0
+		match target_selection:
+			0: node_id = 76 
+			1: node_id = 75 
+			2: node_id = 73 
+			3: node_id = 74 
+			
+		if node_id != 0:
+			_select_class(node_id)
+			is_class_locked = true 
+			
+	_refresh_loadout_manager()
+	_update_tree_visuals()
+	_recalculate_stats()
+	lines_layer.queue_redraw()
+
+func _get_class_display_data(id: int) -> ActionData:
+	var data = ActionData.new()
+	data.cost = 0 
+	match id:
+		76: 
+			data.display_name = "CLASS: HEAVY"
+			data.type = ActionData.Type.OFFENCE 
+			data.description = "[b]Action: Haymaker[/b]\nOpener, Cost 3, Dmg 2, Mom 3\n[b]Action: Elbow Block[/b]\nBlock 1, Cost 2, Dmg 1\n[b]Passive: Rage[/b]\nPay HP instead of SP when low.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\n[b]Speed:[/b] 1"
+		75: 
+			data.display_name = "CLASS: PATIENT"
+			data.type = ActionData.Type.DEFENCE 
+			data.description = "[b]Action: Preparation[/b]\nFall Back 2, Opp 1, Reco 1\n[b]Action: Counter Strike[/b]\nDmg 2, Fall Back 2, Parry\n[b]Passive: Keep-up[/b]\nSpend SP to prevent Fall Back.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +1 HP/SP\n[b]Speed:[/b] 2"
+		73: 
+			data.display_name = "CLASS: QUICK"
+			data.type = ActionData.Type.OFFENCE
+			data.description = "[b]Action: Roll Punch[/b]\nDmg 1, Cost 1, Mom 1, Rep 3\n[b]Action: Weave[/b]\nDodge 1, Fall Back 1\n[b]Passive: Relentless[/b]\nEvery 3rd combo hit gains Reco 1.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +2 SP\n[b]Speed:[/b] 4"
+		74: 
+			data.display_name = "CLASS: TECHNICAL"
+			data.type = ActionData.Type.DEFENCE
+			data.description = "[b]Action: Discombobulate[/b]\nCost 1, Dmg 1, Tiring 1\n[b]Action: Hand Catch[/b]\nBlock 1, Cost 1, Reversal\n[b]Passive: Technique[/b]\nSpend 1 SP to add Opener, Tiring, or Momentum to action.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP/HP, [color=#99ccff]Defence:[/color] +1 SP\n[b]Speed:[/b] 3"
+	return data
+
+func _is_id_equipped(id: int) -> bool:
+	if not RunManager.is_arcade_mode: return id in owned_ids
+	var player = RunManager.player_run_data
+	var c_name = id_to_name.get(id)
+	for card in player.deck:
+		if card.display_name == c_name: return true
+	return false
+
+func _is_card_equipped(player, card_data) -> bool:
+	for c in player.deck:
+		if c.display_name == card_data.display_name: return true
+	return false
+
+func _remove_from_deck(player, card_data):
+	for i in range(player.deck.size()):
+		if player.deck[i].display_name == card_data.display_name:
+			player.deck.remove_at(i)
+			return
+
+func _get_class_enum_from_id(id: int) -> int:
+	match id:
+		73: return CharacterData.ClassType.QUICK
+		74: return CharacterData.ClassType.TECHNICAL
+		75: return CharacterData.ClassType.PATIENT
+		76: return CharacterData.ClassType.HEAVY
+	return CharacterData.ClassType.HEAVY
+
+func _get_id_from_card(card: ActionData) -> int:
+	if card.display_name in name_to_id:
+		return name_to_id[card.display_name]
+	return 0

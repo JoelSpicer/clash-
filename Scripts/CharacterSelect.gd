@@ -48,8 +48,8 @@ func _ready():
 	difficulty_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
 	
 	# Default selections
-	p1_option.selected = 6
-	p2_option.selected = 5
+	p1_option.selected = 0
+	p2_option.selected = 1
 	_update_info()
 	
 	p1_option.item_selected.connect(func(_idx): _update_info())

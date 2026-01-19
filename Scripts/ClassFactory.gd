@@ -64,9 +64,9 @@ var art_patient = preload("res://Art/Portraits/Patient.png")
 var art_quick = preload("res://Art/Portraits/Quick.png")
 var art_technical = preload("res://Art/Portraits/Technical.png")
 
-# --- NEW: ENEMY GENERATOR ---
-# ClassFactory.gd
+const HAND_LIMIT = 8
 
+# --- NEW: ENEMY GENERATOR ---
 func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
 	var types = [
@@ -77,16 +77,15 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	]
 	var selected_class = types.pick_random()
 	
-	# 2. Create the Base Character (Starter Deck)
+	# 2. Create the Base Character (Starter Library)
+	# Note: This assumes create_character() correctly populates unlocked_actions
 	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
 	
-	# --- NEW: ASSIGN RANDOM PERSONALITY ---
+	# --- ASSIGN RANDOM PERSONALITY ---
 	var personalities = CharacterData.AIArchetype.values()
 	bot_data.ai_archetype = personalities.pick_random()
 	
 	# A. Get Rank Title based on Level
-	# Array is 0-indexed, so Level 1 = Index 0.
-	# We clamp it so Level 50 is still "Godly" (index 19).
 	var title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
 	var rank_title = RANK_TITLES[title_index]
 	
@@ -99,16 +98,11 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 		CharacterData.AIArchetype.BALANCED: prefix = "Steady "
 	
 	bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
-	# --------------------------------------
 	
-	# 3. Calculate how many extra cards they get
-	# Level 1 Player gets 2 Free Drafts.
-	# Level 2 Player gets 2 Free + 1 Reward = 3 extra cards.
-	# Formula: Level + 1
+	# 3. Calculate how many extra cards they get (Library expansion)
 	var cards_to_draft = level + 1
 	
 	# 4. "Draft" cards legally by walking the tree
-	# We need to simulate the bot unlocking nodes one by one
 	var owned_ids = []
 	var unlockable_options = []
 	
@@ -129,40 +123,98 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	# Draft Loop
 	for i in range(cards_to_draft):
 		if unlockable_options.is_empty():
-			break # Run out of valid moves (rare)
+			break 
 			
 		# Pick a random valid card
 		var picked_id = unlockable_options.pick_random()
 		
-		# "Buy" it
+		# "Buy" it -> Add to LIBRARY (unlocked_actions), NOT Deck
 		var card_name = ID_TO_NAME_MAP.get(picked_id)
 		if card_name:
 			var new_card = find_action_resource(card_name)
-			if new_card:
-				bot_data.deck.append(new_card)
+			# Ensure we don't add duplicates to the library
+			if new_card and not _has_card(bot_data.unlocked_actions, new_card):
+				bot_data.unlocked_actions.append(new_card)
 		
 		# Update the tree state for the next pick
 		owned_ids.append(picked_id)
-		unlockable_options.erase(picked_id) # Can't pick it again
+		unlockable_options.erase(picked_id)
 		
 		# Add new neighbors to the pool
 		if picked_id in TREE_CONNECTIONS:
 			for neighbor in TREE_CONNECTIONS[picked_id]:
-				# Only add if we don't own it and it's not already in the list
 				if neighbor not in owned_ids and neighbor not in unlockable_options:
 					unlockable_options.append(neighbor)
 	
-	# 5. Recalculate stats based on the new legal deck
+	# 5. CUT DOWN TO 8 (The Smart Selection)
+	# Select the best hand from the large library we just built
+	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions, bot_data.ai_archetype)
+	
+	# 6. Recalculate stats based on the ACTIVE deck
 	_recalculate_stats(bot_data)
 	
 	# Debug Print to verify
 	print("\n=== ENEMY GENERATED (" + str(selected_class) + ") ===")
 	print("Level: " + str(level) + " | Drafted: " + str(cards_to_draft))
+	print("Library Size: " + str(bot_data.unlocked_actions.size()))
+	print("Active Deck: " + str(bot_data.deck.size()))
 	print("HP: " + str(bot_data.max_hp) + " | SP: " + str(bot_data.max_sp))
-	print("Deck Size: " + str(bot_data.deck.size()))
 	print("==============================\n")
 	
 	return bot_data
+
+# -------------------------------------------------------------------------
+# NEW HELPERS (Needed for the above code)
+# -------------------------------------------------------------------------
+
+func _has_card(list: Array, card: ActionData) -> bool:
+	for c in list:
+		if c.display_name == card.display_name: return true
+	return false
+
+func _select_smart_hand(pool: Array[ActionData], _archetype: CharacterData.AIArchetype) -> Array[ActionData]:
+	# If we have 8 or fewer, just take them all
+	if pool.size() <= HAND_LIMIT:
+		return pool.duplicate()
+		
+	var chosen: Array[ActionData] = []
+	var remaining = pool.duplicate()
+	
+	# 1. PRIORITY: Always take Class Signatures (Non-Basic)
+	# We prioritize "cool" cards over "Basic" ones
+	for i in range(remaining.size() - 1, -1, -1):
+		var c = remaining[i]
+		if not c.display_name.begins_with("Basic"):
+			chosen.append(c)
+			remaining.remove_at(i)
+			
+	# 2. PRIORITY: Fill remaining slots with Basics
+	remaining.shuffle()
+	
+	while chosen.size() < HAND_LIMIT and remaining.size() > 0:
+		chosen.append(remaining.pop_back())
+		
+	# 3. SAFETY: Ensure at least 1 Opener
+	# If we drafted a hand full of "Finishers" or "Cost 3" cards, the bot will break.
+	var has_opener = false
+	for c in chosen:
+		if c.is_opener or c.cost == 0: has_opener = true
+	
+	if not has_opener:
+		# Search the remaining pile for an opener
+		for c in remaining:
+			if c.is_opener or c.cost == 0:
+				# Swap a random card out for this opener
+				if chosen.size() > 0:
+					chosen.pop_back() 
+				chosen.append(c)
+				break
+
+	# 4. Trim if we somehow exceeded (though logic prevents it)
+	if chosen.size() > HAND_LIMIT:
+		chosen.resize(HAND_LIMIT)
+		
+	return chosen
 
 func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
 	if node_id in TREE_CONNECTIONS:
@@ -184,40 +236,33 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 	char_data.character_name = player_name
 	char_data.class_type = class_type
 	
-	# 1. Set Base Stats & Passives
+	# 1. Set Base Stats (Same as before)
 	match class_type:
 		CharacterData.ClassType.HEAVY:
-			char_data.max_hp = 5
-			char_data.max_sp = 4
-			char_data.speed = 1
+			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 1
 			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
 			char_data.portrait = art_heavy
-			
 		CharacterData.ClassType.PATIENT:
-			char_data.max_hp = 5
-			char_data.max_sp = 4
-			char_data.speed = 2
+			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 2
 			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
 			char_data.portrait = art_patient
-			
 		CharacterData.ClassType.QUICK:
-			char_data.max_hp = 5
-			char_data.max_sp = 4
-			char_data.speed = 4
+			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 4
 			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
 			char_data.portrait = art_quick
-			
 		CharacterData.ClassType.TECHNICAL:
-			char_data.max_hp = 5
-			char_data.max_sp = 4
-			char_data.speed = 3
+			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 3
 			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
 			char_data.portrait = art_technical
 			
-	# 2. Build the Deck (Basic Cards + Class Exclusives)
-	char_data.deck = get_starting_deck(class_type)
+	# 2. POPULATE LIBRARY (All 10 starters)
+	var full_starters = get_starting_deck(class_type)
+	char_data.unlocked_actions = full_starters.duplicate()
 	
-	# 3. Reset Runtime state
+	# 3. SELECT ACTIVE HAND (Max 8)
+	# For a new player, we prioritize Class cards, then fill with Basics.
+	char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
+	
 	char_data.reset_stats()
 	return char_data
 
@@ -277,8 +322,9 @@ func create_from_preset(preset: PresetCharacter) -> CharacterData:
 # ClassFactory.gd
 
 func _recalculate_stats(char_data: CharacterData):
-	# Ask the master calculator for the numbers
-	var result = calculate_stats_for_deck(char_data.class_type, char_data.deck)
+	# FIX: Use 'unlocked_actions' (Library) instead of 'deck' (Hand)
+	# This ensures stats update immediately upon purchase and persist even if unequipped.
+	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions)
 	
 	# Apply them
 	char_data.max_hp = result["hp"]
@@ -354,3 +400,25 @@ func get_id_by_name(card_name: String) -> int:
 		if ID_TO_NAME_MAP[id] == card_name:
 			return id
 	return 0 # Not found
+
+func _simulate_draft_ids(class_type, count) -> Array:
+	var root_id = 76 # Heavy
+	match class_type:
+		CharacterData.ClassType.QUICK: root_id = 73
+		CharacterData.ClassType.TECHNICAL: root_id = 74
+		CharacterData.ClassType.PATIENT: root_id = 75
+	
+	var owned = [root_id]
+	var available = []
+	_add_neighbors_to_list(root_id, owned, available)
+	
+	var results = []
+	for i in range(count):
+		if available.is_empty(): break
+		var pick = available.pick_random()
+		results.append(pick)
+		owned.append(pick)
+		available.erase(pick)
+		_add_neighbors_to_list(pick, owned, available)
+		
+	return results

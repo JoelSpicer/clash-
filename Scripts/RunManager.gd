@@ -95,6 +95,8 @@ func start_next_fight():
 
 func handle_win():
 	current_level += 1
+	# FIX: Grant 1 Unlock so the ActionTree allows exactly one draft pick
+	free_unlocks_remaining = 1 
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
 func handle_loss():

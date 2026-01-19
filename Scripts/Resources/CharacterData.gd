@@ -15,12 +15,13 @@ enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
 @export var class_type: ClassType
 
 @export_group("Stats")
-@export var max_hp: int = 10     
-@export var max_sp: int = 3      
+@export var max_hp: int = 5     
+@export var max_sp: int = 4      
 @export var speed: int = 1       
 
 @export_group("Progression")
-@export var deck: Array[ActionData] 
+@export var deck: Array[ActionData]  # The Active 8 Cards
+@export var unlocked_actions: Array[ActionData] = [] # The Full Library
 
 @export_group("Passive")
 @export_multiline var passive_desc: String 

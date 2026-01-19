@@ -7,7 +7,8 @@ signal exited()
 # Define status constants for readability
 const STATUS_LOCKED = 0
 const STATUS_AVAILABLE = 1
-const STATUS_OWNED = 2
+const STATUS_OWNED = 2# In Library, not in Deck
+const STATUS_EQUIPPED = 3 # In Active Deck
 
 var id: int = 0
 var action_name: String = ""
@@ -39,6 +40,7 @@ func _ready():
 # --- AUDIO CONNECTIONS ---
 	# Add hover sound (using the existing signal or a new connection)
 	mouse_entered.connect(func(): 
+		hovered.emit(id, action_name)
 		AudioManager.play_sfx("ui_hover", 0.2)
 	)
 	
@@ -70,16 +72,18 @@ func setup(new_id: int, new_name: String):
 
 func set_status(new_status: int):
 	status = new_status
-	disabled = false # Always enabled to allow tooltips
+	disabled = false
 	
 	if background:
 		match status:
 			STATUS_LOCKED:
-				background.modulate = Color(0.2, 0.2, 0.2) 
+				background.modulate = Color(0.2, 0.2, 0.2) # Dark Grey
 			STATUS_AVAILABLE:
-				background.modulate = Color(1, 1, 0) 
+				background.modulate = Color(1, 1, 0)       # Yellow
 			STATUS_OWNED:
-				background.modulate = Color(0, 1, 0)
+				background.modulate = Color(0.5, 0.5, 0.5) # Grey (Owned but inactive)
+			STATUS_EQUIPPED:
+				background.modulate = Color(0.2, 1.0, 0.2) # Bright Green (Active)
 
 func _pressed():
 	action_clicked.emit(id, action_name)
