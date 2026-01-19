@@ -3,8 +3,23 @@ extends Control
 @onready var winner_label = $Panel/VBoxContainer/WinnerLabel
 
 func _ready():
-	$Panel/VBoxContainer/RematchButton.pressed.connect(_on_rematch_pressed)
-	$Panel/VBoxContainer/MenuButton.pressed.connect(_on_menu_pressed)
+	# 1. Get References
+	var btn_rematch = $Panel/VBoxContainer/RematchButton
+	var btn_menu = $Panel/VBoxContainer/MenuButton
+	
+	# 2. Connect Logic (Existing)
+	btn_rematch.pressed.connect(_on_rematch_pressed)
+	btn_menu.pressed.connect(_on_menu_pressed)
+	
+	# 3. Connect Audio (New)
+	_attach_sfx(btn_rematch)
+	_attach_sfx(btn_menu)
+
+# --- NEW HELPER FUNCTION ---
+func _attach_sfx(btn: BaseButton):
+	if not btn: return
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 
 func setup(winner_id: int):
 	if winner_id == 1:

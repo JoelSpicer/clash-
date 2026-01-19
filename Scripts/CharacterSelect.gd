@@ -17,6 +17,7 @@ extends Control
 @onready var btn_back = $HBoxContainer/Center_Column/BackButton
 @onready var difficulty_option = $HBoxContainer/Center_Column/DifficultyOption
 @onready var p2_mode_button = $HBoxContainer/P2_Column/P2ModeButton
+@onready var arcade_button = $HBoxContainer/Center_Column/ArcadeButton
 
 var compendium_scene = preload("res://Scenes/compendium.tscn")
 var classes = ["Heavy", "Patient", "Quick", "Technical"]
@@ -29,6 +30,22 @@ func _ready():
 	_setup_options(p2_option)
 	
 	_setup_difficulty()
+	
+	var all_buttons = [
+		btn_quick, btn_custom, btn_back, 
+		p2_mode_button, find_child("HelpButton"), arcade_button
+	]
+	
+	for btn in all_buttons:
+		if btn: _attach_sfx(btn)
+	
+	_attach_sfx(p1_option)
+	_attach_sfx(p2_option)
+	_attach_sfx(difficulty_option)
+	
+	p1_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
+	p2_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
+	difficulty_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
 	
 	# Default selections
 	p1_option.selected = 6
@@ -228,3 +245,11 @@ func _update_p2_mode_visuals():
 	var p2_controls = get_node_or_null("P2Container") # Might be different in your scene
 	if p2_controls:
 		p2_controls.modulate.a = 1.0 if GameManager.p2_is_custom else 0.7
+
+func _attach_sfx(node: Control):
+	if not node: return
+	# Most buttons use 'mouse_entered' and 'pressed'
+	if node.has_signal("mouse_entered"):
+		node.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	if node.has_signal("pressed"):
+		node.pressed.connect(func(): AudioManager.play_sfx("ui_click"))

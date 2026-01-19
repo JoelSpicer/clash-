@@ -36,9 +36,15 @@ func _ready():
 		custom_minimum_size = Vector2(50, 50)
 		size = Vector2(50, 50)
 		
+# --- AUDIO CONNECTIONS ---
+	# Add hover sound (using the existing signal or a new connection)
 	mouse_entered.connect(func(): 
-		hovered.emit(id, action_name)
-		AudioManager.play_sfx("ui_hover", 0.2) # <--- NEW
+		AudioManager.play_sfx("ui_hover", 0.2)
+	)
+	
+	# Add click sound
+	pressed.connect(func():
+		AudioManager.play_sfx("ui_click")
 	)
 	mouse_exited.connect(func(): exited.emit())	
 

@@ -93,6 +93,13 @@ func _ready():
 	GameManager.damage_dealt.connect(_on_damage_shake)
 	GameManager.clash_resolved.connect(_on_clash_resolved_log)
 	
+	_attach_sfx(btn_offence)
+	_attach_sfx(btn_defence)
+	_attach_sfx(log_toggle)
+	
+	var menu_btn = get_node_or_null("MenuButton")
+	if menu_btn: _attach_sfx(menu_btn)
+	
 	# Connect to State Changed so we know when the turn ends
 	if not GameManager.state_changed.is_connected(_on_game_state_changed):
 		GameManager.state_changed.connect(_on_game_state_changed)
@@ -110,6 +117,8 @@ func _ready():
 		btn.pressed.connect(_on_menu_pressed)
 
 	$MomentumSlider/Label2.text = str(GameManager.momentum)
+	
+	
 	
 func _process(delta):
 	# This applies the shake to the entire UI Layer
@@ -303,40 +312,45 @@ func _refresh_grid():
 	# Loop through deck
 	for card in current_deck:
 		if card == null: continue
-		if card.type != current_tab: continue # Skip cards from the wrong tab
+		if card.type != current_tab: continue 
 		
-		# --- STEP 1: CALCULATE NUMBERS ---
-		# We ask a helper function to do the math
+		# ... (Keep calculation logic) ...
 		var final_cost = _calculate_card_cost(card)
-		
-		# --- STEP 2: CHECK RULES ---
-		# We ask a helper function if this play is legal
 		var is_valid = _check_card_validity(card, final_cost)
 		
-		# --- STEP 3: UPDATE UI ---
+		# --- UPDATE STARTS HERE ---
 		var btn = card_button_scene.instantiate()
 		button_grid.add_child(btn)
 		
 		btn.setup(card)
-		btn.update_cost_display(final_cost) # Show the calculated cost
-		btn.set_available(is_valid)         # Grey out if invalid
+		btn.update_cost_display(final_cost) 
+		btn.set_available(is_valid)         
 		
-		# Connect signals
+		# 1. AUDIO (New)
+		# We connect directly to the button's base signals for sound
+		btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+		btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+		
+		# 2. LOGIC (Existing)
 		btn.card_hovered.connect(_on_card_hovered)
 		btn.card_exited.connect(_on_card_exited) 
 		btn.card_selected.connect(_on_card_selected)
 
-	# (Keep your existing Feint/Skip button logic here at the bottom)
+	# Handle the Feint/Skip Button
 	if feint_mode:
-		# Assuming _create_skip_button() is your existing logic for the skip button,
-		# or paste your original skip button code block here.
 		skip_action.type = current_tab 
 		var skip_btn = card_button_scene.instantiate()
 		button_grid.add_child(skip_btn)
+		
 		skip_btn.setup(skip_action)
 		skip_btn.update_cost_display(0)
 		skip_btn.set_available(true)
 		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
+		
+		# AUDIO for Skip Button (New)
+		skip_btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+		skip_btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+		
 		skip_btn.card_hovered.connect(_on_card_hovered)
 		skip_btn.card_exited.connect(_on_card_exited)
 		skip_btn.card_selected.connect(_on_card_selected)
@@ -708,3 +722,8 @@ func _snapshot_stats():
 		_prev_p1_stats = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
 	if GameManager.p2_data:
 		_prev_p2_stats = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
+
+func _attach_sfx(btn: BaseButton):
+	if not btn: return
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))

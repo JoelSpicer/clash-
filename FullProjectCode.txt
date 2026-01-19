@@ -42,7 +42,16 @@ func _ready():
 		custom_minimum_size = Vector2(50, 50)
 		size = Vector2(50, 50)
 		
-	mouse_entered.connect(func(): hovered.emit(id, action_name))
+# --- AUDIO CONNECTIONS ---
+	# Add hover sound (using the existing signal or a new connection)
+	mouse_entered.connect(func(): 
+		AudioManager.play_sfx("ui_hover", 0.2)
+	)
+	
+	# Add click sound
+	pressed.connect(func():
+		AudioManager.play_sfx("ui_click")
+	)
 	mouse_exited.connect(func(): exited.emit())	
 
 func _build_ui():
@@ -708,6 +717,75 @@ func _on_back_button_pressed():
 
 
 ========================================
+FILE PATH: res://Scripts/AudioManager.gd
+========================================
+extends Node
+
+# --- SOUND LIBRARY ---
+# Replace these paths with your actual files later!
+# If you don't have files yet, the game will just print a warning instead of crashing.
+var sounds = {
+	# UI
+	"ui_hover": preload("res://Audio/UI/hover.wav"),
+	"ui_click": preload("res://Audio/UI/click.wav"),
+	"game_start": preload("res://Audio/UI/game_start.ogg"),
+	
+	# COMBAT
+	"hit_light": preload("res://Audio/Combat/hit_light.wav"),
+	"hit_heavy": preload("res://Audio/Combat/hit_heavy.wav"),
+	"block": preload("res://Audio/Combat/block.wav"),
+	"clash": preload("res://Audio/Combat/clash.wav"),
+	"clash_win": preload("res://Audio/Combat/clash_win.wav"),
+	"buff": preload("res://Audio/Combat/buff.wav"),
+}
+
+# --- PLAYER POOL ---
+# We create 10 players so up to 10 sounds can happen at once.
+var pool_size = 10
+var sfx_players: Array[AudioStreamPlayer] = []
+
+func _ready():
+	# Create the pool of players
+	for i in range(pool_size):
+		var p = AudioStreamPlayer.new()
+		p.bus = "SFX" # Make sure you have an 'SFX' bus in Audio tab, or default to 'Master'
+		add_child(p)
+		sfx_players.append(p)
+
+# --- PUBLIC FUNCTION ---
+func play_sfx(key: String, pitch_variance: float = 0.0):
+	if not sounds.has(key):
+		print_debug("Audio Key not found: " + key)
+		return
+		
+	var stream = sounds[key]
+	if not stream: return # File might be missing
+	
+	# Find a free player
+	var player = _get_available_player()
+	if player:
+		player.stream = stream
+		
+		# Add random pitch variation for "Juice" (e.g., 0.9 to 1.1)
+		if pitch_variance > 0:
+			player.pitch_scale = randf_range(1.0 - pitch_variance, 1.0 + pitch_variance)
+		else:
+			player.pitch_scale = 1.0
+			
+		player.play()
+
+func _get_available_player() -> AudioStreamPlayer:
+	for p in sfx_players:
+		if not p.playing:
+			return p
+	
+	# If all are busy, steal the oldest one (index 0) and move it to back
+	var p = sfx_players.pop_front()
+	sfx_players.append(p)
+	return p
+
+
+========================================
 FILE PATH: res://Scripts/BalanceTester.gd
 ========================================
 extends Node
@@ -1066,6 +1144,8 @@ func _ready():
 
 	$MomentumSlider/Label2.text = str(GameManager.momentum)
 	
+	
+	
 func _process(delta):
 	# This applies the shake to the entire UI Layer
 	if shake_strength > 0:
@@ -1165,7 +1245,15 @@ func _create_debug_toggles():
 func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	p1_hud.setup(p1_data)
 	p2_hud.setup(p2_data)
-	update_momentum(0) 
+	
+	# --- CONFIGURE SIDES ---
+	# P1: Portrait on Right side of bars
+	p1_hud.configure_visuals(false) 
+	
+	# P2: Portrait on Left side of bars
+	p2_hud.configure_visuals(true)
+	
+	update_momentum(0)
 
 func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
 	p1_hud.update_stats(p1, GameManager.p1_is_injured, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat)
@@ -1441,8 +1529,18 @@ func _get_clash_text_pos(target_id: int) -> Vector2:
 
 func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
 	var spawn_pos = _get_clash_text_pos(target_id)
-	if is_blocked: _spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
-	else: _spawn_text(spawn_pos, str(amount), Color.RED)
+	if is_blocked: 
+		_spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
+		AudioManager.play_sfx("block", 0.1)
+	else: 
+		_spawn_text(spawn_pos, str(amount), Color.RED)
+		if amount >= 5:
+			AudioManager.play_sfx("hit_heavy", 0.1) # <--- NEW
+		else:
+			AudioManager.play_sfx("hit_light", 0.2) # <--- NEW
+		# --- NEW: Trigger Hit Animation ---
+		if target_id == 1: p1_hud.play_hit_animation()
+		else: p2_hud.play_hit_animation()
 
 func _on_healing_received(target_id: int, amount: int):
 	var spawn_pos = _get_clash_text_pos(target_id)
@@ -1464,6 +1562,17 @@ func _on_combat_log_updated(text: String):
 func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
 	if combat_log:
 		combat_log.add_clash_log(winner_id, p1_card, p2_card)
+		
+	# --- NEW: Trigger Attack Animations ---
+	# P1 Lunges Right (+50 pixels) if attacking
+	if p1_card.type == ActionData.Type.OFFENCE:
+		p1_hud.play_attack_animation(Vector2(50, 0))
+		
+	# P2 Lunges Left (-50 pixels) if attacking
+	if p2_card.type == ActionData.Type.OFFENCE:
+		p2_hud.play_attack_animation(Vector2(-50, 0))
+	# Play Clash Sound (Metal hitting metal)
+	AudioManager.play_sfx("clash", 0.1)
 
 func _on_log_toggled(toggled_on: bool):
 	combat_log.visible = toggled_on
@@ -1635,6 +1744,11 @@ func _snapshot_stats():
 	if GameManager.p2_data:
 		_prev_p2_stats = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
 
+func _attach_sfx(btn: BaseButton):
+	if not btn: return
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+
 
 ========================================
 FILE PATH: res://Scripts/CardButton.gd
@@ -1782,10 +1896,15 @@ extends Control
 
 @onready var p1_option = $HBoxContainer/P1_Column/ClassOption
 @onready var p1_info = $HBoxContainer/P1_Column/InfoLabel
+# NEW: Reference the texture rects you just created
+@onready var p1_portrait = $HBoxContainer/P1_Column/P1_Portrait 
+
 @onready var p2_option = $HBoxContainer/P2_Column/ClassOption
 @onready var p2_info = $HBoxContainer/P2_Column/InfoLabel
 @onready var p2_custom_check = $HBoxContainer/P2_Column/P2CustomCheck
-var compendium_scene = preload("res://Scenes/compendium.tscn")
+# NEW: Reference the texture rects you just created
+@onready var p2_portrait = $HBoxContainer/P2_Column/P2_Portrait
+
 # New Buttons
 @onready var btn_quick = $HBoxContainer/Center_Column/QuickFightButton
 @onready var btn_custom = $HBoxContainer/Center_Column/CustomDeckButton
@@ -1793,22 +1912,33 @@ var compendium_scene = preload("res://Scenes/compendium.tscn")
 @onready var difficulty_option = $HBoxContainer/Center_Column/DifficultyOption
 @onready var p2_mode_button = $HBoxContainer/P2_Column/P2ModeButton
 
-
+var compendium_scene = preload("res://Scenes/compendium.tscn")
 var classes = ["Heavy", "Patient", "Quick", "Technical"]
-
-# BASE CLASSES
 var base_classes = ["Heavy", "Patient", "Quick", "Technical"]
-
-# LOADED PRESETS
 var presets: Array[PresetCharacter] = []
 
 func _ready():
-	
-	_load_presets() # <--- Load files on startup
+	_load_presets()
 	_setup_options(p1_option)
 	_setup_options(p2_option)
 	
 	_setup_difficulty()
+	
+	var all_buttons = [
+		btn_quick, btn_custom, btn_back, 
+		p2_mode_button, find_child("HelpButton")
+	]
+	
+	for btn in all_buttons:
+		if btn: _attach_sfx(btn)
+	
+	_attach_sfx(p1_option)
+	_attach_sfx(p2_option)
+	_attach_sfx(difficulty_option)
+	
+	p1_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
+	p2_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
+	difficulty_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
 	
 	# Default selections
 	p1_option.selected = 6
@@ -1818,7 +1948,6 @@ func _ready():
 	p1_option.item_selected.connect(func(_idx): _update_info())
 	p2_option.item_selected.connect(func(_idx): _update_info())
 	
-	# --- BUTTON CONNECTIONS ---
 	btn_quick.pressed.connect(_on_quick_fight_pressed)
 	btn_custom.pressed.connect(_on_custom_deck_pressed)
 	btn_back.pressed.connect(func(): get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn"))
@@ -1827,14 +1956,16 @@ func _ready():
 		GameManager.p2_is_custom = false
 	
 	_update_p2_mode_visuals()
-	
-	# 2. Connect the signal
 	p2_mode_button.pressed.connect(_on_p2_mode_pressed)
 	
 	var btn_help = find_child("HelpButton") 
 	if btn_help:
 		btn_help.pressed.connect(_on_help_pressed)
 	
+	# NEW: Ensure P2 Portrait is flipped to look at P1 (Symmetry!)
+	if p2_portrait:
+		p2_portrait.flip_h = true
+
 func _load_presets():
 	presets.clear()
 	var path = "res://Data/Presets/"
@@ -1847,19 +1978,14 @@ func _load_presets():
 				file_name = dir.get_next()
 				continue
 				
-			# --- EXPORT FIX STARTS HERE ---
-			# In exported games, files often have a '.remap' extension.
-			# We must strip it to get the correct load path.
 			var load_path = path + file_name
 			if file_name.ends_with(".remap"):
 				load_path = load_path.trim_suffix(".remap")
 				
-			# Now check the extension on the CLEANED path
 			if load_path.ends_with(".tres") or load_path.ends_with(".res"):
 				var res = load(load_path)
 				if res is PresetCharacter:
 					presets.append(res)
-			# ------------------------------
 			
 			file_name = dir.get_next()
 		dir.list_dir_end()
@@ -1869,24 +1995,16 @@ func _setup_options(opt: OptionButton):
 	for c in classes:
 		opt.add_item(c)
 	
-	# 2. Add Separator
 	if presets.size() > 0:
 		opt.add_separator("Presets")
 		
-	# 3. Add Presets
 	for p in presets:
-		# We use the local helper function '_class_enum_to_string' instead of calling it on 'p'
 		opt.add_item(p.character_name + " (" + ClassFactory.class_enum_to_string(p.class_type) + ")")
-		# Note: You might need a helper to convert Enum 0->Heavy string if you want it pretty
 
 func _get_character_data_from_selection(index: int, player_name: String) -> CharacterData:
-	# Index 0-3 are Base Classes
 	if index < base_classes.size():
-		# FIX: Cast the integer 'index' to the ClassType enum using 'as'
 		var type = index as CharacterData.ClassType
 		return ClassFactory.create_character(type, player_name)
-	
-	# ... (The rest of your preset logic remains the same) ...
 	
 	var preset_idx = index - base_classes.size() - 1 
 	if preset_idx >= 0 and preset_idx < presets.size():
@@ -1895,185 +2013,139 @@ func _get_character_data_from_selection(index: int, player_name: String) -> Char
 		char_data.character_name = p.character_name
 		return char_data
 		
-	# FIX: Cast the 0 fallback here too just to be safe
 	return ClassFactory.create_character(0 as CharacterData.ClassType, "ErrorBot")
 
 func _update_info():
-	_display_stats(p1_option.selected, p1_info)
-	_display_stats(p2_option.selected, p2_info)
+	# Pass the portrait nodes to the display function
+	_display_stats(p1_option.selected, p1_info, p1_portrait)
+	_display_stats(p2_option.selected, p2_info, p2_portrait)
 
-func _display_stats(idx: int, label: RichTextLabel):
+# UPDATED FUNCTION: Now accepts 'portrait_rect'
+func _display_stats(idx: int, label: RichTextLabel, portrait_rect: TextureRect):
 	var temp = _get_character_data_from_selection(idx, "Preview")
 	
+	# 1. Update Text
 	var txt = "[b]" + temp.character_name + "[/b] (" + ClassFactory.class_enum_to_string(temp.class_type) + ")\n"
 	txt += "[b]HP:[/b] " + str(temp.max_hp) + "\n"
 	txt += "[b]SP:[/b] " + str(temp.max_sp) + "\n"
 	txt += "[b]Speed:[/b] " + str(temp.speed) + "\n\n"
 	
-	# List Skills if it's a preset
 	if idx >= base_classes.size():
 		txt += "[u]Custom Skills:[/u]\n"
 		for card in temp.deck:
-			# Only show non-basic cards to save space
 			if not card.display_name.begins_with("Basic"):
 				txt += "- " + card.display_name + "\n"
 	
 	txt += "\n[color=yellow]" + temp.passive_desc + "[/color]"
 	label.text = txt
+	
+	# 2. Update Portrait
+	if portrait_rect:
+		if temp.portrait:
+			portrait_rect.texture = temp.portrait
+			portrait_rect.modulate = Color.WHITE
+		else:
+			portrait_rect.texture = null # Clear if missing
 
-# --- OPTION 1: QUICK FIGHT (Standard Decks) ---
 func _on_quick_fight_pressed():
-	# Use the helper function to translate the selection (Index -> Character Data)
 	var p1 = _get_character_data_from_selection(p1_option.selected, "Player 1")
 	var p2 = _get_character_data_from_selection(p2_option.selected, "Player 2")
-	
-	# Store in Manager
 	GameManager.next_match_p1_data = p1
 	GameManager.next_match_p2_data = p2
-	
-	# Go straight to Combat
 	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
 
-# --- OPTION 2: CUSTOM DECK (Skill Tree) ---
 func _on_custom_deck_pressed():
-	# --- 1. HANDLE PLAYER 1 ---
+	# 1. P1 SETUP
 	var p1_sel = p1_option.selected
-	var p1_class_id = 0
-	
 	if p1_sel < base_classes.size():
-		p1_class_id = p1_sel
+		GameManager.temp_p1_class_selection = p1_sel
 		GameManager.temp_p1_name = "Player 1"
 		GameManager.temp_p1_preset = null
 	else:
 		var preset_idx = p1_sel - base_classes.size() - 1
 		if preset_idx >= 0:
 			var p = presets[preset_idx]
-			p1_class_id = p.class_type
+			GameManager.temp_p1_class_selection = p.class_type
 			GameManager.temp_p1_name = p.character_name
 			GameManager.temp_p1_preset = p
 
-	# --- 2. HANDLE PLAYER 2 (Class Selection Only) ---
+	# 2. P2 SETUP
 	var p2_sel = p2_option.selected
-	var p2_class_id = 0
-	
 	if p2_sel < base_classes.size():
-		p2_class_id = p2_sel
+		GameManager.temp_p2_class_selection = p2_sel
 		GameManager.temp_p2_name = "Player 2"
 		GameManager.temp_p2_preset = null
 	else:
 		var preset_idx = p2_sel - base_classes.size() - 1
 		if preset_idx >= 0:
 			var p = presets[preset_idx]
-			p2_class_id = p.class_type
+			GameManager.temp_p2_class_selection = p.class_type
 			GameManager.temp_p2_name = p.character_name
 			GameManager.temp_p2_preset = p
 
-	GameManager.temp_p1_class_selection = p1_class_id
-	GameManager.temp_p2_class_selection = p2_class_id
-	
-	# --- 3. SETUP EDITING STATE ---
 	GameManager.editing_player_index = 1 
 	
-	# --- DELETE THIS LINE ---
-	# GameManager.p2_is_custom = p2_custom_check.button_pressed 
-	# ------------------------
-	
-	# --- 4. HANDLE PLAYER 2 DATA ---
-	# We rely on the toggle button (P2ModeButton) having already set this variable
 	if GameManager.p2_is_custom:
-		# If we are customizing P2, we clear the data so the Tree knows to build it later
 		GameManager.next_match_p2_data = null 
 	else:
-		# If it's a CPU, generate the data immediately
 		var p2 = _get_character_data_from_selection(p2_sel, "Player 2")
 		GameManager.next_match_p2_data = p2
 	
-	# 5. Load the Tree
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
-
 func _setup_difficulty():
-	# Clear whatever dummy items might be in the editor
 	difficulty_option.clear()
-	
-	# Add items in the same order as the Enum (EASY=0, MEDIUM=1, HARD=2)
 	difficulty_option.add_item("Very Easy")
-	difficulty_option.add_item("Easy")   # Index 0
-	difficulty_option.add_item("Medium") # Index 1
-	difficulty_option.add_item("Hard")   # Index 2
-	
-	# Set Default (Medium)
-	difficulty_option.selected = 1
+	difficulty_option.add_item("Easy")
+	difficulty_option.add_item("Medium")
+	difficulty_option.add_item("Hard")
+	difficulty_option.selected = 2
 	GameManager.ai_difficulty = GameManager.Difficulty.MEDIUM
-	
-	# Connect Signal
 	difficulty_option.item_selected.connect(_on_difficulty_changed)
 
 func _on_difficulty_changed(index: int):
-	# Directly map the dropdown index to the Enum
-	# 0 -> EASY, 1 -> MEDIUM, 2 -> HARD
 	GameManager.ai_difficulty = index as GameManager.Difficulty
-	print("Difficulty set to: " + str(index))
-
 
 func _on_start_arcade_pressed():
 	var selected_idx = p1_option.selected
-	
-	# CASE 1: BASE CLASS (Indices 0-3)
 	if selected_idx < base_classes.size():
 		var class_enum = selected_idx as CharacterData.ClassType
 		RunManager.start_run(class_enum)
-		
-	# CASE 2: PRESET CHARACTER (Indices 4+)
 	else:
 		var preset_idx = selected_idx - base_classes.size() - 1
 		if preset_idx >= 0 and preset_idx < presets.size():
 			var preset = presets[preset_idx]
 			RunManager.start_run_from_preset(preset)
-		else:
-			print("Error: Invalid Preset Selection")
 
 func _on_help_pressed():
 	var compendium = compendium_scene.instantiate()
-	
-	# 1. Set it to Overlay Mode (so it doesn't change scenes)
 	compendium.is_overlay = true
-	
-	# 2. Tell it to open the 'Modes' tab
-	# (0 = Traits, 1 = Cards, 2 = Modes -> Adjust based on your tab order!)
 	compendium.initial_tab_index = 4 
-	
 	add_child(compendium)
 
 func _on_p2_mode_pressed():
-	# Toggle the boolean
 	GameManager.p2_is_custom = !GameManager.p2_is_custom
-	
-	# Update the look
 	_update_p2_mode_visuals()
 
 func _update_p2_mode_visuals():
 	if GameManager.p2_is_custom:
-		# VISUALS FOR HUMAN PLAYER
 		p2_mode_button.text = "OPPONENT: PLAYER 2"
-		p2_mode_button.modulate = Color(0.2, 1.0, 0.2) # Bright Green
-		
-		# Optional: If you have a Label saying "Select P2 Class", show it
-		# $P2Container/Header.text = "PLAYER 2 SELECT"
-		
+		p2_mode_button.modulate = Color(0.2, 1.0, 0.2) 
 	else:
-		# VISUALS FOR CPU BOT
 		p2_mode_button.text = "OPPONENT: CPU BOT"
-		p2_mode_button.modulate = Color(0.8, 0.8, 0.8) # Grayish/White
+		p2_mode_button.modulate = Color(0.8, 0.8, 0.8) 
 		
-		# Optional: Update header
-		# $P2Container/Header.text = "BOT DIFFICULTY"
-	var p2_controls = get_node_or_null("P2Container")
+	var p2_controls = get_node_or_null("P2Container") # Might be different in your scene
 	if p2_controls:
-		if GameManager.p2_is_custom:
-			p2_controls.modulate.a = 1.0 # Fully visible
-		else:
-			p2_controls.modulate.a = 0.7 # Slightly dimmed (implies AI control)
+		p2_controls.modulate.a = 1.0 if GameManager.p2_is_custom else 0.7
+
+func _attach_sfx(node: Control):
+	if not node: return
+	# Most buttons use 'mouse_entered' and 'pressed'
+	if node.has_signal("mouse_entered"):
+		node.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	if node.has_signal("pressed"):
+		node.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 
 
 ========================================
@@ -2139,6 +2211,11 @@ const RANK_TITLES = [
 	"Transcendent", # Level 19
 	"Godly"         # Level 20+
 ]
+
+var art_heavy = preload("res://Art/Portraits/Heavy.png") 
+var art_patient = preload("res://Art/Portraits/Patient.png")
+var art_quick = preload("res://Art/Portraits/Quick.png")
+var art_technical = preload("res://Art/Portraits/Technical.png")
 
 # --- NEW: ENEMY GENERATOR ---
 # ClassFactory.gd
@@ -2267,25 +2344,29 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 			char_data.max_sp = 4
 			char_data.speed = 1
 			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
+			char_data.portrait = art_heavy
 			
 		CharacterData.ClassType.PATIENT:
 			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 2
 			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
+			char_data.portrait = art_patient
 			
 		CharacterData.ClassType.QUICK:
 			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 4
 			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
+			char_data.portrait = art_quick
 			
 		CharacterData.ClassType.TECHNICAL:
 			char_data.max_hp = 5
 			char_data.max_sp = 4
 			char_data.speed = 3
 			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
-
+			char_data.portrait = art_technical
+			
 	# 2. Build the Deck (Basic Cards + Class Exclusives)
 	char_data.deck = get_starting_deck(class_type)
 	
@@ -2467,6 +2548,9 @@ func _ready():
 	
 	# 3. CREATE TOOLTIP POPUP
 	_create_tooltip_popup()
+	
+	# --- FIX: Listen for when the player opens the log ---
+	visibility_changed.connect(_on_visibility_changed)
 
 func _create_tooltip_popup():
 	tooltip_popup = PanelContainer.new()
@@ -2542,6 +2626,10 @@ func add_clash_log(winner_id: int, p1_card: ActionData, p2_card: ActionData):
 	# 3. BUTTON OVERLAY
 	# Handles Interaction
 	var btn = Button.new()
+	
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+	
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	btn.flat = true 
@@ -2584,8 +2672,14 @@ func _format_text(raw: String) -> String:
 	return txt
 
 func _auto_scroll():
+	# Only scroll if we are actually visible to avoid errors
+	if not visible: return
+	
 	await get_tree().process_frame
-	scroll_container.scroll_vertical = int(scroll_container.get_v_scroll_bar().max_value)
+	await get_tree().process_frame
+	
+	if scroll_container and scroll_container.get_v_scroll_bar():
+		scroll_container.scroll_vertical = int(scroll_container.get_v_scroll_bar().max_value)
 
 # --- INTERACTIVITY ---
 
@@ -2660,6 +2754,11 @@ func _format_diff(player_label: String, diff: Dictionary, name_color: String) ->
 		return s + "[color=#888888]No Change[/color]"
 		
 	return s + ", ".join(changes)
+
+func _on_visibility_changed():
+	# If we just opened the window, wait for it to draw, then scroll to bottom.
+	if visible:
+		_auto_scroll()
 
 
 ========================================
@@ -2926,6 +3025,10 @@ func _ready():
 	$VBoxContainer/StartButton.pressed.connect(_on_start_pressed)
 	$VBoxContainer/QuitButton.pressed.connect(_on_quit_pressed)
 	
+	_attach_sfx($VBoxContainer/StartButton)
+	_attach_sfx($VBoxContainer/QuitButton)
+	_attach_sfx($VBoxContainer/CompendiumButton)
+	
 	var btn_compendium = find_child("CompendiumButton") # Or reference it directly if you prefer
 	if btn_compendium:
 		btn_compendium.pressed.connect(_on_compendium_pressed)
@@ -2940,6 +3043,11 @@ func _on_quit_pressed():
 
 func _on_compendium_pressed():
 	get_tree().change_scene_to_file("res://Scenes/compendium.tscn")
+
+func _attach_sfx(btn: BaseButton):
+	if not btn: return
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 
 
 ========================================
@@ -2995,6 +3103,12 @@ extends Control
 @onready var sp_bar = $VBoxContainer/SPBar
 @onready var sp_text = $VBoxContainer/SPBar/SPLabel
 @onready var status_label = $VBoxContainer/StatusLabel
+@onready var portrait = get_node_or_null("Portrait")
+
+var original_pos: Vector2 = Vector2.ZERO
+
+func _ready():
+	if portrait: original_pos = portrait.position
 
 func setup(character: CharacterData):
 	name_label.text = character.character_name
@@ -3005,10 +3119,99 @@ func setup(character: CharacterData):
 	sp_bar.max_value = character.max_sp
 	sp_bar.value = character.current_sp
 	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
+	
+	if portrait and character.portrait:
+		portrait.texture = character.portrait
 
-# Call this every time stats change
+# --- NEW LAYOUT SYSTEM ---
+# Scripts/PlayerHud.gd
+
+func configure_visuals(is_player_2: bool):
+	scale = Vector2(1, 1)
+	
+	# 1. SETUP DIMENSIONS
+	var hud_width = 300 
+	var screen_margin = 20 # <--- NEW: Margin from the side of the screen
+	var gap = 15           # Gap between bars and portrait
+	var offset = 150
+	# Force the VBox to be the right width
+	$VBoxContainer.custom_minimum_size.x = hud_width
+	$VBoxContainer.size.x = hud_width 
+	
+	# Find the background node
+	var bg = get_node_or_null("Panel") 
+	if not bg: bg = get_node_or_null("Background")
+	
+	# Force bars to expand
+	if hp_bar: hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if sp_bar: sp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	
+	if is_player_2:
+		# --- PLAYER 2 (Right Side) ---
+		
+		# 1. Anchor VBox to Top-Right
+		$VBoxContainer.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		
+		# 2. Position it inwards (Negative X)
+		# Logic: -300 (Width) - 20 (Margin) = -320 from the right edge
+		$VBoxContainer.position.x = + screen_margin  - hud_width
+		$VBoxContainer.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		
+		# 3. Snap Background to match VBox
+		if bg:
+			bg.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			bg.position = $VBoxContainer.position
+			bg.size = $VBoxContainer.size
+			bg.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+
+		# 4. Align Text & Bars
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		
+		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
+		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
+		
+		# 5. Position Portrait (To the LEFT of the VBox)
+		if portrait:
+			portrait.scale.x = -1
+			portrait.pivot_offset = portrait.size / 2
+			portrait.position.x = $VBoxContainer.position.x - portrait.size.x - gap + offset
+			
+	else:
+		# --- PLAYER 1 (Left Side) ---
+		
+		# 1. Anchor VBox to Top-Left
+		$VBoxContainer.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		
+		# 2. Position it inwards (Positive X)
+		# Logic: 0 + 20 (Margin) = 20 from the left edge
+		$VBoxContainer.position.x = screen_margin
+		$VBoxContainer.grow_horizontal = Control.GROW_DIRECTION_END
+		
+		# 3. Snap Background to match VBox
+		if bg:
+			bg.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			bg.position = $VBoxContainer.position
+			bg.size = $VBoxContainer.size
+			bg.grow_horizontal = Control.GROW_DIRECTION_END
+			
+		# 4. Align Text & Bars
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		
+		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+		
+		# 5. Position Portrait (To the RIGHT of the VBox)
+		if portrait:
+			portrait.scale.x = 1
+			portrait.pivot_offset = portrait.size / 2
+			portrait.position.x = $VBoxContainer.position.x + hud_width + gap - offset
+
+	# Save position for animations
+	if portrait: original_pos = portrait.position
+
 func update_stats(character: CharacterData, is_injured: bool, opportunity: int, opening: int):
-	# Animate bars for "juice"
 	var tween = create_tween()
 	tween.tween_property(hp_bar, "value", character.current_hp, 0.3).set_trans(Tween.TRANS_SINE)
 	tween.parallel().tween_property(sp_bar, "value", character.current_sp, 0.3)
@@ -3016,17 +3219,34 @@ func update_stats(character: CharacterData, is_injured: bool, opportunity: int, 
 	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
 	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
 	
-	# Status Text
 	var status_txt = ""
 	if is_injured: status_txt += "[INJURED] "
 	if opportunity > 0: status_txt += "[OPPORTUNITY] "
 	if opening > 0: status_txt += "[OPENING: " + str(opening) + "]"
 	
 	status_label.text = status_txt
-	# Make status red if injured, yellow if opportunity, etc. (Optional styling)
 	if is_injured: status_label.modulate = Color.ORANGE_RED
 	elif opportunity > 0: status_label.modulate = Color.YELLOW
 	else: status_label.modulate = Color.WHITE
+
+func play_attack_animation(direction: Vector2):
+	if not portrait: return
+	var tween = create_tween()
+	tween.tween_property(portrait, "position", original_pos - (direction * 0.2), 0.1)
+	tween.tween_property(portrait, "position", original_pos + direction, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(portrait, "position", original_pos, 0.2).set_delay(0.1)
+
+func play_hit_animation():
+	if not portrait: return
+	var tween = create_tween()
+	tween.tween_property(portrait, "modulate", Color(3, 0.5, 0.5), 0.05)
+	tween.tween_property(portrait, "modulate", Color.WHITE, 0.3)
+	
+	var shake_offset = Vector2(randf_range(-10, 10), randf_range(-10, 10))
+	var t_shake = create_tween()
+	t_shake.tween_property(portrait, "position", original_pos + shake_offset, 0.05)
+	t_shake.tween_property(portrait, "position", original_pos - shake_offset, 0.05)
+	t_shake.tween_property(portrait, "position", original_pos, 0.05)
 
 
 ========================================
@@ -4000,52 +4220,38 @@ extends Node
 var is_arcade_mode: bool = false
 var current_level: int = 1
 var player_run_data: CharacterData
-var player_owned_tree_ids: Array[int] = [] # Track which nodes we own across fights
+var player_owned_tree_ids: Array[int] = [] 
 var free_unlocks_remaining: int = 0
 
+# ... (start_run and start_run_from_preset remain exactly the same) ...
 
 # OPTION A: STANDARD RUN (Level 1, Drafting)
 func start_run(starting_class: CharacterData.ClassType):
 	is_arcade_mode = true
 	current_level = 1
-	
-	# 1. Create fresh Level 1 Character
 	player_run_data = ClassFactory.create_character(starting_class, "You")
-	
-	# 2. Initialize Tree (Root Node only)
 	_init_tree_root(starting_class)
-	
-	# 3. Go to Draft Mode
 	free_unlocks_remaining = 2
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
-# OPTION B: PRESET RUN (Higher Level, Skip Draft)
+# OPTION B: PRESET RUN
 func start_run_from_preset(preset: PresetCharacter):
 	is_arcade_mode = true
-	
-	# 1. Load Level from Preset (Default to 1 if missing)
 	current_level = max(1, preset.level)
 	print("Starting Arcade Run with Preset: " + preset.character_name + " (Lv. " + str(current_level) + ")")
 	
-	# 2. Create Character Data
 	player_run_data = ClassFactory.create_from_preset(preset)
-	# Override name to be "You" or keep preset name? Let's keep preset name for flavor.
 	
-	# 3. Reconstruct Tree Ownership
-	# We must tell the system that we "Bought" these skills already
 	_init_tree_root(preset.class_type)
-	
 	for skill_name in preset.extra_skills:
 		var id = ClassFactory.get_id_by_name(skill_name)
-		if id != 0:
-			if id not in player_owned_tree_ids:
-				player_owned_tree_ids.append(id)
+		if id != 0 and id not in player_owned_tree_ids:
+			player_owned_tree_ids.append(id)
 	
-	# 4. Skip Draft, go straight to Fight
 	free_unlocks_remaining = 0
 	start_next_fight()
 
-# Helper to avoid duplicate code
+# Helper
 func _init_tree_root(class_type: CharacterData.ClassType):
 	player_owned_tree_ids.clear()
 	match class_type:
@@ -4054,26 +4260,62 @@ func _init_tree_root(class_type: CharacterData.ClassType):
 		CharacterData.ClassType.PATIENT: player_owned_tree_ids.append(75)
 		CharacterData.ClassType.HEAVY: player_owned_tree_ids.append(76)
 
+# --- UPDATED FIGHT GENERATION LOGIC ---
 func start_next_fight():
 	# 1. Setup Player
 	GameManager.next_match_p1_data = player_run_data
 	
-	# 2. Generate Enemy (Same Level)
-	var enemy = ClassFactory.create_random_enemy(current_level, GameManager.ai_difficulty)
+	# 2. CALCULATE TARGET LEVEL
+	var raw_level = current_level
+	
+	# Apply Difficulty Modifier
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.VERY_EASY: raw_level -= 2
+		GameManager.Difficulty.EASY:      raw_level -= 1
+		GameManager.Difficulty.MEDIUM:    pass 
+		GameManager.Difficulty.HARD:      raw_level += 1
+	
+	# 3. DETERMINE ACTUAL LEVEL & PENALTIES
+	var final_enemy_level = raw_level
+	var stat_penalty = 0
+	
+	if raw_level < 1:
+		# If we dip below Level 1, stick to Level 1 but apply penalty.
+		# Example: Level 1 on Very Easy (-2) = Raw -1. 
+		# Penalty = 1 - (-1) = 2.
+		stat_penalty = 1 - raw_level
+		final_enemy_level = 1
+		
+	print("Generating Arcade Opponent: Difficulty ", GameManager.ai_difficulty, " -> Enemy Lv.", final_enemy_level)
+	if stat_penalty > 0:
+		print(">> UNDER-LEVEL PENALTY APPLIED: -", stat_penalty, " HP/SP")
+	
+	# 4. Generate Enemy
+	var enemy = ClassFactory.create_random_enemy(final_enemy_level, GameManager.ai_difficulty)
+	
+	# 5. Apply Stats Penalty (if any)
+	if stat_penalty > 0:
+		# Reduce Max Stats (but clamp to minimum 1 so they don't die instantly)
+		enemy.max_hp = max(1, enemy.max_hp - stat_penalty)
+		enemy.max_sp = max(1, enemy.max_sp - stat_penalty)
+		
+		# Reset Current Stats to match new Max
+		enemy.reset_stats()
+		
+		# Flavor: Add a status tag so the player knows why they are weak
+		enemy.character_name += " (Weakened)"
+	
 	GameManager.next_match_p2_data = enemy
 	
-	# 3. Launch
+	# 6. Launch
 	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
 
 func handle_win():
 	current_level += 1
-	# Go to Skill Tree to pick reward
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
 func handle_loss():
 	is_arcade_mode = false
-	# Go to Game Over or Menu
-	# (The GameOverScreen already handles this via buttons)
 
 
 ========================================
@@ -4435,7 +4677,7 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 	# Noise Setup
 	var noise_range = 0.0
 	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: noise_range = 0.0 # No noise, just pure bad decisions
+		GameManager.Difficulty.VERY_EASY: noise_range = 0 # No noise, just pure bad decisions
 		GameManager.Difficulty.EASY: noise_range = 100.0
 		GameManager.Difficulty.MEDIUM: noise_range = 25.0
 		GameManager.Difficulty.HARD: noise_range = 2.0
@@ -4475,8 +4717,16 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 	
 	# --- 1. STRICT ANTI-REPETITION ---
 	if card.display_name == p2_last_action_name:
-		score -= 100.0
-		log_parts.append("-100 (Repetition)")
+		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
+			# [cite_start]FIX: For Very Easy, we pick the LOWEST score[cite: 220].
+			# To discourage repetition, we must ADD to the score so it isn't the lowest.
+			score += 100.0
+			log_parts.append("+100 (Repetition Avoidance)")
+		else:
+			# Normal Logic: We pick the HIGHEST score.
+			# Subtracting makes the AI avoid it.
+			score -= 100.0
+			log_parts.append("-100 (Repetition)")
 
 	# --- 2. TACTICAL RESPONSE ---
 	if card.type == ActionData.Type.OFFENCE:
