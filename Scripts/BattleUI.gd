@@ -61,6 +61,11 @@ func _ready():
 	momentum_slider.max_value = GameManager.TOTAL_MOMENTUM_SLOTS
 	momentum_slider.min_value = 1
 	
+	# NEW: Show Location Name
+	# Assuming you have a label for this, or repurposing an existing one.
+	# For now, let's just print it to the Combat Log at the start.
+	GameManager.combat_log_updated.emit("Location: " + GameManager.current_environment_name + " (" + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots)")
+	
 	if clash_layer: clash_layer.visible = false
 	
 	log_toggle.button_pressed = false
@@ -237,7 +242,7 @@ func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
 
 func update_momentum(val: int):
 	var visual_val = val
-	var text = "NEUTRAL"
+	var text = "NEUTRAL: " +  GameManager.current_environment_name
 	
 	if val == 0: 
 		# Position visual slider in the exact middle

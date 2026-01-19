@@ -41,8 +41,8 @@ signal request_clash_animation(p1_card, p2_card)
 signal clash_animation_finished
 
 # --- CONFIGURATION ---
-const TOTAL_MOMENTUM_SLOTS: int = 8  #Change this to 4, 6, 10, 12, etc.
-
+var TOTAL_MOMENTUM_SLOTS: int = 8  #Change this to 4, 6, 10, 12, etc.
+var current_environment_name: String = "Dojo"
 # --- DYNAMIC CALCULATIONS ---
 # These run once to set the boundaries based on the config above.
 # Example for 8 slots: P1_MAX = 4, P2_START = 5.
@@ -807,3 +807,22 @@ func get_advantage_momentum(player_id: int) -> int:
 func get_wall_momentum(player_id: int) -> int:
 	if player_id == 1: return 1
 	else: return TOTAL_MOMENTUM_SLOTS
+
+func apply_environment_rules(env_type: String):
+	current_environment_name = env_type
+	
+	match env_type:
+		"Ring": 
+			TOTAL_MOMENTUM_SLOTS = 6
+		"Dojo": 
+			TOTAL_MOMENTUM_SLOTS = 8
+		"Street": 
+			TOTAL_MOMENTUM_SLOTS = 10
+		_:
+			TOTAL_MOMENTUM_SLOTS = 8 # Default fallback
+			
+	# RECALCULATE BOUNDARIES
+	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
+	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
+	
+	print(">>> ENVIRONMENT SET: " + env_type + " (Momentum: " + str(TOTAL_MOMENTUM_SLOTS) + ")")

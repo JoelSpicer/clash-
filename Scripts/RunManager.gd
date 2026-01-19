@@ -48,6 +48,12 @@ func start_next_fight():
 	# 1. Setup Player
 	GameManager.next_match_p1_data = player_run_data
 	
+	# --- NEW: RANDOMIZE ENVIRONMENT ---
+	var envs = ["Ring", "Dojo", "Street"]
+	var selected_env = envs.pick_random()
+	GameManager.apply_environment_rules(selected_env)
+	# ----------------------------------
+	
 	# 2. CALCULATE TARGET LEVEL
 	var raw_level = current_level
 	

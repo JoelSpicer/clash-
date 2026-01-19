@@ -470,6 +470,14 @@ func _on_node_clicked(id: int, _name: String):
 			
 		# B. Drafting (Buying new)
 		if id not in unlocked_ids: return 
+		
+		# --- FIX: PREVENT SELECTION IF NO UNLOCKS LEFT ---
+		if RunManager.free_unlocks_remaining <= 0:
+			# Optional: Visual feedback like a sound or shake
+			print("No unlocks remaining! Click START FIGHT.")
+			return
+		# -------------------------------------------------
+		
 		pending_unlock_id = id
 		
 		_update_tree_visuals()
@@ -582,6 +590,7 @@ func _on_confirm_button_pressed():
 			return
 
 		# --- CASE 2: DRAFTING (Spending Free Unlocks) ---
+		# This now handles BOTH the initial draft AND level-up rewards
 		if RunManager.free_unlocks_remaining > 0:
 			if pending_unlock_id == 0: return 
 			
@@ -596,21 +605,19 @@ func _on_confirm_button_pressed():
 				if RunManager.player_run_data.deck.size() < ClassFactory.HAND_LIMIT:
 					RunManager.player_run_data.deck.append(new_card)
 			
-			# 2. Update Tree State
+			# 2. Update
 			_unlock_neighbors(pending_unlock_id)
 			RunManager.free_unlocks_remaining -= 1
 			pending_unlock_id = 0
 			
-			# --- FIX: SAVE STATS TO CHARACTER DATA ---
-			# This applies the new HP/SP to the actual player object
-			ClassFactory._recalculate_stats(RunManager.player_run_data)
-			# -----------------------------------------
-			
 			_refresh_loadout_manager()
 			_update_tree_visuals()
-			_recalculate_stats() # Update UI Label
 			
-			# 3. Check Status
+			# 3. Heal & Stats (This covers the "Full Heal on Level Up" requirement)
+			ClassFactory._recalculate_stats(RunManager.player_run_data)
+			_recalculate_stats() # Update UI
+			
+			# 4. Check Status
 			var btn = $TreeContainer/ConfirmButton
 			if RunManager.free_unlocks_remaining <= 0:
 				btn.text = "START FIGHT"
@@ -618,35 +625,13 @@ func _on_confirm_button_pressed():
 				btn.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
 			return
 
-		# --- CASE 3: SINGLE REWARD (Win Reward) ---
+		# --- CASE 3: FALLBACK ---
+		# Since we block selection when free_unlocks <= 0, this should rarely be reached in Arcade,
+		# but we leave it safe just in case.
 		if pending_unlock_id != 0:
-			# 1. Commit
-			RunManager.player_owned_tree_ids.append(pending_unlock_id)
-			owned_ids.append(pending_unlock_id)
-			
-			var card_name = id_to_name.get(pending_unlock_id)
-			var new_card = ClassFactory.find_action_resource(card_name)
-			if new_card:
-				RunManager.player_run_data.unlocked_actions.append(new_card)
-				if RunManager.player_run_data.deck.size() < ClassFactory.HAND_LIMIT:
-					RunManager.player_run_data.deck.append(new_card)
-			
-			# 2. Heal & Save Stats
-			# We don't need manual healing here because _recalculate_stats does it for us
-			
-			# --- FIX: SAVE STATS TO CHARACTER DATA ---
-			ClassFactory._recalculate_stats(RunManager.player_run_data)
-			# -----------------------------------------
-			
-			# 3. UPDATE STATE
+			print("Warning: Unsanctioned purchase attempt blocked.")
 			pending_unlock_id = 0
-			_unlock_neighbors(pending_unlock_id)
 			_update_tree_visuals()
-			_refresh_loadout_manager()
-			_recalculate_stats() # Update UI Label
-			
-			# Change button so the NEXT click triggers Case 1
-			$TreeContainer/ConfirmButton.text = "START FIGHT"
 			return
 			
 	else:
@@ -4512,6 +4497,8 @@ func start_next_fight():
 
 func handle_win():
 	current_level += 1
+	# FIX: Grant 1 Unlock so the ActionTree allows exactly one draft pick
+	free_unlocks_remaining = 1 
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
 func handle_loss():

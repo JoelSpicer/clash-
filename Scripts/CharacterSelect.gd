@@ -155,6 +155,11 @@ func _display_stats(idx: int, label: RichTextLabel, portrait_rect: TextureRect):
 			portrait_rect.texture = null # Clear if missing
 
 func _on_quick_fight_pressed():
+	# --- NEW: RANDOMIZE ENVIRONMENT FOR QUICK MATCH ---
+	var envs = ["Ring", "Dojo", "Street"]
+	GameManager.apply_environment_rules(envs.pick_random())
+	# --------------------------------------------------
+	
 	var p1 = _get_character_data_from_selection(p1_option.selected, "Player 1")
 	var p2 = _get_character_data_from_selection(p2_option.selected, "Player 2")
 	GameManager.next_match_p1_data = p1
