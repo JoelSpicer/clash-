@@ -37,7 +37,7 @@ const COMBAT_DEFS = {
 var MODES_DEFS = {
 		"Quick Match": "A single battle against an AI opponent. You choose a basic class loadout or a preset deck. Great for testing mechanics or a quick fight. \n\n- Simply choose a character for you and your opponent, toggle between CPU and Human for player 2, choose a CPU difficulty, then select Quick CLASH! to get right into the action",
 		"Quick Match (build action list)": "Just like regular Quick Match, except you create an action loadout for P1, and P2 if they are human!",
-		"Arcade Mode": "Continuous battles against random opponents where you choose a new action after each victory. If you lose a match, the run ends. \n\n- Choose a basic class to start, choose the NPC difficulty, then select Start Arcade Run to choose your initial two actions."
+		"Arcade Mode": "Continuous battles against random opponents with a hand limit of 8, where you unlock a new action after each victory. If you lose a match, the run ends. \n\n- Choose a basic class to start from scratch or a premade character to start at a higher level, choose the NPC difficulty, then select Start Arcade Run!."
 	}
 
 # We need the CardDisplay scene to spawn cards

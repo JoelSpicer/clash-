@@ -19,6 +19,10 @@ signal p2_mode_toggled(is_human)
 
 @onready var log_toggle = $LogToggle 
 
+@onready var clash_layer = $ClashLayer
+@onready var left_card_display = $ClashLayer/LeftCard
+@onready var right_card_display = $ClashLayer/RightCard
+
 # --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
 var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
@@ -46,12 +50,16 @@ var is_locked = false
 var p1_toggle: CheckButton
 var p2_toggle: CheckButton
 
-# --- NEW VARIABLES ---
+# --- VISUALS (Passives & Juice) ---
 var rage_toggle: CheckButton
 var keep_up_toggle: CheckButton
 var tech_dropdown: OptionButton
+
+# DYNAMIC CAMERA VARIABLES
 var shake_strength: float = 0.0
 var shake_decay: float = 5.0
+var zoom_strength: float = 0.0 # <--- NEW: Controls the "Punch" zoom
+var zoom_decay: float = 5.0    # <--- NEW: How fast it returns to normal
 
 func _ready():
 	if not btn_offence or not btn_defence:
@@ -61,9 +69,7 @@ func _ready():
 	momentum_slider.max_value = GameManager.TOTAL_MOMENTUM_SLOTS
 	momentum_slider.min_value = 1
 	
-	# NEW: Show Location Name
-	# Assuming you have a label for this, or repurposing an existing one.
-	# For now, let's just print it to the Combat Log at the start.
+	# Log Location (Environment Feature)
 	GameManager.combat_log_updated.emit("Location: " + GameManager.current_environment_name + " (" + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots)")
 	
 	if clash_layer: clash_layer.visible = false
@@ -73,7 +79,6 @@ func _ready():
 	
 	if log_toggle:
 		log_toggle.toggled.connect(_on_log_toggled)
-		# Sync the log visibility to the button's starting state
 		combat_log.visible = log_toggle.button_pressed
 	
 	btn_offence.pressed.connect(func(): _switch_tab(ActionData.Type.OFFENCE))
@@ -95,7 +100,6 @@ func _ready():
 	GameManager.healing_received.connect(_on_healing_received)
 	GameManager.status_applied.connect(_on_status_applied)	
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
-	GameManager.damage_dealt.connect(_on_damage_shake)
 	GameManager.clash_resolved.connect(_on_clash_resolved_log)
 	
 	_attach_sfx(btn_offence)
@@ -105,16 +109,14 @@ func _ready():
 	var menu_btn = get_node_or_null("MenuButton")
 	if menu_btn: _attach_sfx(menu_btn)
 	
-	# Connect to State Changed so we know when the turn ends
 	if not GameManager.state_changed.is_connected(_on_game_state_changed):
 		GameManager.state_changed.connect(_on_game_state_changed)
 	
-	# Initialize our stat snapshot
 	await get_tree().process_frame
 	_snapshot_stats()
 	
 	_create_debug_toggles()
-	_create_passive_toggles() # Add this new function call
+	_create_passive_toggles()
 	setup_toggles()
 	
 	var btn = get_node_or_null("MenuButton")
@@ -122,42 +124,64 @@ func _ready():
 		btn.pressed.connect(_on_menu_pressed)
 
 	$MomentumSlider/Label2.text = str(GameManager.momentum)
-	
-	
-	
+
+# --- DYNAMIC CAMERA PROCESS ---
 func _process(delta):
-	# This applies the shake to the entire UI Layer
+	# 1. Decay Values
 	if shake_strength > 0:
 		shake_strength = lerpf(shake_strength, 0, shake_decay * delta)
+		if shake_strength < 0.1: shake_strength = 0
 		
-		# Apply random offset to the CanvasLayer
-		offset = Vector2(
+	if zoom_strength > 0:
+		zoom_strength = lerpf(zoom_strength, 0, zoom_decay * delta)
+		if zoom_strength < 0.001: zoom_strength = 0
+
+	# 2. Calculate Scale (Base 1.0 + Zoom Punch)
+	var current_scale = 1.0 + zoom_strength
+	scale = Vector2(current_scale, current_scale)
+	
+	# 3. Calculate Centering Offset
+	# Since CanvasLayer scales from Top-Left (0,0), we must shift it negatively
+	# to keep the center of the screen in the center.
+	var viewport_size = get_viewport().get_visible_rect().size
+	var center = viewport_size / 2
+	var center_offset = center - (center * current_scale)
+	
+	# 4. Calculate Shake Offset
+	var shake_offset = Vector2.ZERO
+	if shake_strength > 0:
+		shake_offset = Vector2(
 			randf_range(-shake_strength, shake_strength),
 			randf_range(-shake_strength, shake_strength)
 		)
-	else:
-		offset = Vector2.ZERO
+	
+	# 5. Apply Total Offset
+	offset = center_offset + shake_offset
 
+# New Helper to trigger visual impact
+func apply_camera_impact(zoom_amount: float, shake_amount: float):
+	# We take the larger of current vs new so big hits don't get overridden by small ones
+	zoom_strength = max(zoom_strength, zoom_amount)
+	shake_strength = max(shake_strength, shake_amount)
+
+# ... (Toggle Creation Code - Remains Unchanged) ...
 func _create_passive_toggles():
 	var container = HBoxContainer.new()
 	add_child(container)
-	# Position this near the card grid or bottom of screen
 	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	container.position.y -= 200
 	container.position.x -= 570
 	rage_toggle = CheckButton.new()
 	rage_toggle.text = "RAGE (Pay HP)"
 	rage_toggle.visible = false
-	rage_toggle.toggled.connect(func(_on): _refresh_grid()) # Refresh card availability when clicked
+	rage_toggle.toggled.connect(func(_on): _refresh_grid())
 	container.add_child(rage_toggle)
 	
 	keep_up_toggle = CheckButton.new()
 	keep_up_toggle.text = "KEEP UP (Pay SP)"
 	keep_up_toggle.visible = false
-	# No refresh needed for Keep Up as it doesn't change card playability, only resolution
 	container.add_child(keep_up_toggle)
 	
-	# --- ADD THIS BLOCK ---
 	tech_dropdown = OptionButton.new()
 	tech_dropdown.add_item("Tech: None")
 	tech_dropdown.add_item("+Opener (1 SP)")
@@ -165,18 +189,14 @@ func _create_passive_toggles():
 	tech_dropdown.add_item("+Momentum 1 (1 SP)")
 	tech_dropdown.selected = 0
 	tech_dropdown.visible = false
-	# Refresh grid when selection changes to update costs/validity
 	tech_dropdown.item_selected.connect(func(_idx): _refresh_grid())
 	container.add_child(tech_dropdown)
 	
-# Helper to set correct toggle visibility (Call this from TestArena)
 func setup_passive_toggles(class_type: CharacterData.ClassType):
 	rage_toggle.visible = (class_type == CharacterData.ClassType.HEAVY)
 	keep_up_toggle.visible = (class_type == CharacterData.ClassType.PATIENT)
 	tech_dropdown.visible = (class_type == CharacterData.ClassType.TECHNICAL)
-	tech_dropdown.selected = 0 # Always reset to "None" at start of turn
-	
-	# Reset them to false at start of turn? Or keep them? Usually reset is safer.
+	tech_dropdown.selected = 0 
 	rage_toggle.button_pressed = false
 	keep_up_toggle.button_pressed = false
 
@@ -186,36 +206,23 @@ func _create_debug_toggles():
 	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	container.position.y += 60 
 	container.add_theme_constant_override("separation", 20)
-	
-	# 1. HIDE FOR DEBUG PURPOSES
-	# (Change to true if you need to see them for testing)
 	container.visible = false
-	container.name = "DebugContainer" # Named so you can find it in Remote view
+	container.name = "DebugContainer" 
 	
-	# 2. CALCULATE INITIAL STATES
-	# P1 is always Human by default
 	var p1_is_human = true 
-	
-	# P2 is Human only if we are NOT in Arcade Mode AND we selected "Opponent: Player 2"
 	var p2_is_human = false
 	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
 		p2_is_human = true
 	
-	# 3. CREATE P1 TOGGLE
 	p1_toggle = CheckButton.new()
 	p1_toggle.text = "P1 Human"
 	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
-	
-	# Set state (Godot emits "toggled" signal automatically when this changes from default)
 	p1_toggle.button_pressed = p1_is_human 
 	container.add_child(p1_toggle)
 	
-	# 4. CREATE P2 TOGGLE
 	p2_toggle = CheckButton.new()
 	p2_toggle.text = "P2 Human"
 	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
-	
-	# Set state based on menu selection
 	p2_toggle.button_pressed = p2_is_human
 	container.add_child(p2_toggle)
 
@@ -224,14 +231,8 @@ func _create_debug_toggles():
 func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	p1_hud.setup(p1_data)
 	p2_hud.setup(p2_data)
-	
-	# --- CONFIGURE SIDES ---
-	# P1: Portrait on Right side of bars
 	p1_hud.configure_visuals(false) 
-	
-	# P2: Portrait on Left side of bars
 	p2_hud.configure_visuals(true)
-	
 	update_momentum(0)
 
 func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
@@ -242,12 +243,9 @@ func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
 
 func update_momentum(val: int):
 	var visual_val = val
-	var text = "NEUTRAL: " +  GameManager.current_environment_name
-	
+	var text = "NEUTRAL" + GameManager.current_environment_name
 	if val == 0: 
-		# Position visual slider in the exact middle
 		visual_val = float(GameManager.TOTAL_MOMENTUM_SLOTS) / 2.0 + 0.5
-		
 	elif val <= GameManager.MOMENTUM_P1_MAX: 
 		text = "P1 MOMENTUM"
 	else: 
@@ -289,15 +287,14 @@ func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int
 func lock_ui():
 	is_locked = true
 	button_grid.visible = false 
-	_on_card_exited() # Clean up tooltips when locking
+	_on_card_exited() 
 
 func _on_card_selected(card: ActionData):
 	if is_locked: return
-	# --- NEW: GATHER TOGGLE DATA ---
 	var extra_data = {
 		"rage": rage_toggle.button_pressed if rage_toggle.visible else false,
 		"keep_up": keep_up_toggle.button_pressed if keep_up_toggle.visible else false,
-		"technique": tech_dropdown.selected if tech_dropdown.visible else 0 # <--- SEND SELECTION
+		"technique": tech_dropdown.selected if tech_dropdown.visible else 0 
 	}
 	emit_signal("human_selected_card", card, extra_data)
 	lock_ui() 
@@ -308,22 +305,17 @@ func _switch_tab(type):
 	if !btn_offence.disabled: btn_offence.modulate = Color.WHITE if type == ActionData.Type.OFFENCE else Color(0.6, 0.6, 0.6)
 	if !btn_defence.disabled: btn_defence.modulate = Color.WHITE if type == ActionData.Type.DEFENCE else Color(0.6, 0.6, 0.6)
 
-# 1. THE UI MANAGER (Clean and readable)
 func _refresh_grid():
-	# Clear existing buttons
 	for child in button_grid.get_children():
 		child.queue_free()
 		
-	# Loop through deck
 	for card in current_deck:
 		if card == null: continue
 		if card.type != current_tab: continue 
 		
-		# ... (Keep calculation logic) ...
 		var final_cost = _calculate_card_cost(card)
 		var is_valid = _check_card_validity(card, final_cost)
 		
-		# --- UPDATE STARTS HERE ---
 		var btn = card_button_scene.instantiate()
 		button_grid.add_child(btn)
 		
@@ -331,17 +323,13 @@ func _refresh_grid():
 		btn.update_cost_display(final_cost) 
 		btn.set_available(is_valid)         
 		
-		# 1. AUDIO (New)
-		# We connect directly to the button's base signals for sound
 		btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
 		btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 		
-		# 2. LOGIC (Existing)
 		btn.card_hovered.connect(_on_card_hovered)
 		btn.card_exited.connect(_on_card_exited) 
 		btn.card_selected.connect(_on_card_selected)
 
-	# Handle the Feint/Skip Button
 	if feint_mode:
 		skip_action.type = current_tab 
 		var skip_btn = card_button_scene.instantiate()
@@ -352,7 +340,6 @@ func _refresh_grid():
 		skip_btn.set_available(true)
 		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
 		
-		# AUDIO for Skip Button (New)
 		skip_btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
 		skip_btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 		
@@ -360,62 +347,36 @@ func _refresh_grid():
 		skip_btn.card_exited.connect(_on_card_exited)
 		skip_btn.card_selected.connect(_on_card_selected)
 
-# 2. THE MATH HELPER
 func _calculate_card_cost(card: ActionData) -> int:
 	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
-	
-	# 1. Determine Base Cost (Card + Tech Modifier)
-	# We add the Tech cost BEFORE the discount to match GameManager logic
 	var tech_cost = 1 if tech_idx > 0 else 0
 	var base_cost = card.cost + tech_cost
-	
-	# 2. Apply "Opportunity" Discount
 	var effective_single_cost = max(0, base_cost - my_opportunity_val)
-	
-	# 3. Multiply by Repeats (THE FIX)
-	# If a card repeats 3 times, you must pay for all 3 upfront.
 	var total_reps = max(1, card.repeat_count)
-	
 	return effective_single_cost * total_reps
 
-# 3. THE RULE REFEREE (Returns True/False if playable)
 func _check_card_validity(card: ActionData, final_cost: int) -> bool:
-	# A. AFFORDABILITY CHECK
 	var can_afford = false
 	if rage_toggle.visible and rage_toggle.button_pressed:
-		# Heavy Class: Pay with HP
 		can_afford = (current_hp_limit > final_cost)
 	else:
-		# Standard: Pay with SP
 		can_afford = (final_cost <= current_sp_limit)
 	
 	if not can_afford: return false
 
-	# B. TECHNIQUE RESTRICTIONS (Technical Class)
 	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
-	# Rule: "Opener" tech can only be applied to OFFENCE cards
 	if tech_idx == 1 and card.type == ActionData.Type.DEFENCE:
 		return false
 
-	# C. OPENER CHECK
 	var effective_is_opener = card.is_opener
-	# Tech Rule: If "Opener" tech (Index 1) is selected, card BECOMES an opener
 	if tech_idx == 1 and card.type == ActionData.Type.OFFENCE:
 		effective_is_opener = true
 		
-	# Game Rule: If 'opener_restriction' is active (e.g. start of combo), 
-	# you MUST play an opener.
 	if opener_restriction and card.type == ActionData.Type.OFFENCE and not effective_is_opener:
 		return false
 
-	# D. SITUATIONAL CHECKS
-	# Multi-Hit Limit: Opponent limited our max cost
 	if card.cost > turn_cost_limit: return false
-	
-	# Counter: Requires opponent to have created an opening
 	if card.counter_value > 0 and my_opening_value < card.counter_value: return false
-	
-	# Super: Can only use if momentum meter is full
 	if card.is_super and not super_allowed: return false
 
 	return true
@@ -426,7 +387,6 @@ func _on_card_hovered(card: ActionData):
 	var effective_cost = max(0, card.cost - my_opportunity_val)
 	preview_card.set_card_data(card, effective_cost)
 	preview_card.visible = true
-	
 	_update_tooltip_text(card)
 
 func _on_card_exited():
@@ -437,17 +397,11 @@ func _update_tooltip_text(card: ActionData):
 	if not tooltip_label: return
 	
 	var active_keys = []
-	
-	# Core Type
 	if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")
 	if card.type == ActionData.Type.DEFENCE: active_keys.append("Defence")
-	
-	# Basic Stats
 	if card.cost > 0: active_keys.append("Cost")
 	if card.damage > 0: active_keys.append("Damage")
 	if card.momentum_gain > 0: active_keys.append("Momentum")
-	
-	# Combat Values
 	if card.block_value > 0: active_keys.append("Block")
 	if card.dodge_value > 0: active_keys.append("Dodge")
 	if card.heal_value > 0: active_keys.append("Heal")
@@ -455,19 +409,15 @@ func _update_tooltip_text(card: ActionData):
 	if card.fall_back_value > 0: active_keys.append("Fall Back")
 	if card.counter_value > 0: active_keys.append("Counter")
 	if card.tiring > 0: active_keys.append("Tiring")
-	
-	# Booleans
 	if card.is_opener: active_keys.append("Opener")
 	if card.is_super: active_keys.append("Super")
 	if card.guard_break: active_keys.append("Guard Break")
-	if card.feint: active_keys.append("Ditto")
+	if card.feint: active_keys.append("Feint")
 	if card.injure: active_keys.append("Injure")
 	if card.retaliate: active_keys.append("Retaliate")
 	if card.reversal: active_keys.append("Reversal")
 	if card.is_parry: active_keys.append("Parry")
 	if card.sweep: active_keys.append("Sweep")
-	
-	# Advanced
 	if card.multi_limit > 0: active_keys.append("Multi")
 	if card.repeat_count > 1: active_keys.append("Repeat")
 	if card.create_opening > 0: active_keys.append("Create Opening")
@@ -477,7 +427,6 @@ func _update_tooltip_text(card: ActionData):
 		tooltip_label.visible = false
 		return
 		
-	# Build Text
 	var full_text = ""
 	for k in active_keys:
 		if k in GameManager.KEYWORD_DEFS:
@@ -486,21 +435,13 @@ func _update_tooltip_text(card: ActionData):
 	tooltip_label.text = full_text
 	tooltip_label.visible = true
 	
-	# --- POSITIONING LOGIC ---
-	
-	# 1. Force size update so calculations are accurate
 	tooltip_label.size.y = 0 
 	var padding = 20
-	# 2. Calculate Vertical Position (Grow Upwards)
-	# We align the BOTTOM of the tooltip with the BOTTOM of the card
 	var preview_bottom = preview_card.position.y + preview_card.size.y
 	tooltip_label.position.y = preview_bottom - tooltip_label.size.y - padding
-	
-	# 3. Calculate Horizontal Position (Place on RIGHT)
-	# Formula: Card X Position + Card Width + Padding
 	tooltip_label.position.x = preview_card.position.x - tooltip_label.size.x - padding
 
-# --- VISUAL HANDLERS (Floating Text etc) ---
+# --- VISUAL HANDLERS ---
 
 func _get_clash_text_pos(target_id: int) -> Vector2:
 	var hud = p1_hud if target_id == 1 else p2_hud
@@ -519,10 +460,12 @@ func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
 	else: 
 		_spawn_text(spawn_pos, str(amount), Color.RED)
 		if amount >= 5:
-			AudioManager.play_sfx("hit_heavy", 0.1) # <--- NEW
+			AudioManager.play_sfx("hit_heavy", 0.1)
+			apply_camera_impact(0.15, 20.0) # BIG HIT (High Zoom + High Shake)
 		else:
-			AudioManager.play_sfx("hit_light", 0.2) # <--- NEW
-		# --- NEW: Trigger Hit Animation ---
+			AudioManager.play_sfx("hit_light", 0.2) 
+			apply_camera_impact(0.05, 5.0)  # SMALL HIT
+			
 		if target_id == 1: p1_hud.play_hit_animation()
 		else: p2_hud.play_hit_animation()
 
@@ -547,181 +490,111 @@ func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
 	if combat_log:
 		combat_log.add_clash_log(winner_id, p1_card, p2_card)
 		
-	# --- NEW: Trigger Attack Animations ---
-	# P1 Lunges Right (+50 pixels) if attacking
+	# IMPACT: Zoom in slightly to emphasize the clash reveal
+	apply_camera_impact(0.02, 0.0) 
+		
 	if p1_card.type == ActionData.Type.OFFENCE:
 		p1_hud.play_attack_animation(Vector2(50, 0))
-		
-	# P2 Lunges Left (-50 pixels) if attacking
 	if p2_card.type == ActionData.Type.OFFENCE:
 		p2_hud.play_attack_animation(Vector2(-50, 0))
-	# Play Clash Sound (Metal hitting metal)
+		
 	AudioManager.play_sfx("clash", 0.1)
 
 func _on_log_toggled(toggled_on: bool):
 	combat_log.visible = toggled_on
 
-# BattleUI.gd
-
-@onready var clash_layer = $ClashLayer # Make sure you created this node
-@onready var left_card_display = $ClashLayer/LeftCard # Assign these in editor
-@onready var right_card_display = $ClashLayer/RightCard
-
 func play_clash_animation(p1_card: ActionData, p2_card: ActionData):
 	clash_layer.visible = true
-	
-	# 1. Setup Data
 	left_card_display.set_card_data(p1_card)
 	right_card_display.set_card_data(p2_card)
 	
-	# --- FIX START: FORCE SIZE & PIVOT ---
-	# Force standard card size (Portrait)
 	var card_size = Vector2(250, 350) 
-	
 	left_card_display.custom_minimum_size = card_size
 	left_card_display.size = card_size
-	
 	right_card_display.custom_minimum_size = card_size
 	right_card_display.size = card_size
 	
-	# Set Pivot to center so they scale/rotate from the middle, not top-left
 	left_card_display.pivot_offset = card_size / 2
 	right_card_display.pivot_offset = card_size / 2
-	
-	# Reset Scale (Try 1.0, or 1.2 for big impact)
 	left_card_display.scale = Vector2(1.0, 1.0)
 	right_card_display.scale = Vector2(1.0, 1.0)
-	# --- FIX END ---
 	
-	# 2. Reset Positions (Off-screen)
 	var center = get_viewport().get_visible_rect().size / 2
-	
-	# Start far left/right
 	left_card_display.position.x = -400
 	right_card_display.position.x = get_viewport().get_visible_rect().size.x + 400
-	
-	# Center Y (adjusted for pivot)
 	left_card_display.position.y = center.y - (card_size.y / 2)
 	right_card_display.position.y = center.y - (card_size.y / 2)
 	
-	# 3. Animate Slam
 	var tween = create_tween()
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_QUART)
 	tween.set_ease(Tween.EASE_OUT)
 	
-	# Move to center (Target positions)
-	# Left card stops slightly left of center
 	tween.tween_property(left_card_display, "position:x", center.x - card_size.x - 40, 0.4)
-	# Right card stops slightly right of center
 	tween.tween_property(right_card_display, "position:x", center.x + 20, 0.4)
 	
-	# Add a little shake/scale punch on impact
 	await tween.finished
 	HitStopManager.stop_frame(0.15) 
-	
-	# Hold for reading
 	await get_tree().create_timer(1.2).timeout
 	
-	# Fade out
 	clash_layer.visible = false
 	GameManager.clash_animation_finished.emit()
 
-func _on_damage_shake(_target, amount, is_blocked):
-	# The higher the damage, the harder the shake
-	if is_blocked:
-		shake_strength = 2.0 
-	else:
-		shake_strength = float(amount) * 5.0 # Increased multiplier for visibility
-
-
 func _on_menu_pressed():
-	# 3. Create the Compendium
 	var compendium = compendium_scene.instantiate()
-	
-	# 4. Configure it as an overlay
 	compendium.is_overlay = true
-	
-	# 5. Add it to the UI (It will cover the screen)
 	add_child(compendium)
 
-# BattleUI.gd
-
-# We add "= null" to make these arguments optional.
 func setup_toggles(p1_override = null, p2_override = null):
 	var container = HBoxContainer.new()
 	add_child(container)
 	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	container.position.y += 60 
 	container.add_theme_constant_override("separation", 20)
-	
 	container.visible = false
 	container.name = "DebugContainer"
 	
-	# 1. DEFAULT LOGIC (Automatic)
 	var p1_is_human = true 
 	var p2_is_human = false
 	
 	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
 		p2_is_human = true
 	
-	# 2. OVERRIDE LOGIC (If TestArena passed specific values, use them)
-	if p1_override != null:
-		p1_is_human = p1_override
+	if p1_override != null: p1_is_human = p1_override
+	if p2_override != null: p2_is_human = p2_override
 	
-	if p2_override != null:
-		p2_is_human = p2_override
-	
-	# 3. CREATE P1 TOGGLE
 	p1_toggle = CheckButton.new()
 	p1_toggle.text = "P1 Human"
 	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
 	p1_toggle.button_pressed = p1_is_human 
 	container.add_child(p1_toggle)
 	
-	# 4. CREATE P2 TOGGLE
 	p2_toggle = CheckButton.new()
 	p2_toggle.text = "P2 Human"
 	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
 	p2_toggle.button_pressed = p2_is_human
 	container.add_child(p2_toggle)
 
-# Add this new handler for state changes
 func _on_game_state_changed(new_state):
-	# existing state logic (if any) can go here...
-	
-	# When the clash math is finished, log the results
 	if new_state == GameManager.State.POST_CLASH:
 		_log_stat_changes()
 
-# Helper to calculate and send diffs
 func _log_stat_changes():
 	if not combat_log or not GameManager.p1_data or not GameManager.p2_data: return
 	
-	# 1. Get Current Stats
 	var p1_cur = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
 	var p2_cur = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
 	
-	# --- FIX START ---
-	# If this is the very first time (previous stats are 0), 
-	# just sync them silently and return. 
-	# (Assuming max HP is never actually 0).
 	if _prev_p1_stats.hp == 0 and _prev_p2_stats.hp == 0:
 		_snapshot_stats()
 		return
-	# --- FIX END ---
 	
-	# 2. Calculate Difference
 	var p1_diff = { "hp": p1_cur.hp - _prev_p1_stats.hp, "sp": p1_cur.sp - _prev_p1_stats.sp }
 	var p2_diff = { "hp": p2_cur.hp - _prev_p2_stats.hp, "sp": p2_cur.sp - _prev_p2_stats.sp }
 	
-	# 3. Send to Log (Only if something changed or to show momentum)
 	combat_log.add_round_summary(p1_diff, p2_diff, GameManager.momentum)
-	
-	# 4. Update Snapshot for next turn
 	_snapshot_stats()
 
-# Helper to update the "Previous" stats
 func _snapshot_stats():
 	if GameManager.p1_data:
 		_prev_p1_stats = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
