@@ -354,7 +354,7 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 	# Noise Setup
 	var noise_range = 0.0
 	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: noise_range = 0.0 # No noise, just pure bad decisions
+		GameManager.Difficulty.VERY_EASY: noise_range = 0 # No noise, just pure bad decisions
 		GameManager.Difficulty.EASY: noise_range = 100.0
 		GameManager.Difficulty.MEDIUM: noise_range = 25.0
 		GameManager.Difficulty.HARD: noise_range = 2.0
@@ -394,8 +394,16 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 	
 	# --- 1. STRICT ANTI-REPETITION ---
 	if card.display_name == p2_last_action_name:
-		score -= 100.0
-		log_parts.append("-100 (Repetition)")
+		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
+			# [cite_start]FIX: For Very Easy, we pick the LOWEST score[cite: 220].
+			# To discourage repetition, we must ADD to the score so it isn't the lowest.
+			score += 100.0
+			log_parts.append("+100 (Repetition Avoidance)")
+		else:
+			# Normal Logic: We pick the HIGHEST score.
+			# Subtracting makes the AI avoid it.
+			score -= 100.0
+			log_parts.append("-100 (Repetition)")
 
 	# --- 2. TACTICAL RESPONSE ---
 	if card.type == ActionData.Type.OFFENCE:

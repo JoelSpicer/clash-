@@ -27,48 +27,91 @@ func setup(character: CharacterData):
 		portrait.texture = character.portrait
 
 # --- NEW LAYOUT SYSTEM ---
+# Scripts/PlayerHud.gd
+
 func configure_visuals(is_player_2: bool):
-	# 1. Reset any previous scaling on the root to fix the text
 	scale = Vector2(1, 1)
 	
+	# 1. SETUP DIMENSIONS
+	var hud_width = 300 
+	var screen_margin = 20 # <--- NEW: Margin from the side of the screen
+	var gap = 15           # Gap between bars and portrait
+	var offset = 150
+	# Force the VBox to be the right width
+	$VBoxContainer.custom_minimum_size.x = hud_width
+	$VBoxContainer.size.x = hud_width 
+	
+	# Find the background node
+	var bg = get_node_or_null("Panel") 
+	if not bg: bg = get_node_or_null("Background")
+	
+	# Force bars to expand
 	if hp_bar: hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if sp_bar: sp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	
-	# Force the VBox to calculate its size so we can position things accurately
-	#$VBoxContainer.reset_size()
-	var vbox_width = $VBoxContainer.size.x
-	#var gap = 15 # Space between bars and portrait
-	
 	if is_player_2:
 		# --- PLAYER 2 (Right Side) ---
-		# Align Text to the Right
+		
+		# 1. Anchor VBox to Top-Right
+		$VBoxContainer.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		
+		# 2. Position it inwards (Negative X)
+		# Logic: -300 (Width) - 20 (Margin) = -320 from the right edge
+		$VBoxContainer.position.x = + screen_margin  - hud_width
+		$VBoxContainer.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		
+		# 3. Snap Background to match VBox
+		if bg:
+			bg.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+			bg.position = $VBoxContainer.position
+			bg.size = $VBoxContainer.size
+			bg.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+
+		# 4. Align Text & Bars
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		
-		# PORTRAIT: Place to the LEFT of the bars (Towards Center)
+		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
+		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
+		
+		# 5. Position Portrait (To the LEFT of the VBox)
 		if portrait:
-			# Flip the FACE only, not the text
 			portrait.scale.x = -1
 			portrait.pivot_offset = portrait.size / 2
-			
-			# Position: To the Left of the VBox (Negative X)
-			portrait.position.x = $VBoxContainer.position.x - portrait.size.x - 20
+			portrait.position.x = $VBoxContainer.position.x - portrait.size.x - gap + offset
 			
 	else:
 		# --- PLAYER 1 (Left Side) ---
-		# Align Text to the Left
+		
+		# 1. Anchor VBox to Top-Left
+		$VBoxContainer.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		
+		# 2. Position it inwards (Positive X)
+		# Logic: 0 + 20 (Margin) = 20 from the left edge
+		$VBoxContainer.position.x = screen_margin
+		$VBoxContainer.grow_horizontal = Control.GROW_DIRECTION_END
+		
+		# 3. Snap Background to match VBox
+		if bg:
+			bg.set_anchors_preset(Control.PRESET_TOP_LEFT)
+			bg.position = $VBoxContainer.position
+			bg.size = $VBoxContainer.size
+			bg.grow_horizontal = Control.GROW_DIRECTION_END
+			
+		# 4. Align Text & Bars
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		
-		# PORTRAIT: Place to the RIGHT of the bars (Towards Center)
+		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+		
+		# 5. Position Portrait (To the RIGHT of the VBox)
 		if portrait:
 			portrait.scale.x = 1
 			portrait.pivot_offset = portrait.size / 2
-			
-			# Position: To the Right of the VBox
-			portrait.position.x = $VBoxContainer.position.x + vbox_width + 10
+			portrait.position.x = $VBoxContainer.position.x + hud_width + gap - offset
 
-	# Update original position for animations
+	# Save position for animations
 	if portrait: original_pos = portrait.position
 
 func update_stats(character: CharacterData, is_injured: bool, opportunity: int, opening: int):

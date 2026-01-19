@@ -189,7 +189,7 @@ func _setup_difficulty():
 	difficulty_option.add_item("Easy")
 	difficulty_option.add_item("Medium")
 	difficulty_option.add_item("Hard")
-	difficulty_option.selected = 1
+	difficulty_option.selected = 2
 	GameManager.ai_difficulty = GameManager.Difficulty.MEDIUM
 	difficulty_option.item_selected.connect(_on_difficulty_changed)
 

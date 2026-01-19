@@ -34,6 +34,9 @@ func _ready():
 	
 	# 3. CREATE TOOLTIP POPUP
 	_create_tooltip_popup()
+	
+	# --- FIX: Listen for when the player opens the log ---
+	visibility_changed.connect(_on_visibility_changed)
 
 func _create_tooltip_popup():
 	tooltip_popup = PanelContainer.new()
@@ -151,8 +154,14 @@ func _format_text(raw: String) -> String:
 	return txt
 
 func _auto_scroll():
+	# Only scroll if we are actually visible to avoid errors
+	if not visible: return
+	
 	await get_tree().process_frame
-	scroll_container.scroll_vertical = int(scroll_container.get_v_scroll_bar().max_value)
+	await get_tree().process_frame
+	
+	if scroll_container and scroll_container.get_v_scroll_bar():
+		scroll_container.scroll_vertical = int(scroll_container.get_v_scroll_bar().max_value)
 
 # --- INTERACTIVITY ---
 
@@ -227,3 +236,8 @@ func _format_diff(player_label: String, diff: Dictionary, name_color: String) ->
 		return s + "[color=#888888]No Change[/color]"
 		
 	return s + ", ".join(changes)
+
+func _on_visibility_changed():
+	# If we just opened the window, wait for it to draw, then scroll to bottom.
+	if visible:
+		_auto_scroll()

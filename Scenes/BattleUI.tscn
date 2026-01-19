@@ -157,10 +157,12 @@ text = "TEST"
 [node name="P1_HUD" parent="." instance=ExtResource("3_vxmu1")]
 
 [node name="P2_HUD" parent="." instance=ExtResource("3_vxmu1")]
-offset_left = 929.0
-offset_top = 2.0
-offset_right = 969.0
-offset_bottom = 42.0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_right = 0.0
+grow_horizontal = 0
 
 [node name="CombatLog" parent="." instance=ExtResource("4_f6fb8")]
 offset_left = 12.0
