@@ -333,7 +333,24 @@ func _refresh_grid():
 		btn.card_hovered.connect(_on_card_hovered)
 		btn.card_exited.connect(_on_card_exited) 
 		btn.card_selected.connect(_on_card_selected)
-
+		
+	if not feint_mode:
+		var struggle = GameManager.get_struggle_action(current_tab)
+		var s_btn = card_button_scene.instantiate()
+		button_grid.add_child(s_btn)
+		
+		s_btn.setup(struggle)
+		s_btn.update_cost_display(0)
+		s_btn.set_available(true) # Always available
+		s_btn.modulate = Color(0.9, 0.9, 0.9) # Slightly distinct color
+		
+		s_btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+		s_btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+		
+		s_btn.card_hovered.connect(_on_card_hovered)
+		s_btn.card_exited.connect(_on_card_exited)
+		s_btn.card_selected.connect(_on_card_selected)
+	
 	if feint_mode:
 		skip_action.type = current_tab 
 		var skip_btn = card_button_scene.instantiate()

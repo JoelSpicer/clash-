@@ -786,3 +786,18 @@ func _handle_patient_passive(player_id: int, card: ActionData):
 	if total_fb > 0 and not consumed_buff:
 		character.patient_buff_active = true
 		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Bides their time... (Next Action Buffed)")
+
+func get_struggle_action(force_type: ActionData.Type) -> ActionData:
+	var action = ActionData.new()
+	action.display_name = "Struggle"
+	action.description = "Offence, Defence, Recover 1, Fall Back 1"
+	action.type = force_type
+	action.cost = 0
+	
+	# Stats: Recover 1, Fall Back 1
+	# Note: Defence actions naturally get +1 Recover in the rules, 
+	# so Struggle (Def) will actually recover 2 SP, which makes sense (catching breath).
+	action.recover_value = 1 
+	action.fall_back_value = 1
+	
+	return action

@@ -1206,6 +1206,8 @@ func _ready():
 		printerr("CRITICAL: Buttons missing in BattleUI")
 		return
 	
+	GameManager.wall_crush_occurred.connect(_on_wall_crush_ui)
+	
 	momentum_slider.max_value = GameManager.TOTAL_MOMENTUM_SLOTS
 	momentum_slider.min_value = 1
 	
@@ -1747,6 +1749,26 @@ func _attach_sfx(btn: BaseButton):
 	if not btn: return
 	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
 	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+
+func _on_wall_crush_ui(target_id: int, _dmg: int):
+	# 1. SCREEN SHAKE (Global)
+	# Apply a sharp, short shake to the camera
+	apply_camera_impact(0.05, 15.0) 
+
+	# 2. SLIDER IMPACT (Local)
+	# Shake the momentum slider specifically
+	var original_x = momentum_slider.position.x
+	var tween = create_tween()
+
+	# Determine shake direction (Against the wall)
+	var shake_dir = -10 if target_id == 1 else 10
+
+	# Jerk the slider bar towards the wall then bounce back
+	tween.tween_property(momentum_slider, "position:x", original_x + shake_dir, 0.05)
+	tween.tween_property(momentum_slider, "position:x", original_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+	# 3. SOUND (Optional, if you have a sound file)
+	# AudioManager.play_sfx("hit_heavy", 0.1)
 
 
 ========================================
@@ -2857,7 +2879,7 @@ const RULES_DEFS = {
 	"Traits": "All actions have one or more traits. A trait is a keyword that conveys information about how an action interacts with other rules elements or traits. Traits can stack unless otherwise noted. Actions are sometimes named for their traits, e.g. an action with the Offence trait is called and Offence action.", 
 	"Stamina": "Every combatant has a number of stamina points (SP), which is used to keep track of their current stamina as it increases and falls throughout a combat. Player characters start with 3 SP. Stamina can be increased and reduced by you or your opponent’s actions and special abilities.", 
 	"Health": "Every combatant has a number of hit points (HP) that they must keep track of. Player characters start with 10 HP. Actions can deal damage to you to reduce your HP, or heal yourself to increase your HP (up to your max HP).", 
-	"Momentum": "Momentum keeps track of who has taken the advantage in combat. It is suggested that momentum is tracked using one polyhedral die, but any even number can be used. Each combatant chooses either high or low numbers to be theirs. Any time a player is in their ‘half’ of the tracker, they have the momentum advantage, and can use offence actions in combat. Example: With a momentum of 8, player A chooses high numbers, so 5-8, and player B chooses low numbers, so 1-4. Whenever player A would gain momentum, through actions or special abilities, they would increase the number. Conversely, whenever player B would gain momentum, they would decrease the number. For example, if momentum is on 2, player B has the momentum advantage, and if the momentum was 1, player B would be able to choose their action after seeing their opponent’s action.", 
+	"Momentum": "Momentum keeps track of who has taken the advantage in combat. It is suggested that momentum is tracked using one polyhedral die, but any even number can be used. Each combatant chooses either high or low numbers to be theirs. Any time a player is in their ‘half’ of the tracker, they have the momentum advantage, and can use offence actions in combat (once their opponent's combo has ended). Example: With a momentum of 8, player A chooses high numbers, so 5-8, and player B chooses low numbers, so 1-4. Whenever player A would gain momentum, through actions or special abilities, they would increase the number. Conversely, whenever player B would gain momentum, they would decrease the number. For example, if momentum is on 2, player B has the momentum advantage, and if the momentum was 1, player A would first take SP damage if they use fall back actions, or HP if they are out of SP.", 
 	"Order of Actions": "When you apply the traits from an action to yourself, please use the following rules: • Apply traits from your action to yourself before you apply traits from your opponent’s action to yourself • Apply traits that affect the momentum tracker from Offence actions first, then Defence actions."
 }
 
@@ -3520,6 +3542,8 @@ signal healing_received(target_id: int, amount: int)
 signal status_applied(target_id: int, status_name: String)
 signal request_clash_animation(p1_card, p2_card)
 signal clash_animation_finished
+signal wall_crush_occurred(player_id, damage_amount)
+
 
 # --- CONFIGURATION ---
 var TOTAL_MOMENTUM_SLOTS: int = 8 
@@ -3871,16 +3895,16 @@ func resolve_clash():
 	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
 	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
 	
-	# --- FIX: WALL CRUSH CHECK ---
-	# Checks if players are already at their wall limit and trying to retreat.
-	# If so, they take damage instead of moving momentum.
-	if p1_fb > 0 and momentum <= 1:
+	# --- FIX: SWAPPED WALL CHECKS ---
+	# P1 is pinned at TOTAL (Right side). Falling Back (Adding +) pushes them into the wall.
+	if p1_fb > 0 and momentum >= TOTAL_MOMENTUM_SLOTS:
 		_apply_wall_crush(1, p1_fb)
-		p1_fb = 0 # Movement cancelled by wall
+		p1_fb = 0 
 		
-	if p2_fb > 0 and momentum >= TOTAL_MOMENTUM_SLOTS:
+	# P2 is pinned at 1 (Left side). Falling Back (Subtracting -) pushes them into the wall.
+	if p2_fb > 0 and momentum <= 1:
 		_apply_wall_crush(2, p2_fb)
-		p2_fb = 0 # Movement cancelled by wall
+		p2_fb = 0 
 	# ------------------------------
 	
 	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
@@ -3950,6 +3974,10 @@ func resolve_clash():
 
 func _apply_wall_crush(player_id: int, amount: int):
 	var character = p1_data if player_id == 1 else p2_data
+	
+	# --- NEW: EMIT SIGNAL ---
+	emit_signal("wall_crush_occurred", player_id, amount)
+	# ------------------------
 	
 	emit_signal("combat_log_updated", ">> P" + str(player_id) + " CRUSHED against the wall!")
 	
@@ -5175,6 +5203,7 @@ func _ready():
 	GameManager.clash_resolved.connect(_on_clash_resolved)
 	GameManager.damage_dealt.connect(_on_damage_dealt)
 	GameManager.healing_received.connect(_on_healing_received)
+	GameManager.wall_crush_occurred.connect(_on_wall_crush)
 	
 	# NEW: Listen for status updates to trigger Dodge effects
 	GameManager.status_applied.connect(_on_status_applied)
@@ -5407,3 +5436,58 @@ func _on_status_applied(target_id: int, status: String):
 	if status == "DODGED":
 		var pos = _get_target_pos(target_id)
 		_spawn_vfx(_create_dodge_particles(), pos)
+
+func _create_wall_debris() -> GPUParticles2D:
+	var p = GPUParticles2D.new()
+	p.amount = 20
+	p.lifetime = 0.8
+	p.one_shot = true
+	p.explosiveness = 1.0
+	
+	# Texture: Grey Square (Concrete/Wood chip)
+	var img = Image.create(6, 6, false, Image.FORMAT_RGBA8)
+	img.fill(Color.LIGHT_GRAY)
+	p.texture = ImageTexture.create_from_image(img)
+	
+	# Physics
+	var mat = ParticleProcessMaterial.new()
+	mat.direction = Vector3(1, -0.5, 0) # Default Right-Up
+	mat.spread = 30
+	mat.initial_velocity_min = 300
+	mat.initial_velocity_max = 600
+	mat.gravity = Vector3(0, 1500, 0) # Heavy falling debris
+	mat.scale_min = 2.0
+	mat.scale_max = 5.0
+	
+	# Rotation
+	mat.angular_velocity_min = -300
+	mat.angular_velocity_max = 300
+	
+	# Color: Grey -> Fade
+	var grad = Gradient.new()
+	grad.set_color(0, Color(0.7, 0.7, 0.7)) 
+	grad.set_color(1, Color(0.7, 0.7, 0.7, 0))
+	var grad_tex = GradientTexture1D.new()
+	grad_tex.gradient = grad
+	mat.color_ramp = grad_tex
+	
+	p.process_material = mat
+	return p
+
+func _on_wall_crush(target_id: int, _damage: int):
+	var screen_size = get_viewport().get_visible_rect().size
+	var spawn_pos = Vector2.ZERO
+	
+	var p = _create_wall_debris()
+	var mat = p.process_material as ParticleProcessMaterial
+	
+	if target_id == 1:
+		# P1 Hit LEFT Wall -> Debris flies RIGHT
+		spawn_pos = Vector2(0, screen_size.y * 0.5) # Left Edge Center
+		mat.direction = Vector3(1, -0.5, 0) # Fly Right-Up
+	else:
+		# P2 Hit RIGHT Wall -> Debris flies LEFT
+		spawn_pos = Vector2(screen_size.x, screen_size.y * 0.5) # Right Edge Center
+		mat.direction = Vector3(-1, -0.5, 0) # Fly Left-Up
+		
+	_spawn_vfx(p, spawn_pos)

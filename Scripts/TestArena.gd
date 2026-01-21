@@ -98,7 +98,7 @@ func _ready():
 	if not is_player_2_human:
 		if battle_ui.p2_hud and battle_ui.p2_hud.name_label:
 			battle_ui.p2_hud.name_label.text += diff_suffix
-	
+
 func _update_visuals():
 	battle_ui.update_all_visuals(p1_resource, p2_resource, GameManager.momentum)
 
@@ -334,9 +334,18 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		elif effective_cost == 0:
 			affordable_backups.append(card)
 	
+	# --- FIX: ADD STRUGGLE OPTION ---
+	# If the bot is filtering for a specific type (e.g. Defence), give it the Struggle option for that type.
+	var required_type = type_filter if type_filter != null else ActionData.Type.OFFENCE
+	var struggle = GameManager.get_struggle_action(required_type)
+	
+	# If we have NO valid deck options, or if we just want to consider saving SP, add Struggle.
+	# Adding it to 'valid_options' lets the Scoring System decide if it's a good idea.
+	valid_options.append(struggle)
+	# --------------------------------
+	
 	if valid_options.is_empty():
-		if affordable_backups.size() > 0: return affordable_backups.pick_random()
-		return character.deck[0] 
+		return struggle 
 
 	# B. STRATEGY
 	var best_card = valid_options[0]
@@ -468,7 +477,18 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 		if card.type == ActionData.Type.DEFENCE: s_val += 20 * w_def
 		score += s_val
 		if s_val > 0: log_parts.append("+" + str(s_val) + " (Panic Mode)")
-
+	
+	# Logic for Struggle (display_name check)
+	if card.display_name == "Struggle":
+		# If we are low on SP, Struggle is very valuable
+		if me.current_sp <= 1:
+			score += 50.0
+			log_parts.append("+50 (Need SP)")
+		# If we are full on SP, Struggle is bad
+		elif me.current_sp >= me.max_sp:
+			score -= 50.0
+			log_parts.append("-50 (SP Full)")
+	
 	# Momentum Logic
 	var mom = GameManager.momentum
 	var winning = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
