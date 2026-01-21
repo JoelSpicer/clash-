@@ -32,6 +32,7 @@ var current_hp: int
 var current_sp: int
 var has_used_super: bool = false 
 var combo_action_count: int = 0 # Track for Relentless passive
+var patient_buff_active: bool = false #Tracks the +1 Damage Buff
 
 # --- LOGIC ---
 
@@ -40,7 +41,7 @@ func reset_stats():
 	current_sp = max_sp
 	has_used_super = false
 	combo_action_count = 0
-
+	patient_buff_active = false
 # Call this when the player "Learns" a new card to apply Class Stat Growth
 func unlock_action(new_action: ActionData):
 	if new_action in deck: return

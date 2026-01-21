@@ -236,8 +236,10 @@ func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	update_momentum(0)
 
 func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
-	p1_hud.update_stats(p1, GameManager.p1_is_injured, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat)
-	p2_hud.update_stats(p2, GameManager.p2_is_injured, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat)
+	# UPDATED CALLS with the new 'patient_buff_active' argument
+	p1_hud.update_stats(p1, GameManager.p1_is_injured, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat, p1.patient_buff_active)
+	p2_hud.update_stats(p2, GameManager.p2_is_injured, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat, p2.patient_buff_active)
+	
 	update_momentum(momentum)
 	$MomentumSlider/Label2.text = str(GameManager.momentum)
 

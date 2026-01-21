@@ -114,7 +114,7 @@ func configure_visuals(is_player_2: bool):
 	# Save position for animations
 	if portrait: original_pos = portrait.position
 
-func update_stats(character: CharacterData, is_injured: bool, opportunity: int, opening: int):
+func update_stats(character: CharacterData, is_injured: bool, opportunity: int, opening: int, bide_active: bool):
 	var tween = create_tween()
 	tween.tween_property(hp_bar, "value", character.current_hp, 0.3).set_trans(Tween.TRANS_SINE)
 	tween.parallel().tween_property(sp_bar, "value", character.current_sp, 0.3)
@@ -126,9 +126,12 @@ func update_stats(character: CharacterData, is_injured: bool, opportunity: int, 
 	if is_injured: status_txt += "[INJURED] "
 	if opportunity > 0: status_txt += "[OPPORTUNITY] "
 	if opening > 0: status_txt += "[OPENING: " + str(opening) + "]"
+	if bide_active: status_txt += "[BIDE (+1 DMG)]"
+	
 	
 	status_label.text = status_txt
 	if is_injured: status_label.modulate = Color.ORANGE_RED
+	elif bide_active: status_label.modulate = Color(0.3, 1.0, 1.0) # Cyan for Bide
 	elif opportunity > 0: status_label.modulate = Color.YELLOW
 	else: status_label.modulate = Color.WHITE
 

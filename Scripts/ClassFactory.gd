@@ -244,7 +244,7 @@ func create_character(class_type: CharacterData.ClassType, player_name: String) 
 			char_data.portrait = art_heavy
 		CharacterData.ClassType.PATIENT:
 			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 2
-			char_data.passive_desc = "KEEP-UP: Spend SP to prevent Falling Back."
+			char_data.passive_desc = "BIDE: Using Fall Back grants +1 Damage to your NEXT action. (Cannot chain)."
 			char_data.portrait = art_patient
 		CharacterData.ClassType.QUICK:
 			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 4
