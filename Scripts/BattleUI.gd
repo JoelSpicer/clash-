@@ -66,6 +66,8 @@ func _ready():
 		printerr("CRITICAL: Buttons missing in BattleUI")
 		return
 	
+	GameManager.wall_crush_occurred.connect(_on_wall_crush_ui)
+	
 	momentum_slider.max_value = GameManager.TOTAL_MOMENTUM_SLOTS
 	momentum_slider.min_value = 1
 	
@@ -607,3 +609,23 @@ func _attach_sfx(btn: BaseButton):
 	if not btn: return
 	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
 	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+
+func _on_wall_crush_ui(target_id: int, _dmg: int):
+	# 1. SCREEN SHAKE (Global)
+	# Apply a sharp, short shake to the camera
+	apply_camera_impact(0.05, 15.0) 
+
+	# 2. SLIDER IMPACT (Local)
+	# Shake the momentum slider specifically
+	var original_x = momentum_slider.position.x
+	var tween = create_tween()
+
+	# Determine shake direction (Against the wall)
+	var shake_dir = -10 if target_id == 1 else 10
+
+	# Jerk the slider bar towards the wall then bounce back
+	tween.tween_property(momentum_slider, "position:x", original_x + shake_dir, 0.05)
+	tween.tween_property(momentum_slider, "position:x", original_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+	# 3. SOUND (Optional, if you have a sound file)
+	# AudioManager.play_sfx("hit_heavy", 0.1)

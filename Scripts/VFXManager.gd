@@ -5,6 +5,7 @@ func _ready():
 	GameManager.clash_resolved.connect(_on_clash_resolved)
 	GameManager.damage_dealt.connect(_on_damage_dealt)
 	GameManager.healing_received.connect(_on_healing_received)
+	GameManager.wall_crush_occurred.connect(_on_wall_crush)
 	
 	# NEW: Listen for status updates to trigger Dodge effects
 	GameManager.status_applied.connect(_on_status_applied)
@@ -237,3 +238,58 @@ func _on_status_applied(target_id: int, status: String):
 	if status == "DODGED":
 		var pos = _get_target_pos(target_id)
 		_spawn_vfx(_create_dodge_particles(), pos)
+
+func _create_wall_debris() -> GPUParticles2D:
+	var p = GPUParticles2D.new()
+	p.amount = 20
+	p.lifetime = 0.8
+	p.one_shot = true
+	p.explosiveness = 1.0
+	
+	# Texture: Grey Square (Concrete/Wood chip)
+	var img = Image.create(6, 6, false, Image.FORMAT_RGBA8)
+	img.fill(Color.LIGHT_GRAY)
+	p.texture = ImageTexture.create_from_image(img)
+	
+	# Physics
+	var mat = ParticleProcessMaterial.new()
+	mat.direction = Vector3(1, -0.5, 0) # Default Right-Up
+	mat.spread = 30
+	mat.initial_velocity_min = 300
+	mat.initial_velocity_max = 600
+	mat.gravity = Vector3(0, 1500, 0) # Heavy falling debris
+	mat.scale_min = 2.0
+	mat.scale_max = 5.0
+	
+	# Rotation
+	mat.angular_velocity_min = -300
+	mat.angular_velocity_max = 300
+	
+	# Color: Grey -> Fade
+	var grad = Gradient.new()
+	grad.set_color(0, Color(0.7, 0.7, 0.7)) 
+	grad.set_color(1, Color(0.7, 0.7, 0.7, 0))
+	var grad_tex = GradientTexture1D.new()
+	grad_tex.gradient = grad
+	mat.color_ramp = grad_tex
+	
+	p.process_material = mat
+	return p
+
+func _on_wall_crush(target_id: int, _damage: int):
+	var screen_size = get_viewport().get_visible_rect().size
+	var spawn_pos = Vector2.ZERO
+	
+	var p = _create_wall_debris()
+	var mat = p.process_material as ParticleProcessMaterial
+	
+	if target_id == 1:
+		# P1 Hit LEFT Wall -> Debris flies RIGHT
+		spawn_pos = Vector2(0, screen_size.y * 0.5) # Left Edge Center
+		mat.direction = Vector3(1, -0.5, 0) # Fly Right-Up
+	else:
+		# P2 Hit RIGHT Wall -> Debris flies LEFT
+		spawn_pos = Vector2(screen_size.x, screen_size.y * 0.5) # Right Edge Center
+		mat.direction = Vector3(-1, -0.5, 0) # Fly Left-Up
+		
+	_spawn_vfx(p, spawn_pos)

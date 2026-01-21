@@ -39,6 +39,8 @@ signal healing_received(target_id: int, amount: int)
 signal status_applied(target_id: int, status_name: String)
 signal request_clash_animation(p1_card, p2_card)
 signal clash_animation_finished
+signal wall_crush_occurred(player_id, damage_amount)
+
 
 # --- CONFIGURATION ---
 var TOTAL_MOMENTUM_SLOTS: int = 8 
@@ -469,6 +471,10 @@ func resolve_clash():
 
 func _apply_wall_crush(player_id: int, amount: int):
 	var character = p1_data if player_id == 1 else p2_data
+	
+	# --- NEW: EMIT SIGNAL ---
+	emit_signal("wall_crush_occurred", player_id, amount)
+	# ------------------------
 	
 	emit_signal("combat_log_updated", ">> P" + str(player_id) + " CRUSHED against the wall!")
 	
