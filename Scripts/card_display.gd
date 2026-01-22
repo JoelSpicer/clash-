@@ -61,6 +61,16 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 	if action.tiring > 0: stats_text += str(action.tiring) + " TIRE "
 	if action.retaliate: stats_text += "RETAL "
 	if action.feint: stats_text += "FEINT "
-	if action.injure: stats_text += "INJURE "
+	
+	# NEW: GENERIC STATUS TEXT
+	for effect in action.statuses_to_apply:
+		var s_name = effect.get("name", "???").to_upper()
+		var s_val = effect.get("amount", 1)
+		var is_self = effect.get("self", false)
+		
+		var prefix = "SELF " if is_self else ""
+		var val_str = str(s_val) + " " if s_val > 1 else ""
+		
+		stats_text += prefix + val_str + s_name + " "
 		
 	stat_label.text = stats_text

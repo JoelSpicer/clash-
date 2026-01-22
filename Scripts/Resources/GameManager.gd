@@ -547,10 +547,18 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 				target.current_sp = max(0, target.current_sp - my_card.tiring)
 				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
 		
-		if my_card.injure:
-			if not has_status(target_id, "Injured"):
-				apply_status(target_id, "Injured", 1)
-				emit_signal("combat_log_updated", ">> P" + str(target_id) + " is Injured!")
+		# --- NEW: GENERIC STATUS APPLICATION ---
+		for effect in my_card.statuses_to_apply:
+			# Default keys: "name" (String), "amount" (int), "self" (bool)
+			var s_name = effect.get("name", "Unknown")
+			var s_val = effect.get("amount", 1)
+			var is_self = effect.get("self", false)
+			
+			var dest_id = owner_id if is_self else target_id
+			
+			# Apply it (using our helper from the previous step)
+			if not has_status(dest_id, s_name):
+				apply_status(dest_id, s_name, s_val)
 
 		if my_card.create_opening > 0:
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
@@ -642,21 +650,30 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 
 # Change arguments from '_p1_started_injured' to 'p1_started_injured' (remove underscores)
 func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
-	
-	# P1 STATUS CHECK
-	# Rule: Must have the status NOW, AND must have had it at the START of the turn.
-	if p1_data.statuses.has("Injured") and p1_started_injured:
-		p1_data.current_hp -= 1
-		emit_signal("combat_log_updated", ">> P1 takes 1 damage from Injury.")
-		emit_signal("damage_dealt", 1, 1, false) 
-		if p1_data.current_hp <= 0: _handle_death(winner_id)
-
-	# P2 STATUS CHECK
-	if p2_data.statuses.has("Injured") and p2_started_injured:
-		p2_data.current_hp -= 1
-		emit_signal("combat_log_updated", ">> P2 takes 1 damage from Injury.")
-		emit_signal("damage_dealt", 2, 1, false) 
-		if p2_data.current_hp <= 0: _handle_death(winner_id)
+	# We iterate through players to apply End-of-Turn effects
+	for id in [1, 2]:
+		var player = p1_data if id == 1 else p2_data
+		var started_injured = p1_started_injured if id == 1 else p2_started_injured
+		
+		# Check every status this player has
+		for s_name in player.statuses.keys():
+			match s_name:
+				"Injured":
+					if started_injured:
+						player.current_hp -= 1
+						emit_signal("combat_log_updated", ">> P" + str(id) + " suffers Injury damage!")
+						emit_signal("damage_dealt", id, 1, false)
+				"Poison":
+					# EXAMPLE: Future proofing!
+					var stacks = player.statuses["Poison"]
+					player.current_hp -= stacks
+					emit_signal("combat_log_updated", ">> P" + str(id) + " takes Poison dmg!")
+					# Decay poison?
+					# player.statuses["Poison"] -= 1
+					
+		if player.current_hp <= 0:
+			_handle_death(winner_id)
+			return
 
 func _handle_death(winner_id):
 	var game_winner = 0

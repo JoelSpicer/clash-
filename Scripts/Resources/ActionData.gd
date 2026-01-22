@@ -34,11 +34,15 @@ enum Type { OFFENCE, DEFENCE }
 @export var is_super: bool = false       # Requires specific Momentum; 1 use per match
 @export var guard_break: bool = false    # Ignores opponent's Block/Dodge
 @export var feint: bool = false          # Triggers Secondary Selection phase
-@export var injure: bool = false         # Applies "Injured" status (DoT)
+#@export var injure: bool = false         # Applies "Injured" status (DoT)
 @export var sweep: bool = false          # (Mass combat flag - unused in 1v1)
 @export var retaliate: bool = false      # Reflects damage back to attacker
 @export var reversal: bool = false       # Seizes initiative if momentum moves closer
 @export var is_parry: bool = false       # Steals momentum; grants Immunity if successful
+
+# --- NEW: SCALABLE STATUS PAYLOAD ---
+# Editor Usage: Add Element -> Key: "name" Value: "Poison", Key: "amount" Value: 3
+@export var statuses_to_apply: Array[Dictionary] = []
 
 # --- ADVANCED LOGIC ---
 @export_group("Advanced Logic")
