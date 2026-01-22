@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bbwvcle21mhop"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://bbwvcle21mhop"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_l2u22"]
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_uf01r"]
 
 [resource]
 script = ExtResource("1_l2u22")
 id = "master_heavy"
 display_name = "Master Heavy"
+icon = ExtResource("1_uf01r")
 description = "Offence, Cost 4, Momentum 3, Damage 3, Injure, Sweep"
 cost = 4
 damage = 3

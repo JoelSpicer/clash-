@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://eb4hlxfyk3jh"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://eb4hlxfyk3jh"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_3g2n0"]
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_8ijtq"]
 
 [resource]
 script = ExtResource("1_3g2n0")
 id = "drop_kick"
 display_name = "Drop Kick"
+icon = ExtResource("1_8ijtq")
 description = "Offence, Cost 2, Opener, Damage 4, Fall Back 1"
 cost = 2
 damage = 4

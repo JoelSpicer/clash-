@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="ClassDefinition" load_steps=14 format=3 uid="uid://c007py27u78qj"]
+
+[ext_resource type="Texture2D" uid="uid://dg7l2syk1ev8h" path="res://Art/Portraits/quick.png" id="1_4nr7a"]
+[ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_btx3a"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="3_0x3nb"]
+[ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="4_drxnv"]
+[ext_resource type="Resource" uid="uid://dc23tmqsq7iod" path="res://Data/Actions/basic_dodge.tres" id="5_nxnnb"]
+[ext_resource type="Resource" uid="uid://bpen1jdisykl" path="res://Data/Actions/basic_parry.tres" id="6_078es"]
+[ext_resource type="Resource" uid="uid://b8ai0k486ma37" path="res://Data/Actions/basic_reversal.tres" id="7_brwgy"]
+[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="8_w407i"]
+[ext_resource type="Resource" uid="uid://dybsgcdat5xva" path="res://Data/Actions/basic_light.tres" id="9_itgx8"]
+[ext_resource type="Resource" uid="uid://ceqlrpt4vuc04" path="res://Data/Actions/basic_positioning.tres" id="10_8ym7e"]
+[ext_resource type="Resource" uid="uid://cis47vu3ete28" path="res://Data/Actions/basic_technical.tres" id="11_og7bm"]
+[ext_resource type="Resource" uid="uid://bxb18ul3lsg2g" path="res://Data/Actions/roll_punch.tres" id="12_k1hmy"]
+[ext_resource type="Resource" uid="uid://dqgvv1l4egthj" path="res://Data/Actions/weave.tres" id="13_iihhh"]
+
+[resource]
+script = ExtResource("2_btx3a")
+class_named = "Quick"
+class_type = 2
+portrait = ExtResource("1_4nr7a")
+passive_description = "Relentless: Every 3rd action in a combo gains Recover 1"
+base_speed = 4
+offence_hp_growth = 1
+defence_sp_growth = 2
+starting_deck = Array[ExtResource("3_0x3nb")]([ExtResource("4_drxnv"), ExtResource("5_nxnnb"), ExtResource("6_078es"), ExtResource("7_brwgy"), ExtResource("8_w407i"), ExtResource("9_itgx8"), ExtResource("10_8ym7e"), ExtResource("11_og7bm"), ExtResource("12_k1hmy"), ExtResource("13_iihhh")])
+skill_tree_root_id = 73
+metadata/_custom_type_script = "uid://bg3yi5728wpap"

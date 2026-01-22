@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://68e7sa88yt6d"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://68e7sa88yt6d"]
 
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_jahnk"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_pov50"]
 
 [resource]
 script = ExtResource("1_pov50")
 id = "drop_prone"
 display_name = "Drop Prone"
+icon = ExtResource("1_jahnk")
 description = "Defence, Cost 4, Dodge 4"
 type = 1
 cost = 4

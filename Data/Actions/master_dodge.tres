@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bdoqmkp17lqt0"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://bdoqmkp17lqt0"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_kfc8k"]
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_t4q16"]
 
 [resource]
 script = ExtResource("1_kfc8k")
 id = "master_dodge"
 display_name = "Master Dodge"
+icon = ExtResource("1_t4q16")
 description = "Defence, Cost 2, Dodge 2, Sweep, Momentum 1"
 type = 1
 cost = 2

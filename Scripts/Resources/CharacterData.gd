@@ -2,6 +2,13 @@ class_name CharacterData
 extends Resource
 
 #region vars
+
+#To add a completely new class identity, you still need to do two small code updates:
+#
+#Add MAGE to the ClassType Enum.
+#
+#Add the if class == MAGE: logic in GameManager for their specific mechanic.
+
 enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL }
 
 # --- NEW: AI PERSONALITY TYPES ---

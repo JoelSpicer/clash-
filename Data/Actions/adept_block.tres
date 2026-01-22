@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://ci33loq1npcp5"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://ci33loq1npcp5"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_qnjka"]
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_wloee"]
 
 [resource]
 script = ExtResource("1_qnjka")
 id = "adept_block"
 display_name = "Adept Block"
+icon = ExtResource("1_wloee")
 description = "Defence, Block 2"
 type = 1
 block_value = 2

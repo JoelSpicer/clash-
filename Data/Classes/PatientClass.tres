@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="ClassDefinition" load_steps=14 format=3 uid="uid://bpk3oy5rf8g3w"]
+
+[ext_resource type="Texture2D" uid="uid://ba7852i08m1lw" path="res://Art/Portraits/patient.png" id="1_47x7k"]
+[ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_vbh24"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="3_io0np"]
+[ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="4_dfopw"]
+[ext_resource type="Resource" uid="uid://dc23tmqsq7iod" path="res://Data/Actions/basic_dodge.tres" id="5_0xrb5"]
+[ext_resource type="Resource" uid="uid://bpen1jdisykl" path="res://Data/Actions/basic_parry.tres" id="6_6c16w"]
+[ext_resource type="Resource" uid="uid://b8ai0k486ma37" path="res://Data/Actions/basic_reversal.tres" id="7_3e81u"]
+[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="8_siept"]
+[ext_resource type="Resource" uid="uid://dybsgcdat5xva" path="res://Data/Actions/basic_light.tres" id="9_o5kx5"]
+[ext_resource type="Resource" uid="uid://ceqlrpt4vuc04" path="res://Data/Actions/basic_positioning.tres" id="10_4m100"]
+[ext_resource type="Resource" uid="uid://cis47vu3ete28" path="res://Data/Actions/basic_technical.tres" id="11_6jl5k"]
+[ext_resource type="Resource" uid="uid://cvichi2xf1plu" path="res://Data/Actions/preparation.tres" id="12_aabbj"]
+[ext_resource type="Resource" uid="uid://dww40yaqty63w" path="res://Data/Actions/counter_strike.tres" id="13_2vuc8"]
+
+[resource]
+script = ExtResource("2_vbh24")
+class_named = "Patient"
+class_type = 1
+portrait = ExtResource("1_47x7k")
+passive_description = "Bide: When you use a fall back action, your next action gains +1 damage, and cannot trigger this passive."
+base_speed = 2
+offence_hp_growth = 1
+defence_hp_growth = 1
+defence_sp_growth = 1
+starting_deck = Array[ExtResource("3_io0np")]([ExtResource("4_dfopw"), ExtResource("5_0xrb5"), ExtResource("6_6c16w"), ExtResource("7_3e81u"), ExtResource("8_siept"), ExtResource("9_o5kx5"), ExtResource("10_4m100"), ExtResource("11_6jl5k"), ExtResource("12_aabbj"), ExtResource("13_2vuc8")])
+skill_tree_root_id = 75
+metadata/_custom_type_script = "uid://bg3yi5728wpap"

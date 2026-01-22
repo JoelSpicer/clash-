@@ -36,12 +36,26 @@ func start_run_from_preset(preset: PresetCharacter):
 
 # Helper
 func _init_tree_root(class_type: CharacterData.ClassType):
+	#player_owned_tree_ids.clear()
+	#match class_type:
+		#CharacterData.ClassType.QUICK: player_owned_tree_ids.append(73)
+		#CharacterData.ClassType.TECHNICAL: player_owned_tree_ids.append(74)
+		#CharacterData.ClassType.PATIENT: player_owned_tree_ids.append(75)
+		#CharacterData.ClassType.HEAVY: player_owned_tree_ids.append(76)
+		
 	player_owned_tree_ids.clear()
-	match class_type:
-		CharacterData.ClassType.QUICK: player_owned_tree_ids.append(73)
-		CharacterData.ClassType.TECHNICAL: player_owned_tree_ids.append(74)
-		CharacterData.ClassType.PATIENT: player_owned_tree_ids.append(75)
-		CharacterData.ClassType.HEAVY: player_owned_tree_ids.append(76)
+	
+	# 1. Look up the Resource
+	if ClassFactory.class_registry.has(class_type):
+		var def = ClassFactory.class_registry[class_type]
+		
+		# 2. Read the Start Node from the File
+		if def.skill_tree_root_id != 0:
+			player_owned_tree_ids.append(def.skill_tree_root_id)
+			return
+
+	# Fallback (Safety)
+	player_owned_tree_ids.append(76)
 
 # --- UPDATED FIGHT GENERATION LOGIC ---
 func start_next_fight():

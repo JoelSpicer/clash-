@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dibvhq1pep76i"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dibvhq1pep76i"]
 
+[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_7xkbi"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_jwdfi"]
 
 [resource]
 script = ExtResource("1_jwdfi")
 id = "step-up"
 display_name = "Step-up"
+icon = ExtResource("1_7xkbi")
 description = "Offence, Momentum 1"
 momentum_gain = 1
 repeat_count = 0

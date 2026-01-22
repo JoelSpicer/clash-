@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dht2yo068toia"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dht2yo068toia"]
 
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_2c6hv"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_4kxj4"]
 
 [resource]
 script = ExtResource("1_4kxj4")
 id = "leg_sweep"
 display_name = "Leg Sweep"
+icon = ExtResource("1_2c6hv")
 description = "Defence, Cost 1, Reversal, Sweep"
 type = 1
 cost = 1

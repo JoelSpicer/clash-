@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://xu552vd0i4du"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://xu552vd0i4du"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_fo3n0"]
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_gn7m8"]
 
 [resource]
 script = ExtResource("1_fo3n0")
 id = "adept_parry"
 display_name = "Adept Parry"
+icon = ExtResource("1_gn7m8")
 description = "Defence, Cost 1, Parry, Fall Back 1"
 type = 1
 cost = 1

@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://b78u1gs53ynet"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://b78u1gs53ynet"]
 
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_h7g5d"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_uny3g"]
 
 [resource]
 script = ExtResource("1_uny3g")
 id = "master_reversal"
 display_name = "Master Reversal"
+icon = ExtResource("1_h7g5d")
 description = "Defence, Cost 2, Reversal, Momentum 2"
 type = 1
 cost = 2

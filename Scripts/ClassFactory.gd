@@ -1,4 +1,12 @@
 extends Node
+
+# Map Enum -> Resource Path
+var class_registry = {
+	CharacterData.ClassType.HEAVY: preload("res://Data/Classes/HeavyClass.tres"),
+	CharacterData.ClassType.PATIENT: preload("res://Data/Classes/PatientClass.tres"),
+	CharacterData.ClassType.QUICK: preload("res://Data/Classes/QuickClass.tres"),
+	CharacterData.ClassType.TECHNICAL: preload("res://Data/Classes/TechnicalClass.tres")
+}
 # --- SHARED DATA: THE SKILL TREE MAP ---
 # (Moved here so both the UI and the Enemy Generator can read it)
 const TREE_CONNECTIONS = {
@@ -231,36 +239,26 @@ func class_enum_to_string(type: int) -> String:
 		CharacterData.ClassType.TECHNICAL: return "Tactician"
 	return "Enemy"
 # Generates a fully playable CharacterData resource based on the chosen class
-func create_character(class_type: CharacterData.ClassType, player_name: String) -> CharacterData:
+func create_character(type: CharacterData.ClassType, player_name: String) -> CharacterData:
+	if not class_registry.has(type): return null
+	
+	var def: ClassDefinition = class_registry[type]
 	var char_data = CharacterData.new()
+	
 	char_data.character_name = player_name
-	char_data.class_type = class_type
+	char_data.class_type = type
 	
-	# 1. Set Base Stats (Same as before)
-	match class_type:
-		CharacterData.ClassType.HEAVY:
-			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 1
-			char_data.passive_desc = "RAGE: Pay HP instead of SP if stamina is low."
-			char_data.portrait = art_heavy
-		CharacterData.ClassType.PATIENT:
-			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 2
-			char_data.passive_desc = "BIDE: Using Fall Back grants +1 Damage to your NEXT action. (Cannot chain)."
-			char_data.portrait = art_patient
-		CharacterData.ClassType.QUICK:
-			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 4
-			char_data.passive_desc = "RELENTLESS: Every 3rd combo hit recovers 1 SP."
-			char_data.portrait = art_quick
-		CharacterData.ClassType.TECHNICAL:
-			char_data.max_hp = 5; char_data.max_sp = 4; char_data.speed = 3
-			char_data.passive_desc = "TECHNIQUE: Versatile playstyle."
-			char_data.portrait = art_technical
-			
-	# 2. POPULATE LIBRARY (All 10 starters)
-	var full_starters = get_starting_deck(class_type)
-	char_data.unlocked_actions = full_starters.duplicate()
+	# 1. Base Stats from Resource
+	char_data.max_hp = def.base_hp
+	char_data.max_sp = def.base_sp
+	char_data.speed = def.base_speed
+	char_data.passive_desc = def.passive_description
+	char_data.portrait = def.portrait
 	
-	# 3. SELECT ACTIVE HAND (Max 8)
-	# For a new player, we prioritize Class cards, then fill with Basics.
+	# 2. Library (Duplicate the array so we don't modify the Resource)
+	char_data.unlocked_actions = def.starting_deck.duplicate()
+	
+	# 3. Select Hand
 	char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
 	
 	char_data.reset_stats()
@@ -351,47 +349,32 @@ func find_action_resource(action_name: String) -> ActionData:
 	return null
 
 # New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
-func calculate_stats_for_deck(class_type: CharacterData.ClassType, deck: Array[ActionData]) -> Dictionary:
-	var final_hp = 5
-	var final_sp = 4
+func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionData]) -> Dictionary:
+	if not class_registry.has(type): return {"hp": 5, "sp": 4}
 	
-	# 1. Get the list of "Free" cards to ignore (Starters + Basic)
-	# We reuse your existing logic here to ensure consistency
-	var starter_deck = get_starting_deck(class_type)
-	var ignore_names: Array[String] = []
-	for c in starter_deck:
+	var def: ClassDefinition = class_registry[type]
+	var final_hp = def.base_hp
+	var final_sp = def.base_sp
+	
+	# 1. Get Ignore List from the definition
+	var ignore_names = []
+	for c in def.starting_deck:
 		ignore_names.append(c.display_name)
 		
-	# 2. Iterate through the provided deck
+	# 2. Calculate
 	for card in deck:
-		# Safety Check
 		if card == null: continue
-		
-		# Skip cards that shouldn't give stats (Starters or explicitly "Basic")
 		if card.display_name in ignore_names or card.display_name.begins_with("Basic"):
 			continue
 			
-		# 3. Apply the Class Growth Rules (The "One True Logic")
-		match class_type:
-			CharacterData.ClassType.QUICK:
-				if card.type == ActionData.Type.OFFENCE: final_hp += 1
-				elif card.type == ActionData.Type.DEFENCE: final_sp += 2
-				
-			CharacterData.ClassType.TECHNICAL:
-				if card.type == ActionData.Type.OFFENCE: 
-					final_hp += 1; final_sp += 1
-				elif card.type == ActionData.Type.DEFENCE: 
-					final_sp += 1
-					
-			CharacterData.ClassType.PATIENT:
-				if card.type == ActionData.Type.OFFENCE: final_hp += 1
-				elif card.type == ActionData.Type.DEFENCE:
-					final_hp += 1; final_sp += 1
-					
-			CharacterData.ClassType.HEAVY:
-				if card.type == ActionData.Type.OFFENCE: final_sp += 1
-				elif card.type == ActionData.Type.DEFENCE: final_hp += 2
-				
+		# 3. GENERIC MATH (Reads from Resource)
+		if card.type == ActionData.Type.OFFENCE:
+			final_hp += def.offence_hp_growth
+			final_sp += def.offence_sp_growth
+		elif card.type == ActionData.Type.DEFENCE:
+			final_hp += def.defence_hp_growth
+			final_sp += def.defence_sp_growth
+			
 	return {"hp": final_hp, "sp": final_sp}
 
 # NEW HELPER: Reverse lookup for Presets -> Tree Nodes

@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://b05fom18ikim4"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://b05fom18ikim4"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_2pagd"]
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_tv6nv"]
 
 [resource]
 script = ExtResource("1_2pagd")
 id = "adept_reversal"
 display_name = "Adept Reversal"
+icon = ExtResource("1_tv6nv")
 description = "Defence, Cost 1, Reversal, Momentum 1"
 type = 1
 cost = 1

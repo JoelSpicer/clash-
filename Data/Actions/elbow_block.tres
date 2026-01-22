@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://cfn3an0s113wy"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://cfn3an0s113wy"]
 
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_7t5xf"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_pww0l"]
 
 [resource]
 script = ExtResource("1_pww0l")
 id = "elbow_block"
 display_name = "Elbow Block"
+icon = ExtResource("1_7t5xf")
 description = "Defence, Cost 1, Block 2, Damage 1"
 type = 1
 cost = 1
