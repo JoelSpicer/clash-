@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://b8ai0k486ma37"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://b8ai0k486ma37"]
 
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_12gjq"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_pf56k"]
 
 [resource]
 script = ExtResource("1_pf56k")
 id = "basic_reversal"
 display_name = "Basic Reversal"
+icon = ExtResource("1_12gjq")
 description = "Defence, Reversal, Basic"
 type = 1
 reversal = true

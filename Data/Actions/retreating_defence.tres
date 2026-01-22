@@ -1,11 +1,13 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://p5spxlrqc5dq"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://p5spxlrqc5dq"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_1bkyg"]
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_4jmhs"]
 
 [resource]
 script = ExtResource("1_1bkyg")
 id = "retreating_defence"
 display_name = "Retreating Defence"
+icon = ExtResource("1_4jmhs")
 description = "Defence, Cost 1, Parry, Fall Back 2, Sweep"
 type = 1
 cost = 1

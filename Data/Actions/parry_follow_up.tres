@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://c01lu4a4yidl6"]
+
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_34rhf"]
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_o0yw7"]
+
+[resource]
+script = ExtResource("1_34rhf")
+id = "parry_follow_up"
+display_name = "Parry Follow up"
+icon = ExtResource("1_o0yw7")
+description = "Defence, Cost 1, Parry, Fall Back 2, Multi 1"
+type = 1
+cost = 1
+fall_back_value = 2
+is_parry = true
+multi_limit = 1
+repeat_count = 0

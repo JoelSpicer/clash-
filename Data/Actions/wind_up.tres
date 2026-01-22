@@ -1,14 +1,14 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://yon0eorcvrxs"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://3kskq4f0vwhq"]
 
-[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_embp1"]
-[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_fh18i"]
+[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_faunk"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_xep7y"]
 
 [resource]
-script = ExtResource("1_embp1")
-id = "wind-up"
-display_name = "Wind-up"
-icon = ExtResource("1_fh18i")
-description = "Defence, Cost 3, Feint, Damage 1, Momentum 2"
+script = ExtResource("1_xep7y")
+id = "wind_up"
+display_name = "Wind up"
+icon = ExtResource("1_faunk")
+description = "Defence, Cost 3, Ditto, Damage 1, Momentum 2"
 type = 1
 cost = 3
 damage = 1

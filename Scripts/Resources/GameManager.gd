@@ -805,7 +805,7 @@ func _handle_patient_passive(player_id: int, card: ActionData):
 func get_struggle_action(force_type: ActionData.Type) -> ActionData:
 	var action = ActionData.new()
 	action.display_name = "Struggle"
-	action.description = "Offence, Defence, Recover 1, Fall Back 1"
+	action.description = "Offence, Defence, Recover 1, Fall Back 2"
 	action.type = force_type
 	action.cost = 0
 	
@@ -813,7 +813,7 @@ func get_struggle_action(force_type: ActionData.Type) -> ActionData:
 	# Note: Defence actions naturally get +1 Recover in the rules, 
 	# so Struggle (Def) will actually recover 2 SP, which makes sense (catching breath).
 	action.recover_value = 1 
-	action.fall_back_value = 1
+	action.fall_back_value = 2
 	
 	return action
 
