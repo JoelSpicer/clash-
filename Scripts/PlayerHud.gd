@@ -114,7 +114,8 @@ func configure_visuals(is_player_2: bool):
 	# Save position for animations
 	if portrait: original_pos = portrait.position
 
-func update_stats(character: CharacterData, is_injured: bool, opportunity: int, opening: int, bide_active: bool):
+# REMOVED 'is_injured' argument from this line:
+func update_stats(character: CharacterData, opportunity: int, opening: int, bide_active: bool):
 	var tween = create_tween()
 	tween.tween_property(hp_bar, "value", character.current_hp, 0.3).set_trans(Tween.TRANS_SINE)
 	tween.parallel().tween_property(sp_bar, "value", character.current_sp, 0.3)
@@ -123,17 +124,29 @@ func update_stats(character: CharacterData, is_injured: bool, opportunity: int, 
 	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
 	
 	var status_txt = ""
-	if is_injured: status_txt += "[INJURED] "
+	
+	# [cite_start]1. SCALABLE STATUS LOOP [cite: 139]
+	# Automatically lists ANY status in the dictionary (Injured, Poison, etc.)
+	for s_name in character.statuses:
+		status_txt += "[" + s_name.to_upper() + "] "
+	
+	# 2. Add other stats
 	if opportunity > 0: status_txt += "[OPPORTUNITY] "
 	if opening > 0: status_txt += "[OPENING: " + str(opening) + "]"
 	if bide_active: status_txt += "[BIDE (+1 DMG)]"
 	
-	
 	status_label.text = status_txt
-	if is_injured: status_label.modulate = Color.ORANGE_RED
-	elif bide_active: status_label.modulate = Color(0.3, 1.0, 1.0) # Cyan for Bide
-	elif opportunity > 0: status_label.modulate = Color.YELLOW
-	else: status_label.modulate = Color.WHITE
+	
+	# 3. Dynamic Coloring
+	# Check the dictionary instead of a boolean
+	if character.statuses.has("Injured"):
+		status_label.modulate = Color.ORANGE_RED
+	elif bide_active:
+		status_label.modulate = Color(0.3, 1.0, 1.0) # Cyan
+	elif opportunity > 0:
+		status_label.modulate = Color.YELLOW
+	else:
+		status_label.modulate = Color.WHITE
 
 func play_attack_animation(direction: Vector2):
 	if not portrait: return

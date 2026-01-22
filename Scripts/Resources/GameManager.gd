@@ -78,9 +78,9 @@ var p1_opening_stat: int = 0; var p2_opening_stat: int = 0
 var p1_opportunity_stat: int = 0; var p2_opportunity_stat: int = 0
 var p1_must_opener: bool = false; var p2_must_opener: bool = false
 
-# --- STATUS EFFECTS ---
-var p1_is_injured: bool = false
-var p2_is_injured: bool = false
+## --- STATUS EFFECTS ---
+#var p1_is_injured: bool = false
+#var p2_is_injured: bool = false
 
 # --- TURN STATE ---
 var p1_action_queue: ActionData
@@ -124,7 +124,7 @@ func start_combat(p1: CharacterData, p2: CharacterData):
 	reset_combat()
 
 func reset_combat():
-	p1_data.reset_stats()
+	p1_data.reset_stats() # This clears the status dictionary automatically
 	p2_data.reset_stats()
 	momentum = 0 
 	current_combo_attacker = 0
@@ -134,7 +134,8 @@ func reset_combat():
 	p1_opening_stat = 0; p2_opening_stat = 0
 	p1_opportunity_stat = 0; p2_opportunity_stat = 0
 	p1_must_opener = false; p2_must_opener = false
-	p1_is_injured = false; p2_is_injured = false
+	# REMOVED: p1_is_injured = false
+	# REMOVED: p2_is_injured = false
 	p1_pending_feint = false; p2_pending_feint = false
 	
 	p1_rage_active = false; p2_rage_active = false
@@ -306,6 +307,7 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 func resolve_clash():
 	attacker_override = 0
 	
+	# Duplicate to ensure we don't modify the original resource
 	p1_action_queue = p1_action_queue.duplicate()
 	p2_action_queue = p2_action_queue.duplicate()
 	
@@ -334,8 +336,9 @@ func resolve_clash():
 	else: p2_data.combo_action_count = 0
 	
 	# --- PHASE 0: PAY COSTS ---
-	var p1_started_injured = p1_is_injured
-	var p2_started_injured = p2_is_injured
+	# FIX: Use helper instead of deleted variable
+	var p1_started_injured = has_status(1, "Injured")
+	var p2_started_injured = has_status(2, "Injured")
 	
 	var p1_active = _pay_cost(1, p1_action_queue)
 	var p2_active = _pay_cost(2, p2_action_queue)
@@ -392,13 +395,11 @@ func resolve_clash():
 	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
 	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
 	
-	# --- FIX: SWAPPED WALL CHECKS ---
-	# P1 is pinned at TOTAL (Right side). Falling Back (Adding +) pushes them into the wall.
+	# --- WALL CRUSH CHECK ---
 	if p1_fb > 0 and momentum >= TOTAL_MOMENTUM_SLOTS:
 		_apply_wall_crush(1, p1_fb)
 		p1_fb = 0 
 		
-	# P2 is pinned at 1 (Left side). Falling Back (Subtracting -) pushes them into the wall.
 	if p2_fb > 0 and momentum <= 1:
 		_apply_wall_crush(2, p2_fb)
 		p2_fb = 0 
@@ -512,14 +513,9 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 			emit_signal("healing_received", owner_id, my_card.heal_value)
 
 		if my_card.heal_value > 0 or my_card.fall_back_value > 0:
-			if owner_id == 1 and p1_is_injured:
-				p1_is_injured = false
-				emit_signal("combat_log_updated", ">> P1 cures Injury!")
-				emit_signal("status_applied", 1, "CURED!")
-			elif owner_id == 2 and p2_is_injured:
-				p2_is_injured = false
-				emit_signal("combat_log_updated", ">> P2 cures Injury!")
-				emit_signal("status_applied", 2, "CURED!")
+			if has_status(owner_id, "Injured"):
+				remove_status(owner_id, "Injured")
+				emit_signal("combat_log_updated", ">> P" + str(owner_id) + " cures Injury!")
 
 func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool) -> Dictionary:
 	var character = p1_data if owner_id == 1 else p2_data
@@ -552,12 +548,9 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
 		
 		if my_card.injure:
-			if target_id == 1 and not p1_is_injured:
-				p1_is_injured = true
-				emit_signal("combat_log_updated", ">> P1 is Injured!")
-			elif target_id == 2 and not p2_is_injured:
-				p2_is_injured = true
-				emit_signal("combat_log_updated", ">> P2 is Injured!")
+			if not has_status(target_id, "Injured"):
+				apply_status(target_id, "Injured", 1)
+				emit_signal("combat_log_updated", ">> P" + str(target_id) + " is Injured!")
 
 		if my_card.create_opening > 0:
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
@@ -647,14 +640,19 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
 		return false
 
-func _handle_status_damage(winner_id, p1_started_injured: bool, p2_started_injured: bool):
-	if p1_is_injured and p1_started_injured:
+# Change arguments from '_p1_started_injured' to 'p1_started_injured' (remove underscores)
+func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
+	
+	# P1 STATUS CHECK
+	# Rule: Must have the status NOW, AND must have had it at the START of the turn.
+	if p1_data.statuses.has("Injured") and p1_started_injured:
 		p1_data.current_hp -= 1
 		emit_signal("combat_log_updated", ">> P1 takes 1 damage from Injury.")
 		emit_signal("damage_dealt", 1, 1, false) 
 		if p1_data.current_hp <= 0: _handle_death(winner_id)
 
-	if p2_is_injured and p2_started_injured:
+	# P2 STATUS CHECK
+	if p2_data.statuses.has("Injured") and p2_started_injured:
 		p2_data.current_hp -= 1
 		emit_signal("combat_log_updated", ">> P2 takes 1 damage from Injury.")
 		emit_signal("damage_dealt", 2, 1, false) 
@@ -801,3 +799,23 @@ func get_struggle_action(force_type: ActionData.Type) -> ActionData:
 	action.fall_back_value = 1
 	
 	return action
+
+func apply_status(target_id: int, status_name: String, value: int = 1):
+	var target = p1_data if target_id == 1 else p2_data
+	
+	# Logic: If already exists, you might want to stack it or refresh it.
+	# For "Injured", it's just a binary state (1), so overwriting is fine.
+	target.statuses[status_name] = value
+	
+	emit_signal("status_applied", target_id, status_name)
+	emit_signal("combat_log_updated", ">> P" + str(target_id) + " gained status: " + status_name)
+
+func has_status(target_id: int, status_name: String) -> bool:
+	var target = p1_data if target_id == 1 else p2_data
+	return target.statuses.has(status_name)
+
+func remove_status(target_id: int, status_name: String):
+	var target = p1_data if target_id == 1 else p2_data
+	if target.statuses.has(status_name):
+		target.statuses.erase(status_name)
+		emit_signal("status_applied", target_id, "CURED") # Generic cure msg

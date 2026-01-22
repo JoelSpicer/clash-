@@ -1,6 +1,7 @@
 class_name CharacterData
 extends Resource
 
+#region vars
 enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL }
 
 # --- NEW: AI PERSONALITY TYPES ---
@@ -34,6 +35,13 @@ var has_used_super: bool = false
 var combo_action_count: int = 0 # Track for Relentless passive
 var patient_buff_active: bool = false #Tracks the +1 Damage Buff
 
+# --- NEW: STATUS DICTIONARY ---
+# Format: { "Injured": 1, "Poison": 3, "Stunned": 1 }
+var statuses: Dictionary = {}
+
+
+#endregion
+
 # --- LOGIC ---
 
 func reset_stats():
@@ -42,6 +50,7 @@ func reset_stats():
 	has_used_super = false
 	combo_action_count = 0
 	patient_buff_active = false
+	statuses.clear()
 # Call this when the player "Learns" a new card to apply Class Stat Growth
 func unlock_action(new_action: ActionData):
 	if new_action in deck: return
