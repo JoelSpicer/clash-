@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://df8ia72t2m5t1"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://df8ia72t2m5t1"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_lrg7c"]
-[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_rg4t5"]
 
 [resource]
 script = ExtResource("1_lrg7c")
 id = "catch"
 display_name = "Catch"
-icon = ExtResource("1_rg4t5")
 description = "Defence, Cost 2, Dodge 1, Block 2"
 type = 1
 cost = 2

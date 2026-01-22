@@ -1,18 +1,20 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://d2iahl50kag64"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://d2iahl50kag64"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_5gj34"]
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_ncsag"]
 
 [resource]
 script = ExtResource("1_5gj34")
 id = "vital_point_assault"
 display_name = "Vital Point Assault"
-icon = ExtResource("1_ncsag")
 description = "Offence, Cost 2, Guard Break, Damage 2, Injure, Tiring 1, Repeat 3, Super"
 cost = 2
 damage = 2
 tiring = 1
 is_super = true
 guard_break = true
-injure = true
+statuses_to_apply = Array[Dictionary]([{
+"amount": 1,
+"name": "Injured",
+"self": false
+}])
 repeat_count = 2

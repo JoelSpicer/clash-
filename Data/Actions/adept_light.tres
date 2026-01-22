@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://egv2w3375256"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://egv2w3375256"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_8o6p4"]
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_abqla"]
 
 [resource]
 script = ExtResource("1_8o6p4")
 id = "adept_light"
 display_name = "Adept Light"
-icon = ExtResource("1_abqla")
 description = "Offence, Cost 1, Momentum 1, Damage 2"
 cost = 1
 damage = 2

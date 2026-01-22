@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dxacqs18p6pl0"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dxacqs18p6pl0"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_kokxd"]
-[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_xdnx5"]
 
 [resource]
 script = ExtResource("1_kokxd")
 id = "drop_punch"
 display_name = "Drop Punch"
-icon = ExtResource("1_xdnx5")
 description = "Defence, Cost 3, Block 1, Damage 3"
 type = 1
 cost = 3

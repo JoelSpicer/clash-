@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://b0tl37vd8jyjy"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://b0tl37vd8jyjy"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_d7eyo"]
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_v5dee"]
 
 [resource]
 script = ExtResource("1_d7eyo")
 id = "uppercut"
 display_name = "Uppercut"
-icon = ExtResource("1_v5dee")
 description = "Offence, Cost 1, Momentum 3"
 cost = 1
 momentum_gain = 3

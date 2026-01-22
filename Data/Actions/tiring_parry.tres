@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://pokx3r4c0x0g"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://pokx3r4c0x0g"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_p5uua"]
-[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_ugiv0"]
 
 [resource]
 script = ExtResource("1_p5uua")
 id = "tiring_parry"
 display_name = "Tiring Parry"
-icon = ExtResource("1_ugiv0")
 description = "Defence, Cost 1, Parry, Fall Back 2, Tiring 2"
 type = 1
 cost = 1

@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://ds6obvqhbbpuc"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://ds6obvqhbbpuc"]
 
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_ihd6x"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_udilb"]
 
 [resource]
 script = ExtResource("1_udilb")
 id = "master_tech"
 display_name = "Master Tech"
-icon = ExtResource("1_ihd6x")
 description = "Offence, Cost 3, Timing 1, Guard Break, Damage 2, Opportunity 1"
 cost = 3
 damage = 2

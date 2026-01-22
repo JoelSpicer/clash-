@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dfuqb2it1x8u7"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dfuqb2it1x8u7"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_8kcff"]
-[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_pwl4j"]
 
 [resource]
 script = ExtResource("1_8kcff")
 id = "active_block"
 display_name = "Active Block"
-icon = ExtResource("1_pwl4j")
 description = "Defence, Block 1, Parry, Fall Back 1"
 type = 1
 block_value = 1

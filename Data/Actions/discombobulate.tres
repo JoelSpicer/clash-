@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://duf05aj36lq7l"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://duf05aj36lq7l"]
 
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_b5sg4"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_m6j12"]
 
 [resource]
 script = ExtResource("1_m6j12")
 id = "discombobulate"
 display_name = "Discombobulate"
-icon = ExtResource("1_b5sg4")
 description = "Offence, Cost 1, Tiring 1, Damage 1"
 cost = 1
 damage = 1

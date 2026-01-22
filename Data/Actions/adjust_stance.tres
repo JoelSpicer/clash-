@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://crhe8sd3sbgb6"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://crhe8sd3sbgb6"]
 
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_6lcu1"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_dpctu"]
 
 [resource]
 script = ExtResource("1_dpctu")
 id = "adjust_stance"
 display_name = "Adjust Stance"
-icon = ExtResource("1_6lcu1")
 description = "Offence, Cost 1, Opportunity 1, Opener"
 cost = 1
 is_opener = true

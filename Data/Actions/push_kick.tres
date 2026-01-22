@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://iknwl4dh2er6"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://iknwl4dh2er6"]
 
-[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_5ive6"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_pq4fg"]
 
 [resource]
 script = ExtResource("1_pq4fg")
 id = "push_kick"
 display_name = "Push Kick"
-icon = ExtResource("1_5ive6")
 description = "Defence, Cost 1, Opportunity 1, Momentum 1"
 type = 1
 cost = 1

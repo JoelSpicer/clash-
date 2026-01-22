@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dqgvv1l4egthj"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dqgvv1l4egthj"]
 
-[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_drtvw"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_jk8jo"]
 
 [resource]
 script = ExtResource("1_jk8jo")
 id = "weave"
 display_name = "Weave"
-icon = ExtResource("1_drtvw")
 description = "Defence, Dodge 1, Fall Back 1"
 type = 1
 dodge_value = 1

@@ -1,15 +1,12 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://ceqlrpt4vuc04"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://ceqlrpt4vuc04"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_dke6j"]
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_iarty"]
 
 [resource]
 script = ExtResource("1_dke6j")
 id = "basic_positioning"
 display_name = "Basic Positioning"
-icon = ExtResource("1_iarty")
-description = "Offence, Opener, Recover 2, Fall Back 1"
-recover_value = 2
+description = "Offence, Opener, Recover 1, Fall Back 1"
+recover_value = 1
 fall_back_value = 1
-is_opener = true
 repeat_count = 0

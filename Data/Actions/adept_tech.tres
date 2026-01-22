@@ -1,16 +1,18 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://bhyob63mi5mo7"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://bhyob63mi5mo7"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_3i0gb"]
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_pmjy6"]
 
 [resource]
 script = ExtResource("1_3i0gb")
 id = "adept_tech"
 display_name = "Adept Tech"
-icon = ExtResource("1_pmjy6")
 description = "Offence, Cost 2, Injure, Damage 1, Tiring 1"
 cost = 2
 damage = 1
 tiring = 1
-injure = true
+statuses_to_apply = Array[Dictionary]([{
+"amount": 1,
+"name": "Injured",
+"self": false
+}])
 repeat_count = 0

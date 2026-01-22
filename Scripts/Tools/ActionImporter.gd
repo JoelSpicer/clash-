@@ -47,7 +47,13 @@ func _run():
 		action.fall_back_value = int(line[10])
 		action.guard_break = (line[11].to_lower() == "true")
 		action.heal_value = int(line[12])
-		action.injure = (line[13].to_lower() == "true")
+		#--- FIX: MAP OLD CSV COLUMN TO NEW ARRAY ---
+		if line[13].to_lower() == "true":
+			action.statuses_to_apply.append({ 
+				"name": "Injured", 
+				"amount": 1,
+				"self": false
+			})
 		action.momentum_gain = int(line[14])
 		action.multi_limit = int(line[15])
 		action.is_opener = (line[17].to_lower() == "true")

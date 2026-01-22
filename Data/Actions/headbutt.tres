@@ -1,14 +1,12 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://brfhyoisq4t0a"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://brfhyoisq4t0a"]
 
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_6epq3"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_ltmju"]
 
 [resource]
 script = ExtResource("1_ltmju")
 id = "headbutt"
 display_name = "Headbutt"
-icon = ExtResource("1_6epq3")
 description = "Offence, Cost 1, Tiring 2"
 cost = 1
-tiring = 1
+tiring = 2
 repeat_count = 0

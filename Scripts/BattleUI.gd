@@ -436,7 +436,16 @@ func _update_tooltip_text(card: ActionData):
 	if card.is_super: active_keys.append("Super")
 	if card.guard_break: active_keys.append("Guard Break")
 	if card.feint: active_keys.append("Feint")
-	if card.injure: active_keys.append("Injure")
+	
+	# --- FIX: SCALABLE STATUS CHECK ---
+	# Instead of checking "card.injure", we check the list
+	for s in card.statuses_to_apply:
+		var s_name = s.get("name", "")
+		# If the status name (e.g. "Injure") is in our dictionary, add it to the list
+		if s_name != "":
+			active_keys.append(s_name)
+	# ----------------------------------
+
 	if card.retaliate: active_keys.append("Retaliate")
 	if card.reversal: active_keys.append("Reversal")
 	if card.is_parry: active_keys.append("Parry")

@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dw1n301ytbow3"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://dw1n301ytbow3"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_cut3k"]
-[ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_n3gs7"]
 
 [resource]
 script = ExtResource("1_cut3k")
 id = "slip_behind"
 display_name = "Slip Behind"
-icon = ExtResource("1_n3gs7")
 description = "Defence, Cost 3, Dodge 2, Create Opening 1"
 type = 1
 cost = 3

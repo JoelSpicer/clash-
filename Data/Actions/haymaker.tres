@@ -1,13 +1,11 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://b0pfs8yp4d4cl"]
+[gd_resource type="Resource" script_class="ActionData" load_steps=2 format=3 uid="uid://b0pfs8yp4d4cl"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_mxjrc"]
-[ext_resource type="Texture2D" uid="uid://bev4783ykabvw" path="res://Art/OffenceBasic.jpg" id="1_x7irx"]
 
 [resource]
 script = ExtResource("1_mxjrc")
 id = "haymaker"
 display_name = "Haymaker"
-icon = ExtResource("1_x7irx")
 description = "Offence, Opener, Cost 3, Damage 2, Momentum 3"
 cost = 3
 damage = 2
