@@ -1,5 +1,6 @@
 extends Control
 
+#region vars
 # --- DATA ---
 var action_tree_dict = {}     
 var id_to_name = {}
@@ -36,6 +37,7 @@ var loadout_panel: PanelContainer
 var active_container: HBoxContainer
 var reserve_container: HFlowContainer 
 var toggle_btn: Button
+#endregion
 
 func _ready():
 	action_tree_dict = ClassFactory.TREE_CONNECTIONS
@@ -77,7 +79,12 @@ func _ready():
 		
 		# Hide unnecessary buttons
 		var btn_back = $TreeContainer/BackButton
-		if btn_back: btn_back.visible = false 
+		if btn_back: 
+			if RunManager.current_level == 1:
+				btn_back.visible = true
+				btn_back.pressed.connect(_on_back_button_pressed)
+			else:
+				btn_back.visible = false # Hide for levels 2+ (No escaping!)
 		
 		# Update Confirm Button text
 		var btn_confirm = $TreeContainer/ConfirmButton 
@@ -598,6 +605,13 @@ func _on_confirm_button_pressed():
 		get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
 
 func _on_back_button_pressed():
+	# --- NEW: Arcade Mode Cancel ---
+	if RunManager.is_arcade_mode:
+		print("Canceling Arcade Run...")
+		RunManager.handle_loss() # Cleans up the arcade state variables
+		get_tree().change_scene_to_file("res://Scenes/CharacterSelect.tscn")
+		return
+	# -------------------------------
 	print("Canceling customization...")
 	GameManager.next_match_p1_data = null
 	GameManager.next_match_p2_data = null
