@@ -24,6 +24,12 @@ signal p2_mode_toggled(is_human)
 @onready var left_card_display = $ClashLayer/LeftCard
 @onready var right_card_display = $ClashLayer/RightCard
 
+@onready var env_button = $EnvButton
+@onready var env_popup = $EnvPopup
+@onready var env_title = $EnvPopup/VBoxContainer/EnvTitle
+@onready var env_details = $EnvPopup/VBoxContainer/EnvDetails
+@onready var close_env_button = $EnvPopup/VBoxContainer/CloseEnvButton
+
 # --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
 var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
@@ -128,7 +134,21 @@ func _ready():
 		btn.pressed.connect(_on_menu_pressed)
 
 	$MomentumSlider/Label2.text = str(GameManager.momentum)
-
+# --- ENVIRONMENT UI SETUP ---
+	if env_button and env_popup:
+		env_button.pressed.connect(_on_env_button_pressed)
+		close_env_button.pressed.connect(func(): env_popup.visible = false)
+		_attach_sfx(env_button)
+		_attach_sfx(close_env_button)
+		
+		# FIX: Force the RichTextLabel to render correctly via code [cite: 305]
+		env_details.bbcode_enabled = true
+		env_details.fit_content = true
+		
+		# Set initial button text
+		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
+	# ---------------------------------
+	
 # --- DYNAMIC CAMERA PROCESS ---
 func _process(delta):
 	# 1. Decay Values
@@ -657,3 +677,28 @@ func _on_wall_crush_ui(target_id: int, _dmg: int):
 
 	# 3. SOUND (Optional, if you have a sound file)
 	# AudioManager.play_sfx("hit_heavy", 0.1)
+
+# --- ENVIRONMENT POPUP LOGIC ---
+func _on_env_button_pressed():
+	env_popup.visible = not env_popup.visible
+	
+	if env_popup.visible:
+		# 1. Set Title
+		env_title.text = "ENVIRONMENT: " + GameManager.current_environment_name.to_upper()
+		
+		# 2. Build Details Text
+		var details = "[b]Momentum Tracker:[/b] " + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots\n"
+		
+		# 3. Add Specific Hazards (Future Proofing)
+		#details += "\n[b]Hazards:[/b]\n"
+		#match GameManager.current_environment_name:
+			#"Ring":
+				#details += "- [color=yellow]Ropes:[/color] Wall Crush damage is reduced by 1.\n"
+			#"Dojo":
+				#details += "- [color=yellow]Honor Bound:[/color] Standard rules apply.\n"
+			#"Street":
+				#details += "- [color=yellow]Bystanders:[/color] Every 3rd turn, a random event occurs.\n"
+			#_:
+				#details += "- None."
+				
+		env_details.text = details

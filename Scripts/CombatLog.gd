@@ -209,7 +209,19 @@ func add_round_summary(p1_diff: Dictionary, p2_diff: Dictionary, mom_val: int):
 	var p2_text = _format_diff("P2", p2_diff, P2_COLOR)
 	var mom_text = " | Mom: [color=yellow]" + str(mom_val) + "[/color]"
 	
-	var final_bbcode = p1_text + "   " + p2_text + mom_text + "\n [b]----------- NEW CLASH -----------[/b]"
+	# --- NEW: COMBO COUNTER ---
+	var combo_text = ""
+	var attacker = GameManager.get_attacker()
+	
+	# Check if P1 is comboing
+	if attacker == 1 and GameManager.p1_data.combo_action_count > 1:
+		combo_text = " | [color=#ff9999][b]P1 COMBO: " + str(GameManager.p1_data.combo_action_count) + " HITS![/b][/color]"
+	# Check if P2 is comboing
+	elif attacker == 2 and GameManager.p2_data.combo_action_count > 1:
+		combo_text = " | [color=#99ccff][b]P2 COMBO: " + str(GameManager.p2_data.combo_action_count) + " HITS![/b][/color]"
+	# --------------------------
+	
+	var final_bbcode = p1_text + "   " + p2_text + mom_text + combo_text + "\n [b]----------- NEW CLASH -----------[/b]"
 	
 	var label = _create_rich_label(final_bbcode)
 	row.add_child(label)
