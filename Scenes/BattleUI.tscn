@@ -225,3 +225,10 @@ bbcode_enabled = true
 [node name="CloseEnvButton" type="Button" parent="EnvPopup/VBoxContainer"]
 layout_mode = 2
 text = "Close"
+
+[node name="EquipmentGrid" type="HBoxContainer" parent="."]
+offset_left = 32.0
+offset_top = 128.0
+offset_right = 72.0
+offset_bottom = 168.0
+theme_override_constants/separation = 10

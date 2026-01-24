@@ -17,6 +17,7 @@ signal p2_mode_toggled(is_human)
 @onready var tooltip_label = $MainLayout/PreviewAnchor/ToolTipLabel
 @onready var btn_offence = %Offence        
 @onready var btn_defence = %Defence      
+@onready var equipment_grid = $EquipmentGrid
 
 @onready var log_toggle = $LogToggle 
 
@@ -261,6 +262,9 @@ func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	p1_hud.configure_visuals(false) 
 	p2_hud.configure_visuals(true)
 	update_momentum(0)
+	
+	# --- NEW: Show Equipment ---
+	_populate_equipment(p1_data)
 
 func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
 	# UPDATED CALLS: Removed the GameManager.p1_is_injured arguments
@@ -705,3 +709,35 @@ func _on_env_button_pressed():
 				#details += "- None."
 				
 		env_details.text = details
+
+# --- EQUIPMENT UI LOGIC ---
+func _populate_equipment(p1_data: CharacterData):
+	if not equipment_grid: return
+	
+	# 1. Clear old icons
+	for child in equipment_grid.get_children():
+		child.queue_free()
+		
+	# 2. Add new icons
+	for item in p1_data.equipment:
+		var icon = TextureRect.new()
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.custom_minimum_size = Vector2(40, 40)
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		
+		# Fallback if you haven't assigned art to the resource yet
+		if item.icon: icon.texture = item.icon
+		else: icon.texture = preload("res://icon.svg") # Godot default icon
+		
+		# 3. Build the Tooltip Text
+		var tip = item.display_name + "\n" + item.description + "\n"
+		tip += "-------------------\n"
+		if item.max_hp_bonus != 0: tip += "Max HP: " + ("+" if item.max_hp_bonus > 0 else "") + str(item.max_hp_bonus) + "\n"
+		if item.max_sp_bonus != 0: tip += "Max SP: " + ("+" if item.max_sp_bonus > 0 else "") + str(item.max_sp_bonus) + "\n"
+		if item.starting_sp_bonus != 0: tip += "Start SP: +" + str(item.starting_sp_bonus) + "\n"
+		if item.wall_crush_damage_bonus != 0: tip += "Wall Crush Dmg: +" + str(item.wall_crush_damage_bonus)
+		
+		# Assigning tooltip_text handles the hover pop-up automatically!
+		icon.tooltip_text = tip 
+		
+		equipment_grid.add_child(icon)
