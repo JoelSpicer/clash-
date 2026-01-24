@@ -8,7 +8,7 @@ var free_unlocks_remaining: int = 0
 
 # --- NEW: RUN MODIFIERS ---
 var maintain_hp_enabled: bool = false
-
+const EQUIPMENT_DIR = "res://Data/Equipment/"
 # ... (start_run and start_run_from_preset remain exactly the same) ...
 
 # OPTION A: STANDARD RUN (Level 1, Drafting)
@@ -18,7 +18,7 @@ func start_run(starting_class: CharacterData.ClassType):
 	player_run_data = ClassFactory.create_character(starting_class, "You")
 	_init_tree_root(starting_class)
 	free_unlocks_remaining = 2
-	player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
+	#player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
 # OPTION B: PRESET RUN
@@ -119,9 +119,32 @@ func start_next_fight():
 
 func handle_win():
 	current_level += 1
-	# FIX: Grant 1 Unlock so the ActionTree allows exactly one draft pick
+	# Grant the standard card unlock
 	free_unlocks_remaining = 1 
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	
+	# --- NEW: MILESTONE CHECK ---
+	# Since we just added 1, the level we BEAT is (current_level - 1)
+	var level_beaten = current_level - 1
+	if level_beaten > 0 and level_beaten % 3 == 0:
+		print("Milestone Reached! Loading Equipment Draft...")
+		get_tree().change_scene_to_file("res://Scenes/EquipmentDraft.tscn")
+	else:
+		get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+
+# Helper to fetch all equipment for the draft
+func get_all_equipment() -> Array[EquipmentData]:
+	var list: Array[EquipmentData] = []
+	var dir = DirAccess.open(EQUIPMENT_DIR)
+	if dir:
+		dir.list_dir_begin()
+		var file = dir.get_next()
+		while file != "":
+			if file.ends_with(".tres") or file.ends_with(".res"):
+				var res = load(EQUIPMENT_DIR + file)
+				if res is EquipmentData:
+					list.append(res)
+			file = dir.get_next()
+	return list
 
 func handle_loss():
 	is_arcade_mode = false

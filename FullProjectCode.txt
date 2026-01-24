@@ -2,6 +2,86 @@
 
 
 ========================================
+FILE PATH: res://Scenes/equipmentdraft.gd
+========================================
+extends Control
+
+@onready var item_grid = $ColorRect/ItemGrid
+
+func _ready():
+	# 1. Get all available equipment
+	var all_items = RunManager.get_all_equipment()
+	all_items.shuffle() # Randomize the list
+	
+	# 2. Pick the top 3 (or fewer if you haven't made 3 items yet)
+	var options = []
+	for i in range(min(3, all_items.size())):
+		options.append(all_items[i])
+		
+	# 3. Create Buttons
+	for item in options:
+		var btn = _create_item_button(item)
+		item_grid.add_child(btn)
+
+func _create_item_button(item: EquipmentData) -> Button:
+	var btn = Button.new()
+	btn.custom_minimum_size = Vector2(250, 350)
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	
+	# Styling
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.15, 0.15, 0.15)
+	style.set_corner_radius_all(10)
+	btn.add_theme_stylebox_override("normal", style)
+	
+	# Content Container
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 10)
+	btn.add_child(vbox)
+	
+	# Icon
+	var icon = TextureRect.new()
+	icon.custom_minimum_size.y = 100
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = item.icon if item.icon else preload("res://icon.svg")
+	vbox.add_child(icon)
+	
+	# Name
+	var name_lbl = Label.new()
+	name_lbl.text = item.display_name
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 24)
+	vbox.add_child(name_lbl)
+	
+	# Description
+	var desc_lbl = Label.new()
+	desc_lbl.text = item.description
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(desc_lbl)
+	
+	# Click Logic
+	btn.pressed.connect(func(): _on_item_selected(item))
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	
+	return btn
+
+func _on_item_selected(item: EquipmentData):
+	AudioManager.play_sfx("ui_click")
+	print("Equipped: " + item.display_name)
+	
+	# 1. Add to inventory
+	RunManager.player_run_data.equipment.append(item)
+	
+	# 2. Recalculate stats immediately so max HP/SP increases
+	ClassFactory._recalculate_stats(RunManager.player_run_data)
+	
+	# 3. Proceed to the Action Tree for the card reward
+	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+
+
+========================================
 FILE PATH: res://Scripts/ActionNode.gd
 ========================================
 extends TextureButton
@@ -1171,6 +1251,7 @@ signal p2_mode_toggled(is_human)
 @onready var tooltip_label = $MainLayout/PreviewAnchor/ToolTipLabel
 @onready var btn_offence = %Offence        
 @onready var btn_defence = %Defence      
+@onready var equipment_grid = $EquipmentGrid
 
 @onready var log_toggle = $LogToggle 
 
@@ -1415,6 +1496,9 @@ func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	p1_hud.configure_visuals(false) 
 	p2_hud.configure_visuals(true)
 	update_momentum(0)
+	
+	# --- NEW: Show Equipment ---
+	_populate_equipment(p1_data)
 
 func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
 	# UPDATED CALLS: Removed the GameManager.p1_is_injured arguments
@@ -1859,6 +1943,38 @@ func _on_env_button_pressed():
 				#details += "- None."
 				
 		env_details.text = details
+
+# --- EQUIPMENT UI LOGIC ---
+func _populate_equipment(p1_data: CharacterData):
+	if not equipment_grid: return
+	
+	# 1. Clear old icons
+	for child in equipment_grid.get_children():
+		child.queue_free()
+		
+	# 2. Add new icons
+	for item in p1_data.equipment:
+		var icon = TextureRect.new()
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.custom_minimum_size = Vector2(40, 40)
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		
+		# Fallback if you haven't assigned art to the resource yet
+		if item.icon: icon.texture = item.icon
+		else: icon.texture = preload("res://icon.svg") # Godot default icon
+		
+		# 3. Build the Tooltip Text
+		var tip = item.display_name + "\n" + item.description + "\n"
+		tip += "-------------------\n"
+		if item.max_hp_bonus != 0: tip += "Max HP: " + ("+" if item.max_hp_bonus > 0 else "") + str(item.max_hp_bonus) + "\n"
+		if item.max_sp_bonus != 0: tip += "Max SP: " + ("+" if item.max_sp_bonus > 0 else "") + str(item.max_sp_bonus) + "\n"
+		if item.starting_sp_bonus != 0: tip += "Start SP: +" + str(item.starting_sp_bonus) + "\n"
+		if item.wall_crush_damage_bonus != 0: tip += "Wall Crush Dmg: +" + str(item.wall_crush_damage_bonus)
+		
+		# Assigning tooltip_text handles the hover pop-up automatically!
+		icon.tooltip_text = tip 
+		
+		equipment_grid.add_child(icon)
 
 
 ========================================
@@ -3954,10 +4070,12 @@ func reset_combat():
 	
 	# --- NEW: EQUIPMENT START-OF-COMBAT EFFECTS ---
 	for item in p1_data.equipment:
-		p1_data.current_sp = min(p1_data.current_sp + item.starting_sp_bonus, p1_data.max_sp)
+		# FIX: Removed min() clamp so players can start with MORE than their max SP
+		p1_data.current_sp += item.starting_sp_bonus
+		
 	for item in p2_data.equipment:
-		p2_data.current_sp = min(p2_data.current_sp + item.starting_sp_bonus, p2_data.max_sp)
-	# ----------------------------------------------
+		p2_data.current_sp += item.starting_sp_bonus
+	# ----------------------------------------------------
 	
 	if p1_data.speed > p2_data.speed: priority_player = 1
 	elif p2_data.speed > p1_data.speed: priority_player = 2
@@ -4702,7 +4820,7 @@ var free_unlocks_remaining: int = 0
 
 # --- NEW: RUN MODIFIERS ---
 var maintain_hp_enabled: bool = false
-
+const EQUIPMENT_DIR = "res://Data/Equipment/"
 # ... (start_run and start_run_from_preset remain exactly the same) ...
 
 # OPTION A: STANDARD RUN (Level 1, Drafting)
@@ -4712,7 +4830,7 @@ func start_run(starting_class: CharacterData.ClassType):
 	player_run_data = ClassFactory.create_character(starting_class, "You")
 	_init_tree_root(starting_class)
 	free_unlocks_remaining = 2
-	player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
+	#player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
 # OPTION B: PRESET RUN
@@ -4813,9 +4931,32 @@ func start_next_fight():
 
 func handle_win():
 	current_level += 1
-	# FIX: Grant 1 Unlock so the ActionTree allows exactly one draft pick
+	# Grant the standard card unlock
 	free_unlocks_remaining = 1 
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	
+	# --- NEW: MILESTONE CHECK ---
+	# Since we just added 1, the level we BEAT is (current_level - 1)
+	var level_beaten = current_level - 1
+	if level_beaten > 0 and level_beaten % 3 == 0:
+		print("Milestone Reached! Loading Equipment Draft...")
+		get_tree().change_scene_to_file("res://Scenes/EquipmentDraft.tscn")
+	else:
+		get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+
+# Helper to fetch all equipment for the draft
+func get_all_equipment() -> Array[EquipmentData]:
+	var list: Array[EquipmentData] = []
+	var dir = DirAccess.open(EQUIPMENT_DIR)
+	if dir:
+		dir.list_dir_begin()
+		var file = dir.get_next()
+		while file != "":
+			if file.ends_with(".tres") or file.ends_with(".res"):
+				var res = load(EQUIPMENT_DIR + file)
+				if res is EquipmentData:
+					list.append(res)
+			file = dir.get_next()
+	return list
 
 func handle_loss():
 	is_arcade_mode = false
