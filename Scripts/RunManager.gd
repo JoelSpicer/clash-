@@ -18,6 +18,7 @@ func start_run(starting_class: CharacterData.ClassType):
 	player_run_data = ClassFactory.create_character(starting_class, "You")
 	_init_tree_root(starting_class)
 	free_unlocks_remaining = 2
+	player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
 # OPTION B: PRESET RUN

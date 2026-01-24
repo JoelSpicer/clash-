@@ -30,6 +30,7 @@ enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
 @export_group("Progression")
 @export var deck: Array[ActionData]  # The Active 8 Cards
 @export var unlocked_actions: Array[ActionData] = [] # The Full Library
+@export var equipment: Array[EquipmentData] = [] # <--- NEW: The items you carry
 
 @export_group("Passive")
 @export_multiline var passive_desc: String 

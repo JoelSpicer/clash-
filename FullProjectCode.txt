@@ -2636,7 +2636,7 @@ func _recalculate_stats(char_data: CharacterData):
 	var old_max_hp = char_data.max_hp
 	
 	# 2. Calculate new stats
-	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions)
+	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions, char_data.equipment)
 	
 	char_data.max_hp = result["hp"]
 	char_data.max_sp = result["sp"]
@@ -2671,7 +2671,7 @@ func find_action_resource(action_name: String) -> ActionData:
 	return null
 
 # New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
-func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionData]) -> Dictionary:
+func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
 	if not class_registry.has(type): return {"hp": 5, "sp": 4}
 	
 	var def: ClassDefinition = class_registry[type]
@@ -2696,8 +2696,12 @@ func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionD
 		elif card.type == ActionData.Type.DEFENCE:
 			final_hp += def.defence_hp_growth
 			final_sp += def.defence_sp_growth
+	
+	for item in equipment:
+		final_hp += item.max_hp_bonus
+		final_sp += item.max_sp_bonus
 			
-	return {"hp": final_hp, "sp": final_sp}
+	return {"hp": max(1, final_hp), "sp": max(1, final_sp)} # Clamp to 1 so items can't kill you
 
 # NEW HELPER: Reverse lookup for Presets -> Tree Nodes
 func get_id_by_name(card_name: String) -> int:
@@ -3679,6 +3683,7 @@ enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
 @export_group("Progression")
 @export var deck: Array[ActionData]  # The Active 8 Cards
 @export var unlocked_actions: Array[ActionData] = [] # The Full Library
+@export var equipment: Array[EquipmentData] = [] # <--- NEW: The items you carry
 
 @export_group("Passive")
 @export_multiline var passive_desc: String 
@@ -3774,6 +3779,26 @@ class_name ClassDefinition
 @export_group("Progression")
 @export var starting_deck: Array[ActionData] = []
 @export var skill_tree_root_id: int = 0
+
+
+========================================
+FILE PATH: res://Scripts/Resources/EquipmentData.gd
+========================================
+class_name EquipmentData
+extends Resource
+
+@export_group("Visuals")
+@export var display_name: String
+@export_multiline var description: String
+@export var icon: Texture2D
+
+@export_group("Stat Modifiers")
+@export var max_hp_bonus: int = 0
+@export var max_sp_bonus: int = 0
+@export var starting_sp_bonus: int = 0 # Gives extra SP at the start of a fight
+
+@export_group("Combat Modifiers")
+@export var wall_crush_damage_bonus: int = 0
 
 
 ========================================
@@ -3926,6 +3951,13 @@ func reset_combat():
 	
 	p1_rage_active = false; p2_rage_active = false
 	p1_keep_up_active = false; p2_keep_up_active = false
+	
+	# --- NEW: EQUIPMENT START-OF-COMBAT EFFECTS ---
+	for item in p1_data.equipment:
+		p1_data.current_sp = min(p1_data.current_sp + item.starting_sp_bonus, p1_data.max_sp)
+	for item in p2_data.equipment:
+		p2_data.current_sp = min(p2_data.current_sp + item.starting_sp_bonus, p2_data.max_sp)
+	# ----------------------------------------------
 	
 	if p1_data.speed > p2_data.speed: priority_player = 1
 	elif p2_data.speed > p1_data.speed: priority_player = 2
@@ -4115,11 +4147,20 @@ func resolve_clash():
 	
 	var is_initial_clash = (momentum == 0)
 	
-	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE: p1_data.combo_action_count += 1
-	else: p1_data.combo_action_count = 0
-	
-	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE: p2_data.combo_action_count += 1
-	else: p2_data.combo_action_count = 0
+# If P1 wins with Offence...
+	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE:
+		# Check if they were ALREADY comboing. If not (e.g., previous turn was neutral or 0 SP break), start at 1.
+		if current_combo_attacker != 1: p1_data.combo_action_count = 1
+		else: p1_data.combo_action_count += 1
+	else:
+		p1_data.combo_action_count = 0
+
+	# Same for P2
+	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE:
+		if current_combo_attacker != 2: p2_data.combo_action_count = 1
+		else: p2_data.combo_action_count += 1
+	else:
+		p2_data.combo_action_count = 0
 	
 	# --- PHASE 0: PAY COSTS ---
 	# FIX: Use helper instead of deleted variable
@@ -4259,18 +4300,25 @@ func resolve_clash():
 func _apply_wall_crush(player_id: int, amount: int):
 	var character = p1_data if player_id == 1 else p2_data
 	
+	# --- NEW: CHECK IF ATTACKER HAS SPIKED CLEATS ---
+	var attacker_data = p2_data if player_id == 1 else p1_data
+	var final_amount = amount
+	for item in attacker_data.equipment:
+		final_amount += item.wall_crush_damage_bonus
+	# ------------------------------------------------
+	
 	# --- NEW: EMIT SIGNAL ---
-	emit_signal("wall_crush_occurred", player_id, amount)
+	emit_signal("wall_crush_occurred", player_id, final_amount)
 	# ------------------------
 	
 	emit_signal("combat_log_updated", ">> P" + str(player_id) + " CRUSHED against the wall!")
 	
-	if character.current_sp >= amount:
-		character.current_sp -= amount
-		emit_signal("combat_log_updated", "   Lost " + str(amount) + " SP to hold ground.")
+	if character.current_sp >= final_amount:
+		character.current_sp -= final_amount
+		emit_signal("combat_log_updated", "   Lost " + str(final_amount) + " SP to hold ground.")
 	else:
 		var sp_paid = character.current_sp
-		var hp_damage = amount - sp_paid
+		var hp_damage = final_amount - sp_paid
 		
 		character.current_sp = 0
 		character.current_hp -= hp_damage
@@ -4664,6 +4712,7 @@ func start_run(starting_class: CharacterData.ClassType):
 	player_run_data = ClassFactory.create_character(starting_class, "You")
 	_init_tree_root(starting_class)
 	free_unlocks_remaining = 2
+	player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
 # OPTION B: PRESET RUN

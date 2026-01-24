@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="EquipmentData" load_steps=2 format=3 uid="uid://b5nlc0uo7gu36"]
+
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="1_gfdb8"]
+
+[resource]
+script = ExtResource("1_gfdb8")
+display_name = "Spiked Cleats"
+description = "Slamming enemies into the wall deals +1 Damage."
+wall_crush_damage_bonus = 1
+metadata/_custom_type_script = "uid://b3y0gojixwh16"

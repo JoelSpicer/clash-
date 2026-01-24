@@ -146,6 +146,15 @@ func reset_combat():
 	p1_rage_active = false; p2_rage_active = false
 	p1_keep_up_active = false; p2_keep_up_active = false
 	
+	# --- NEW: EQUIPMENT START-OF-COMBAT EFFECTS ---
+	for item in p1_data.equipment:
+		# FIX: Removed min() clamp so players can start with MORE than their max SP
+		p1_data.current_sp += item.starting_sp_bonus
+		
+	for item in p2_data.equipment:
+		p2_data.current_sp += item.starting_sp_bonus
+	# ----------------------------------------------------
+	
 	if p1_data.speed > p2_data.speed: priority_player = 1
 	elif p2_data.speed > p1_data.speed: priority_player = 2
 	else: priority_player = randi_range(1, 2)
@@ -487,18 +496,25 @@ func resolve_clash():
 func _apply_wall_crush(player_id: int, amount: int):
 	var character = p1_data if player_id == 1 else p2_data
 	
+	# --- NEW: CHECK IF ATTACKER HAS SPIKED CLEATS ---
+	var attacker_data = p2_data if player_id == 1 else p1_data
+	var final_amount = amount
+	for item in attacker_data.equipment:
+		final_amount += item.wall_crush_damage_bonus
+	# ------------------------------------------------
+	
 	# --- NEW: EMIT SIGNAL ---
-	emit_signal("wall_crush_occurred", player_id, amount)
+	emit_signal("wall_crush_occurred", player_id, final_amount)
 	# ------------------------
 	
 	emit_signal("combat_log_updated", ">> P" + str(player_id) + " CRUSHED against the wall!")
 	
-	if character.current_sp >= amount:
-		character.current_sp -= amount
-		emit_signal("combat_log_updated", "   Lost " + str(amount) + " SP to hold ground.")
+	if character.current_sp >= final_amount:
+		character.current_sp -= final_amount
+		emit_signal("combat_log_updated", "   Lost " + str(final_amount) + " SP to hold ground.")
 	else:
 		var sp_paid = character.current_sp
-		var hp_damage = amount - sp_paid
+		var hp_damage = final_amount - sp_paid
 		
 		character.current_sp = 0
 		character.current_hp -= hp_damage

@@ -324,7 +324,7 @@ func _recalculate_stats(char_data: CharacterData):
 	var old_max_hp = char_data.max_hp
 	
 	# 2. Calculate new stats
-	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions)
+	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions, char_data.equipment)
 	
 	char_data.max_hp = result["hp"]
 	char_data.max_sp = result["sp"]
@@ -359,7 +359,7 @@ func find_action_resource(action_name: String) -> ActionData:
 	return null
 
 # New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
-func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionData]) -> Dictionary:
+func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
 	if not class_registry.has(type): return {"hp": 5, "sp": 4}
 	
 	var def: ClassDefinition = class_registry[type]
@@ -384,8 +384,12 @@ func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionD
 		elif card.type == ActionData.Type.DEFENCE:
 			final_hp += def.defence_hp_growth
 			final_sp += def.defence_sp_growth
+	
+	for item in equipment:
+		final_hp += item.max_hp_bonus
+		final_sp += item.max_sp_bonus
 			
-	return {"hp": final_hp, "sp": final_sp}
+	return {"hp": max(1, final_hp), "sp": max(1, final_sp)} # Clamp to 1 so items can't kill you
 
 # NEW HELPER: Reverse lookup for Presets -> Tree Nodes
 func get_id_by_name(card_name: String) -> int:

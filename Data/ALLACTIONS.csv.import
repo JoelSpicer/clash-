@@ -3,13 +3,11 @@
 importer="csv_translation"
 type="Translation"
 uid="uid://b6awekrjlumlq"
+valid=false
 
 [deps]
 
-files=["res://Data/ALLACTIONS.Defence, Recover 1, Block 1.translation", "res://Data/ALLACTIONS.1.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.TRUE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.1.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.Basic.translation"]
-
 source_file="res://Data/ALLACTIONS.csv"
-dest_files=["res://Data/ALLACTIONS.Defence, Recover 1, Block 1.translation", "res://Data/ALLACTIONS.1.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.TRUE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.1.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.FALSE.translation", "res://Data/ALLACTIONS.0.translation", "res://Data/ALLACTIONS.Basic.translation"]
 
 [params]
 

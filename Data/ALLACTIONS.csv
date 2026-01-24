@@ -29,7 +29,7 @@ Uppercut,"Offence, Cost 1, Momentum 3",0,1,0,0,0,FALSE,FALSE,0,0,FALSE,0,FALSE,3
 Adept Parry,"Defence, Cost 1, Parry, Fall Back 1",0,1,0,0,0,TRUE,FALSE,0,1,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
 Adept Positioning,"Offence, Recover 1, Heal 1, Fall Back 1",0,0,0,0,0,FALSE,FALSE,0,1,FALSE,1,FALSE,0,0,TRUE,FALSE,0,FALSE,1,0,FALSE,FALSE,FALSE,FALSE,0,Patient
 Adjust Stance,"Offence, Cost 1, Opportunity 1, Opener",0,1,0,0,0,FALSE,FALSE,0,0,FALSE,0,FALSE,0,0,TRUE,TRUE,1,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
-Counter Strike,"Defence, Fall Back 2, Parry, Damage 2",0,0,0,0,2,TRUE,FALSE,0,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
+Counter Strike,"Defence, Fall Back 2, Parry, Damage 2",0,0,0,0,1,TRUE,FALSE,0,3,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
 Go with the Flow,"Offence, Cost 3, Ditto, Recover 1, Fall Back 1",0,3,0,0,0,FALSE,TRUE,0,1,FALSE,0,FALSE,0,0,TRUE,FALSE,0,FALSE,1,0,FALSE,FALSE,FALSE,FALSE,0,Patient
 Inner Peace,"Offence, Heal 1",0,0,0,0,0,FALSE,FALSE,0,0,FALSE,1,FALSE,0,0,TRUE,FALSE,0,FALSE,0,0,FALSE,FALSE,FALSE,FALSE,0,Patient
 Master Parry,"Defence, Cost 1, Parry, Fall Back 2, Tiring 2",0,1,0,0,0,TRUE,FALSE,0,2,FALSE,0,FALSE,0,0,FALSE,FALSE,0,TRUE,0,0,FALSE,FALSE,FALSE,FALSE,2,Patient
