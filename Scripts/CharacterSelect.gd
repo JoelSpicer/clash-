@@ -19,6 +19,13 @@ extends Control
 @onready var p2_mode_button = $HBoxContainer/P2_Column/P2ModeButton
 @onready var arcade_button = $HBoxContainer/Center_Column/ArcadeButton
 
+@onready var run_settings_popup = $RunSettingsPopup
+@onready var class_confirm_label = $RunSettingsPopup/Panel/VBoxContainer/ClassConfirmLabel
+@onready var maintain_hp_toggle = $RunSettingsPopup/Panel/VBoxContainer/MaintainHPToggle
+@onready var btn_confirm_run = $RunSettingsPopup/Panel/VBoxContainer/HBoxContainer/ConfirmRunButton
+@onready var btn_cancel_run = $RunSettingsPopup/Panel/VBoxContainer/HBoxContainer/CancelRunButton
+
+
 var compendium_scene = preload("res://Scenes/compendium.tscn")
 var classes = ["Heavy", "Patient", "Quick", "Technical"]
 var base_classes = ["Heavy", "Patient", "Quick", "Technical"]
@@ -72,6 +79,11 @@ func _ready():
 	# NEW: Ensure P2 Portrait is flipped to look at P1 (Symmetry!)
 	if p2_portrait:
 		p2_portrait.flip_h = true
+		
+	btn_cancel_run.pressed.connect(func(): run_settings_popup.visible = false)
+	btn_confirm_run.pressed.connect(_on_final_arcade_confirm)
+	_attach_sfx(btn_cancel_run)
+	_attach_sfx(btn_confirm_run)
 
 func _load_presets():
 	presets.clear()
@@ -220,14 +232,19 @@ func _on_difficulty_changed(index: int):
 
 func _on_start_arcade_pressed():
 	var selected_idx = p1_option.selected
+	var class_named = "Unknown"
+	
+	# Get Name for the confirmation text
 	if selected_idx < base_classes.size():
-		var class_enum = selected_idx as CharacterData.ClassType
-		RunManager.start_run(class_enum)
+		class_named = ClassFactory.class_enum_to_string(selected_idx as CharacterData.ClassType)
 	else:
 		var preset_idx = selected_idx - base_classes.size() - 1
-		if preset_idx >= 0 and preset_idx < presets.size():
-			var preset = presets[preset_idx]
-			RunManager.start_run_from_preset(preset)
+		class_named = presets[preset_idx].character_name
+
+	# Update UI
+	class_confirm_label.text = "Start Arcade Run with: " + class_named + "?"
+	maintain_hp_toggle.button_pressed = false # Reset toggle by default
+	run_settings_popup.visible = true
 
 func _on_help_pressed():
 	var compendium = compendium_scene.instantiate()
@@ -258,3 +275,18 @@ func _attach_sfx(node: Control):
 		node.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
 	if node.has_signal("pressed"):
 		node.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+
+func _on_final_arcade_confirm():
+	# 1. Save Modifiers to RunManager
+	RunManager.maintain_hp_enabled = maintain_hp_toggle.button_pressed
+	
+	# 2. Start the Run (Existing logic)
+	var selected_idx = p1_option.selected
+	if selected_idx < base_classes.size():
+		var class_enum = selected_idx as CharacterData.ClassType
+		RunManager.start_run(class_enum)
+	else:
+		var preset_idx = selected_idx - base_classes.size() - 1
+		if preset_idx >= 0 and preset_idx < presets.size():
+			var preset = presets[preset_idx]
+			RunManager.start_run_from_preset(preset)

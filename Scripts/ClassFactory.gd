@@ -233,10 +233,10 @@ func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
 # Helper for string names
 func class_enum_to_string(type: int) -> String:
 	match type:
-		CharacterData.ClassType.HEAVY: return "Bruiser"
-		CharacterData.ClassType.PATIENT: return "Defender"
-		CharacterData.ClassType.QUICK: return "Speedster"
-		CharacterData.ClassType.TECHNICAL: return "Tactician"
+		CharacterData.ClassType.HEAVY: return "Heavy"
+		CharacterData.ClassType.PATIENT: return "Patient"
+		CharacterData.ClassType.QUICK: return "Quick"
+		CharacterData.ClassType.TECHNICAL: return "Technical"
 	return "Enemy"
 # Generates a fully playable CharacterData resource based on the chosen class
 func create_character(type: CharacterData.ClassType, player_name: String) -> CharacterData:
@@ -320,15 +320,25 @@ func create_from_preset(preset: PresetCharacter) -> CharacterData:
 # ClassFactory.gd
 
 func _recalculate_stats(char_data: CharacterData):
-	# FIX: Use 'unlocked_actions' (Library) instead of 'deck' (Hand)
-	# This ensures stats update immediately upon purchase and persist even if unequipped.
+	# 1. Snapshot old stats before we change them
+	var old_max_hp = char_data.max_hp
+	
+	# 2. Calculate new stats
 	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions)
 	
-	# Apply them
 	char_data.max_hp = result["hp"]
 	char_data.max_sp = result["sp"]
-	char_data.current_hp = result["hp"]
-	char_data.current_sp = result["sp"]
+	
+	# --- 3. ROGUELIKE HP LOGIC ---
+	if RunManager.is_arcade_mode and RunManager.maintain_hp_enabled:
+		# Only heal them by the AMOUNT they grew (e.g., Max HP 5 -> 6 means heal 1 HP)
+		var hp_growth = char_data.max_hp - old_max_hp
+		char_data.current_hp += hp_growth
+		char_data.current_sp = char_data.max_sp # SP always resets per fight
+	else:
+		# Standard Mode: Full Heal
+		char_data.current_hp = char_data.max_hp
+		char_data.current_sp = char_data.max_sp
 
 
 # --- HELPER: Find Resource (Moved from ActionTree) ---

@@ -6,6 +6,9 @@ var player_run_data: CharacterData
 var player_owned_tree_ids: Array[int] = [] 
 var free_unlocks_remaining: int = 0
 
+# --- NEW: RUN MODIFIERS ---
+var maintain_hp_enabled: bool = false
+
 # ... (start_run and start_run_from_preset remain exactly the same) ...
 
 # OPTION A: STANDARD RUN (Level 1, Drafting)

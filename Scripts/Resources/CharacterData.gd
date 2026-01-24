@@ -51,8 +51,12 @@ var statuses: Dictionary = {}
 
 # --- LOGIC ---
 
-func reset_stats():
-	current_hp = max_hp
+func reset_stats(maintain_hp: bool = false):
+	# Only reset HP to max if we are NOT maintaining it
+	if not maintain_hp:
+		current_hp = max_hp
+		
+	# SP and Statuses always reset per fight
 	current_sp = max_sp
 	has_used_super = false
 	combo_action_count = 0

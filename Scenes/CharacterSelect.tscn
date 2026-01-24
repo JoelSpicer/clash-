@@ -135,4 +135,71 @@ offset_right = 1068.0
 offset_bottom = 47.0
 text = "?"
 
+[node name="RunSettingsPopup" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5803922)
+
+[node name="Panel" type="Panel" parent="RunSettingsPopup"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="RunSettingsPopup/Panel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -79.5
+offset_top = -51.0
+offset_right = 79.5
+offset_bottom = 51.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ClassConfirmLabel" type="Label" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Start run with: Heavy?"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="MaintainHPToggle" type="CheckBox" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Maintain HP Between Fights"
+alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="CancelRunButton" type="Button" parent="RunSettingsPopup/Panel/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cancel"
+
+[node name="ConfirmRunButton" type="Button" parent="RunSettingsPopup/Panel/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "START RUN"
+
 [connection signal="pressed" from="HBoxContainer/Center_Column/ArcadeButton" to="." method="_on_start_arcade_pressed"]

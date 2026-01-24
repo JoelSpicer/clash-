@@ -124,8 +124,13 @@ func start_combat(p1: CharacterData, p2: CharacterData):
 	reset_combat()
 
 func reset_combat():
-	p1_data.reset_stats() # This clears the status dictionary automatically
-	p2_data.reset_stats()
+	# --- FIX: Check if P1 should maintain HP ---
+	var p1_maintain = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
+	p1_data.reset_stats(p1_maintain) 
+	
+	# P2 (The Enemy) always resets to full
+	p2_data.reset_stats(false)
+	# -------------------------------------------
 	momentum = 0 
 	current_combo_attacker = 0
 	p1_locked_card = null; p2_locked_card = null
