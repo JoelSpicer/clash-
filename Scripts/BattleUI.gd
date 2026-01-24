@@ -70,6 +70,9 @@ var zoom_decay: float = 5.0    # <--- NEW: How fast it returns to normal
 #endregion
 
 func _ready():
+	# --- FIX: Keep UI active even when game is paused ---
+	process_mode = Node.PROCESS_MODE_ALWAYS 
+	# --
 	if not btn_offence or not btn_defence:
 		printerr("CRITICAL: Buttons missing in BattleUI")
 		return

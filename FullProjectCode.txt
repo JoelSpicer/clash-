@@ -1224,6 +1224,9 @@ var zoom_decay: float = 5.0    # <--- NEW: How fast it returns to normal
 #endregion
 
 func _ready():
+	# --- FIX: Keep UI active even when game is paused ---
+	process_mode = Node.PROCESS_MODE_ALWAYS 
+	# --
 	if not btn_offence or not btn_defence:
 		printerr("CRITICAL: Buttons missing in BattleUI")
 		return
@@ -1288,14 +1291,18 @@ func _ready():
 		btn.pressed.connect(_on_menu_pressed)
 
 	$MomentumSlider/Label2.text = str(GameManager.momentum)
-	# --- NEW: ENVIRONMENT UI SETUP ---
+# --- ENVIRONMENT UI SETUP ---
 	if env_button and env_popup:
 		env_button.pressed.connect(_on_env_button_pressed)
 		close_env_button.pressed.connect(func(): env_popup.visible = false)
 		_attach_sfx(env_button)
 		_attach_sfx(close_env_button)
 		
-		# Set initial button text based on GameManager state
+		# FIX: Force the RichTextLabel to render correctly via code [cite: 305]
+		env_details.bbcode_enabled = true
+		env_details.fit_content = true
+		
+		# Set initial button text
 		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
 	# ---------------------------------
 	
@@ -1840,16 +1847,16 @@ func _on_env_button_pressed():
 		var details = "[b]Momentum Tracker:[/b] " + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots\n"
 		
 		# 3. Add Specific Hazards (Future Proofing)
-		details += "\n[b]Hazards:[/b]\n"
-		match GameManager.current_environment_name:
-			"Ring":
-				details += "- [color=yellow]Ropes:[/color] Wall Crush damage is reduced by 1.\n"
-			"Dojo":
-				details += "- [color=yellow]Honor Bound:[/color] Standard rules apply.\n"
-			"Street":
-				details += "- [color=yellow]Bystanders:[/color] Every 3rd turn, a random event occurs.\n"
-			_:
-				details += "- None."
+		#details += "\n[b]Hazards:[/b]\n"
+		#match GameManager.current_environment_name:
+			#"Ring":
+				#details += "- [color=yellow]Ropes:[/color] Wall Crush damage is reduced by 1.\n"
+			#"Dojo":
+				#details += "- [color=yellow]Honor Bound:[/color] Standard rules apply.\n"
+			#"Street":
+				#details += "- [color=yellow]Bystanders:[/color] Every 3rd turn, a random event occurs.\n"
+			#_:
+				#details += "- None."
 				
 		env_details.text = details
 
@@ -2936,7 +2943,19 @@ func add_round_summary(p1_diff: Dictionary, p2_diff: Dictionary, mom_val: int):
 	var p2_text = _format_diff("P2", p2_diff, P2_COLOR)
 	var mom_text = " | Mom: [color=yellow]" + str(mom_val) + "[/color]"
 	
-	var final_bbcode = p1_text + "   " + p2_text + mom_text + "\n [b]----------- NEW CLASH -----------[/b]"
+	# --- NEW: COMBO COUNTER ---
+	var combo_text = ""
+	var attacker = GameManager.get_attacker()
+	
+	# Check if P1 is comboing
+	if attacker == 1 and GameManager.p1_data.combo_action_count > 1:
+		combo_text = " | [color=#ff9999][b]P1 COMBO: " + str(GameManager.p1_data.combo_action_count) + " HITS![/b][/color]"
+	# Check if P2 is comboing
+	elif attacker == 2 and GameManager.p2_data.combo_action_count > 1:
+		combo_text = " | [color=#99ccff][b]P2 COMBO: " + str(GameManager.p2_data.combo_action_count) + " HITS![/b][/color]"
+	# --------------------------
+	
+	var final_bbcode = p1_text + "   " + p2_text + mom_text + combo_text + "\n [b]----------- NEW CLASH -----------[/b]"
 	
 	var label = _create_rich_label(final_bbcode)
 	row.add_child(label)
@@ -3120,56 +3139,131 @@ FILE PATH: res://Scripts/GameOverScreen.gd
 extends Control
 
 @onready var winner_label = $Panel/VBoxContainer/WinnerLabel
+@onready var main_panel = $Panel
+@onready var vbox = $Panel/VBoxContainer
+@onready var background_rect = $Background
+
+var view_board_btn: Button
+var stats_panel: RichTextLabel
 
 func _ready():
-	# 1. Get References
+	# 1. Get Existing References
 	var btn_rematch = $Panel/VBoxContainer/RematchButton
 	var btn_menu = $Panel/VBoxContainer/MenuButton
 	
-	# 2. Connect Logic (Existing)
+	# 2. Connect Logic
 	btn_rematch.pressed.connect(_on_rematch_pressed)
 	btn_menu.pressed.connect(_on_menu_pressed)
-	
-	# 3. Connect Audio (New)
 	_attach_sfx(btn_rematch)
 	_attach_sfx(btn_menu)
-
-# --- NEW HELPER FUNCTION ---
-func _attach_sfx(btn: BaseButton):
-	if not btn: return
-	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
-	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+	
+	# 3. Add "VIEW BOARD" Button (Dynamically created)
+	view_board_btn = Button.new()
+	view_board_btn.text = "Hide Screen (View Board)"
+	view_board_btn.pressed.connect(_on_view_board_pressed)
+	_attach_sfx(view_board_btn)
+	
+	# Add it to the top right of the screen
+	add_child(view_board_btn)
+	view_board_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	view_board_btn.position -= Vector2(20, -20)
+	
+	# 4. Create Run Stats Container (Hidden by default)
+	stats_panel = RichTextLabel.new()
+	stats_panel.bbcode_enabled = true
+	stats_panel.fit_content = true
+	stats_panel.custom_minimum_size.y = 100
+	stats_panel.visible = false
+	vbox.add_child(stats_panel)
+	vbox.move_child(stats_panel, 1) # Put it under the Winner Label
 
 func setup(winner_id: int):
+	# --- STANDARD SETUP ---
 	if winner_id == 1:
 		winner_label.text = "PLAYER 1 WINS!"
-		winner_label.modulate = Color("#ff9999") # Red tint
+		winner_label.modulate = Color("#ff9999")
 	elif winner_id == 2:
 		winner_label.text = "PLAYER 2 WINS!"
-		winner_label.modulate = Color("#99ccff") # Blue tint
+		winner_label.modulate = Color("#99ccff")
 	else:
 		winner_label.text = "DRAW!"
-	
-	# ARCADE LOGIC
+
+	# --- ARCADE LOGIC & STATS ---
 	if RunManager.is_arcade_mode:
 		if winner_id == 1:
-			# Player Won
+			# Player Won: Proceed to next level
 			$Panel/VBoxContainer/RematchButton.text = "CLAIM REWARD"
 			$Panel/VBoxContainer/RematchButton.pressed.disconnect(_on_rematch_pressed)
-			$Panel/VBoxContainer/RematchButton.pressed.connect(func(): RunManager.handle_win())
+			$Panel/VBoxContainer/RematchButton.pressed.connect(_on_claim_reward_pressed)
+			
 		else:
-			# Player Lost
-			$Panel/VBoxContainer/RematchButton.visible = false # No retry in arcade!
-			$Panel/VBoxContainer/MenuButton.text = "RUN OVER"
+			# Player Lost: SHOW RUN SUMMARY
+			$Panel/VBoxContainer/RematchButton.visible = false 
+			$Panel/VBoxContainer/MenuButton.text = "MAIN MENU"
+			
+			_populate_run_stats()
+
+func _populate_run_stats():
+	stats_panel.visible = true
+	
+	# 1. Basic Stats
+	var levels_beat = RunManager.current_level - 1
+	var txt = "[center][b]--- ARCADE RUN SUMMARY ---[/b][/center]\n\n"
+	txt += "[color=yellow]Enemies Defeated:[/color] " + str(levels_beat) + "\n"
+	
+	# 2. Deck Summary
+	txt += "[color=yellow]Final Deck:[/color] "
+	var deck_names = []
+	for card in RunManager.player_run_data.deck:
+		deck_names.append(card.display_name)
+	txt += ", ".join(deck_names) + "\n"
+	
+	# 3. Placeholder for Future Stats
+	txt += "\n[color=gray][i]Total Damage Dealt: (Coming Soon)[/i][/color]"
+	txt += "\n[color=gray][i]Total SP Spent: (Coming Soon)[/i][/color]"
+	
+	stats_panel.text = txt
+
+# --- UI INTERACTION ---
+
+func _on_view_board_pressed():
+	# Toggle visibility of the visuals
+	main_panel.visible = not main_panel.visible
+	background_rect.visible = not background_rect.visible 
+	
+	if main_panel.visible:
+		view_board_btn.text = "Hide Screen (View Board)"
+		# --- FIX: Block clicks from passing through ---
+		mouse_filter = Control.MOUSE_FILTER_STOP 
+	else:
+		view_board_btn.text = "Show Game Over Screen"
+		# --- FIX: Let clicks pass through the invisible root node ---
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _on_rematch_pressed():
-	# IMPORTANT: Reset logic ensures stats are clean for new round
+	# --- FIX: Unpause before reloading ---
+	get_tree().paused = false 
+	# -------------------------------------
 	GameManager.reset_combat() 
-	# Reload the current arena scene
 	get_tree().reload_current_scene()
 
 func _on_menu_pressed():
+	# --- FIX: Unpause before leaving ---
+	get_tree().paused = false 
+	# -----------------------------------
+	GameManager.reset_combat() 
 	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+	
+func _attach_sfx(btn: BaseButton):
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+
+func _on_claim_reward_pressed():
+	# 1. Unpause the game safely
+	get_tree().paused = false
+	
+	# 2. Tell the RunManager to load the Action Tree
+	RunManager.handle_win()
 
 
 ========================================
@@ -4373,7 +4467,9 @@ func _handle_death(winner_id):
 	elif p2_data.current_hp > 0: game_winner = 2
 	else: game_winner = winner_id 
 	emit_signal("game_over", game_winner)
-	reset_combat() 
+	
+	# REMOVED: reset_combat() 
+	# We want the stats to stay at 0 so the player can see the final board state. 
 
 func _check_reversal_state():
 	var active_attacker = get_attacker()
@@ -4698,12 +4794,23 @@ var p1_last_cost: int = 0      # Track if player is tired
 
 # NEW: Preload the Game Over Screen
 var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
+var game_over_screen
 
 @onready var battle_ui = $BattleUI
 var _simulation_active: bool = true
 var _current_input_player: int = 1 
 
 func _ready():
+# --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
+	var go_layer = CanvasLayer.new()
+	go_layer.layer = 100 # Put it above everything else
+	add_child(go_layer)
+	
+	game_over_screen = game_over_scene.instantiate()
+	game_over_screen.visible = false
+	game_over_screen.process_mode = Node.PROCESS_MODE_ALWAYS # Keep buttons active
+	go_layer.add_child(game_over_screen)
+	# ------------------------------------------------------
 	# 1. UI SETUP
 	# Since BattleUI is already in the scene tree, we just wait for it to be ready.
 	# We DO NOT instantiate() it or add_child() it again.
@@ -5211,24 +5318,17 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 	return score
 
 # --- LOGGING ---
-func _on_game_over(winner_id):
-	print("\n*** VICTORY FOR PLAYER " + str(winner_id) + "! ***")
-	if stop_on_game_over: _simulation_active = false
+func _on_game_over(winner_id: int):
+	# 1. Force one final visual update so the HP bar shows 0
+	_update_visuals()
 	
-	# 1. Wait a moment for the final hit impact to register visually
-	await get_tree().create_timer(1.5).timeout
+	# 2. Wait 1 second so the player can see the final hit land
+	await get_tree().create_timer(1.0).timeout
 	
-	# 2. Lock UI so no more cards can be clicked
-	if battle_ui:
-		battle_ui.lock_ui()
-	
-	# 3. Spawn Game Over Screen
-	var screen = game_over_scene.instantiate()
-	# Add to CanvasLayer (BattleUI) so it draws on top of everything, 
-	# or add to self if you want it part of the world. 
-	# Adding to BattleUI is usually safer for Z-index.
-	battle_ui.add_child(screen) 
-	screen.setup(winner_id)
+	# 3. Now we pause and show the screen
+	get_tree().paused = true 
+	game_over_screen.setup(winner_id)
+	game_over_screen.visible = true
 	
 	
 func _on_clash_resolved(winner_id, p1_card, p2_card, _results): 

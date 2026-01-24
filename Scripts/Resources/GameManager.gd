@@ -334,11 +334,20 @@ func resolve_clash():
 	
 	var is_initial_clash = (momentum == 0)
 	
-	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE: p1_data.combo_action_count += 1
-	else: p1_data.combo_action_count = 0
-	
-	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE: p2_data.combo_action_count += 1
-	else: p2_data.combo_action_count = 0
+# If P1 wins with Offence...
+	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE:
+		# Check if they were ALREADY comboing. If not (e.g., previous turn was neutral or 0 SP break), start at 1.
+		if current_combo_attacker != 1: p1_data.combo_action_count = 1
+		else: p1_data.combo_action_count += 1
+	else:
+		p1_data.combo_action_count = 0
+
+	# Same for P2
+	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE:
+		if current_combo_attacker != 2: p2_data.combo_action_count = 1
+		else: p2_data.combo_action_count += 1
+	else:
+		p2_data.combo_action_count = 0
 	
 	# --- PHASE 0: PAY COSTS ---
 	# FIX: Use helper instead of deleted variable
@@ -686,7 +695,9 @@ func _handle_death(winner_id):
 	elif p2_data.current_hp > 0: game_winner = 2
 	else: game_winner = winner_id 
 	emit_signal("game_over", game_winner)
-	reset_combat() 
+	
+	# REMOVED: reset_combat() 
+	# We want the stats to stay at 0 so the player can see the final board state. 
 
 func _check_reversal_state():
 	var active_attacker = get_attacker()

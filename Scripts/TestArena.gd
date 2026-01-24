@@ -17,12 +17,23 @@ var p1_last_cost: int = 0      # Track if player is tired
 
 # NEW: Preload the Game Over Screen
 var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
+var game_over_screen
 
 @onready var battle_ui = $BattleUI
 var _simulation_active: bool = true
 var _current_input_player: int = 1 
 
 func _ready():
+# --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
+	var go_layer = CanvasLayer.new()
+	go_layer.layer = 100 # Put it above everything else
+	add_child(go_layer)
+	
+	game_over_screen = game_over_scene.instantiate()
+	game_over_screen.visible = false
+	game_over_screen.process_mode = Node.PROCESS_MODE_ALWAYS # Keep buttons active
+	go_layer.add_child(game_over_screen)
+	# ------------------------------------------------------
 	# 1. UI SETUP
 	# Since BattleUI is already in the scene tree, we just wait for it to be ready.
 	# We DO NOT instantiate() it or add_child() it again.
@@ -530,24 +541,17 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 	return score
 
 # --- LOGGING ---
-func _on_game_over(winner_id):
-	print("\n*** VICTORY FOR PLAYER " + str(winner_id) + "! ***")
-	if stop_on_game_over: _simulation_active = false
+func _on_game_over(winner_id: int):
+	# 1. Force one final visual update so the HP bar shows 0
+	_update_visuals()
 	
-	# 1. Wait a moment for the final hit impact to register visually
-	await get_tree().create_timer(1.5).timeout
+	# 2. Wait 1 second so the player can see the final hit land
+	await get_tree().create_timer(1.0).timeout
 	
-	# 2. Lock UI so no more cards can be clicked
-	if battle_ui:
-		battle_ui.lock_ui()
-	
-	# 3. Spawn Game Over Screen
-	var screen = game_over_scene.instantiate()
-	# Add to CanvasLayer (BattleUI) so it draws on top of everything, 
-	# or add to self if you want it part of the world. 
-	# Adding to BattleUI is usually safer for Z-index.
-	battle_ui.add_child(screen) 
-	screen.setup(winner_id)
+	# 3. Now we pause and show the screen
+	get_tree().paused = true 
+	game_over_screen.setup(winner_id)
+	game_over_screen.visible = true
 	
 	
 func _on_clash_resolved(winner_id, p1_card, p2_card, _results): 
