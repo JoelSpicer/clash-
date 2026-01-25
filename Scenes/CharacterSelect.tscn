@@ -70,15 +70,18 @@ horizontal_alignment = 1
 
 [node name="QuickFightButton" type="Button" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "Quick CLASH!"
 
 [node name="CustomDeckButton" type="Button" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "Quick CLASH! 
 (build action list)"
 
 [node name="ArcadeButton" type="Button" parent="HBoxContainer/Center_Column"]
 layout_mode = 2
+theme_override_constants/outline_size = 5
 text = "Start Arcade Run"
 
 [node name="DifficultyLabel" type="Label" parent="HBoxContainer/Center_Column"]

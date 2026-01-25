@@ -66,8 +66,8 @@ func _init_tree_root(class_type: CharacterData.ClassType):
 func start_next_fight():
 	
 	# --- NEW: APPLY EVENT STATUSES ---
-	for status in next_fight_statuses:
-		player_run_data.statuses[status] = 1
+	#for status in next_fight_statuses:
+		#player_run_data.statuses[status] = 1
 	next_fight_statuses.clear() # Reset for the future
 	# ---------------------------------
 	

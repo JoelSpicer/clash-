@@ -131,6 +131,14 @@ func reset_combat():
 	# P2 (The Enemy) always resets to full
 	p2_data.reset_stats(false)
 	# -------------------------------------------
+	
+	# --- FIX: INJECT EVENT STATUSES AFTER RESET ---
+	if RunManager.is_arcade_mode:
+		for s in RunManager.next_fight_statuses:
+			p1_data.statuses[s] = 1
+		RunManager.next_fight_statuses.clear() # Clear so it doesn't happen next fight
+	# ----------------------------------------------
+	
 	momentum = 0 
 	current_combo_attacker = 0
 	p1_locked_card = null; p2_locked_card = null
@@ -343,7 +351,8 @@ func resolve_clash():
 	
 	var is_initial_clash = (momentum == 0)
 	
-# If P1 wins with Offence...
+	# --- SMART COMBO RESET ---
+	# If P1 wins with Offence...
 	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE:
 		# Check if they were ALREADY comboing. If not (e.g., previous turn was neutral or 0 SP break), start at 1.
 		if current_combo_attacker != 1: p1_data.combo_action_count = 1
@@ -357,9 +366,9 @@ func resolve_clash():
 		else: p2_data.combo_action_count += 1
 	else:
 		p2_data.combo_action_count = 0
+	# ------------------------------
 	
 	# --- PHASE 0: PAY COSTS ---
-	# FIX: Use helper instead of deleted variable
 	var p1_started_injured = has_status(1, "Injured")
 	var p2_started_injured = has_status(2, "Injured")
 	
@@ -379,7 +388,7 @@ func resolve_clash():
 
 	# --- MOMENTUM CALCULATION ---
 	
-	# A. Dodge & Parry Checks
+	# A. Dodge Checks
 	var p1_is_dodged = false; var p2_is_dodged = false
 	var p1_total_cost = p1_action_queue.cost * max(1, p1_action_queue.repeat_count)
 	var p2_total_cost = p2_action_queue.cost * max(1, p2_action_queue.repeat_count)
@@ -387,31 +396,19 @@ func resolve_clash():
 	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_total_cost: p1_is_dodged = true
 	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_total_cost: p2_is_dodged = true
 	
+	# B. Push/Pull Base Values
 	var p1_parries = (p1_active and p1_action_queue.is_parry)
 	var p2_parries = (p2_active and p2_action_queue.is_parry)
 	
-	# B. Push/Pull Calculation
 	var p1_single_gain = p1_action_queue.momentum_gain + _get_opportunity_value(1)
 	var p2_single_gain = p2_action_queue.momentum_gain + _get_opportunity_value(2)
 	
 	var p1_total_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
 	var p2_total_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
 	
-	var p1_contribution = p1_total_gain
-	if p2_parries: p1_contribution -= p1_single_gain
-	if p1_is_dodged: p1_contribution = 0
-	
-	var p2_contribution = p2_total_gain
-	if p1_parries: p2_contribution -= p2_single_gain
-	if p2_is_dodged: p2_contribution = 0
-	
 	var p1_stolen = p2_single_gain if p1_parries else 0
 	var p2_stolen = p1_single_gain if p2_parries else 0
 	
-	var p1_final_push = p1_contribution + p1_stolen
-	var p2_final_push = p2_contribution + p2_stolen
-	
-	# C. Delta Calculation (With Wall Crush Fix)
 	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
 	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
 	
@@ -428,10 +425,28 @@ func resolve_clash():
 		p2_fb = 0 
 	# ------------------------------
 	
-	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
+	# --- STRICT PARRY SUCCESS CHECK ---
+	# Parry only triggers if (My Gain + Stolen Gain) is strictly greater than My Fall Back.
+	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
+	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
 	
-	var p1_parry_success = (p1_parries and delta < 0)
-	var p2_parry_success = (p2_parries and delta > 0)
+	var p1_parry_success = (p1_parries and p1_net_gain > 0)
+	var p2_parry_success = (p2_parries and p2_net_gain > 0)
+	# ---------------------------------------
+
+	# Calculate the final combined movement for the UI tracker
+	var p1_contribution = p1_total_gain
+	if p2_parries: p1_contribution -= p1_single_gain
+	if p1_is_dodged: p1_contribution = 0
+	
+	var p2_contribution = p2_total_gain
+	if p1_parries: p2_contribution -= p2_single_gain
+	if p2_is_dodged: p2_contribution = 0
+	
+	var p1_final_push = p1_contribution + p1_stolen
+	var p2_final_push = p2_contribution + p2_stolen
+	
+	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
 	
 	# --- PHASE 2: COMBAT EFFECTS ---
 	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
