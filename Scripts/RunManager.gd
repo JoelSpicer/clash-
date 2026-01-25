@@ -9,6 +9,13 @@ var free_unlocks_remaining: int = 0
 # --- NEW: RUN MODIFIERS ---
 var maintain_hp_enabled: bool = false
 const EQUIPMENT_DIR = "res://Data/Equipment/"
+const BOSS_DIR = "res://Data/Presets/Bosses/"
+
+const BOSS_SCHEDULE = {
+	5: "juggernaut_boss.tres",
+	10: "grandmaster_boss.tres"
+}
+
 # ... (start_run and start_run_from_preset remain exactly the same) ...
 var next_fight_statuses: Array[String] = []
 
@@ -18,7 +25,7 @@ func start_run(starting_class: CharacterData.ClassType):
 	current_level = 1
 	player_run_data = ClassFactory.create_character(starting_class, "You")
 	_init_tree_root(starting_class)
-	free_unlocks_remaining = 2
+	free_unlocks_remaining = 1
 	#player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
 	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
@@ -105,20 +112,37 @@ func start_next_fight():
 	if stat_penalty > 0:
 		print(">> UNDER-LEVEL PENALTY APPLIED: -", stat_penalty, " HP/SP")
 	
-	# 4. Generate Enemy
-	var enemy = ClassFactory.create_random_enemy(final_enemy_level, GameManager.ai_difficulty)
+# 4. Generate Enemy (MODIFIED FOR BOSSES)
+	var enemy: CharacterData
 	
-	# 5. Apply Stats Penalty (if any)
-	if stat_penalty > 0:
-		# Reduce Max Stats (but clamp to minimum 1 so they don't die instantly)
-		enemy.max_hp = max(1, enemy.max_hp - stat_penalty)
-		enemy.max_sp = max(1, enemy.max_sp - stat_penalty)
+	# Check if the CURRENT level has a scheduled boss
+	if BOSS_SCHEDULE.has(current_level):
+		var boss_path = BOSS_DIR + BOSS_SCHEDULE[current_level]
+		var boss_preset = load(boss_path) as PresetCharacter
 		
-		# Reset Current Stats to match new Max
+		# Generate the boss exactly as designed in the editor
+		enemy = ClassFactory.create_from_preset(boss_preset)
+		
+		# Bosses scale slightly with difficulty
+		if GameManager.ai_difficulty == GameManager.Difficulty.HARD:
+			enemy.max_hp += 5
+			enemy.max_sp += 1
+		elif GameManager.ai_difficulty <= GameManager.Difficulty.EASY:
+			enemy.max_hp = max(1, enemy.max_hp - 3)
+			
 		enemy.reset_stats()
+		print(">> BOSS ENCOUNTER LOADED: " + enemy.character_name)
 		
-		# Flavor: Add a status tag so the player knows why they are weak
-		enemy.character_name += " (Weakened)"
+	else:
+		# Standard Random Enemy
+		enemy = ClassFactory.create_random_enemy(final_enemy_level, GameManager.ai_difficulty)
+		
+		# 5. Apply Stats Penalty (Only for standard enemies)
+		if stat_penalty > 0:
+			enemy.max_hp = max(1, enemy.max_hp - stat_penalty)
+			enemy.max_sp = max(1, enemy.max_sp - stat_penalty)
+			enemy.reset_stats()
+			enemy.character_name += " (Weakened)"
 	
 	GameManager.next_match_p2_data = enemy
 	
@@ -134,7 +158,7 @@ func handle_win():
 	# 1. Guaranteed Equipment (Every 3rd Win)
 	if level_beaten > 0 and level_beaten % 3 == 0:
 		print("Milestone Reached! Loading Equipment Draft...")
-		get_tree().change_scene_to_file("res://Scenes/EquipmentDraft.tscn")
+		get_tree().change_scene_to_file("res://Scenes/equipmentdraft.tscn")
 		
 	# 2. Random Event (35% Chance on normal wins)
 	elif level_beaten > 0 and randf() < 0.35:

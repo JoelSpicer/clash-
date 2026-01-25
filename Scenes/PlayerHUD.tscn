@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://yeraw55rlx1q"]
 
 [ext_resource type="Script" uid="uid://b3yr2lrurg3au" path="res://Scripts/PlayerHud.gd" id="1_g363m"]
-[ext_resource type="Texture2D" uid="uid://c618p3j6o5ylb" path="res://Art/Portraits/heavy.png" id="2_yqw7w"]
+[ext_resource type="Texture2D" uid="uid://c618p3j6o5ylb" path="res://Art/Portraits/Heavy.png" id="2_yqw7w"]
 
 [node name="PlayerHUD" type="Control"]
 layout_mode = 3

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="ClassDefinition" load_steps=14 format=3 uid="uid://bg5ik82a2fybg"]
 
-[ext_resource type="Texture2D" uid="uid://dfmgsi58a4dh1" path="res://Art/Portraits/technical.png" id="1_ndoru"]
+[ext_resource type="Texture2D" uid="uid://dfmgsi58a4dh1" path="res://Art/Portraits/Technical.png" id="1_ndoru"]
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_aosid"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="3_uhsbe"]
 [ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="4_uqbt3"]

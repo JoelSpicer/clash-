@@ -534,6 +534,10 @@ func _on_confirm_button_pressed():
 			var btn = $TreeContainer/ConfirmButton
 			if RunManager.free_unlocks_remaining <= 0:
 				btn.text = "START FIGHT"
+				#var btn_back = $TreeContainer/BackButton
+				var btn_reset = $TreeContainer/ResetButton
+				#if btn_back: btn_back.visible = false
+				if btn_reset: btn_reset.visible = false
 			else:
 				btn.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
 			return

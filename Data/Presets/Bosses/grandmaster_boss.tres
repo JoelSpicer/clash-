@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PresetCharacter" load_steps=2 format=3 uid="uid://ci6t358mc8wss"]
+
+[ext_resource type="Script" uid="uid://l0hennmoy7yn" path="res://Scripts/Resources/PresetCharacter.gd" id="1_f72gw"]
+
+[resource]
+script = ExtResource("1_f72gw")
+character_name = "Big Boris"
+level = 5
+extra_skills = Array[String](["active block", "adept block", "crushing block", "master block", "perfect block", "adept reversal", "master reversal"])
+metadata/_custom_type_script = "uid://l0hennmoy7yn"
