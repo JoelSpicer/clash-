@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://cpiokfvajkjhq"]
+[gd_scene load_steps=3 format=3 uid="uid://cpiokfvajkjhq"]
 
 [ext_resource type="Script" uid="uid://baqcbitr2k0tq" path="res://Scripts/equipmentdraft.gd" id="1_m3iom"]
+[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scripts/RunStatusOverlay.tscn" id="2_gd3t4"]
 
 [node name="EquipmentDraft" type="Control"]
 layout_mode = 3
@@ -46,3 +47,5 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 20
 alignment = 1
+
+[node name="RunStatusOverlay" parent="." instance=ExtResource("2_gd3t4")]

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://dk2vek5juj53o"]
+[gd_scene load_steps=3 format=3 uid="uid://dk2vek5juj53o"]
 
 [ext_resource type="Script" uid="uid://g8ghju6iqxmv" path="res://Scripts/EventRoom.gd" id="1_6wpk6"]
+[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scripts/RunStatusOverlay.tscn" id="2_fxxab"]
 
 [node name="Control" type="Control"]
 layout_mode = 3
@@ -65,3 +66,5 @@ text = "B"
 [node name="OptionC" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 text = "B"
+
+[node name="RunStatusOverlay" parent="." instance=ExtResource("2_fxxab")]

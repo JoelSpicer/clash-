@@ -21,6 +21,7 @@ texture = ExtResource("2_sbkf8")
 expand_mode = 1
 
 [node name="ClashLayer" type="Control" parent="."]
+visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -186,10 +187,11 @@ offset_bottom = 638.0
 text = "?"
 
 [node name="EnvButton" type="Button" parent="."]
-offset_left = 319.0
-offset_top = 1.0
-offset_right = 403.0
-offset_bottom = 32.0
+offset_left = 13.0
+offset_top = 179.0
+offset_right = 78.0
+offset_bottom = 204.0
+theme_override_font_sizes/font_size = 12
 text = "ENV: Dojo"
 
 [node name="EnvPopup" type="PanelContainer" parent="."]

@@ -114,13 +114,7 @@ func _ready():
 # ==============================================================================
 
 func _build_ui_overlay():
-	# 1. Stats Label (Top Center)
-	stats_label = Label.new()
-	stats_label.text = "HP: ? | SP: ?"
-	stats_label.add_theme_font_size_override("font_size", 32)
-	stats_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	stats_label.position.y += 20 
-	ui_layer.add_child(stats_label)
+	
 
 	# 2. Loadout Manager Panel (Bottom Center, Initially Hidden)
 	# Created BEFORE the button so it renders BEHIND it
@@ -453,15 +447,6 @@ func _recalculate_stats():
 	
 	current_max_hp = stats["hp"]
 	current_max_sp = stats["sp"]
-		
-	if stats_label:
-		stats_label.text = "HP: " + str(current_max_hp) + " | SP: " + str(current_max_sp)
-		
-		# Visual feedback for preview
-		if RunManager.is_arcade_mode and pending_unlock_id != 0:
-			stats_label.modulate = Color(0.5, 1.0, 0.5) # Greenish text
-		else:
-			stats_label.modulate = Color.WHITE
 
 func _unlock_neighbors(node_id: int):
 	if node_id in action_tree_dict:

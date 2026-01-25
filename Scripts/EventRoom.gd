@@ -34,7 +34,7 @@ func _load_event(id: String):
 			title_label.text = "THE BACK-ALLEY MEDIC"
 			desc_label.text = "A shady doctor leans out of a doorway. [i]'Rough fight, champ? I can patch you up. Or, if you're feeling brave, I have some new experimental supplements you can try.'[/i]"
 			btn_a.text = "PATCH UP (Heal 3 HP)"
-			btn_b.text = "TAKE DRUGS (+1 Max SP, but start next fight INJURED)"
+			btn_b.text = "TAKE DRUGS (+1 Max SP, unknown side effects)"
 			btn_c.text = "WALK AWAY (Nothing happens)"
 
 # ==============================================================================

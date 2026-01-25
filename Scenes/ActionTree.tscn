@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3 uid="uid://c1i7rtedy5fyo"]
+[gd_scene load_steps=5 format=3 uid="uid://c1i7rtedy5fyo"]
 
 [ext_resource type="Script" uid="uid://c7rt66m06w7vj" path="res://Scripts/ActionTree.gd" id="1_06akd"]
 [ext_resource type="Script" uid="uid://6te3b1tnse4e" path="res://Scripts/LinesLayer.gd" id="2_7wvbo"]
+[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scripts/RunStatusOverlay.tscn" id="4_kvaft"]
 [ext_resource type="Script" uid="uid://cvvntr40ye1d4" path="res://Scripts/ActionNode.gd" id="4_r8c0s"]
 
 [node name="Control" type="Control"]
@@ -1064,6 +1065,8 @@ offset_top = 35.0
 offset_right = 145.66667
 offset_bottom = 66.0
 text = "Back to Menu"
+
+[node name="RunStatusOverlay" parent="." instance=ExtResource("4_kvaft")]
 
 [connection signal="pressed" from="TreeContainer/ConfirmButton" to="." method="_on_confirm_button_pressed"]
 [connection signal="pressed" from="TreeContainer/ResetButton" to="." method="_on_reset_button_pressed"]
