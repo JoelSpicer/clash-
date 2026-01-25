@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://cpiokfvajkjhq"]
 
-[ext_resource type="Script" uid="uid://baqcbitr2k0tq" path="res://Scenes/equipmentdraft.gd" id="1_m3iom"]
+[ext_resource type="Script" uid="uid://baqcbitr2k0tq" path="res://Scripts/equipmentdraft.gd" id="1_m3iom"]
 
 [node name="EquipmentDraft" type="Control"]
 layout_mode = 3

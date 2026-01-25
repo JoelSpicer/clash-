@@ -2,86 +2,6 @@
 
 
 ========================================
-FILE PATH: res://Scenes/equipmentdraft.gd
-========================================
-extends Control
-
-@onready var item_grid = $ColorRect/ItemGrid
-
-func _ready():
-	# 1. Get all available equipment
-	var all_items = RunManager.get_all_equipment()
-	all_items.shuffle() # Randomize the list
-	
-	# 2. Pick the top 3 (or fewer if you haven't made 3 items yet)
-	var options = []
-	for i in range(min(3, all_items.size())):
-		options.append(all_items[i])
-		
-	# 3. Create Buttons
-	for item in options:
-		var btn = _create_item_button(item)
-		item_grid.add_child(btn)
-
-func _create_item_button(item: EquipmentData) -> Button:
-	var btn = Button.new()
-	btn.custom_minimum_size = Vector2(250, 350)
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	
-	# Styling
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.15, 0.15, 0.15)
-	style.set_corner_radius_all(10)
-	btn.add_theme_stylebox_override("normal", style)
-	
-	# Content Container
-	var vbox = VBoxContainer.new()
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vbox.add_theme_constant_override("separation", 10)
-	btn.add_child(vbox)
-	
-	# Icon
-	var icon = TextureRect.new()
-	icon.custom_minimum_size.y = 100
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture = item.icon if item.icon else preload("res://icon.svg")
-	vbox.add_child(icon)
-	
-	# Name
-	var name_lbl = Label.new()
-	name_lbl.text = item.display_name
-	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_lbl.add_theme_font_size_override("font_size", 24)
-	vbox.add_child(name_lbl)
-	
-	# Description
-	var desc_lbl = Label.new()
-	desc_lbl.text = item.description
-	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(desc_lbl)
-	
-	# Click Logic
-	btn.pressed.connect(func(): _on_item_selected(item))
-	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
-	
-	return btn
-
-func _on_item_selected(item: EquipmentData):
-	AudioManager.play_sfx("ui_click")
-	print("Equipped: " + item.display_name)
-	
-	# 1. Add to inventory
-	RunManager.player_run_data.equipment.append(item)
-	
-	# 2. Recalculate stats immediately so max HP/SP increases
-	ClassFactory._recalculate_stats(RunManager.player_run_data)
-	
-	# 3. Proceed to the Action Tree for the card reward
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
-
-
-========================================
 FILE PATH: res://Scripts/ActionNode.gd
 ========================================
 extends TextureButton
@@ -3222,6 +3142,163 @@ func _populate_section(container: Control, data: Dictionary):
 
 
 ========================================
+FILE PATH: res://Scripts/equipmentdraft.gd
+========================================
+extends Control
+
+@onready var item_grid = $ColorRect/ItemGrid
+
+func _ready():
+	# 1. Get all available equipment
+	var all_items = RunManager.get_all_equipment()
+	all_items.shuffle() # Randomize the list
+	
+	# 2. Pick the top 3 (or fewer if you haven't made 3 items yet)
+	var options = []
+	for i in range(min(3, all_items.size())):
+		options.append(all_items[i])
+		
+	# 3. Create Buttons
+	for item in options:
+		var btn = _create_item_button(item)
+		item_grid.add_child(btn)
+
+func _create_item_button(item: EquipmentData) -> Button:
+	var btn = Button.new()
+	btn.custom_minimum_size = Vector2(250, 350)
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	
+	# Styling
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.15, 0.15, 0.15)
+	style.set_corner_radius_all(10)
+	btn.add_theme_stylebox_override("normal", style)
+	
+	# Content Container
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 10)
+	btn.add_child(vbox)
+	
+	# Icon
+	var icon = TextureRect.new()
+	icon.custom_minimum_size.y = 100
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = item.icon if item.icon else preload("res://icon.svg")
+	vbox.add_child(icon)
+	
+	# Name
+	var name_lbl = Label.new()
+	name_lbl.text = item.display_name
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 24)
+	vbox.add_child(name_lbl)
+	
+	# Description
+	var desc_lbl = Label.new()
+	desc_lbl.text = item.description
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(desc_lbl)
+	
+	# Click Logic
+	btn.pressed.connect(func(): _on_item_selected(item))
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	
+	return btn
+
+func _on_item_selected(item: EquipmentData):
+	AudioManager.play_sfx("ui_click")
+	print("Equipped: " + item.display_name)
+	
+	# 1. Add to inventory
+	RunManager.player_run_data.equipment.append(item)
+	
+	# 2. Recalculate stats immediately so max HP/SP increases
+	ClassFactory._recalculate_stats(RunManager.player_run_data)
+	
+	# 3. Proceed to the Action Tree for the card reward
+	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+
+
+========================================
+FILE PATH: res://Scripts/EventRoom.gd
+========================================
+extends Control
+
+@onready var title_label = $VBoxContainer/TitleLabel
+@onready var desc_label = $VBoxContainer/DescriptionLabel
+@onready var btn_a = $VBoxContainer/OptionA
+@onready var btn_b = $VBoxContainer/OptionB
+@onready var btn_c = $VBoxContainer/OptionC
+
+# The ID of the current event
+var current_event_id: String = ""
+
+func _ready():
+	# For now we only have the Medic, but later we can do:
+	# current_event_id = ["medic", "bookie", "zen"].pick_random()
+	current_event_id = "medic" 
+	
+	_load_event(current_event_id)
+	
+	# Connect buttons to a single handler
+	btn_a.pressed.connect(func(): _on_option_selected(1))
+	btn_b.pressed.connect(func(): _on_option_selected(2))
+	btn_c.pressed.connect(func(): _on_option_selected(3))
+	
+	# UI Juice
+	for btn in [btn_a, btn_b, btn_c]:
+		btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+
+# ==============================================================================
+# EVENT DEFINITIONS (Easy to expand!)
+# ==============================================================================
+func _load_event(id: String):
+	match id:
+		"medic":
+			title_label.text = "THE BACK-ALLEY MEDIC"
+			desc_label.text = "A shady doctor leans out of a doorway. [i]'Rough fight, champ? I can patch you up. Or, if you're feeling brave, I have some new experimental supplements you can try.'[/i]"
+			btn_a.text = "PATCH UP (Heal 3 HP)"
+			btn_b.text = "TAKE DRUGS (+1 Max SP, but start next fight INJURED)"
+			btn_c.text = "WALK AWAY (Nothing happens)"
+
+# ==============================================================================
+# EVENT RESOLUTION LOGIC
+# ==============================================================================
+func _on_option_selected(choice: int):
+	AudioManager.play_sfx("ui_click")
+	var p1 = RunManager.player_run_data
+	
+	# --- 1. RESOLVE THE MEDIC ---
+	if current_event_id == "medic":
+		match choice:
+			1: # PATCH UP
+				p1.current_hp = min(p1.current_hp + 3, p1.max_hp)
+				print("Event: Healed 3 HP.")
+			2: # TAKE DRUGS
+				# We create a permanent piece of equipment on the fly!
+				var drugs = EquipmentData.new()
+				drugs.display_name = "Experimental Drugs"
+				drugs.description = "Side effects include sweating and nausea."
+				drugs.max_sp_bonus = 1
+				p1.equipment.append(drugs)
+				
+				# Add the penalty for the next fight
+				RunManager.next_fight_statuses.append("Injured")
+				print("Event: Gained Drugs. Injured next fight.")
+			3: # WALK AWAY
+				print("Event: Walked away.")
+
+	# --- 2. CLEANUP & LEAVE ---
+	# Recalculate stats so the Max SP bonus applies immediately
+	ClassFactory._recalculate_stats(p1)
+	
+	# Proceed to the Action Tree to get your card reward for the level
+	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+
+
+========================================
 FILE PATH: res://Scripts/FloatingText.gd
 ========================================
 extends Label
@@ -4822,6 +4899,7 @@ var free_unlocks_remaining: int = 0
 var maintain_hp_enabled: bool = false
 const EQUIPMENT_DIR = "res://Data/Equipment/"
 # ... (start_run and start_run_from_preset remain exactly the same) ...
+var next_fight_statuses: Array[String] = []
 
 # OPTION A: STANDARD RUN (Level 1, Drafting)
 func start_run(starting_class: CharacterData.ClassType):
@@ -4875,6 +4953,13 @@ func _init_tree_root(class_type: CharacterData.ClassType):
 
 # --- UPDATED FIGHT GENERATION LOGIC ---
 func start_next_fight():
+	
+	# --- NEW: APPLY EVENT STATUSES ---
+	for status in next_fight_statuses:
+		player_run_data.statuses[status] = 1
+	next_fight_statuses.clear() # Reset for the future
+	# ---------------------------------
+	
 	# 1. Setup Player
 	GameManager.next_match_p1_data = player_run_data
 	
@@ -4931,15 +5016,21 @@ func start_next_fight():
 
 func handle_win():
 	current_level += 1
-	# Grant the standard card unlock
 	free_unlocks_remaining = 1 
 	
-	# --- NEW: MILESTONE CHECK ---
-	# Since we just added 1, the level we BEAT is (current_level - 1)
 	var level_beaten = current_level - 1
+	
+	# 1. Guaranteed Equipment (Every 3rd Win)
 	if level_beaten > 0 and level_beaten % 3 == 0:
 		print("Milestone Reached! Loading Equipment Draft...")
 		get_tree().change_scene_to_file("res://Scenes/EquipmentDraft.tscn")
+		
+	# 2. Random Event (35% Chance on normal wins)
+	elif level_beaten > 0 and randf() < 0.35:
+		print("Random Event Triggered!")
+		get_tree().change_scene_to_file("res://Scenes/EventRoom.tscn")
+		
+	# 3. Standard Action Tree
 	else:
 		get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 

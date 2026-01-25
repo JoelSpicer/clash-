@@ -10,6 +10,7 @@ var free_unlocks_remaining: int = 0
 var maintain_hp_enabled: bool = false
 const EQUIPMENT_DIR = "res://Data/Equipment/"
 # ... (start_run and start_run_from_preset remain exactly the same) ...
+var next_fight_statuses: Array[String] = []
 
 # OPTION A: STANDARD RUN (Level 1, Drafting)
 func start_run(starting_class: CharacterData.ClassType):
@@ -63,6 +64,13 @@ func _init_tree_root(class_type: CharacterData.ClassType):
 
 # --- UPDATED FIGHT GENERATION LOGIC ---
 func start_next_fight():
+	
+	# --- NEW: APPLY EVENT STATUSES ---
+	for status in next_fight_statuses:
+		player_run_data.statuses[status] = 1
+	next_fight_statuses.clear() # Reset for the future
+	# ---------------------------------
+	
 	# 1. Setup Player
 	GameManager.next_match_p1_data = player_run_data
 	
@@ -119,15 +127,21 @@ func start_next_fight():
 
 func handle_win():
 	current_level += 1
-	# Grant the standard card unlock
 	free_unlocks_remaining = 1 
 	
-	# --- NEW: MILESTONE CHECK ---
-	# Since we just added 1, the level we BEAT is (current_level - 1)
 	var level_beaten = current_level - 1
+	
+	# 1. Guaranteed Equipment (Every 3rd Win)
 	if level_beaten > 0 and level_beaten % 3 == 0:
 		print("Milestone Reached! Loading Equipment Draft...")
 		get_tree().change_scene_to_file("res://Scenes/EquipmentDraft.tscn")
+		
+	# 2. Random Event (35% Chance on normal wins)
+	elif level_beaten > 0 and randf() < 0.35:
+		print("Random Event Triggered!")
+		get_tree().change_scene_to_file("res://Scenes/EventRoom.tscn")
+		
+	# 3. Standard Action Tree
 	else:
 		get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
 
