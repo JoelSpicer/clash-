@@ -1173,6 +1173,12 @@ signal p2_mode_toggled(is_human)
 @onready var env_title = $EnvPopup/VBoxContainer/EnvTitle
 @onready var env_details = $EnvPopup/VBoxContainer/EnvDetails
 @onready var close_env_button = $EnvPopup/VBoxContainer/CloseEnvButton
+@onready var inspect_btn = $InspectButton
+@onready var inspect_popup = $InspectPopup
+@onready var inspect_grid = $InspectPopup/ScrollContainer/InspectGrid
+
+# We need the display scene to show non-interactive cards
+var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
 
 # --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
@@ -1295,6 +1301,13 @@ func _ready():
 		# Set initial button text
 		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
 	# ---------------------------------
+	
+	# --- NEW: INSPECT BUTTON ---
+	if inspect_btn:
+		inspect_btn.pressed.connect(_on_inspect_pressed)
+		# Reuse your existing Close button logic if you add a close button to the popup
+		# or just toggle it with the main button.
+		_attach_sfx(inspect_btn)
 	
 # --- DYNAMIC CAMERA PROCESS ---
 func _process(delta):
@@ -1884,6 +1897,39 @@ func _populate_equipment(p1_data: CharacterData):
 		icon.tooltip_text = tip 
 		
 		equipment_grid.add_child(icon)
+
+# --- ENEMY INSPECTION LOGIC ---
+func _on_inspect_pressed():
+	inspect_popup.visible = not inspect_popup.visible
+	
+	if inspect_popup.visible:
+		inspect_btn.text = "CLOSE INSPECT"
+		_populate_enemy_deck()
+	else:
+		inspect_btn.text = "INSPECT OPPONENT"
+
+func _populate_enemy_deck():
+	# 1. Clear previous view
+	for child in inspect_grid.get_children():
+		child.queue_free()
+		
+	var p2 = GameManager.p2_data
+	if not p2: return
+	
+	# 2. Loop through the Enemy's Active Deck
+	for card in p2.deck:
+		var card_disp = card_display_scene.instantiate()
+		inspect_grid.add_child(card_disp)
+		
+		# 3. Setup Visuals
+		card_disp.set_card_data(card)
+		
+		# 4. Scale it down to fit the grid better
+		card_disp.custom_minimum_size = Vector2(180, 250)
+		card_disp.scale = Vector2(0.8, 0.8) 
+		
+		# 5. Optional: Add a "Hover" sound
+		card_disp.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
 
 
 ========================================
@@ -2645,6 +2691,7 @@ func create_from_preset(preset: PresetCharacter) -> CharacterData:
 		if card:
 			# Avoid duplicates if necessary, or allow multiples if that's your game design
 			char_data.deck.append(card)
+			char_data.unlocked_actions.append(card)
 		else:
 			printerr("Warning: Preset '" + preset.character_name + "' could not find skill: " + skill_name)
 
@@ -3544,8 +3591,9 @@ func _ready():
 func _on_start_pressed():
 	# Assumes your main arena scene is saved here
 	#get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
-	get_tree().change_scene_to_file("res://Scenes/CharacterSelect.tscn")
-
+	#get_tree().change_scene_to_file("res://Scenes/CharacterSelect.tscn")
+	SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
+	
 func _on_quit_pressed():
 	get_tree().quit()
 
@@ -4902,6 +4950,13 @@ var free_unlocks_remaining: int = 0
 # --- NEW: RUN MODIFIERS ---
 var maintain_hp_enabled: bool = false
 const EQUIPMENT_DIR = "res://Data/Equipment/"
+const BOSS_DIR = "res://Data/Presets/Bosses/"
+
+const BOSS_SCHEDULE = {
+	5: "juggernaut_boss.tres",
+	10: "grandmaster_boss.tres"
+}
+
 # ... (start_run and start_run_from_preset remain exactly the same) ...
 var next_fight_statuses: Array[String] = []
 
@@ -4998,20 +5053,37 @@ func start_next_fight():
 	if stat_penalty > 0:
 		print(">> UNDER-LEVEL PENALTY APPLIED: -", stat_penalty, " HP/SP")
 	
-	# 4. Generate Enemy
-	var enemy = ClassFactory.create_random_enemy(final_enemy_level, GameManager.ai_difficulty)
+# 4. Generate Enemy (MODIFIED FOR BOSSES)
+	var enemy: CharacterData
 	
-	# 5. Apply Stats Penalty (if any)
-	if stat_penalty > 0:
-		# Reduce Max Stats (but clamp to minimum 1 so they don't die instantly)
-		enemy.max_hp = max(1, enemy.max_hp - stat_penalty)
-		enemy.max_sp = max(1, enemy.max_sp - stat_penalty)
+	# Check if the CURRENT level has a scheduled boss
+	if BOSS_SCHEDULE.has(current_level):
+		var boss_path = BOSS_DIR + BOSS_SCHEDULE[current_level]
+		var boss_preset = load(boss_path) as PresetCharacter
 		
-		# Reset Current Stats to match new Max
+		# Generate the boss exactly as designed in the editor
+		enemy = ClassFactory.create_from_preset(boss_preset)
+		
+		# Bosses scale slightly with difficulty
+		if GameManager.ai_difficulty == GameManager.Difficulty.HARD:
+			enemy.max_hp += 5
+			enemy.max_sp += 1
+		elif GameManager.ai_difficulty <= GameManager.Difficulty.EASY:
+			enemy.max_hp = max(1, enemy.max_hp - 3)
+			
 		enemy.reset_stats()
+		print(">> BOSS ENCOUNTER LOADED: " + enemy.character_name)
 		
-		# Flavor: Add a status tag so the player knows why they are weak
-		enemy.character_name += " (Weakened)"
+	else:
+		# Standard Random Enemy
+		enemy = ClassFactory.create_random_enemy(final_enemy_level, GameManager.ai_difficulty)
+		
+		# 5. Apply Stats Penalty (Only for standard enemies)
+		if stat_penalty > 0:
+			enemy.max_hp = max(1, enemy.max_hp - stat_penalty)
+			enemy.max_sp = max(1, enemy.max_sp - stat_penalty)
+			enemy.reset_stats()
+			enemy.character_name += " (Weakened)"
 	
 	GameManager.next_match_p2_data = enemy
 	
@@ -5126,6 +5198,36 @@ func _refresh_display():
 		
 		icon.tooltip_text = tip 
 		eq_grid.add_child(icon)
+
+
+========================================
+FILE PATH: res://Scripts/SceneLoader.gd
+========================================
+extends CanvasLayer
+
+@onready var anim = $AnimationPlayer
+@onready var overlay = $BlackOverlay
+
+func _ready():
+	# Ensure we start invisible and don't block mouse clicks
+	overlay.visible = false
+	overlay.modulate.a = 0
+
+func change_scene(path: String):
+	# 1. Block input and Fade to Black
+	anim.play("fade_in")
+	await anim.animation_finished
+	
+	# 2. Actual Scene Change
+	get_tree().change_scene_to_file(path)
+	
+	# 3. Optional: Pause briefly to ensure the new scene initializes fully
+	# (Prevents one-frame stutters on heavy scenes)
+	await get_tree().create_timer(0.1).timeout
+	
+	# 4. Fade back in
+	anim.play("fade_out")
+	await anim.animation_finished
 
 
 ========================================

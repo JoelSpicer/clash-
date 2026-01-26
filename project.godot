@@ -24,6 +24,7 @@ HitStopManager="*res://Scripts/HitStopManager.gd"
 RunManager="*res://Scripts/RunManager.gd"
 VfxManager="*res://Scripts/VFXManager.gd"
 AudioManager="*res://Scripts/AudioManager.gd"
+SceneLoader="*res://Scenes/SceneLoader.tscn"
 
 [display]
 
