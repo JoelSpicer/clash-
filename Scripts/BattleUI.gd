@@ -30,6 +30,12 @@ signal p2_mode_toggled(is_human)
 @onready var env_title = $EnvPopup/VBoxContainer/EnvTitle
 @onready var env_details = $EnvPopup/VBoxContainer/EnvDetails
 @onready var close_env_button = $EnvPopup/VBoxContainer/CloseEnvButton
+@onready var inspect_btn = $InspectButton
+@onready var inspect_popup = $InspectPopup
+@onready var inspect_grid = $InspectPopup/ScrollContainer/InspectGrid
+
+# We need the display scene to show non-interactive cards
+var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
 
 # --- DATA ---
 var card_button_scene = preload("res://Scenes/CardButton.tscn")
@@ -152,6 +158,13 @@ func _ready():
 		# Set initial button text
 		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
 	# ---------------------------------
+	
+	# --- NEW: INSPECT BUTTON ---
+	if inspect_btn:
+		inspect_btn.pressed.connect(_on_inspect_pressed)
+		# Reuse your existing Close button logic if you add a close button to the popup
+		# or just toggle it with the main button.
+		_attach_sfx(inspect_btn)
 	
 # --- DYNAMIC CAMERA PROCESS ---
 func _process(delta):
@@ -741,3 +754,36 @@ func _populate_equipment(p1_data: CharacterData):
 		icon.tooltip_text = tip 
 		
 		equipment_grid.add_child(icon)
+
+# --- ENEMY INSPECTION LOGIC ---
+func _on_inspect_pressed():
+	inspect_popup.visible = not inspect_popup.visible
+	
+	if inspect_popup.visible:
+		inspect_btn.text = "CLOSE INSPECT"
+		_populate_enemy_deck()
+	else:
+		inspect_btn.text = "INSPECT OPPONENT"
+
+func _populate_enemy_deck():
+	# 1. Clear previous view
+	for child in inspect_grid.get_children():
+		child.queue_free()
+		
+	var p2 = GameManager.p2_data
+	if not p2: return
+	
+	# 2. Loop through the Enemy's Active Deck
+	for card in p2.deck:
+		var card_disp = card_display_scene.instantiate()
+		inspect_grid.add_child(card_disp)
+		
+		# 3. Setup Visuals
+		card_disp.set_card_data(card)
+		
+		# 4. Scale it down to fit the grid better
+		card_disp.custom_minimum_size = Vector2(180, 250)
+		card_disp.scale = Vector2(0.8, 0.8) 
+		
+		# 5. Optional: Add a "Hover" sound
+		card_disp.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))

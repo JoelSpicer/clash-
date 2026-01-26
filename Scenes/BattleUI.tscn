@@ -234,3 +234,39 @@ offset_top = 128.0
 offset_right = 72.0
 offset_bottom = 168.0
 theme_override_constants/separation = 10
+
+[node name="InspectButton" type="Button" parent="."]
+offset_left = 976.0
+offset_top = 148.0
+offset_right = 1141.0
+offset_bottom = 179.0
+text = "INSPECT OPPONENT"
+
+[node name="InspectPopup" type="Panel" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(400, 300)
+
+[node name="ScrollContainer" type="ScrollContainer" parent="InspectPopup"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InspectGrid" type="GridContainer" parent="InspectPopup/ScrollContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 4
