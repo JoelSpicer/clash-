@@ -72,4 +72,4 @@ func _on_item_selected(item: EquipmentData):
 	ClassFactory._recalculate_stats(RunManager.player_run_data)
 	
 	# 3. Proceed to the Action Tree for the card reward
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")

@@ -27,7 +27,7 @@ func start_run(starting_class: CharacterData.ClassType):
 	_init_tree_root(starting_class)
 	free_unlocks_remaining = 1
 	#player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 # OPTION B: PRESET RUN
 func start_run_from_preset(preset: PresetCharacter):
@@ -147,7 +147,7 @@ func start_next_fight():
 	GameManager.next_match_p2_data = enemy
 	
 	# 6. Launch
-	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 func handle_win():
 	current_level += 1
@@ -158,16 +158,16 @@ func handle_win():
 	# 1. Guaranteed Equipment (Every 3rd Win)
 	if level_beaten > 0 and level_beaten % 3 == 0:
 		print("Milestone Reached! Loading Equipment Draft...")
-		get_tree().change_scene_to_file("res://Scenes/equipmentdraft.tscn")
+		SceneLoader.change_scene("res://Scenes/equipmentdraft.tscn")
 		
 	# 2. Random Event (35% Chance on normal wins)
 	elif level_beaten > 0 and randf() < 0.35:
 		print("Random Event Triggered!")
-		get_tree().change_scene_to_file("res://Scenes/EventRoom.tscn")
+		SceneLoader.change_scene("res://Scenes/EventRoom.tscn")
 		
 	# 3. Standard Action Tree
 	else:
-		get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+		SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 # Helper to fetch all equipment for the draft
 func get_all_equipment() -> Array[EquipmentData]:

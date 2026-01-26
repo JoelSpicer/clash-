@@ -64,7 +64,7 @@ func _ready():
 	
 	btn_quick.pressed.connect(_on_quick_fight_pressed)
 	btn_custom.pressed.connect(_on_custom_deck_pressed)
-	btn_back.pressed.connect(func(): get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn"))
+	btn_back.pressed.connect(func(): SceneLoader.change_scene("res://Scenes/MainMenu.tscn"))
 	
 	if GameManager.p2_is_custom == null:
 		GameManager.p2_is_custom = false
@@ -176,7 +176,7 @@ func _on_quick_fight_pressed():
 	var p2 = _get_character_data_from_selection(p2_option.selected, "Player 2")
 	GameManager.next_match_p1_data = p1
 	GameManager.next_match_p2_data = p2
-	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 func _on_custom_deck_pressed():
 	# 1. P1 SETUP
@@ -215,7 +215,7 @@ func _on_custom_deck_pressed():
 		var p2 = _get_character_data_from_selection(p2_sel, "Player 2")
 		GameManager.next_match_p2_data = p2
 	
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 func _setup_difficulty():
 	difficulty_option.clear()

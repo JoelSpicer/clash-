@@ -34,4 +34,4 @@ func _on_main_menu_pressed():
 	GameManager.p2_is_custom = false
 	
 	# 3. Go to Menu
-	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")

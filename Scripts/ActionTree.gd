@@ -591,14 +591,14 @@ func _on_confirm_button_pressed():
 		if GameManager.next_match_p2_data == null:
 			GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
 			
-		get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+		SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 func _on_back_button_pressed():
 	# --- NEW: Arcade Mode Cancel ---
 	if RunManager.is_arcade_mode:
 		print("Canceling Arcade Run...")
 		RunManager.handle_loss() # Cleans up the arcade state variables
-		get_tree().change_scene_to_file("res://Scenes/CharacterSelect.tscn")
+		SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
 		return
 	# -------------------------------
 	print("Canceling customization...")
@@ -610,7 +610,7 @@ func _on_back_button_pressed():
 	GameManager.temp_p2_preset = null
 	GameManager.temp_p1_name = ""
 	GameManager.temp_p2_name = ""
-	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 func _try_deselect_action(id_to_remove: int):
 	var remaining_ids = owned_ids.duplicate()

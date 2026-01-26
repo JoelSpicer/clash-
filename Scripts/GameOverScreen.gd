@@ -114,7 +114,7 @@ func _on_menu_pressed():
 	get_tree().paused = false 
 	# -----------------------------------
 	GameManager.reset_combat() 
-	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 	
 func _attach_sfx(btn: BaseButton):
 	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))

@@ -15,15 +15,15 @@ func _ready():
 	
 func _on_start_pressed():
 	# Assumes your main arena scene is saved here
-	#get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
-	#get_tree().change_scene_to_file("res://Scenes/CharacterSelect.tscn")
+	#SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	#SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
 	SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
 	
 func _on_quit_pressed():
 	get_tree().quit()
 
 func _on_compendium_pressed():
-	get_tree().change_scene_to_file("res://Scenes/compendium.tscn")
+	SceneLoader.change_scene("res://Scenes/compendium.tscn")
 
 func _attach_sfx(btn: BaseButton):
 	if not btn: return

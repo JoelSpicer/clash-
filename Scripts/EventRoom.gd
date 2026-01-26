@@ -69,4 +69,4 @@ func _on_option_selected(choice: int):
 	ClassFactory._recalculate_stats(p1)
 	
 	# Proceed to the Action Tree to get your card reward for the level
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")

@@ -88,7 +88,7 @@ func _on_back_pressed():
 		queue_free()
 	else:
 		# Go back to Main Menu
-		get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+		SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 func _populate_section(container: Control, data: Dictionary):
 	for key in data:
