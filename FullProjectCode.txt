@@ -691,14 +691,14 @@ func _on_confirm_button_pressed():
 		if GameManager.next_match_p2_data == null:
 			GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
 			
-		get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+		SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 func _on_back_button_pressed():
 	# --- NEW: Arcade Mode Cancel ---
 	if RunManager.is_arcade_mode:
 		print("Canceling Arcade Run...")
 		RunManager.handle_loss() # Cleans up the arcade state variables
-		get_tree().change_scene_to_file("res://Scenes/CharacterSelect.tscn")
+		SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
 		return
 	# -------------------------------
 	print("Canceling customization...")
@@ -710,7 +710,7 @@ func _on_back_button_pressed():
 	GameManager.temp_p2_preset = null
 	GameManager.temp_p1_name = ""
 	GameManager.temp_p2_name = ""
-	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 func _try_deselect_action(id_to_remove: int):
 	var remaining_ids = owned_ids.duplicate()
@@ -2082,6 +2082,136 @@ func _ready():
 
 
 ========================================
+FILE PATH: res://Scripts/CarouselHub.gd
+========================================
+extends Control
+
+# --- CONFIGURATION ---
+var slides: Array = []
+var current_index: int = 0
+var is_transitioning: bool = false
+
+# --- NODES ---
+@onready var bg_current = $Background
+@onready var bg_fader = $BackgroundFader
+@onready var content_container = $ContentContainer
+@onready var title_label = $UI_Layer/TitleLabel
+@onready var btn_left = $UI_Layer/LeftArrow
+@onready var btn_right = $UI_Layer/RightArrow
+@onready var btn_back = $UI_Layer/BackButton
+
+func _ready():
+	# 1. DEFINE YOUR SLIDES HERE
+	# Easy to add more later! Just append a new dictionary.
+	slides = [
+		{
+			"title": "THE CIRCUIT (Story)",
+			"scene_path": "res://Scenes/MenuArcade.tscn",
+			"bg_path": "res://Art/Background/LockerRoom.png" # You need this art
+		},
+		{
+			"title": "QUICK CLASH (PvP / PvE)",
+			"scene_path": "res://Scenes/MenuQuick.tscn",
+			"bg_path": "res://Art/Background/Street.png"
+		},
+		{
+			"title": "GAME SETTINGS",
+			"scene_path": "res://Scenes/MenuSettings.tscn",
+			"bg_path": "res://Art/Background/Dojo.png"
+		},
+		{
+			"title": "COMPENDIUM",
+			"scene_path": "res://Scenes/compendium.tscn", # Reusing your existing scene!
+			"bg_path": "res://Art/Background/Library.png"
+		}
+	]
+	
+	# 2. Setup Buttons
+	btn_left.pressed.connect(func(): _change_slide(-1))
+	btn_right.pressed.connect(func(): _change_slide(1))
+	btn_back.pressed.connect(_on_back_pressed)
+	
+	# 3. Load Initial Slide (Arcade)
+	_load_slide_content(0)
+	_snap_background(0)
+
+func _change_slide(direction: int):
+	if is_transitioning: return
+	is_transitioning = true
+	AudioManager.play_sfx("ui_hover", 0.5) # Whoosh sound
+	
+	# 1. Calculate new index (Looping)
+	var old_index = current_index
+	current_index += direction
+	
+	if current_index >= slides.size(): current_index = 0
+	elif current_index < 0: current_index = slides.size() - 1
+	
+	# 2. VISUAL TRANSITION
+	var slide_data = slides[current_index]
+	title_label.text = slide_data.title
+	
+	# A. Crossfade Background
+	var new_bg = load(slide_data.bg_path)
+	if new_bg:
+		bg_fader.texture = new_bg
+		bg_fader.modulate.a = 0.0
+		
+		var t_bg = create_tween()
+		t_bg.tween_property(bg_fader, "modulate:a", 1.0, 0.4)
+		await t_bg.finished
+		
+		# Swap and reset
+		bg_current.texture = new_bg
+		bg_fader.modulate.a = 0.0
+	
+	# B. Slide Content (The "Carousel" movement)
+	# We instance the new scene OFF SCREEN, slide it in, then delete the old one.
+	
+	var old_content = content_container.get_child(0) if content_container.get_child_count() > 0 else null
+	var new_scene = load(slide_data.scene_path).instantiate()
+	
+	# Determine direction
+	var screen_width = get_viewport_rect().size.x
+	var enter_pos = Vector2(screen_width, 0) if direction > 0 else Vector2(-screen_width, 0)
+	var exit_pos = Vector2(-screen_width, 0) if direction > 0 else Vector2(screen_width, 0)
+	
+	# Setup New Content
+	new_scene.position = enter_pos
+	content_container.add_child(new_scene)
+	
+	# Animate
+	var t_slide = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	
+	t_slide.tween_property(new_scene, "position", Vector2.ZERO, 0.4)
+	if old_content:
+		t_slide.tween_property(old_content, "position", exit_pos, 0.4)
+	
+	await t_slide.finished
+	
+	if old_content: old_content.queue_free()
+	is_transitioning = false
+
+# Used for the very first load (instant, no animation)
+func _load_slide_content(idx: int):
+	var data = slides[idx]
+	title_label.text = data.title
+	
+	for child in content_container.get_children():
+		child.queue_free()
+		
+	var scene = load(data.scene_path).instantiate()
+	content_container.add_child(scene)
+
+func _snap_background(idx: int):
+	var tex = load(slides[idx].bg_path)
+	if tex: bg_current.texture = tex
+
+func _on_back_pressed():
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
+
+
+========================================
 FILE PATH: res://Scripts/CharacterSelect.gd
 ========================================
 extends Control
@@ -2150,7 +2280,7 @@ func _ready():
 	
 	btn_quick.pressed.connect(_on_quick_fight_pressed)
 	btn_custom.pressed.connect(_on_custom_deck_pressed)
-	btn_back.pressed.connect(func(): get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn"))
+	btn_back.pressed.connect(func(): SceneLoader.change_scene("res://Scenes/MainMenu.tscn"))
 	
 	if GameManager.p2_is_custom == null:
 		GameManager.p2_is_custom = false
@@ -2262,7 +2392,7 @@ func _on_quick_fight_pressed():
 	var p2 = _get_character_data_from_selection(p2_option.selected, "Player 2")
 	GameManager.next_match_p1_data = p1
 	GameManager.next_match_p2_data = p2
-	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 func _on_custom_deck_pressed():
 	# 1. P1 SETUP
@@ -2301,7 +2431,7 @@ func _on_custom_deck_pressed():
 		var p2 = _get_character_data_from_selection(p2_sel, "Player 2")
 		GameManager.next_match_p2_data = p2
 	
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 func _setup_difficulty():
 	difficulty_option.clear()
@@ -3162,7 +3292,7 @@ func _on_back_pressed():
 		queue_free()
 	else:
 		# Go back to Main Menu
-		get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+		SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 func _populate_section(container: Control, data: Dictionary):
 	for key in data:
@@ -3254,7 +3384,7 @@ func _on_item_selected(item: EquipmentData):
 	ClassFactory._recalculate_stats(RunManager.player_run_data)
 	
 	# 3. Proceed to the Action Tree for the card reward
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 
 ========================================
@@ -3331,7 +3461,7 @@ func _on_option_selected(choice: int):
 	ClassFactory._recalculate_stats(p1)
 	
 	# Proceed to the Action Tree to get your card reward for the level
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 
 ========================================
@@ -3485,7 +3615,7 @@ func _on_menu_pressed():
 	get_tree().paused = false 
 	# -----------------------------------
 	GameManager.reset_combat() 
-	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 	
 func _attach_sfx(btn: BaseButton):
 	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
@@ -3590,20 +3720,252 @@ func _ready():
 	
 func _on_start_pressed():
 	# Assumes your main arena scene is saved here
-	#get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
-	#get_tree().change_scene_to_file("res://Scenes/CharacterSelect.tscn")
-	SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
+	#SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	#SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
+	#SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
+	SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
 	
 func _on_quit_pressed():
 	get_tree().quit()
 
 func _on_compendium_pressed():
-	get_tree().change_scene_to_file("res://Scenes/compendium.tscn")
+	SceneLoader.change_scene("res://Scenes/compendium.tscn")
 
 func _attach_sfx(btn: BaseButton):
 	if not btn: return
 	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
 	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+
+
+========================================
+FILE PATH: res://Scripts/MenuArcade.gd
+========================================
+extends Control
+
+# --- NODES ---
+@onready var p1_option = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/ClassOption
+@onready var p1_info = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/InfoLabel
+@onready var p1_portrait = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
+@onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
+@onready var maintain_hp_toggle = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/MaintainHPToggle
+@onready var start_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/StartButton
+
+# --- DATA ---
+var classes = ["Heavy", "Patient", "Quick", "Technical"]
+var base_classes = ["Heavy", "Patient", "Quick", "Technical"]
+var presets: Array[PresetCharacter] = []
+
+func _ready():
+	_load_presets()
+	_setup_options(p1_option)
+	_setup_difficulty()
+	
+	# Connect Signals
+	p1_option.item_selected.connect(_on_selection_changed)
+	difficulty_option.item_selected.connect(_on_difficulty_changed)
+	start_btn.pressed.connect(_on_start_pressed)
+	
+	# Initial UI State
+	p1_option.selected = 0
+	_update_info()
+
+func _on_start_pressed():
+	# 1. Save Run Modifiers
+	RunManager.maintain_hp_enabled = maintain_hp_toggle.button_pressed
+	
+	# 2. Identify Selection
+	var selected_idx = p1_option.selected
+	if selected_idx < base_classes.size():
+		# Standard Class Start
+		var class_enum = selected_idx as CharacterData.ClassType
+		RunManager.start_run(class_enum)
+	else:
+		# Preset Start
+		var preset_idx = selected_idx - base_classes.size() - 1
+		if preset_idx >= 0 and preset_idx < presets.size():
+			var preset = presets[preset_idx]
+			RunManager.start_run_from_preset(preset)
+
+func _update_info():
+	var idx = p1_option.selected
+	# Helper function derived from your old code [cite: 353]
+	var temp = _get_character_data_from_selection(idx, "Preview")
+	
+	var txt = "[b]" + temp.character_name + "[/b]\n"
+	txt += "HP: " + str(temp.max_hp) + " | SP: " + str(temp.max_sp) + "\n"
+	txt += "[color=yellow]" + temp.passive_desc + "[/color]"
+	p1_info.text = txt
+	
+	if p1_portrait:
+		p1_portrait.texture = temp.portrait
+
+# --- REUSED HELPERS (Copied from CharacterSelect.gd) ---
+
+func _load_presets():
+	presets.clear()
+	var path = "res://Data/Presets/"
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and (file_name.ends_with(".tres") or file_name.ends_with(".res")):
+				var res = load(path + file_name)
+				if res is PresetCharacter: presets.append(res)
+			file_name = dir.get_next()
+
+func _setup_options(opt: OptionButton):
+	opt.clear()
+	for c in classes: opt.add_item(c)
+	if presets.size() > 0: opt.add_separator("Presets")
+	for p in presets: opt.add_item(p.character_name)
+
+func _setup_difficulty():
+	difficulty_option.clear()
+	difficulty_option.add_item("Very Easy"); difficulty_option.add_item("Easy")
+	difficulty_option.add_item("Medium"); difficulty_option.add_item("Hard")
+	difficulty_option.selected = 2 # Medium Default
+
+func _on_difficulty_changed(index: int):
+	GameManager.ai_difficulty = index as GameManager.Difficulty
+
+func _on_selection_changed(_idx):
+	_update_info()
+
+func _get_character_data_from_selection(index: int, p_name: String) -> CharacterData:
+	if index < base_classes.size():
+		return ClassFactory.create_character(index as CharacterData.ClassType, p_name)
+	var preset_idx = index - base_classes.size() - 1
+	if preset_idx >= 0: return ClassFactory.create_from_preset(presets[preset_idx])
+	return null
+
+
+========================================
+FILE PATH: res://Scripts/MenuQuick.gd
+========================================
+extends Control
+
+# --- NODES ---
+@onready var p1_option = $MarginContainer/HBoxContainer/P1_Column/ClassOption
+@onready var p2_option = $MarginContainer/HBoxContainer/P2_Column/ClassOption
+@onready var p2_mode_btn = $MarginContainer/HBoxContainer/P2_Column/P2ModeButton
+@onready var fight_btn = $MarginContainer/HBoxContainer/VS_Column/QuickFightButton
+
+var presets: Array[PresetCharacter] = []
+var base_classes = ["Heavy", "Patient", "Quick", "Technical"]
+
+func _ready():
+	_load_presets()
+	_setup_options(p1_option)
+	_setup_options(p2_option)
+	
+	# Defaults
+	p1_option.selected = 0
+	p2_option.selected = 1
+	
+	# Connections
+	fight_btn.pressed.connect(_on_fight_pressed)
+	p2_mode_btn.pressed.connect(_on_p2_mode_toggle)
+	
+	# Sync State
+	if GameManager.p2_is_custom == null: GameManager.p2_is_custom = false
+	_update_p2_btn_visuals()
+
+func _on_fight_pressed():
+	# 1. Random Environment
+	var envs = ["Ring", "Dojo", "Street"]
+	GameManager.apply_environment_rules(envs.pick_random())
+	
+	# 2. Setup Data
+	var p1 = _get_char(p1_option.selected, "Player 1")
+	var p2 = _get_char(p2_option.selected, "Player 2")
+	
+	GameManager.next_match_p1_data = p1
+	GameManager.next_match_p2_data = p2
+	
+	# 3. Launch
+	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+
+func _on_p2_mode_toggle():
+	GameManager.p2_is_custom = !GameManager.p2_is_custom
+	_update_p2_btn_visuals()
+
+func _update_p2_btn_visuals():
+	if GameManager.p2_is_custom:
+		p2_mode_btn.text = "OPPONENT: PLAYER 2"
+		p2_mode_btn.modulate = Color.GREEN
+	else:
+		p2_mode_btn.text = "OPPONENT: CPU BOT"
+		p2_mode_btn.modulate = Color.WHITE
+
+# --- HELPERS (Can be identical to Arcade Menu) ---
+func _load_presets():
+	# (Copy same logic as MenuArcade or move to a singleton later)
+	presets.clear()
+	var path = "res://Data/Presets/"
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and (file_name.ends_with(".tres") or file_name.ends_with(".res")):
+				var res = load(path + file_name)
+				if res is PresetCharacter: presets.append(res)
+			file_name = dir.get_next()
+
+func _setup_options(opt):
+	opt.clear()
+	for c in base_classes: opt.add_item(c)
+	if presets.size() > 0: opt.add_separator("Presets")
+	for p in presets: opt.add_item(p.character_name)
+
+func _get_char(idx, pname):
+	if idx < base_classes.size():
+		return ClassFactory.create_character(idx as CharacterData.ClassType, pname)
+	var preset_idx = idx - base_classes.size() - 1
+	if preset_idx >= 0: return ClassFactory.create_from_preset(presets[preset_idx])
+	return null
+
+
+========================================
+FILE PATH: res://Scripts/MenuSettings.gd
+========================================
+extends Control
+
+#@onready var master_slider = $CenterContainer/VBoxContainer/MasterSlider
+#@onready var music_slider = $CenterContainer/VBoxContainer/MusicSlider
+#@onready var sfx_slider = $CenterContainer/VBoxContainer/SFXSlider
+#@onready var delete_save_btn = $CenterContainer/VBoxContainer/DeleteSaveButton
+#
+#func _ready():
+	## 1. Set initial slider positions based on current volume
+	#master_slider.value = db_to_linear(AudioServer.get_bus_volume_db(0))
+	#music_slider.value = db_to_linear(AudioServer.get_bus_volume_db(1))
+	#sfx_slider.value = db_to_linear(AudioServer.get_bus_volume_db(2))
+	#
+	## 2. Connect signals
+	#master_slider.value_changed.connect(func(v): _set_volume(0, v))
+	#music_slider.value_changed.connect(func(v): _set_volume(1, v))
+	#sfx_slider.value_changed.connect(func(v): _set_volume(2, v))
+	#
+	#if delete_save_btn:
+		#delete_save_btn.pressed.connect(_on_delete_save_pressed)
+#
+#func _set_volume(bus_idx: int, value: float):
+	## Convert linear slider value (0-1) to Decibels
+	#AudioServer.set_bus_volume_db(bus_idx, linear_to_db(value))
+	#
+	## Optional: Mute if slider is at 0
+	#AudioServer.set_bus_mute(bus_idx, value < 0.05)
+#
+#func _on_delete_save_pressed():
+	## Simple safety confirmation could be added here later
+	#var dir = DirAccess.open("user://")
+	#if dir.file_exists("save_game.json"): # Or whatever you name your save
+		#dir.remove("save_game.json")
+		#print("Save file deleted.")
+		#delete_save_btn.text = "DATA DELETED"
+		#delete_save_btn.disabled = true
 
 
 ========================================
@@ -3645,7 +4007,7 @@ func _on_main_menu_pressed():
 	GameManager.p2_is_custom = false
 	
 	# 3. Go to Menu
-	get_tree().change_scene_to_file("res://Scenes/MainMenu.tscn")
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 
 ========================================
@@ -4968,7 +5330,7 @@ func start_run(starting_class: CharacterData.ClassType):
 	_init_tree_root(starting_class)
 	free_unlocks_remaining = 1
 	#player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
-	get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 # OPTION B: PRESET RUN
 func start_run_from_preset(preset: PresetCharacter):
@@ -5088,7 +5450,7 @@ func start_next_fight():
 	GameManager.next_match_p2_data = enemy
 	
 	# 6. Launch
-	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 func handle_win():
 	current_level += 1
@@ -5099,16 +5461,16 @@ func handle_win():
 	# 1. Guaranteed Equipment (Every 3rd Win)
 	if level_beaten > 0 and level_beaten % 3 == 0:
 		print("Milestone Reached! Loading Equipment Draft...")
-		get_tree().change_scene_to_file("res://Scenes/equipmentdraft.tscn")
+		SceneLoader.change_scene("res://Scenes/equipmentdraft.tscn")
 		
 	# 2. Random Event (35% Chance on normal wins)
 	elif level_beaten > 0 and randf() < 0.35:
 		print("Random Event Triggered!")
-		get_tree().change_scene_to_file("res://Scenes/EventRoom.tscn")
+		SceneLoader.change_scene("res://Scenes/EventRoom.tscn")
 		
 	# 3. Standard Action Tree
 	else:
-		get_tree().change_scene_to_file("res://Scenes/ActionTree.tscn")
+		SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 # Helper to fetch all equipment for the draft
 func get_all_equipment() -> Array[EquipmentData]:

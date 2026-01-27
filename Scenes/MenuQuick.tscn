@@ -1,0 +1,84 @@
+[gd_scene load_steps=2 format=3 uid="uid://crugd7hminj5p"]
+
+[ext_resource type="Script" uid="uid://c873im0nw7ebj" path="res://scripts/MenuQuick.gd" id="1_yp31r"]
+
+[node name="MenuQuick" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_yp31r")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="P1Label" type="Label" parent="MarginContainer/HBoxContainer/P1_Column"]
+layout_mode = 2
+text = "PLAYER 1"
+horizontal_alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
+
+[node name="VS_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="VSLabel" type="Label" parent="MarginContainer/HBoxContainer/VS_Column"]
+layout_mode = 2
+text = "VS"
+horizontal_alignment = 1
+
+[node name="QuickFightButton" type="Button" parent="MarginContainer/HBoxContainer/VS_Column"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "Quick CLASH!"
+
+[node name="P2_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="P2_Mode_Button" type="Button" parent="MarginContainer/HBoxContainer/P2_Column"]
+layout_mode = 2
+text = "OPPONENT: CPU"
+
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P2_Column"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P2_Column"]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1

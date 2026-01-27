@@ -17,7 +17,8 @@ func _on_start_pressed():
 	# Assumes your main arena scene is saved here
 	#SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 	#SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
-	SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
+	#SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
+	SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
 	
 func _on_quit_pressed():
 	get_tree().quit()
