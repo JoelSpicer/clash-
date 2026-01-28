@@ -1178,7 +1178,6 @@ signal p2_mode_toggled(is_human)
 @onready var inspect_popup = $InspectPopup
 @onready var inspect_grid = $InspectPopup/ScrollContainer/InspectGrid
 
-# We need the display scene to show non-interactive cards
 var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
 
 # --- DATA ---
@@ -1203,6 +1202,7 @@ var feint_mode: bool = false
 
 var skip_action: ActionData
 var is_locked = false
+var finisher_triggered: bool = false # PREVENTS DOUBLE TRIGGERS
 
 # Toggle Buttons
 var p1_toggle: CheckButton
@@ -1216,24 +1216,41 @@ var tech_dropdown: OptionButton
 # DYNAMIC CAMERA VARIABLES
 var shake_strength: float = 0.0
 var shake_decay: float = 5.0
-var zoom_strength: float = 0.0 # <--- NEW: Controls the "Punch" zoom
-var zoom_decay: float = 5.0    # <--- NEW: How fast it returns to normal
+var zoom_strength: float = 0.0 
+var zoom_decay: float = 5.0    
 #endregion
 
 func _ready():
-	# --- FIX: Keep UI active even when game is paused ---
 	process_mode = Node.PROCESS_MODE_ALWAYS 
-	# --
+	
 	if not btn_offence or not btn_defence:
 		printerr("CRITICAL: Buttons missing in BattleUI")
 		return
 	
+	# --- NEW: GENERATE SHADER FOR BACKGROUND ---
+	# This allows us to desaturate the BG without needing a file
+	var shader = Shader.new()
+	shader.code = """
+	shader_type canvas_item;
+	uniform float saturation : hint_range(0.0, 1.0) = 1.0;
+	void fragment() {
+		vec4 tex_color = texture(TEXTURE, UV);
+		float grey = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
+		vec3 final_color = mix(vec3(grey), tex_color.rgb, saturation);
+		COLOR = vec4(final_color, tex_color.a);
+	}
+	"""
+	var mat = ShaderMaterial.new()
+	mat.shader = shader
+	if background:
+		background.material = mat
+	# -------------------------------------------
+
 	GameManager.wall_crush_occurred.connect(_on_wall_crush_ui)
 	
 	momentum_slider.max_value = GameManager.TOTAL_MOMENTUM_SLOTS
 	momentum_slider.min_value = 1
 	
-	# Log Location (Environment Feature)
 	GameManager.combat_log_updated.emit("Location: " + GameManager.current_environment_name + " (" + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots)")
 	
 	if clash_layer: clash_layer.visible = false
@@ -1248,18 +1265,15 @@ func _ready():
 	btn_offence.pressed.connect(func(): _switch_tab(ActionData.Type.OFFENCE))
 	btn_defence.pressed.connect(func(): _switch_tab(ActionData.Type.DEFENCE))
 	
-	# Skip Action Init
 	skip_action = ActionData.new()
 	skip_action.display_name = "SKIP FEINT"
 	skip_action.description = "Stop combining and use your original action."
 	skip_action.cost = 0
 	
-	# Initially hide input grid
 	button_grid.visible = false
 	preview_card.visible = false
 	if tooltip_label: tooltip_label.visible = false
 	
-	# Connect Visual Signals
 	GameManager.damage_dealt.connect(_on_damage_dealt)
 	GameManager.healing_received.connect(_on_healing_received)
 	GameManager.status_applied.connect(_on_status_applied)	
@@ -1283,31 +1297,22 @@ func _ready():
 	_create_passive_toggles()
 	setup_toggles()
 	
-	var btn = get_node_or_null("MenuButton")
-	if btn:
-		btn.pressed.connect(_on_menu_pressed)
+	if menu_btn:
+		menu_btn.pressed.connect(_on_menu_pressed)
 
 	$MomentumSlider/Label2.text = str(GameManager.momentum)
-# --- ENVIRONMENT UI SETUP ---
+
 	if env_button and env_popup:
 		env_button.pressed.connect(_on_env_button_pressed)
 		close_env_button.pressed.connect(func(): env_popup.visible = false)
 		_attach_sfx(env_button)
 		_attach_sfx(close_env_button)
-		
-		# FIX: Force the RichTextLabel to render correctly via code [cite: 305]
 		env_details.bbcode_enabled = true
 		env_details.fit_content = true
-		
-		# Set initial button text
 		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
-	# ---------------------------------
 	
-	# --- NEW: INSPECT BUTTON ---
 	if inspect_btn:
 		inspect_btn.pressed.connect(_on_inspect_pressed)
-		# Reuse your existing Close button logic if you add a close button to the popup
-		# or just toggle it with the main button.
 		_attach_sfx(inspect_btn)
 	
 	_update_background()
@@ -1315,21 +1320,23 @@ func _ready():
 # --- DYNAMIC CAMERA PROCESS ---
 func _process(delta):
 	# 1. Decay Values
-	if shake_strength > 0:
-		shake_strength = lerpf(shake_strength, 0, shake_decay * delta)
-		if shake_strength < 0.1: shake_strength = 0
-		
-	if zoom_strength > 0:
-		zoom_strength = lerpf(zoom_strength, 0, zoom_decay * delta)
-		if zoom_strength < 0.001: zoom_strength = 0
+	# FIX: Only decay if we are NOT in the middle of a Finisher Freeze
+	var is_frozen = (finisher_triggered and get_tree().paused)
+	
+	if not is_frozen:
+		if shake_strength > 0:
+			shake_strength = lerpf(shake_strength, 0, shake_decay * delta)
+			if shake_strength < 0.1: shake_strength = 0
+			
+		if zoom_strength > 0:
+			zoom_strength = lerpf(zoom_strength, 0, zoom_decay * delta)
+			if zoom_strength < 0.001: zoom_strength = 0
 
 	# 2. Calculate Scale (Base 1.0 + Zoom Punch)
 	var current_scale = 1.0 + zoom_strength
 	scale = Vector2(current_scale, current_scale)
 	
 	# 3. Calculate Centering Offset
-	# Since CanvasLayer scales from Top-Left (0,0), we must shift it negatively
-	# to keep the center of the screen in the center.
 	var viewport_size = get_viewport().get_visible_rect().size
 	var center = viewport_size / 2
 	var center_offset = center - (center * current_scale)
@@ -1345,13 +1352,34 @@ func _process(delta):
 	# 5. Apply Total Offset
 	offset = center_offset + shake_offset
 
-# New Helper to trigger visual impact
 func apply_camera_impact(zoom_amount: float, shake_amount: float):
-	# We take the larger of current vs new so big hits don't get overridden by small ones
 	zoom_strength = max(zoom_strength, zoom_amount)
 	shake_strength = max(shake_strength, shake_amount)
 
-# ... (Toggle Creation Code - Remains Unchanged) ...
+# --- FINISHER SEQUENCE ---
+func _play_finisher_sequence():
+	if finisher_triggered: return
+	finisher_triggered = true
+	
+	print(">>> FINISHER TRIGGERED <<<")
+	
+	# 1. FREEZE TIME (Longer than normal)
+	HitStopManager.stop_frame(1.5)
+	
+	# 2. EXTREME ZOOM
+	# We set it high. The _process loop above ensures it STAYS high while paused.
+	zoom_strength = 0.45
+	shake_strength = 0.0 # Clear shake to focus on the impact
+	
+	# 3. BACKGROUND DESATURATION (Using tween_method)
+	if background and background.material:
+		var tween = create_tween()
+		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS) # Run while paused
+		# Fade saturation from 1.0 to 0.0 over 0.1 seconds
+		tween.tween_method(_set_bg_saturation, 1.0, 0.0, 0.1)
+
+# ... (Rest of existing toggles code) ...
+
 func _create_passive_toggles():
 	var container = HBoxContainer.new()
 	add_child(container)
@@ -1413,8 +1441,6 @@ func _create_debug_toggles():
 	p2_toggle.button_pressed = p2_is_human
 	container.add_child(p2_toggle)
 
-# --- VISUAL UPDATE FUNCTIONS ---
-
 func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	p1_hud.setup(p1_data)
 	p2_hud.setup(p2_data)
@@ -1422,11 +1448,9 @@ func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	p2_hud.configure_visuals(true)
 	update_momentum(0)
 	
-	# --- NEW: Show Equipment ---
 	_populate_equipment(p1_data)
 
 func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
-	# UPDATED CALLS: Removed the GameManager.p1_is_injured arguments
 	p1_hud.update_stats(p1, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat, p1.patient_buff_active)
 	p2_hud.update_stats(p2, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat, p2.patient_buff_active)
 	
@@ -1446,8 +1470,6 @@ func update_momentum(val: int):
 	var tween = create_tween()
 	tween.tween_property(momentum_slider, "value", visual_val, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	if momentum_label: momentum_label.text = text
-
-# --- INPUT HANDLING ---
 
 func load_deck(deck: Array[ActionData]):
 	current_deck = deck
@@ -1529,8 +1551,8 @@ func _refresh_grid():
 		
 		s_btn.setup(struggle)
 		s_btn.update_cost_display(0)
-		s_btn.set_available(true) # Always available
-		s_btn.modulate = Color(0.9, 0.9, 0.9) # Slightly distinct color
+		s_btn.set_available(true)
+		s_btn.modulate = Color(0.9, 0.9, 0.9) 
 		
 		s_btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
 		s_btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
@@ -1590,8 +1612,6 @@ func _check_card_validity(card: ActionData, final_cost: int) -> bool:
 
 	return true
 
-# --- TOOLTIP LOGIC ---
-
 func _on_card_hovered(card: ActionData):
 	var effective_cost = max(0, card.cost - my_opportunity_val)
 	preview_card.set_card_data(card, effective_cost)
@@ -1623,14 +1643,10 @@ func _update_tooltip_text(card: ActionData):
 	if card.guard_break: active_keys.append("Guard Break")
 	if card.feint: active_keys.append("Feint")
 	
-	# --- FIX: SCALABLE STATUS CHECK ---
-	# Instead of checking "card.injure", we check the list
 	for s in card.statuses_to_apply:
 		var s_name = s.get("name", "")
-		# If the status name (e.g. "Injure") is in our dictionary, add it to the list
 		if s_name != "":
 			active_keys.append(s_name)
-	# ----------------------------------
 
 	if card.retaliate: active_keys.append("Retaliate")
 	if card.reversal: active_keys.append("Reversal")
@@ -1659,8 +1675,6 @@ func _update_tooltip_text(card: ActionData):
 	tooltip_label.position.y = preview_bottom - tooltip_label.size.y - padding
 	tooltip_label.position.x = preview_card.position.x - tooltip_label.size.x - padding
 
-# --- VISUAL HANDLERS ---
-
 func _get_clash_text_pos(target_id: int) -> Vector2:
 	var hud = p1_hud if target_id == 1 else p2_hud
 	var pos = hud.global_position + (hud.size / 2)
@@ -1679,13 +1693,20 @@ func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
 		_spawn_text(spawn_pos, str(amount), Color.RED)
 		if amount >= 5:
 			AudioManager.play_sfx("hit_heavy", 0.1)
-			apply_camera_impact(0.15, 20.0) # BIG HIT (High Zoom + High Shake)
+			apply_camera_impact(0.15, 20.0) 
 		else:
 			AudioManager.play_sfx("hit_light", 0.2) 
-			apply_camera_impact(0.05, 5.0)  # SMALL HIT
+			apply_camera_impact(0.05, 5.0)  
 			
 		if target_id == 1: p1_hud.play_hit_animation()
 		else: p2_hud.play_hit_animation()
+	
+	# --- NEW: CHECK FOR FINISHER ---
+	# We check if the victim is dead, and trigger the cinematic
+	var victim_data = GameManager.p1_data if target_id == 1 else GameManager.p2_data
+	if victim_data.current_hp <= 0:
+		_play_finisher_sequence()
+	# --------------------------------
 
 func _on_healing_received(target_id: int, amount: int):
 	var spawn_pos = _get_clash_text_pos(target_id)
@@ -1708,7 +1729,6 @@ func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
 	if combat_log:
 		combat_log.add_clash_log(winner_id, p1_card, p2_card)
 		
-	# IMPACT: Zoom in slightly to emphasize the clash reveal
 	apply_camera_impact(0.02, 0.0) 
 		
 	if p1_card.type == ActionData.Type.OFFENCE:
@@ -1796,6 +1816,14 @@ func setup_toggles(p1_override = null, p2_override = null):
 func _on_game_state_changed(new_state):
 	if new_state == GameManager.State.POST_CLASH:
 		_log_stat_changes()
+		
+		# Reset finisher state
+		finisher_triggered = false
+		
+		# Restore Color smoothly
+		if background and background.material:
+			var tween = create_tween()
+			tween.tween_method(_set_bg_saturation, 0.0, 1.0, 0.5)
 
 func _log_stat_changes():
 	if not combat_log or not GameManager.p1_data or not GameManager.p2_data: return
@@ -1825,86 +1853,42 @@ func _attach_sfx(btn: BaseButton):
 	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 
 func _on_wall_crush_ui(target_id: int, _dmg: int):
-	# 1. SCREEN SHAKE (Global)
-	# Apply a sharp, short shake to the camera
 	apply_camera_impact(0.05, 15.0) 
-
-	# 2. SLIDER IMPACT (Local)
-	# Shake the momentum slider specifically
 	var original_x = momentum_slider.position.x
 	var tween = create_tween()
-
-	# Determine shake direction (Against the wall)
 	var shake_dir = -10 if target_id == 1 else 10
-
-	# Jerk the slider bar towards the wall then bounce back
 	tween.tween_property(momentum_slider, "position:x", original_x + shake_dir, 0.05)
 	tween.tween_property(momentum_slider, "position:x", original_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
-	# 3. SOUND (Optional, if you have a sound file)
-	# AudioManager.play_sfx("hit_heavy", 0.1)
-
-# --- ENVIRONMENT POPUP LOGIC ---
 func _on_env_button_pressed():
 	env_popup.visible = not env_popup.visible
-	
 	if env_popup.visible:
-		# 1. Set Title
 		env_title.text = "ENVIRONMENT: " + GameManager.current_environment_name.to_upper()
-		
-		# 2. Build Details Text
 		var details = "[b]Momentum Tracker:[/b] " + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots\n"
-		
-		# 3. Add Specific Hazards (Future Proofing)
-		#details += "\n[b]Hazards:[/b]\n"
-		#match GameManager.current_environment_name:
-			#"Ring":
-				#details += "- [color=yellow]Ropes:[/color] Wall Crush damage is reduced by 1.\n"
-			#"Dojo":
-				#details += "- [color=yellow]Honor Bound:[/color] Standard rules apply.\n"
-			#"Street":
-				#details += "- [color=yellow]Bystanders:[/color] Every 3rd turn, a random event occurs.\n"
-			#_:
-				#details += "- None."
-				
 		env_details.text = details
 
-# --- EQUIPMENT UI LOGIC ---
 func _populate_equipment(p1_data: CharacterData):
 	if not equipment_grid: return
-	
-	# 1. Clear old icons
 	for child in equipment_grid.get_children():
 		child.queue_free()
-		
-	# 2. Add new icons
 	for item in p1_data.equipment:
 		var icon = TextureRect.new()
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.custom_minimum_size = Vector2(40, 40)
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		
-		# Fallback if you haven't assigned art to the resource yet
 		if item.icon: icon.texture = item.icon
-		else: icon.texture = preload("res://icon.svg") # Godot default icon
-		
-		# 3. Build the Tooltip Text
+		else: icon.texture = preload("res://icon.svg") 
 		var tip = item.display_name + "\n" + item.description + "\n"
 		tip += "-------------------\n"
 		if item.max_hp_bonus != 0: tip += "Max HP: " + ("+" if item.max_hp_bonus > 0 else "") + str(item.max_hp_bonus) + "\n"
 		if item.max_sp_bonus != 0: tip += "Max SP: " + ("+" if item.max_sp_bonus > 0 else "") + str(item.max_sp_bonus) + "\n"
 		if item.starting_sp_bonus != 0: tip += "Start SP: +" + str(item.starting_sp_bonus) + "\n"
 		if item.wall_crush_damage_bonus != 0: tip += "Wall Crush Dmg: +" + str(item.wall_crush_damage_bonus)
-		
-		# Assigning tooltip_text handles the hover pop-up automatically!
 		icon.tooltip_text = tip 
-		
 		equipment_grid.add_child(icon)
 
-# --- ENEMY INSPECTION LOGIC ---
 func _on_inspect_pressed():
 	inspect_popup.visible = not inspect_popup.visible
-	
 	if inspect_popup.visible:
 		inspect_btn.text = "CLOSE INSPECT"
 		_populate_enemy_deck()
@@ -1912,38 +1896,29 @@ func _on_inspect_pressed():
 		inspect_btn.text = "INSPECT OPPONENT"
 
 func _populate_enemy_deck():
-	# 1. Clear previous view
 	for child in inspect_grid.get_children():
 		child.queue_free()
-		
 	var p2 = GameManager.p2_data
 	if not p2: return
-	
-	# 2. Loop through the Enemy's Active Deck
 	for card in p2.deck:
 		var card_disp = card_display_scene.instantiate()
 		inspect_grid.add_child(card_disp)
-		
-		# 3. Setup Visuals
 		card_disp.set_card_data(card)
-		
-		# 4. Scale it down to fit the grid better
 		card_disp.custom_minimum_size = Vector2(180, 250)
 		card_disp.scale = Vector2(0.8, 0.8) 
-		
-		# 5. Optional: Add a "Hover" sound
 		card_disp.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+
+# Helper to safely tween shader params
+func _set_bg_saturation(val: float):
+	if background and background.material:
+		background.material.set_shader_parameter("saturation", val)
 
 func _update_background():
 	var env_name = GameManager.current_environment_name
-
-	# 1. Check if we scanned an image for this environment
 	if GameManager.environment_backgrounds.has(env_name):
 		background.texture = GameManager.environment_backgrounds[env_name]
 	else:
 		print("Warning: No art found for '" + env_name + "'. Using default.")
-		# Optional: Set a default color or fallback image here
-		# background.texture = preload("res://Art/Backgrounds/Dojo.png")
 
 
 ========================================
