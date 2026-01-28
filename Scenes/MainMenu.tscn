@@ -52,5 +52,6 @@ layout_mode = 2
 text = "Quit"
 
 [node name="CompendiumButton" type="Button" parent="VBoxContainer"]
+visible = false
 layout_mode = 2
 text = "How to Play"

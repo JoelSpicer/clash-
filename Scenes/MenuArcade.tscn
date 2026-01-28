@@ -28,10 +28,10 @@ layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-text = "THE CIRCUIT"
 horizontal_alignment = 1
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+self_modulate = Color(0, 0, 0, 1)
 layout_mode = 2
 size_flags_vertical = 3
 alignment = 1
@@ -61,6 +61,7 @@ alignment = 1
 
 [node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
 layout_mode = 2
+theme_override_constants/outline_size = 15
 text = "CPU Difficulty"
 horizontal_alignment = 1
 
@@ -69,6 +70,7 @@ layout_mode = 2
 
 [node name="MaintainHPToggle" type="CheckButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
 layout_mode = 2
+theme_override_constants/outline_size = 13
 text = "Maintain HP Between Fights?"
 
 [node name="StartButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]

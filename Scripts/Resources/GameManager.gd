@@ -45,7 +45,7 @@ signal wall_crush_occurred(player_id, damage_amount)
 # --- CONFIGURATION ---
 var TOTAL_MOMENTUM_SLOTS: int = 8 
 var current_environment_name: String = "Dojo"
-
+var environment_backgrounds: Dictionary = {}
 # --- DYNAMIC CALCULATIONS ---
 var MOMENTUM_P1_MAX: int = 4
 var MOMENTUM_P2_START: int = 5
@@ -109,6 +109,9 @@ var temp_p2_preset: Resource = null
 # ==============================================================================
 
 func _ready():
+	
+	_load_backgrounds()
+	
 	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
 	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
 	
@@ -883,3 +886,28 @@ func remove_status(target_id: int, status_name: String):
 	if target.statuses.has(status_name):
 		target.statuses.erase(status_name)
 		emit_signal("status_applied", target_id, "CURED") # Generic cure msg
+
+func _load_backgrounds():
+	var path = "res://Art/background/"
+	var dir = DirAccess.open(path)
+	
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		
+		while file_name != "":
+			# Skip hidden files and imports
+			if !dir.current_is_dir() and !file_name.ends_with(".import"):
+				# Support PNG and JPG
+				if file_name.ends_with(".png") or file_name.ends_with(".jpg"):
+					
+					# Key = "Dojo" (stripped of .png)
+					var key = file_name.get_basename()
+					
+					# Load the image and store it
+					environment_backgrounds[key] = load(path + file_name)
+					print(">> Loaded Environment Art: " + key)
+			
+			file_name = dir.get_next()
+	else:
+		print("ERROR: Could not find 'res://Art/background/' folder.")

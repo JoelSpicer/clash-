@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ds57i1ywc2c7k"
-path="res://.godot/imported/Dojo.png-01e427831eb536c11cc63c1d2b05a4ba.ctex"
+uid="uid://bcbp8t18864wj"
+path="res://.godot/imported/LockerRoom1.png-3c41d864b0590ca32ea4d0eeb329afd7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Art/background/Dojo.png"
-dest_files=["res://.godot/imported/Dojo.png-01e427831eb536c11cc63c1d2b05a4ba.ctex"]
+source_file="res://Art/background/LockerRoom1.png"
+dest_files=["res://.godot/imported/LockerRoom1.png-3c41d864b0590ca32ea4d0eeb329afd7.ctex"]
 
 [params]
 

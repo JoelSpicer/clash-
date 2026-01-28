@@ -24,6 +24,7 @@ signal p2_mode_toggled(is_human)
 @onready var clash_layer = $ClashLayer
 @onready var left_card_display = $ClashLayer/LeftCard
 @onready var right_card_display = $ClashLayer/RightCard
+@onready var background = $Background
 
 @onready var env_button = $EnvButton
 @onready var env_popup = $EnvPopup
@@ -165,6 +166,8 @@ func _ready():
 		# Reuse your existing Close button logic if you add a close button to the popup
 		# or just toggle it with the main button.
 		_attach_sfx(inspect_btn)
+	
+	_update_background()
 	
 # --- DYNAMIC CAMERA PROCESS ---
 func _process(delta):
@@ -787,3 +790,14 @@ func _populate_enemy_deck():
 		
 		# 5. Optional: Add a "Hover" sound
 		card_disp.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+
+func _update_background():
+	var env_name = GameManager.current_environment_name
+
+	# 1. Check if we scanned an image for this environment
+	if GameManager.environment_backgrounds.has(env_name):
+		background.texture = GameManager.environment_backgrounds[env_name]
+	else:
+		print("Warning: No art found for '" + env_name + "'. Using default.")
+		# Optional: Set a default color or fallback image here
+		# background.texture = preload("res://Art/Backgrounds/Dojo.png")

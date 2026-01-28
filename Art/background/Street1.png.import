@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ds57i1ywc2c7k"
-path="res://.godot/imported/Dojo.png-01e427831eb536c11cc63c1d2b05a4ba.ctex"
+uid="uid://dtctml6j04kt"
+path="res://.godot/imported/Street1.png-8ef2340429e88b0f976940b80b4f7f48.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Art/background/Dojo.png"
-dest_files=["res://.godot/imported/Dojo.png-01e427831eb536c11cc63c1d2b05a4ba.ctex"]
+source_file="res://Art/background/Street1.png"
+dest_files=["res://.godot/imported/Street1.png-8ef2340429e88b0f976940b80b4f7f48.ctex"]
 
 [params]
 
