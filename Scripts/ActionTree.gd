@@ -591,7 +591,7 @@ func _on_confirm_button_pressed():
 		if GameManager.next_match_p2_data == null:
 			GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
 			
-		SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+		SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 func _on_back_button_pressed():
 	# --- NEW: Arcade Mode Cancel ---

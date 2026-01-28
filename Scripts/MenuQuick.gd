@@ -63,7 +63,7 @@ func _on_fight_pressed():
 	GameManager.next_match_p2_data = p2
 	
 	# 3. Launch
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 func _on_p2_mode_toggle():
 	GameManager.p2_is_custom = !GameManager.p2_is_custom

@@ -147,7 +147,7 @@ func start_next_fight():
 	GameManager.next_match_p2_data = enemy
 	
 	# 6. Launch
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 func handle_win():
 	current_level += 1

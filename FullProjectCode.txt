@@ -691,7 +691,7 @@ func _on_confirm_button_pressed():
 		if GameManager.next_match_p2_data == null:
 			GameManager.next_match_p2_data = ClassFactory.create_character(CharacterData.ClassType.HEAVY, "Bot")
 			
-		SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+		SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 func _on_back_button_pressed():
 	# --- NEW: Arcade Mode Cancel ---
@@ -1167,6 +1167,7 @@ signal p2_mode_toggled(is_human)
 @onready var clash_layer = $ClashLayer
 @onready var left_card_display = $ClashLayer/LeftCard
 @onready var right_card_display = $ClashLayer/RightCard
+@onready var background = $Background
 
 @onready var env_button = $EnvButton
 @onready var env_popup = $EnvPopup
@@ -1308,6 +1309,8 @@ func _ready():
 		# Reuse your existing Close button logic if you add a close button to the popup
 		# or just toggle it with the main button.
 		_attach_sfx(inspect_btn)
+	
+	_update_background()
 	
 # --- DYNAMIC CAMERA PROCESS ---
 func _process(delta):
@@ -1931,6 +1934,17 @@ func _populate_enemy_deck():
 		# 5. Optional: Add a "Hover" sound
 		card_disp.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
 
+func _update_background():
+	var env_name = GameManager.current_environment_name
+
+	# 1. Check if we scanned an image for this environment
+	if GameManager.environment_backgrounds.has(env_name):
+		background.texture = GameManager.environment_backgrounds[env_name]
+	else:
+		print("Warning: No art found for '" + env_name + "'. Using default.")
+		# Optional: Set a default color or fallback image here
+		# background.texture = preload("res://Art/Backgrounds/Dojo.png")
+
 
 ========================================
 FILE PATH: res://Scripts/CardButton.gd
@@ -2151,12 +2165,15 @@ func _change_slide(direction: int):
 	var slide_data = slides[current_index]
 	title_label.text = slide_data.title
 	
-	# A. Crossfade Background
+# A. Crossfade Background
 	var new_bg = load(slide_data.bg_path)
+	
 	if new_bg:
 		bg_fader.texture = new_bg
 		bg_fader.modulate.a = 0.0
+		bg_fader.visible = true # <--- FORCE VISIBILITY ON
 		
+		# Create the tween
 		var t_bg = create_tween()
 		t_bg.tween_property(bg_fader, "modulate:a", 1.0, 0.4)
 		await t_bg.finished
@@ -2164,7 +2181,9 @@ func _change_slide(direction: int):
 		# Swap and reset
 		bg_current.texture = new_bg
 		bg_fader.modulate.a = 0.0
-	
+		# bg_fader.visible = false # Optional: Hide it again if you want
+	else:
+		print("ERROR: Could not load background at path: ", slide_data.bg_path)
 	# B. Slide Content (The "Carousel" movement)
 	# We instance the new scene OFF SCREEN, slide it in, then delete the old one.
 	
@@ -3846,9 +3865,12 @@ FILE PATH: res://Scripts/MenuQuick.gd
 extends Control
 
 # --- NODES ---
+# Added Portrait references
 @onready var p1_option = $MarginContainer/HBoxContainer/P1_Column/ClassOption
+@onready var p1_portrait = $MarginContainer/HBoxContainer/P1_Column/Portrait # <--- NEW
 @onready var p2_option = $MarginContainer/HBoxContainer/P2_Column/ClassOption
-@onready var p2_mode_btn = $MarginContainer/HBoxContainer/P2_Column/P2ModeButton
+@onready var p2_portrait = $MarginContainer/HBoxContainer/P2_Column/Portrait # <--- NEW
+@onready var p2_mode_btn = $MarginContainer/HBoxContainer/P2_Column/P2_Mode_Button
 @onready var fight_btn = $MarginContainer/HBoxContainer/VS_Column/QuickFightButton
 
 var presets: Array[PresetCharacter] = []
@@ -3863,6 +3885,10 @@ func _ready():
 	p1_option.selected = 0
 	p2_option.selected = 1
 	
+	# --- NEW: Connect Signals to Update Portraits ---
+	p1_option.item_selected.connect(func(_idx): _update_portraits())
+	p2_option.item_selected.connect(func(_idx): _update_portraits())
+	
 	# Connections
 	fight_btn.pressed.connect(_on_fight_pressed)
 	p2_mode_btn.pressed.connect(_on_p2_mode_toggle)
@@ -3870,6 +3896,23 @@ func _ready():
 	# Sync State
 	if GameManager.p2_is_custom == null: GameManager.p2_is_custom = false
 	_update_p2_btn_visuals()
+	
+	# Initial Update
+	_update_portraits()
+
+# --- NEW: UPDATE LOGIC ---
+func _update_portraits():
+	# Update P1
+	var p1_data = _get_char(p1_option.selected, "P1")
+	if p1_portrait:
+		p1_portrait.texture = p1_data.portrait
+		
+	# Update P2
+	var p2_data = _get_char(p2_option.selected, "P2")
+	if p2_portrait:
+		p2_portrait.texture = p2_data.portrait
+		# Flip P2 to face center
+		p2_portrait.flip_h = true
 
 func _on_fight_pressed():
 	# 1. Random Environment
@@ -3884,7 +3927,7 @@ func _on_fight_pressed():
 	GameManager.next_match_p2_data = p2
 	
 	# 3. Launch
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 func _on_p2_mode_toggle():
 	GameManager.p2_is_custom = !GameManager.p2_is_custom
@@ -3898,9 +3941,8 @@ func _update_p2_btn_visuals():
 		p2_mode_btn.text = "OPPONENT: CPU BOT"
 		p2_mode_btn.modulate = Color.WHITE
 
-# --- HELPERS (Can be identical to Arcade Menu) ---
+# --- HELPERS ---
 func _load_presets():
-	# (Copy same logic as MenuArcade or move to a singleton later)
 	presets.clear()
 	var path = "res://Data/Presets/"
 	var dir = DirAccess.open(path)
@@ -3924,7 +3966,7 @@ func _get_char(idx, pname):
 		return ClassFactory.create_character(idx as CharacterData.ClassType, pname)
 	var preset_idx = idx - base_classes.size() - 1
 	if preset_idx >= 0: return ClassFactory.create_from_preset(presets[preset_idx])
-	return null
+	return ClassFactory.create_character(0, "Error")
 
 
 ========================================
@@ -4443,7 +4485,7 @@ signal wall_crush_occurred(player_id, damage_amount)
 # --- CONFIGURATION ---
 var TOTAL_MOMENTUM_SLOTS: int = 8 
 var current_environment_name: String = "Dojo"
-
+var environment_backgrounds: Dictionary = {}
 # --- DYNAMIC CALCULATIONS ---
 var MOMENTUM_P1_MAX: int = 4
 var MOMENTUM_P2_START: int = 5
@@ -4507,6 +4549,9 @@ var temp_p2_preset: Resource = null
 # ==============================================================================
 
 func _ready():
+	
+	_load_backgrounds()
+	
 	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
 	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
 	
@@ -5282,6 +5327,31 @@ func remove_status(target_id: int, status_name: String):
 		target.statuses.erase(status_name)
 		emit_signal("status_applied", target_id, "CURED") # Generic cure msg
 
+func _load_backgrounds():
+	var path = "res://Art/background/"
+	var dir = DirAccess.open(path)
+	
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		
+		while file_name != "":
+			# Skip hidden files and imports
+			if !dir.current_is_dir() and !file_name.ends_with(".import"):
+				# Support PNG and JPG
+				if file_name.ends_with(".png") or file_name.ends_with(".jpg"):
+					
+					# Key = "Dojo" (stripped of .png)
+					var key = file_name.get_basename()
+					
+					# Load the image and store it
+					environment_backgrounds[key] = load(path + file_name)
+					print(">> Loaded Environment Art: " + key)
+			
+			file_name = dir.get_next()
+	else:
+		print("ERROR: Could not find 'res://Art/background/' folder.")
+
 
 ========================================
 FILE PATH: res://Scripts/Resources/PresetCharacter.gd
@@ -5450,7 +5520,7 @@ func start_next_fight():
 	GameManager.next_match_p2_data = enemy
 	
 	# 6. Launch
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 func handle_win():
 	current_level += 1
@@ -6693,3 +6763,86 @@ func _on_wall_crush(target_id: int, _damage: int):
 		mat.direction = Vector3(-1, -0.5, 0) # Fly Left-Up
 		
 	_spawn_vfx(p, spawn_pos)
+
+
+========================================
+FILE PATH: res://Scripts/VsScreen.gd
+========================================
+extends Control
+
+@onready var background = $Background
+@onready var p1_portrait = $Content/P1_Container/Portrait
+@onready var p1_name = $Content/P1_Container/NameLabel
+@onready var p1_class = $Content/P1_Container/ClassLabel
+
+@onready var p2_portrait = $Content/P2_Container/Portrait
+@onready var p2_name = $Content/P2_Container/NameLabel
+@onready var p2_class = $Content/P2_Container/ClassLabel
+
+@onready var vs_label = $Content/VsLabel
+@onready var arena_label = $ArenaLabel
+
+@onready var p1_container = $Content/P1_Container
+@onready var p2_container = $Content/P2_Container
+
+func _ready():
+	# 1. SETUP DATA
+	_setup_visuals()
+	
+	# 2. START ANIMATION
+	_play_intro_animation()
+	
+	# 3. TIMER TO START FIGHT
+	# Wait 3.5 seconds, then load the actual game
+	await get_tree().create_timer(3.5).timeout
+	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+
+func _setup_visuals():
+	# -- Background --
+	var env_name = GameManager.current_environment_name
+	if GameManager.environment_backgrounds.has(env_name):
+		background.texture = GameManager.environment_backgrounds[env_name]
+	arena_label.text = "- " + env_name.to_upper() + " -"
+
+	# -- Player 1 --
+	var p1 = GameManager.next_match_p1_data
+	if p1:
+		p1_portrait.texture = p1.portrait
+		p1_name.text = p1.character_name
+		p1_class.text = CharacterData.ClassType.keys()[p1.class_type]
+
+	# -- Player 2 --
+	var p2 = GameManager.next_match_p2_data
+	if p2:
+		p2_portrait.texture = p2.portrait
+		p2_portrait.flip_h = true # Face left
+		p2_name.text = p2.character_name
+		# Handle Bosses/Presets vs Randoms
+		if p2.character_name == "THE JUGGERNAUT": # Example detection
+			p2_class.text = "BOSS"
+			p2_class.modulate = Color.RED
+		else:
+			p2_class.text = CharacterData.ClassType.keys()[p2.class_type]
+
+func _play_intro_animation():
+	# hide VS label initially
+	vs_label.scale = Vector2.ZERO
+	
+	# Get screen width
+	var width = get_viewport_rect().size.x
+	
+	# Start positions (Off screen)
+	p1_container.position.x = -width / 2
+	p2_container.position.x = width / 2
+	
+	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	
+	# Slam players in
+	tween.tween_property(p1_container, "position:x", 0.0, 0.8)
+	tween.tween_property(p2_container, "position:x", 0.0, 0.8)
+	
+	# Pop the VS Label after 0.5s
+	tween.tween_property(vs_label, "scale", Vector2.ONE, 0.5).set_delay(0.6).set_trans(Tween.TRANS_ELASTIC)
+	
+	# Optional: Play a sound
+	# AudioManager.play_sfx("impact_heavy", 1.0)
