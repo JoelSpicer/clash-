@@ -2,17 +2,18 @@ extends Control
 
 @onready var name_label = $VBoxContainer/NameLabel
 
-# HP References
+# Bars
 @onready var hp_bar = $VBoxContainer/HPBarHolder/HPBar
 @onready var hp_ghost = $VBoxContainer/HPBarHolder/HPGhost
 @onready var hp_text = $VBoxContainer/HPBarHolder/HPBar/HPLabel
 
-# SP References (Updated Paths)
 @onready var sp_bar = $VBoxContainer/SPBarHolder/SPBar
-@onready var sp_ghost = $VBoxContainer/SPBarHolder/SPGhost # New
+@onready var sp_ghost = $VBoxContainer/SPBarHolder/SPGhost
 @onready var sp_text = $VBoxContainer/SPBarHolder/SPBar/SPLabel
 
-@onready var status_label = $VBoxContainer/StatusLabel
+# REPLACED: StatusLabel is gone, now we use the Container
+@onready var status_container = $VBoxContainer/StatusContainer 
+
 @onready var portrait = get_node_or_null("Portrait")
 
 var original_pos: Vector2 = Vector2.ZERO
@@ -51,9 +52,7 @@ func setup(character: CharacterData):
 		portrait.texture = character.portrait
 
 func configure_visuals(is_player_2: bool):
-	# ... (Paste your existing layout code here) ...
-	# Just ensuring the fill modes update correctly for the new ghosts
-	
+	# ... (Keep existing layout logic for bars/backgrounds) ...
 	scale = Vector2(1, 1)
 	var hud_width = 300 
 	var screen_margin = 20
@@ -65,7 +64,6 @@ func configure_visuals(is_player_2: bool):
 	var bg = get_node_or_null("Panel") 
 	if not bg: bg = get_node_or_null("Background")
 	
-	# Force Expand
 	if hp_bar: hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if hp_ghost: hp_ghost.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if sp_bar: sp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -81,9 +79,10 @@ func configure_visuals(is_player_2: bool):
 			bg.size = $VBoxContainer.size
 			bg.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		
-		# Set Fill Modes (Right to Left)
+		# ALIGN ICONS TO RIGHT
+		status_container.alignment = BoxContainer.ALIGNMENT_END
+		
 		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
 		if hp_ghost: hp_ghost.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
 		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
@@ -103,9 +102,10 @@ func configure_visuals(is_player_2: bool):
 			bg.size = $VBoxContainer.size
 			bg.grow_horizontal = Control.GROW_DIRECTION_END
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		
-		# Set Fill Modes (Left to Right)
+		# ALIGN ICONS TO LEFT
+		status_container.alignment = BoxContainer.ALIGNMENT_BEGIN
+		
 		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
 		if hp_ghost: hp_ghost.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
 		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
@@ -119,59 +119,81 @@ func configure_visuals(is_player_2: bool):
 	if portrait: original_pos = portrait.position
 
 func update_stats(character: CharacterData, opportunity: int, opening: int, bide_active: bool):
-	
 	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
 	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
 	
+	# Bar Animations
 	var tween = create_tween()
 	tween.set_parallel(true)
-	
-	# --- HP ANIMATION ---
 	tween.tween_property(hp_bar, "value", character.current_hp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
 	
 	if hp_ghost:
 		if character.current_hp < hp_ghost.value:
-			# Taken Damage: Delay then slide
 			var t = create_tween()
 			t.tween_interval(0.4)
 			t.tween_property(hp_ghost, "value", character.current_hp, 0.6).set_trans(Tween.TRANS_SINE)
 		else:
-			# Healed: Instant catch up
 			hp_ghost.value = character.current_hp
 
-	# --- SP ANIMATION ---
 	tween.tween_property(sp_bar, "value", character.current_sp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
 	
 	if sp_ghost:
 		if character.current_sp < sp_ghost.value:
-			# Spent SP: Delay then slide (Orange Ghost)
 			var t = create_tween()
 			t.tween_interval(0.4)
 			t.tween_property(sp_ghost, "value", character.current_sp, 0.6).set_trans(Tween.TRANS_SINE)
 		else:
-			# Recovered SP: Instant catch up
 			sp_ghost.value = character.current_sp
 
-	# ... (Rest of existing status text logic) ...
-	var status_txt = ""
-	for s_name in character.statuses:
-		status_txt += "[" + s_name.to_upper() + "] "
-	
-	if opportunity > 0: status_txt += "[OPPORTUNITY] "
-	if opening > 0: status_txt += "[OPENING: " + str(opening) + "]"
-	if bide_active: status_txt += "[BIDE (+1 DMG)]"
-	
-	status_label.text = status_txt
-	
-	if character.statuses.has("Injured"):
-		status_label.modulate = Color.ORANGE_RED
-	elif bide_active:
-		status_label.modulate = Color(0.3, 1.0, 1.0)
-	elif opportunity > 0:
-		status_label.modulate = Color.YELLOW
-	else:
-		status_label.modulate = Color.WHITE
+	# --- NEW STATUS ICON LOGIC ---
+	_update_status_icons(character, opportunity, opening, bide_active)
+
+func _update_status_icons(character, opportunity, opening, bide_active):
+	# 1. Clear old icons
+	for child in status_container.get_children():
+		child.queue_free()
 		
+	# 2. Add Mechanic Icons
+	if bide_active: 
+		_add_icon("Bide", "Bide: +1 Damage on next hit", Color(0.3, 1.0, 1.0))
+		
+	if opportunity > 0:
+		_add_icon("Opportunity", "Opportunity: Next attack costs " + str(opportunity) + " less SP", Color.YELLOW)
+		
+	if opening > 0:
+		_add_icon("Opening", "Opening Lvl " + str(opening), Color.ORANGE)
+
+	# 3. Add Status Effect Icons
+	for s_name in character.statuses:
+		# e.g., "Injured", "Poison", etc.
+		_add_icon(s_name, s_name, Color.WHITE)
+
+func _add_icon(icon_name: String, tooltip: String, tint: Color):
+	var icon = TextureRect.new()
+	
+	# Try to load the image dynamically
+	var path = "res://Art/Icons/icon_" + icon_name + ".png"
+	if ResourceLoader.exists(path):
+		icon.texture = load(path)
+	else:
+		# Fallback: Create a colored square if image is missing
+		var placeholder = GradientTexture2D.new()
+		placeholder.width = 24
+		placeholder.height = 24
+		placeholder.fill_from = Vector2(0,0)
+		placeholder.fill_to = Vector2(1,1) # Solid
+		icon.texture = placeholder
+		icon.modulate = tint # Tint the square
+	
+	# Settings
+	icon.custom_minimum_size = Vector2(24, 24) # Size of icons
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.tooltip_text = tooltip # Mouseover text
+	
+	status_container.add_child(icon)
+
+# ... (Keep play_attack_animation and play_hit_animation the same) ...
 func play_attack_animation(direction: Vector2):
 	if not portrait: return
 	var tween = create_tween()

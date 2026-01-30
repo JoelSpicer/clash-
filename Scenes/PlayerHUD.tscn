@@ -22,7 +22,7 @@ script = ExtResource("1_g363m")
 [node name="Background" type="Panel" parent="." unique_id=1901319598]
 layout_mode = 0
 offset_right = 340.0
-offset_bottom = 123.0
+offset_bottom = 134.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1045789710]
 layout_mode = 0
@@ -112,8 +112,10 @@ text = "3/3"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="StatusLabel" type="Label" parent="VBoxContainer" unique_id=1997395326]
+[node name="StatusContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=206694074]
 layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 5
 
 [node name="Portrait" type="TextureRect" parent="." unique_id=762868820]
 z_index = -100

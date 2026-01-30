@@ -1,5 +1,5 @@
 --- GODOT PROJECT SCENE DUMP ---
-Generated: 2026-01-30T22:36:01
+Generated: 2026-01-30T23:12:48
 
 ========================================
 FILE PATH: res://Scenes/ActionNode.tscn
@@ -2137,26 +2137,29 @@ text = "B"
 ========================================
 FILE PATH: res://Scenes/FloatingText.tscn
 ========================================
-[gd_scene load_steps=2 format=3 uid="uid://cqg64qk4ht5ov"]
+[gd_scene format=3 uid="uid://cqg64qk4ht5ov"]
 
 [ext_resource type="Script" uid="uid://c6b5rwcl2qw5" path="res://Scripts/FloatingText.gd" id="1_bmcqi"]
 
-[node name="FloatingText" type="Label"]
+[node name="Node2D" type="Node2D" unique_id=1585474632]
+script = ExtResource("1_bmcqi")
+
+[node name="Label" type="Label" parent="." unique_id=1253297354]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = -20.0
-offset_top = -22.5
+offset_top = -34.5
 offset_right = 20.0
-offset_bottom = 22.5
+offset_bottom = 34.5
 grow_horizontal = 2
 grow_vertical = 2
 size_flags_horizontal = 4
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
 theme_override_font_sizes/font_size = 50
-script = ExtResource("1_bmcqi")
 
 
 ========================================
@@ -2625,7 +2628,7 @@ script = ExtResource("1_g363m")
 [node name="Background" type="Panel" parent="." unique_id=1901319598]
 layout_mode = 0
 offset_right = 340.0
-offset_bottom = 123.0
+offset_bottom = 134.0
 
 [node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1045789710]
 layout_mode = 0
@@ -2715,8 +2718,10 @@ text = "3/3"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="StatusLabel" type="Label" parent="VBoxContainer" unique_id=1997395326]
+[node name="StatusContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=206694074]
 layout_mode = 2
+size_flags_vertical = 0
+theme_override_constants/separation = 5
 
 [node name="Portrait" type="TextureRect" parent="." unique_id=762868820]
 z_index = -100
