@@ -33,7 +33,7 @@ func _setup_visuals():
 	var env_name = GameManager.current_environment_name
 	if GameManager.environment_backgrounds.has(env_name):
 		background.texture = GameManager.environment_backgrounds[env_name]
-	arena_label.text = "- " + env_name.to_upper() + " -"
+	arena_label.text = "Stage:\n" + "- " + env_name.to_upper() + " -"
 
 	# -- Player 1 --
 	var p1 = GameManager.next_match_p1_data

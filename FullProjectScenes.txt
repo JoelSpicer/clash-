@@ -1,5 +1,5 @@
 --- GODOT PROJECT SCENE DUMP ---
-Generated: 2026-01-30T23:12:48
+Generated: 2026-01-30T23:30:50
 
 ========================================
 FILE PATH: res://Scenes/ActionNode.tscn
@@ -2609,6 +2609,17 @@ FILE PATH: res://Scenes/PlayerHUD.tscn
 [ext_resource type="Script" uid="uid://b3yr2lrurg3au" path="res://Scripts/PlayerHud.gd" id="1_g363m"]
 [ext_resource type="Texture2D" uid="uid://c618p3j6o5ylb" path="res://Art/Portraits/Heavy.png" id="2_yqw7w"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_yqw7w"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [sub_resource type="Gradient" id="Gradient_SolidWhite"]
 offsets = PackedFloat32Array(0)
 colors = PackedColorArray(1, 1, 1, 1)
@@ -2618,6 +2629,17 @@ gradient = SubResource("Gradient_SolidWhite")
 width = 1
 height = 1
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_khen0"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(1, 1, 1, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [node name="PlayerHUD" type="Control" unique_id=54336324]
 layout_mode = 3
 anchors_preset = 0
@@ -2625,27 +2647,34 @@ offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("1_g363m")
 
-[node name="Background" type="Panel" parent="." unique_id=1901319598]
-layout_mode = 0
-offset_right = 340.0
-offset_bottom = 134.0
-
-[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1045789710]
+[node name="Background" type="PanelContainer" parent="." unique_id=1901319598]
 layout_mode = 0
 offset_right = 300.0
 offset_bottom = 112.0
 
-[node name="NameLabel" type="Label" parent="VBoxContainer" unique_id=1062314951]
+[node name="MarginContainer" type="MarginContainer" parent="Background" unique_id=1840231734]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Background/MarginContainer" unique_id=1045789710]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Background/MarginContainer/VBoxContainer" unique_id=1062314951]
 layout_mode = 2
 text = "Player Name"
 horizontal_alignment = 1
 
-[node name="HPBarHolder" type="MarginContainer" parent="VBoxContainer" unique_id=1355766784]
+[node name="HPBarHolder" type="PanelContainer" parent="Background/MarginContainer/VBoxContainer" unique_id=543873048]
+clip_children = 1
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_yqw7w")
 
-[node name="HPGhost" type="TextureProgressBar" parent="VBoxContainer/HPBarHolder" unique_id=350887174]
+[node name="HPGhost" type="TextureProgressBar" parent="Background/MarginContainer/VBoxContainer/HPBarHolder" unique_id=350887174]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 size_flags_vertical = 2
@@ -2657,7 +2686,7 @@ texture_progress = SubResource("GradientTexture2D_White")
 tint_under = Color(0.133333, 0.133333, 0.133333, 1)
 tint_progress = Color(1, 0, 0, 1)
 
-[node name="HPBar" type="TextureProgressBar" parent="VBoxContainer/HPBarHolder" unique_id=1481187082]
+[node name="HPBar" type="TextureProgressBar" parent="Background/MarginContainer/VBoxContainer/HPBarHolder" unique_id=1481187082]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 size_flags_vertical = 2
@@ -2668,23 +2697,27 @@ texture_progress = SubResource("GradientTexture2D_White")
 tint_under = Color(1, 1, 1, 0)
 tint_progress = Color(0.25098, 0.823529, 0.360784, 1)
 
-[node name="HPLabel" type="Label" parent="VBoxContainer/HPBarHolder/HPBar" unique_id=1365590348]
+[node name="HPLabel" type="Label" parent="Background/MarginContainer/VBoxContainer/HPBarHolder/HPBar" unique_id=1365590348]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 2
 text = "10/10"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SPBarHolder" type="MarginContainer" parent="VBoxContainer" unique_id=266557436]
+[node name="SPBarHolder" type="PanelContainer" parent="Background/MarginContainer/VBoxContainer" unique_id=1894395991]
+clip_children = 1
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 size_flags_vertical = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_khen0")
 
-[node name="SPGhost" type="TextureProgressBar" parent="VBoxContainer/SPBarHolder" unique_id=1020641836]
+[node name="SPGhost" type="TextureProgressBar" parent="Background/MarginContainer/VBoxContainer/SPBarHolder" unique_id=856877104]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 size_flags_vertical = 2
@@ -2696,7 +2729,7 @@ texture_progress = SubResource("GradientTexture2D_White")
 tint_under = Color(0.133333, 0.133333, 0.133333, 1)
 tint_progress = Color(1, 0.5, 0, 1)
 
-[node name="SPBar" type="TextureProgressBar" parent="VBoxContainer/SPBarHolder" unique_id=2137503929]
+[node name="SPBar" type="TextureProgressBar" parent="Background/MarginContainer/VBoxContainer/SPBarHolder" unique_id=2137503929]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 size_flags_vertical = 2
@@ -2707,20 +2740,21 @@ texture_progress = SubResource("GradientTexture2D_White")
 tint_under = Color(1, 1, 1, 0)
 tint_progress = Color(0.231373, 0.639216, 0.92549, 1)
 
-[node name="SPLabel" type="Label" parent="VBoxContainer/SPBarHolder/SPBar" unique_id=1526591500]
+[node name="SPLabel" type="Label" parent="Background/MarginContainer/VBoxContainer/SPBarHolder/SPBar" unique_id=1526591500]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 2
 text = "3/3"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="StatusContainer" type="HBoxContainer" parent="VBoxContainer" unique_id=206694074]
+[node name="StatusContainer" type="HBoxContainer" parent="Background/MarginContainer/VBoxContainer" unique_id=1583587106]
 layout_mode = 2
-size_flags_vertical = 0
 theme_override_constants/separation = 5
 
 [node name="Portrait" type="TextureRect" parent="." unique_id=762868820]

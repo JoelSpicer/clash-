@@ -1,27 +1,31 @@
-[gd_scene load_steps=2 format=3 uid="uid://pn3d56xopa7y"]
+[gd_scene format=3 uid="uid://pn3d56xopa7y"]
 
 [ext_resource type="Script" uid="uid://5nso7yfr4m14" path="res://Scripts/CardButton.gd" id="1_ab6ye"]
 
-[node name="CardButton" type="Button"]
+[node name="CardButton" type="Button" unique_id=325152128]
 custom_minimum_size = Vector2(200, 40)
 offset_right = 8.0
 offset_bottom = 8.0
 toggle_mode = true
 script = ExtResource("1_ab6ye")
 
-[node name="CostLabel" type="Label" parent="."]
+[node name="CostLabel" type="Label" parent="." unique_id=1998346681]
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 1.0
 anchor_top = 0.5
 anchor_right = 1.0
 anchor_bottom = 0.5
-offset_left = -40.0
+offset_left = -37.0
 offset_top = -11.5
-offset_right = -5.0
+offset_right = -2.0
 offset_bottom = 11.5
 grow_horizontal = 0
 grow_vertical = 2
+theme_override_font_sizes/font_size = 13
+text = "1SP"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [connection signal="mouse_entered" from="." to="." method="_on_mouse_entered"]
 [connection signal="mouse_exited" from="." to="." method="_on_mouse_exited"]
