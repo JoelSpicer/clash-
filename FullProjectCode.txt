@@ -1970,15 +1970,24 @@ extends Button
 
 # Signals for UI Interaction
 signal card_hovered(action)
-signal card_exited() # <--- NEW SIGNAL
+signal card_exited()
 signal card_selected(action)
 
 var my_action: ActionData
+var original_z_index: int = 0
+
+func _ready():
+	# CRITICAL: Set pivot to center so it scales symmetrically
+	pivot_offset = size / 2
+	original_z_index = z_index
 
 func setup(action: ActionData):
 	my_action = action
 	text = action.display_name 
-	$CostLabel.text = str(action.cost) + " SP"
+	
+	# Ensure the label exists before trying to access it
+	if has_node("CostLabel"):
+		$CostLabel.text = str(action.cost) + " SP"
 	
 	# Visual Theme
 	if action.type == ActionData.Type.OFFENCE:
@@ -1999,17 +2008,51 @@ func set_available(is_affordable: bool):
 
 func _pressed():
 	if not disabled:
+		# Small "press" squash animation
+		var tween = create_tween()
+		tween.tween_property(self, "scale", Vector2(0.95, 0.95), 0.05)
+		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.05)
+		
 		emit_signal("card_selected", my_action)
 
 func _on_mouse_entered():
+	if disabled: return
+	
 	emit_signal("card_hovered", my_action)
+	
+	# 1. Bring to front so it overlaps neighbors
+	z_index = 10 
+	
+	# 2. Pop Animation (Scale Up + Slight Tilt)
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	
+	# Scale up to 110%
+	tween.tween_property(self, "scale", Vector2(1.1, 1.1), 0.15)
+	
+	# Random slight tilt (-2 to 2 degrees) for organic feel
+	var random_tilt = randf_range(-2.0, 2.0)
+	tween.tween_property(self, "rotation_degrees", random_tilt, 0.15)
 
-# NEW: Handle mouse exit
 func _on_mouse_exited():
 	emit_signal("card_exited")
+	
+	# 1. Reset Layer
+	z_index = original_z_index
+	
+	# 2. Reset Animation
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.1)
+	tween.tween_property(self, "rotation_degrees", 0.0, 0.1)
 
-# Dynamically updates cost text (e.g. for Opportunity discounts)
+# Dynamically updates cost text
 func update_cost_display(new_cost: int):
+	if not has_node("CostLabel"): return
+	
 	$CostLabel.text = str(new_cost) + " SP"
 	
 	if new_cost < my_action.cost:
@@ -2172,7 +2215,7 @@ func _change_slide(direction: int):
 	AudioManager.play_sfx("ui_hover", 0.5) # Whoosh sound
 	
 	# 1. Calculate new index (Looping)
-	var old_index = current_index
+	var _old_index = current_index
 	current_index += direction
 	
 	if current_index >= slides.size(): current_index = 0
@@ -3503,31 +3546,44 @@ func _on_option_selected(choice: int):
 ========================================
 FILE PATH: res://Scripts/FloatingText.gd
 ========================================
-extends Label
+extends Node2D
+
+@onready var label = $Label
+
+func _ready():
+	# Ensure it sits on top of other UI elements
+	z_index = 20
 
 func setup(text_value: String, color: Color, start_pos: Vector2):
-	text = text_value
-	modulate = color
+	# 1. Setup Initial State
 	position = start_pos
 	
-	# Reset pivot for scaling
-	pivot_offset = size / 2
+	if label:
+		label.text = text_value
+		label.modulate = color
 	
-	# Animation Sequence
+	# 2. Randomize Movement (The "Drift")
+	var drift_x = randf_range(-60, 60)
+	var float_height = -100 # How high it goes
+	var duration = 1.0
+	
+	# 3. Create Animation Tween
 	var tween = create_tween()
-	tween.set_parallel(true)
+	tween.set_parallel(true) # Run all tweens at once
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	
-	# 1. Float Up
-	tween.tween_property(self, "position:y", start_pos.y - 80, 1.0).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	# MOVEMENT: Drift sideways and float up
+	tween.tween_property(self, "position", start_pos + Vector2(drift_x, float_height), duration)
 	
-	# 2. Fade Out
-	tween.tween_property(self, "modulate:a", 0.0, 1.0).set_ease(Tween.EASE_IN)
+	# SCALE: Pop in (Start big, shrink to normal)
+	scale = Vector2(1.5, 1.5)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.3).set_trans(Tween.TRANS_BACK)
 	
-	# 3. Scale Punch (Optional "Juice")
-	scale = Vector2(0.5, 0.5)
-	tween.tween_property(self, "scale", Vector2(1.5, 1.5), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# FADE: Disappear at the end
+	# Wait 0.5s, then fade out over the remaining 0.5s
+	tween.tween_property(self, "modulate:a", 0.0, 0.5).set_delay(0.5)
 	
-	# Cleanup
+	# 4. Cleanup
 	await tween.finished
 	queue_free()
 
@@ -6591,6 +6647,81 @@ func _scan_directory(path: String) -> String:
 			
 			file_name = dir.get_next()
 	return output
+
+
+========================================
+FILE PATH: res://Scripts/Tools/SceneDumper.gd
+========================================
+@tool
+extends EditorScript
+
+# Folders to ignore to keep the dump clean
+const IGNORE_DIRS = [".", "..", ".godot", "addons", "android", "ios", ".import"]
+
+# The output file name
+const OUTPUT_FILE = "res://FullProjectScenes.txt"
+
+func _run():
+	print("--- STARTING SCENE DUMP ---")
+	
+	var all_text = "--- GODOT PROJECT SCENE DUMP ---\n"
+	all_text += "Generated: " + Time.get_datetime_string_from_system() + "\n\n"
+	
+	all_text += _scan_directory("res://")
+	
+	var file = FileAccess.open(OUTPUT_FILE, FileAccess.WRITE)
+	if file:
+		file.store_string(all_text)
+		file.close()
+		print("SUCCESS! Scene data dumped to: " + OUTPUT_FILE)
+		print("You can now upload 'FullProjectScenes.txt'.")
+		
+		# Refresh the FileSystem so the new file appears immediately
+		EditorInterface.get_resource_filesystem().scan()
+	else:
+		printerr("Failed to write output file.")
+
+func _scan_directory(path: String) -> String:
+	var output = ""
+	var dir = DirAccess.open(path)
+	
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		
+		while file_name != "":
+			if dir.current_is_dir():
+				if not file_name in IGNORE_DIRS:
+					output += _scan_directory(path + file_name + "/")
+			else:
+				# We look specifically for Text Scenes (.tscn)
+				# We ignore .scn because those are binary and unreadable
+				if file_name.ends_with(".tscn"):
+					output += _read_file_content(path + file_name)
+					
+			file_name = dir.get_next()
+	else:
+		printerr("Failed to open directory: " + path)
+		
+	return output
+
+func _read_file_content(file_path: String) -> String:
+	var content = ""
+	
+	# Header for readability
+	content += "========================================\n"
+	content += "FILE PATH: " + file_path + "\n"
+	content += "========================================\n"
+	
+	var file = FileAccess.open(file_path, FileAccess.READ)
+	if file:
+		content += file.get_as_text()
+		file.close()
+	else:
+		content += "[ERROR READING FILE]\n"
+		
+	content += "\n\n"
+	return content
 
 
 ========================================

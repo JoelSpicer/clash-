@@ -1,27 +1,40 @@
-extends Label
+extends Node2D
+
+@onready var label = $Label
+
+func _ready():
+	# Ensure it sits on top of other UI elements
+	z_index = 20
 
 func setup(text_value: String, color: Color, start_pos: Vector2):
-	text = text_value
-	modulate = color
+	# 1. Setup Initial State
 	position = start_pos
 	
-	# Reset pivot for scaling
-	pivot_offset = size / 2
+	if label:
+		label.text = text_value
+		label.modulate = color
 	
-	# Animation Sequence
+	# 2. Randomize Movement (The "Drift")
+	var drift_x = randf_range(-60, 60)
+	var float_height = -100 # How high it goes
+	var duration = 1.0
+	
+	# 3. Create Animation Tween
 	var tween = create_tween()
-	tween.set_parallel(true)
+	tween.set_parallel(true) # Run all tweens at once
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	
-	# 1. Float Up
-	tween.tween_property(self, "position:y", start_pos.y - 80, 1.0).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	# MOVEMENT: Drift sideways and float up
+	tween.tween_property(self, "position", start_pos + Vector2(drift_x, float_height), duration)
 	
-	# 2. Fade Out
-	tween.tween_property(self, "modulate:a", 0.0, 1.0).set_ease(Tween.EASE_IN)
+	# SCALE: Pop in (Start big, shrink to normal)
+	scale = Vector2(1.5, 1.5)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.3).set_trans(Tween.TRANS_BACK)
 	
-	# 3. Scale Punch (Optional "Juice")
-	scale = Vector2(0.5, 0.5)
-	tween.tween_property(self, "scale", Vector2(1.5, 1.5), 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	# FADE: Disappear at the end
+	# Wait 0.5s, then fade out over the remaining 0.5s
+	tween.tween_property(self, "modulate:a", 0.0, 0.5).set_delay(0.5)
 	
-	# Cleanup
+	# 4. Cleanup
 	await tween.finished
 	queue_free()
