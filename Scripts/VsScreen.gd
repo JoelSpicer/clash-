@@ -14,6 +14,9 @@ extends Control
 @onready var vs_label = $Content/VsLabel
 @onready var arena_label = $ArenaLabel
 
+@onready var p1_bubble = $Content/P1_Container/PanelContainer/SpeechBubble # Adjust path if needed
+@onready var p2_bubble = $Content/P2_Container/PanelContainer/SpeechBubble
+
 func _ready():
 	_setup_visuals()
 	
@@ -22,7 +25,7 @@ func _ready():
 	_play_intro_animation()
 	
 	# Wait 3.5 seconds, then load the fight
-	await get_tree().create_timer(3.5).timeout
+	await get_tree().create_timer(5.0).timeout
 	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 func _setup_visuals():
@@ -79,3 +82,24 @@ func _play_intro_animation():
 	
 	# Pop the VS Label
 	tween.tween_property(vs_label, "scale", Vector2.ONE, 0.5).set_delay(0.6).set_trans(Tween.TRANS_ELASTIC)
+	
+	# --- NEW: TRIGGER DIALOGUE ---
+	var p1_type = GameManager.next_match_p1_data.class_type
+	var p2_type = GameManager.next_match_p2_data.class_type
+	
+	var banter = DialogueManager.get_intro_banter(p1_type, p2_type)
+	
+	# Set text
+	p1_bubble.text = banter["p1"] # Assuming Bubble is a Panel with a Label child
+	p2_bubble.text = banter["p2"]
+	
+	# Sequence: 
+	# 1. Slide In (0.8s) -> 2. Show P1 Text (1.5s) -> 3. Show P2 Text (1.5s) -> 4. Fight
+	
+	await get_tree().create_timer(1.0).timeout
+	p1_bubble.visible = true
+	AudioManager.play_sfx("ui_hover") # Or a "speech" sound
+	
+	await get_tree().create_timer(1.5).timeout
+	p2_bubble.visible = true
+	AudioManager.play_sfx("ui_hover")

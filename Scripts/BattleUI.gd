@@ -35,6 +35,9 @@ signal p2_mode_toggled(is_human)
 @onready var inspect_popup = $InspectPopup
 @onready var inspect_grid = $InspectPopup/ScrollContainer/InspectGrid
 
+@onready var p1_bark_label = $P1_Bark # Adjust path
+@onready var p2_bark_label = $P2_Bark
+
 var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
 
 # --- DATA ---
@@ -558,6 +561,16 @@ func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
 		if target_id == 1: p1_hud.play_hit_animation()
 		else: p2_hud.play_hit_animation()
 	
+	# React to heavy hits (>3 damage)
+	if amount >= 3:
+		var victim = GameManager.p1_data if target_id == 1 else GameManager.p2_data
+		var line = DialogueManager.get_reaction(victim.class_type, "HURT_HEAVY")
+		# High priority: Show this even if we barked recently
+		_show_bark(target_id, line)
+		
+	# React to Death?
+	# (Already covered by Low HP lines potentially, or add a specific check here)
+	
 	# --- NEW: CHECK FOR FINISHER ---
 	# We check if the victim is dead, and trigger the cinematic
 	var victim_data = GameManager.p1_data if target_id == 1 else GameManager.p2_data
@@ -594,7 +607,19 @@ func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
 		p2_hud.play_attack_animation(Vector2(-50, 0))
 		
 	AudioManager.play_sfx("clash", 0.1)
-
+	
+	# 25% chance to bark on win (don't spam every turn)
+	if randf() < 0.25:
+		var winner_data = GameManager.p1_data if winner_id == 1 else GameManager.p2_data
+		var winner_card = p1_card if winner_id == 1 else p2_card
+		
+		var context = "WIN_OFFENCE"
+		if winner_card.type == ActionData.Type.DEFENCE:
+			context = "WIN_DEFENCE"
+			
+		var line = DialogueManager.get_reaction(winner_data.class_type, context)
+		_show_bark(winner_id, line)
+	
 func _on_log_toggled(toggled_on: bool):
 	combat_log.visible = toggled_on
 
@@ -776,3 +801,20 @@ func _update_background():
 		background.texture = GameManager.environment_backgrounds[env_name]
 	else:
 		print("Warning: No art found for '" + env_name + "'. Using default.")
+
+func _show_bark(player_id: int, text: String):
+	var lbl = p1_bark_label if player_id == 1 else p2_bark_label
+	lbl.text = text
+	
+	# Simple Pop-in Animation
+	lbl.modulate.a = 0
+	lbl.scale = Vector2(0.5, 0.5)
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(lbl, "modulate:a", 1.0, 0.2)
+	tween.tween_property(lbl, "scale", Vector2(1.2, 1.2), 0.2).set_trans(Tween.TRANS_BACK)
+	
+	# Wait, then fade out
+	tween.chain().tween_interval(1.5)
+	tween.chain().tween_property(lbl, "modulate:a", 0.0, 0.3)

@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://bxymoimlkb0g2"]
+[gd_scene format=3 uid="uid://bxymoimlkb0g2"]
 
 [ext_resource type="Script" uid="uid://b5sk5jjigxxdu" path="res://Scripts/CarouselHub.gd" id="1_ocdqy"]
 
-[node name="CarouselHub" type="Control"]
+[node name="CarouselHub" type="Control" unique_id=1967209312]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +12,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1_ocdqy")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=1707841584]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -22,7 +22,7 @@ grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
 
-[node name="BackgroundFader" type="TextureRect" parent="."]
+[node name="BackgroundFader" type="TextureRect" parent="." unique_id=1593912713]
 modulate = Color(1, 1, 1, 0)
 layout_mode = 1
 anchors_preset = 15
@@ -33,7 +33,7 @@ grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
 
-[node name="DimmerLayer" type="ColorRect" parent="."]
+[node name="DimmerLayer" type="ColorRect" parent="." unique_id=880599731]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -41,9 +41,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0, 0, 0, 0.49803922)
+color = Color(0, 0, 0, 0.68235296)
 
-[node name="ContentContainer" type="Control" parent="."]
+[node name="ContentContainer" type="Control" parent="." unique_id=1527734958]
 clip_contents = true
 layout_mode = 1
 anchors_preset = 15
@@ -53,7 +53,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="UI_Layer" type="Control" parent="."]
+[node name="UI_Layer" type="Control" parent="." unique_id=105395051]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -62,7 +62,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="TitleLabel" type="Label" parent="UI_Layer"]
+[node name="TitleLabel" type="Label" parent="UI_Layer" unique_id=321756827]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -75,7 +75,7 @@ theme_override_constants/outline_size = 15
 theme_override_font_sizes/font_size = 40
 text = "THE CIRCUIT"
 
-[node name="LeftArrow" type="Button" parent="UI_Layer"]
+[node name="LeftArrow" type="Button" parent="UI_Layer" unique_id=832121798]
 layout_mode = 1
 anchors_preset = 4
 anchor_top = 0.5
@@ -87,7 +87,7 @@ offset_bottom = 15.5
 grow_vertical = 2
 text = "<<<"
 
-[node name="RightArrow" type="Button" parent="UI_Layer"]
+[node name="RightArrow" type="Button" parent="UI_Layer" unique_id=569323903]
 layout_mode = 1
 anchors_preset = 6
 anchor_left = 1.0
@@ -102,7 +102,7 @@ grow_horizontal = 0
 grow_vertical = 2
 text = ">>>"
 
-[node name="BackButton" type="Button" parent="UI_Layer"]
+[node name="BackButton" type="Button" parent="UI_Layer" unique_id=1724607185]
 layout_mode = 0
 offset_left = 11.0
 offset_top = 9.0
