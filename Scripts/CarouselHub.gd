@@ -55,7 +55,7 @@ func _change_slide(direction: int):
 	AudioManager.play_sfx("ui_hover", 0.5) # Whoosh sound
 	
 	# 1. Calculate new index (Looping)
-	var old_index = current_index
+	var _old_index = current_index
 	current_index += direction
 	
 	if current_index >= slides.size(): current_index = 0

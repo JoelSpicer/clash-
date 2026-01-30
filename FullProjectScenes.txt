@@ -1,0 +1,3045 @@
+--- GODOT PROJECT SCENE DUMP ---
+Generated: 2026-01-30T22:36:01
+
+========================================
+FILE PATH: res://Scenes/ActionNode.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://b8dgolgg1e7du"]
+
+[ext_resource type="Script" uid="uid://cvvntr40ye1d4" path="res://Scripts/ActionNode.gd" id="1_lyua5"]
+
+[node name="TextureButton" type="TextureButton"]
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_lyua5")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="Panel" type="Panel" parent="Label"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+
+========================================
+FILE PATH: res://Scenes/ActionTree.tscn
+========================================
+[gd_scene load_steps=5 format=3 uid="uid://c1i7rtedy5fyo"]
+
+[ext_resource type="Script" uid="uid://c7rt66m06w7vj" path="res://Scripts/ActionTree.gd" id="1_06akd"]
+[ext_resource type="Script" uid="uid://6te3b1tnse4e" path="res://Scripts/LinesLayer.gd" id="2_7wvbo"]
+[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scripts/RunStatusOverlay.tscn" id="4_kvaft"]
+[ext_resource type="Script" uid="uid://cvvntr40ye1d4" path="res://Scripts/ActionNode.gd" id="4_r8c0s"]
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_06akd")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.39308554, 0.3930855, 0.39308548, 1)
+
+[node name="TreeContainer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 768.0
+offset_bottom = 432.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(0.6, 0.6)
+
+[node name="LinesLayer" type="Control" parent="TreeContainer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_7wvbo")
+
+[node name="NodesLayer" type="Control" parent="TreeContainer"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="1" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 673.6664
+offset_top = 110.66667
+offset_right = 737.6664
+offset_bottom = 150.66669
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="2" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 929.6665
+offset_top = 239.33337
+offset_right = 993.6665
+offset_bottom = 279.33337
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="3" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1185.6666
+offset_top = 110.66667
+offset_right = 1249.6666
+offset_bottom = 150.66669
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="4" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 545.6666
+offset_top = 126.66667
+offset_right = 609.6666
+offset_bottom = 166.66667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="5" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 767.66675
+offset_top = 142.66663
+offset_right = 831.66675
+offset_bottom = 182.66663
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="6" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 865.6669
+offset_top = 170.66672
+offset_right = 929.6669
+offset_bottom = 210.66672
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="7" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 993.6666
+offset_top = 170.66672
+offset_right = 1057.6667
+offset_bottom = 210.66672
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="8" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1091.6664
+offset_top = 142.66663
+offset_right = 1155.6664
+offset_bottom = 182.66663
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="9" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1313.6666
+offset_top = 126.66667
+offset_right = 1377.6666
+offset_bottom = 166.66667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="10" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 417.66675
+offset_top = 214.66663
+offset_right = 481.66675
+offset_bottom = 254.66663
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="11" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 561.6669
+offset_top = 214.66663
+offset_right = 625.6669
+offset_bottom = 254.66663
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="12" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 681.6664
+offset_top = 198.66666
+offset_right = 745.6664
+offset_bottom = 238.66666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="13" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 849.6664
+offset_top = 238.66663
+offset_right = 913.6664
+offset_bottom = 278.66663
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="14" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1009.6664
+offset_top = 238.66663
+offset_right = 1073.6665
+offset_bottom = 278.66663
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="15" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1177.6664
+offset_top = 198.66666
+offset_right = 1241.6664
+offset_bottom = 238.66666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="16" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1297.6667
+offset_top = 214.66663
+offset_right = 1361.6667
+offset_bottom = 254.66663
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="17" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1441.667
+offset_top = 214.66663
+offset_right = 1505.667
+offset_bottom = 254.66663
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="18" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 321.66666
+offset_top = 302.6666
+offset_right = 385.66666
+offset_bottom = 342.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="19" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 545.6666
+offset_top = 310.6666
+offset_right = 609.6666
+offset_bottom = 350.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="20" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 697.6666
+offset_top = 286.6666
+offset_right = 761.6666
+offset_bottom = 326.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="21" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 929.6665
+offset_top = 318.66666
+offset_right = 993.6665
+offset_bottom = 358.66666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="22" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1161.6666
+offset_top = 286.6666
+offset_right = 1225.6666
+offset_bottom = 326.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="23" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1313.6666
+offset_top = 310.6666
+offset_right = 1377.6666
+offset_bottom = 350.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="24" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1537.6667
+offset_top = 302.6666
+offset_right = 1601.6667
+offset_bottom = 342.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="25" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 449.66663
+offset_top = 367.6667
+offset_right = 513.6666
+offset_bottom = 407.6667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="26" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1409.6666
+offset_top = 366.6666
+offset_right = 1473.6666
+offset_bottom = 406.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="27" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 449.66663
+offset_top = 438.6667
+offset_right = 513.6666
+offset_bottom = 478.6667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="28" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 609.6666
+offset_top = 422.6666
+offset_right = 673.6666
+offset_bottom = 462.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="29" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 793.6666
+offset_top = 382.6667
+offset_right = 857.6666
+offset_bottom = 422.6667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="30" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 929.6665
+offset_top = 406.66675
+offset_right = 993.6665
+offset_bottom = 446.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="31" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1065.6665
+offset_top = 382.6667
+offset_right = 1129.6665
+offset_bottom = 422.6667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="32" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1249.6666
+offset_top = 422.6666
+offset_right = 1313.6666
+offset_bottom = 462.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="33" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1409.6666
+offset_top = 438.6667
+offset_right = 1473.6666
+offset_bottom = 478.6667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="34" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 418.0
+offset_top = 518.6666
+offset_right = 482.0
+offset_bottom = 558.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="35" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 681.6664
+offset_top = 518.6666
+offset_right = 745.6664
+offset_bottom = 558.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="36" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 833.6664
+offset_top = 518.6666
+offset_right = 897.6664
+offset_bottom = 558.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="37" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1025.6665
+offset_top = 518.6666
+offset_right = 1089.6665
+offset_bottom = 558.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="38" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1177.6664
+offset_top = 518.6666
+offset_right = 1241.6664
+offset_bottom = 558.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="39" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1438.9998
+offset_top = 518.6666
+offset_right = 1502.9998
+offset_bottom = 558.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="40" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 449.66663
+offset_top = 606.6665
+offset_right = 513.6666
+offset_bottom = 646.6665
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="41" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 609.6666
+offset_top = 622.6666
+offset_right = 673.6666
+offset_bottom = 662.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="42" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 793.6666
+offset_top = 662.66656
+offset_right = 857.6666
+offset_bottom = 702.66656
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="43" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 929.6665
+offset_top = 638.66675
+offset_right = 993.6665
+offset_bottom = 678.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="44" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1065.6665
+offset_top = 662.66656
+offset_right = 1129.6665
+offset_bottom = 702.66656
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="45" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1249.6666
+offset_top = 622.6666
+offset_right = 1313.6666
+offset_bottom = 662.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="46" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1409.6666
+offset_top = 606.6665
+offset_right = 1473.6666
+offset_bottom = 646.6665
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="47" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 449.66663
+offset_top = 678.66675
+offset_right = 513.6666
+offset_bottom = 718.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="48" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1409.6666
+offset_top = 678.66675
+offset_right = 1473.6666
+offset_bottom = 718.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="49" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 321.66666
+offset_top = 742.6667
+offset_right = 385.66666
+offset_bottom = 782.6667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="50" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 545.6666
+offset_top = 734.6666
+offset_right = 609.6666
+offset_bottom = 774.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="51" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 697.6666
+offset_top = 758.66675
+offset_right = 761.6666
+offset_bottom = 798.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="52" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 929.6665
+offset_top = 726.66675
+offset_right = 993.6665
+offset_bottom = 766.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="53" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1161.6666
+offset_top = 758.66675
+offset_right = 1225.6666
+offset_bottom = 798.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="54" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1313.6666
+offset_top = 734.6666
+offset_right = 1377.6666
+offset_bottom = 774.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="55" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1537.6667
+offset_top = 742.6667
+offset_right = 1601.6667
+offset_bottom = 782.6667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="56" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 417.66675
+offset_top = 830.66656
+offset_right = 481.66675
+offset_bottom = 870.66656
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="57" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 561.6669
+offset_top = 830.66656
+offset_right = 625.6669
+offset_bottom = 870.66656
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="58" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 681.6664
+offset_top = 846.66675
+offset_right = 745.6664
+offset_bottom = 886.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="59" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 849.6664
+offset_top = 814.6666
+offset_right = 913.6664
+offset_bottom = 854.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="60" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1009.6664
+offset_top = 814.6666
+offset_right = 1073.6665
+offset_bottom = 854.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="61" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1177.6664
+offset_top = 846.66675
+offset_right = 1241.6664
+offset_bottom = 886.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="62" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1297.6667
+offset_top = 830.66656
+offset_right = 1361.6667
+offset_bottom = 870.66656
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="63" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1441.667
+offset_top = 830.66656
+offset_right = 1505.667
+offset_bottom = 870.66656
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="64" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 545.6666
+offset_top = 918.6667
+offset_right = 609.6666
+offset_bottom = 958.6667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="65" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 768.6665
+offset_top = 902.6666
+offset_right = 832.6665
+offset_bottom = 942.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="66" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 865.6669
+offset_top = 882.6668
+offset_right = 929.6669
+offset_bottom = 922.6668
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="67" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 993.6666
+offset_top = 882.6668
+offset_right = 1057.6667
+offset_bottom = 922.6668
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="68" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1091.6664
+offset_top = 902.6666
+offset_right = 1155.6664
+offset_bottom = 942.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="69" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1313.6666
+offset_top = 918.6667
+offset_right = 1377.6666
+offset_bottom = 958.6667
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="70" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 673.6664
+offset_top = 934.6665
+offset_right = 737.6664
+offset_bottom = 974.6665
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="71" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 929.6665
+offset_top = 812.66675
+offset_right = 993.6665
+offset_bottom = 852.66675
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="72" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1185.6666
+offset_top = 934.6665
+offset_right = 1249.6666
+offset_bottom = 974.6665
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="73" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 917.6664
+offset_top = 90.999954
+offset_right = 981.6664
+offset_bottom = 130.99995
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="74" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 269.99985
+offset_top = 508.66663
+offset_right = 333.99985
+offset_bottom = 548.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="75" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 1587.3335
+offset_top = 508.66663
+offset_right = 1651.3335
+offset_bottom = 548.6666
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="76" type="TextureButton" parent="TreeContainer/NodesLayer"]
+z_index = 1
+custom_minimum_size = Vector2(64, 40)
+layout_mode = 0
+offset_left = 917.6664
+offset_top = 969.0
+offset_right = 981.6664
+offset_bottom = 1009.00006
+toggle_mode = true
+ignore_texture_size = true
+stretch_mode = 0
+script = ExtResource("4_r8c0s")
+
+[node name="ConfirmButton" type="Button" parent="TreeContainer"]
+layout_mode = 0
+offset_left = 93.33333
+offset_top = 168.33333
+offset_right = 164.33333
+offset_bottom = 199.33333
+text = "Confirm"
+
+[node name="ResetButton" type="Button" parent="TreeContainer"]
+layout_mode = 0
+offset_left = 91.666664
+offset_top = 216.66666
+offset_right = 162.66666
+offset_bottom = 247.66666
+text = "Reset Skills"
+
+[node name="BackButton" type="Button" parent="TreeContainer"]
+layout_mode = 0
+offset_left = 31.666666
+offset_top = 35.0
+offset_right = 145.66667
+offset_bottom = 66.0
+text = "Back to Menu"
+
+[node name="RunStatusOverlay" parent="." instance=ExtResource("4_kvaft")]
+
+[connection signal="pressed" from="TreeContainer/ConfirmButton" to="." method="_on_confirm_button_pressed"]
+[connection signal="pressed" from="TreeContainer/ResetButton" to="." method="_on_reset_button_pressed"]
+
+
+========================================
+FILE PATH: res://Scenes/BalanceTester.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://dlyfkw6mqxsfk"]
+
+[ext_resource type="Script" uid="uid://dd8tt1dl70nfl" path="res://Scripts/BalanceTester.gd" id="1_5ka02"]
+
+[node name="BalanceTester" type="Node"]
+script = ExtResource("1_5ka02")
+
+
+========================================
+FILE PATH: res://Scenes/BattleUI.tscn
+========================================
+[gd_scene format=3 uid="uid://dhwx6yjjskbn7"]
+
+[ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scripts/BattleUI.gd" id="1_d8qwt"]
+[ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
+[ext_resource type="Texture2D" uid="uid://d0oodbqfjx62d" path="res://Art/background/1.png" id="2_sbkf8"]
+[ext_resource type="PackedScene" uid="uid://yeraw55rlx1q" path="res://Scenes/PlayerHUD.tscn" id="3_vxmu1"]
+[ext_resource type="PackedScene" uid="uid://bu7kfrk2ayfm6" path="res://Scenes/CombatLog.tscn" id="4_f6fb8"]
+
+[node name="BattleUI" type="CanvasLayer" unique_id=356558085]
+script = ExtResource("1_d8qwt")
+
+[node name="Background" type="TextureRect" parent="." unique_id=241149758]
+show_behind_parent = true
+z_index = -200
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_sbkf8")
+expand_mode = 1
+
+[node name="ClashLayer" type="Control" parent="." unique_id=1577141681]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ClashIcon" type="Label" parent="ClashLayer" unique_id=1589396229]
+layout_mode = 0
+offset_left = 554.0
+offset_top = 286.0
+offset_right = 594.0
+offset_bottom = 309.0
+text = "VS"
+
+[node name="LeftCard" parent="ClashLayer" unique_id=1871729934 instance=ExtResource("1_gl3jw")]
+z_index = 300
+layout_mode = 1
+
+[node name="RightCard" parent="ClashLayer" unique_id=723946398 instance=ExtResource("1_gl3jw")]
+z_index = 300
+layout_mode = 1
+
+[node name="MainLayout" type="Control" parent="." unique_id=462573134]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 15.0
+offset_right = 8.0
+offset_bottom = 15.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PreviewAnchor" type="Control" parent="MainLayout" unique_id=399922894]
+anchors_preset = 0
+offset_left = 509.0
+offset_top = 219.0
+offset_right = 549.0
+offset_bottom = 259.0
+
+[node name="PreviewCard" parent="MainLayout/PreviewAnchor" unique_id=408799389 instance=ExtResource("1_gl3jw")]
+unique_name_in_owner = true
+z_index = 1
+layout_mode = 1
+offset_left = 349.0
+offset_top = -70.0
+offset_right = 559.0
+offset_bottom = 240.0
+
+[node name="ToolTipLabel" type="RichTextLabel" parent="MainLayout/PreviewAnchor" unique_id=1974356343]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 0
+offset_right = 300.0
+offset_bottom = 40.0
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/normal_font_size = 12
+theme_override_font_sizes/bold_font_size = 12
+bbcode_enabled = true
+fit_content = true
+
+[node name="BottomBar" type="Panel" parent="MainLayout" unique_id=2064661816]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -165.0
+offset_right = -8.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ContentSplit" type="HBoxContainer" parent="MainLayout/BottomBar" unique_id=214545184]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TabButtons" type="VBoxContainer" parent="MainLayout/BottomBar/ContentSplit" unique_id=129264920]
+layout_mode = 2
+
+[node name="Offence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons" unique_id=1252430173]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Offence"
+
+[node name="Defence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons" unique_id=2021467659]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Defence"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainLayout/BottomBar/ContentSplit" unique_id=668411547]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonGrid" type="GridContainer" parent="MainLayout/BottomBar/ContentSplit/ScrollContainer" unique_id=69683943]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 3
+
+[node name="MomentumSlider" type="HSlider" parent="." unique_id=1893970328]
+offset_left = 414.0
+offset_top = 9.0
+offset_right = 663.0
+offset_bottom = 25.0
+max_value = 8.0
+editable = false
+
+[node name="Label" type="Label" parent="MomentumSlider" unique_id=709846243]
+layout_mode = 0
+offset_left = 92.0
+offset_top = 20.0
+offset_right = 132.0
+offset_bottom = 43.0
+
+[node name="Label2" type="Label" parent="MomentumSlider" unique_id=924501552]
+layout_mode = 0
+offset_left = 89.0
+offset_top = 37.0
+offset_right = 129.0
+offset_bottom = 60.0
+text = "TEST"
+
+[node name="P1_HUD" parent="." unique_id=2037083698 instance=ExtResource("3_vxmu1")]
+
+[node name="P2_HUD" parent="." unique_id=1426370563 instance=ExtResource("3_vxmu1")]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_right = 0.0
+grow_horizontal = 0
+
+[node name="CombatLog" parent="." unique_id=1264011144 instance=ExtResource("4_f6fb8")]
+offset_left = 12.0
+offset_top = 232.0
+offset_right = 312.0
+offset_bottom = 432.0
+
+[node name="LogToggle" type="CheckButton" parent="." unique_id=477266312]
+offset_left = 8.0
+offset_top = 199.0
+offset_right = 130.0
+offset_bottom = 230.0
+focus_mode = 0
+text = "Show Log"
+
+[node name="MenuButton" type="Button" parent="." unique_id=2121817063]
+offset_left = 1080.0
+offset_top = 607.0
+offset_right = 1132.0
+offset_bottom = 638.0
+text = "?"
+
+[node name="EnvButton" type="Button" parent="." unique_id=1268670440]
+offset_left = 13.0
+offset_top = 179.0
+offset_right = 78.0
+offset_bottom = 204.0
+theme_override_font_sizes/font_size = 12
+text = "ENV: Dojo"
+
+[node name="EnvPopup" type="PanelContainer" parent="." unique_id=974018881]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -35.0
+offset_right = 25.0
+offset_bottom = 35.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="VBoxContainer" type="VBoxContainer" parent="EnvPopup" unique_id=641808400]
+layout_mode = 2
+
+[node name="EnvTitle" type="Label" parent="EnvPopup/VBoxContainer" unique_id=345411818]
+layout_mode = 2
+text = "Dojo"
+
+[node name="HSeparator" type="HSeparator" parent="EnvPopup/VBoxContainer" unique_id=1640873590]
+layout_mode = 2
+
+[node name="EnvDetails" type="RichTextLabel" parent="EnvPopup/VBoxContainer" unique_id=520589283]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="CloseEnvButton" type="Button" parent="EnvPopup/VBoxContainer" unique_id=1659386676]
+layout_mode = 2
+text = "Close"
+
+[node name="EquipmentGrid" type="HBoxContainer" parent="." unique_id=1911301329]
+offset_left = 32.0
+offset_top = 128.0
+offset_right = 72.0
+offset_bottom = 168.0
+theme_override_constants/separation = 10
+
+[node name="InspectButton" type="Button" parent="." unique_id=810640903]
+offset_left = 976.0
+offset_top = 148.0
+offset_right = 1141.0
+offset_bottom = 179.0
+text = "INSPECT OPPONENT"
+
+[node name="InspectPopup" type="Panel" parent="." unique_id=303135880]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(400, 300)
+
+[node name="ScrollContainer" type="ScrollContainer" parent="InspectPopup" unique_id=1456864686]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InspectGrid" type="GridContainer" parent="InspectPopup/ScrollContainer" unique_id=254637399]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 4
+
+[node name="P1_Bark" type="Label" parent="." unique_id=1974256669]
+modulate = Color(1, 1, 1, 0)
+offset_left = 276.0
+offset_top = 434.0
+offset_right = 501.0
+offset_bottom = 470.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+
+[node name="P2_Bark" type="Label" parent="." unique_id=364228376]
+modulate = Color(1, 1, 1, 0)
+offset_left = 724.0
+offset_top = 440.0
+offset_right = 949.0
+offset_bottom = 476.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+
+
+========================================
+FILE PATH: res://Scenes/CardButton.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://pn3d56xopa7y"]
+
+[ext_resource type="Script" uid="uid://5nso7yfr4m14" path="res://Scripts/CardButton.gd" id="1_ab6ye"]
+
+[node name="CardButton" type="Button"]
+custom_minimum_size = Vector2(200, 40)
+offset_right = 8.0
+offset_bottom = 8.0
+toggle_mode = true
+script = ExtResource("1_ab6ye")
+
+[node name="CostLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -40.0
+offset_top = -11.5
+offset_right = -5.0
+offset_bottom = 11.5
+grow_horizontal = 0
+grow_vertical = 2
+
+[connection signal="mouse_entered" from="." to="." method="_on_mouse_entered"]
+[connection signal="mouse_exited" from="." to="." method="_on_mouse_exited"]
+
+
+========================================
+FILE PATH: res://Scenes/CardDisplay.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://nnqjc4grjsyg"]
+
+[ext_resource type="Script" uid="uid://coqrpen7juqml" path="res://Scripts/card_display.gd" id="1_bcrn8"]
+
+[node name="CardDisplay" type="Control"]
+custom_minimum_size = Vector2(250, 350)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bcrn8")
+
+[node name="Background" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Border" type="ReferenceRect" parent="."]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Header" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="CostLabel" type="Label" parent="VBoxContainer/Header"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="VBoxContainer/Header"]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="Art" type="TextureRect" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+
+[node name="StatsRow" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="StatLabel" type="Label" parent="VBoxContainer/StatsRow"]
+visible = false
+layout_mode = 2
+
+[node name="Description" type="RichTextLabel" parent="VBoxContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+
+
+========================================
+FILE PATH: res://Scenes/CarouselHub.tscn
+========================================
+[gd_scene format=3 uid="uid://bxymoimlkb0g2"]
+
+[ext_resource type="Script" uid="uid://b5sk5jjigxxdu" path="res://Scripts/CarouselHub.gd" id="1_ocdqy"]
+
+[node name="CarouselHub" type="Control" unique_id=1967209312]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_ocdqy")
+
+[node name="Background" type="TextureRect" parent="." unique_id=1707841584]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+
+[node name="BackgroundFader" type="TextureRect" parent="." unique_id=1593912713]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+
+[node name="DimmerLayer" type="ColorRect" parent="." unique_id=880599731]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.68235296)
+
+[node name="ContentContainer" type="Control" parent="." unique_id=1527734958]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="UI_Layer" type="Control" parent="." unique_id=105395051]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="UI_Layer" unique_id=321756827]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -48.0
+offset_right = 48.0
+offset_bottom = 23.0
+grow_horizontal = 2
+theme_override_constants/outline_size = 15
+theme_override_font_sizes/font_size = 40
+text = "THE CIRCUIT"
+
+[node name="LeftArrow" type="Button" parent="UI_Layer" unique_id=832121798]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 20.0
+offset_top = -15.5
+offset_right = 56.0
+offset_bottom = 15.5
+grow_vertical = 2
+text = "<<<"
+
+[node name="RightArrow" type="Button" parent="UI_Layer" unique_id=569323903]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -56.0
+offset_top = -15.5
+offset_right = -20.0
+offset_bottom = 15.5
+grow_horizontal = 0
+grow_vertical = 2
+text = ">>>"
+
+[node name="BackButton" type="Button" parent="UI_Layer" unique_id=1724607185]
+layout_mode = 0
+offset_left = 11.0
+offset_top = 9.0
+offset_right = 132.0
+offset_bottom = 40.0
+text = "BACK TO TITLE"
+
+
+========================================
+FILE PATH: res://Scenes/CharacterSelect.tscn
+========================================
+[gd_scene load_steps=3 format=3 uid="uid://c3jl31vkltf5h"]
+
+[ext_resource type="Script" uid="uid://bkm6gg67mwbyu" path="res://Scripts/CharacterSelect.gd" id="1_r5nmx"]
+[ext_resource type="Texture2D" uid="uid://d0oodbqfjx62d" path="res://Art/background/1.png" id="2_amipf"]
+
+[node name="CharacterSelect" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_r5nmx")
+
+[node name="Background" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0.44313726)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_amipf")
+expand_mode = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -107.5
+offset_top = -46.5
+offset_right = 107.5
+offset_bottom = 46.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="P1_Column" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+
+[node name="P1Label" type="Label" parent="HBoxContainer/P1_Column"]
+layout_mode = 2
+text = "PLAYER 1"
+horizontal_alignment = 1
+
+[node name="P1_Portrait" type="TextureRect" parent="HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClassOption" type="OptionButton" parent="HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
+
+[node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P1_Column"]
+layout_mode = 2
+
+[node name="Center_Column" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+
+[node name="VSLabel" type="Label" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+text = "VS"
+horizontal_alignment = 1
+
+[node name="QuickFightButton" type="Button" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "Quick CLASH!"
+
+[node name="CustomDeckButton" type="Button" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "Quick CLASH! 
+(build action list)"
+
+[node name="ArcadeButton" type="Button" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+theme_override_constants/outline_size = 5
+text = "Start Arcade Run"
+
+[node name="DifficultyLabel" type="Label" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+text = "CPU Difficulty"
+horizontal_alignment = 1
+
+[node name="DifficultyOption" type="OptionButton" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="HBoxContainer/Center_Column"]
+layout_mode = 2
+text = "Back"
+
+[node name="P2_Column" type="VBoxContainer" parent="HBoxContainer"]
+layout_mode = 2
+
+[node name="P2Label" type="Label" parent="HBoxContainer/P2_Column"]
+layout_mode = 2
+text = "PLAYER 2"
+horizontal_alignment = 1
+
+[node name="P2_Portrait" type="TextureRect" parent="HBoxContainer/P2_Column"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClassOption" type="OptionButton" parent="HBoxContainer/P2_Column"]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
+
+[node name="P2ModeButton" type="Button" parent="HBoxContainer/P2_Column"]
+layout_mode = 2
+text = "OPPONENT: CPU"
+
+[node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P2_Column"]
+visible = false
+layout_mode = 2
+
+[node name="P2CustomCheck" type="CheckBox" parent="HBoxContainer/P2_Column"]
+visible = false
+layout_mode = 2
+text = "Also build movelist for P2?"
+
+[node name="HelpButton" type="Button" parent="."]
+custom_minimum_size = Vector2(35, 35)
+layout_mode = 0
+offset_left = 1033.0
+offset_top = 12.0
+offset_right = 1068.0
+offset_bottom = 47.0
+text = "?"
+
+[node name="RunSettingsPopup" type="ColorRect" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5803922)
+
+[node name="Panel" type="Panel" parent="RunSettingsPopup"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="RunSettingsPopup/Panel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -79.5
+offset_top = -51.0
+offset_right = 79.5
+offset_bottom = 51.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ClassConfirmLabel" type="Label" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Start run with: Heavy?"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="MaintainHPToggle" type="CheckBox" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Maintain HP Between Fights"
+alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="RunSettingsPopup/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="CancelRunButton" type="Button" parent="RunSettingsPopup/Panel/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Cancel"
+
+[node name="ConfirmRunButton" type="Button" parent="RunSettingsPopup/Panel/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "START RUN"
+
+[connection signal="pressed" from="HBoxContainer/Center_Column/ArcadeButton" to="." method="_on_start_arcade_pressed"]
+
+
+========================================
+FILE PATH: res://Scenes/CombatLog.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://bu7kfrk2ayfm6"]
+
+[ext_resource type="Script" uid="uid://d1csvul0dae5i" path="res://Scripts/CombatLog.gd" id="1_8rr8p"]
+
+[node name="CombatLog" type="PanelContainer"]
+custom_minimum_size = Vector2(300, 200)
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_8rr8p")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="LogLabel" type="RichTextLabel" parent="MarginContainer"]
+layout_mode = 2
+bbcode_enabled = true
+text = "Waiting for logs..."
+
+
+========================================
+FILE PATH: res://Scenes/compendium.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://cm1rql55op5wn"]
+
+[ext_resource type="Script" uid="uid://2rcv6fa6yax" path="res://Scripts/compendium.gd" id="1_sj3ga"]
+
+[node name="Compendium" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_sj3ga")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.38928655, 0.38928664, 0.38928658, 1)
+
+[node name="TabContainer" type="TabContainer" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = -50.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 2
+current_tab = 0
+
+[node name="Rules" type="ScrollContainer" parent="TabContainer"]
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Rules"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Rules/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Combat" type="ScrollContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Combat"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Combat/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Traits" type="ScrollContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Traits"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Traits/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Card Library" type="ScrollContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Card Library"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="GridContainer" type="GridContainer" parent="TabContainer/Card Library/MarginContainer"]
+layout_mode = 2
+columns = 5
+
+[node name="Modes" type="ScrollContainer" parent="TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 4
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Modes"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Modes/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 0
+offset_left = 988.0
+offset_top = 5.0
+offset_right = 1102.0
+offset_bottom = 36.0
+text = "Back to Menu"
+
+
+========================================
+FILE PATH: res://Scenes/equipmentdraft.tscn
+========================================
+[gd_scene load_steps=3 format=3 uid="uid://cpiokfvajkjhq"]
+
+[ext_resource type="Script" uid="uid://baqcbitr2k0tq" path="res://Scripts/equipmentdraft.gd" id="1_m3iom"]
+[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scripts/RunStatusOverlay.tscn" id="2_gd3t4"]
+
+[node name="EquipmentDraft" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_m3iom")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.24477637, 0.2447764, 0.24477637, 1)
+
+[node name="Label" type="Label" parent="ColorRect"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 23.0
+grow_horizontal = 2
+text = "CHOOSE YOUR REWARD"
+
+[node name="ItemGrid" type="HBoxContainer" parent="ColorRect"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="RunStatusOverlay" parent="." instance=ExtResource("2_gd3t4")]
+
+
+========================================
+FILE PATH: res://Scenes/EventRoom.tscn
+========================================
+[gd_scene load_steps=3 format=3 uid="uid://dk2vek5juj53o"]
+
+[ext_resource type="Script" uid="uid://g8ghju6iqxmv" path="res://Scripts/EventRoom.gd" id="1_6wpk6"]
+[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scripts/RunStatusOverlay.tscn" id="2_fxxab"]
+
+[node name="Control" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_6wpk6")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.21752068, 0.25988293, 0.28133178, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "TITLE"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="DescriptionLabel" type="RichTextLabel" parent="VBoxContainer"]
+custom_minimum_size = Vector2(600, 0)
+layout_mode = 2
+bbcode_enabled = true
+text = "Description"
+fit_content = true
+horizontal_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="OptionA" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "A"
+
+[node name="OptionB" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "B"
+
+[node name="OptionC" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "B"
+
+[node name="RunStatusOverlay" parent="." instance=ExtResource("2_fxxab")]
+
+
+========================================
+FILE PATH: res://Scenes/FloatingText.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://cqg64qk4ht5ov"]
+
+[ext_resource type="Script" uid="uid://c6b5rwcl2qw5" path="res://Scripts/FloatingText.gd" id="1_bmcqi"]
+
+[node name="FloatingText" type="Label"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -22.5
+offset_right = 20.0
+offset_bottom = 22.5
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 50
+script = ExtResource("1_bmcqi")
+
+
+========================================
+FILE PATH: res://Scenes/GameOverScreen.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://dr7kfrd8ougse"]
+
+[ext_resource type="Script" uid="uid://b66dsc20bkx3c" path="res://Scripts/GameOverScreen.gd" id="1_d4r0f"]
+
+[node name="GameOverScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_d4r0f")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.40784314)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -211.0
+offset_top = -78.5
+offset_right = 211.0
+offset_bottom = 78.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -57.0
+offset_top = -20.0
+offset_right = 57.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "COMBAT OVER"
+horizontal_alignment = 1
+
+[node name="WinnerLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "PLAYER 1 WINS"
+horizontal_alignment = 1
+
+[node name="RematchButton" type="Button" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "Rematch"
+
+[node name="MenuButton" type="Button" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "Main Menu"
+
+
+========================================
+FILE PATH: res://Scenes/MainMenu.tscn
+========================================
+[gd_scene load_steps=3 format=3 uid="uid://dfdv27tgvc463"]
+
+[ext_resource type="Script" uid="uid://bvoqym3ha7576" path="res://Scripts/MainMenu.gd" id="1_tt5f1"]
+[ext_resource type="Texture2D" uid="uid://uubvvpgfs52s" path="res://Art/logo-transparent_grey_nosplash.png" id="2_853f1"]
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tt5f1")
+
+[node name="Background" type="TextureRect" parent="."]
+modulate = Color(1, 0.56, 0.56, 0.43529412)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_853f1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -158.5
+offset_top = -70.5
+offset_right = 158.5
+offset_bottom = 70.5
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = "CLASH!"
+horizontal_alignment = 1
+
+[node name="StartButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Start the CLASH!"
+
+[node name="QuitButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Quit"
+
+[node name="CompendiumButton" type="Button" parent="VBoxContainer"]
+visible = false
+layout_mode = 2
+text = "How to Play"
+
+
+========================================
+FILE PATH: res://Scenes/MainScene.tscn
+========================================
+[gd_scene load_steps=10 format=3 uid="uid://bwfpi53huo887"]
+
+[ext_resource type="PackedScene" uid="uid://b2sxki8ci7lvb" path="res://Scenes/Pausemenu.tscn" id="1_0iob3"]
+[ext_resource type="Script" uid="uid://xjbucvoejbts" path="res://Scripts/Resources/GameManager.gd" id="1_hpc76"]
+[ext_resource type="Script" uid="uid://xh1kg301k38w" path="res://Scripts/TestArena.gd" id="2_tr2i4"]
+[ext_resource type="Resource" uid="uid://b0kng2hirhw4q" path="res://Player1.tres" id="3_7rqgy"]
+[ext_resource type="Resource" uid="uid://p5iapbgi8mrp" path="res://Player2.tres" id="4_qxria"]
+[ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="5_y4jh7"]
+[ext_resource type="Script" uid="uid://dv5cmapuaohjy" path="res://Scripts/card_displayTEST.gd" id="6_q68mp"]
+[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="7_q68mp"]
+[ext_resource type="PackedScene" uid="uid://dhwx6yjjskbn7" path="res://Scenes/BattleUI.tscn" id="8_f140w"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="PauseMenu" parent="." instance=ExtResource("1_0iob3")]
+
+[node name="GameManager" type="Node" parent="."]
+script = ExtResource("1_hpc76")
+
+[node name="TestArena" type="Node2D" parent="."]
+script = ExtResource("2_tr2i4")
+p1_resource = ExtResource("3_7rqgy")
+p2_resource = ExtResource("4_qxria")
+
+[node name="CardDisplay" parent="TestArena" instance=ExtResource("5_y4jh7")]
+visible = false
+offset_left = 500.0
+offset_top = 300.0
+offset_right = 750.0
+offset_bottom = 650.0
+script = ExtResource("6_q68mp")
+test_action = ExtResource("7_q68mp")
+
+[node name="BattleUI" parent="TestArena" instance=ExtResource("8_f140w")]
+
+
+========================================
+FILE PATH: res://Scenes/MenuArcade.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://7q8sfitoh2xb"]
+
+[ext_resource type="Script" uid="uid://ciu2sa2jx11fl" path="res://Scripts/MenuArcade.gd" id="1_trdke"]
+
+[node name="MenuArcade" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_trdke")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+self_modulate = Color(0, 0, 0, 1)
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="P1_Portrait" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="InfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column"]
+layout_mode = 2
+
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
+
+[node name="Settings_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
+layout_mode = 2
+theme_override_constants/outline_size = 15
+text = "CPU Difficulty"
+horizontal_alignment = 1
+
+[node name="DifficultyOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
+layout_mode = 2
+
+[node name="MaintainHPToggle" type="CheckButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
+layout_mode = 2
+theme_override_constants/outline_size = 13
+text = "Maintain HP Between Fights?"
+
+[node name="StartButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
+layout_mode = 2
+theme_override_constants/outline_size = 5
+text = "Start Arcade Run"
+
+
+========================================
+FILE PATH: res://Scenes/MenuQuick.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://crugd7hminj5p"]
+
+[ext_resource type="Script" uid="uid://c873im0nw7ebj" path="res://Scripts/MenuQuick.gd" id="1_yp31r"]
+
+[node name="MenuQuick" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_yp31r")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="P1Label" type="Label" parent="MarginContainer/HBoxContainer/P1_Column"]
+layout_mode = 2
+text = "PLAYER 1"
+horizontal_alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P1_Column"]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
+
+[node name="VS_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="VSLabel" type="Label" parent="MarginContainer/HBoxContainer/VS_Column"]
+layout_mode = 2
+text = "VS"
+horizontal_alignment = 1
+
+[node name="QuickFightButton" type="Button" parent="MarginContainer/HBoxContainer/VS_Column"]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "Quick CLASH!"
+
+[node name="P2_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="P2_Mode_Button" type="Button" parent="MarginContainer/HBoxContainer/P2_Column"]
+layout_mode = 2
+text = "OPPONENT: CPU"
+
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P2_Column"]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P2_Column"]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
+
+
+========================================
+FILE PATH: res://Scenes/MenuSettings.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://clrhc07bmkygu"]
+
+[ext_resource type="Script" uid="uid://cxutqps1iq1wk" path="res://scripts/MenuSettings.gd" id="1_8a0lb"]
+
+[node name="MenuSettings" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_8a0lb")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "AUDIO SETTINGS"
+
+[node name="Label2" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Master Volume"
+
+[node name="MasterSlider" type="HSlider" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label3" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Music Volume"
+
+[node name="MusicSlider" type="HSlider" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+
+
+========================================
+FILE PATH: res://Scenes/Pausemenu.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://b2sxki8ci7lvb"]
+
+[ext_resource type="Script" uid="uid://0hs2t76gkflh" path="res://Scripts/pausemenu.gd" id="1_1tmd2"]
+
+[node name="PauseMenu" type="CanvasLayer"]
+process_mode = 3
+layer = 128
+script = ExtResource("1_1tmd2")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5019608)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="Button" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Resume"
+
+[node name="Button2" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Main Menu"
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Button" to="." method="_on_resume_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Button2" to="." method="_on_main_menu_pressed"]
+
+
+========================================
+FILE PATH: res://Scenes/PlayerHUD.tscn
+========================================
+[gd_scene format=3 uid="uid://yeraw55rlx1q"]
+
+[ext_resource type="Script" uid="uid://b3yr2lrurg3au" path="res://Scripts/PlayerHud.gd" id="1_g363m"]
+[ext_resource type="Texture2D" uid="uid://c618p3j6o5ylb" path="res://Art/Portraits/Heavy.png" id="2_yqw7w"]
+
+[sub_resource type="Gradient" id="Gradient_SolidWhite"]
+offsets = PackedFloat32Array(0)
+colors = PackedColorArray(1, 1, 1, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_White"]
+gradient = SubResource("Gradient_SolidWhite")
+width = 1
+height = 1
+
+[node name="PlayerHUD" type="Control" unique_id=54336324]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("1_g363m")
+
+[node name="Background" type="Panel" parent="." unique_id=1901319598]
+layout_mode = 0
+offset_right = 340.0
+offset_bottom = 123.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1045789710]
+layout_mode = 0
+offset_right = 300.0
+offset_bottom = 112.0
+
+[node name="NameLabel" type="Label" parent="VBoxContainer" unique_id=1062314951]
+layout_mode = 2
+text = "Player Name"
+horizontal_alignment = 1
+
+[node name="HPBarHolder" type="MarginContainer" parent="VBoxContainer" unique_id=1355766784]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="HPGhost" type="TextureProgressBar" parent="VBoxContainer/HPBarHolder" unique_id=350887174]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_vertical = 2
+step = 0.0
+value = 8.0
+nine_patch_stretch = true
+texture_under = SubResource("GradientTexture2D_White")
+texture_progress = SubResource("GradientTexture2D_White")
+tint_under = Color(0.133333, 0.133333, 0.133333, 1)
+tint_progress = Color(1, 0, 0, 1)
+
+[node name="HPBar" type="TextureProgressBar" parent="VBoxContainer/HPBarHolder" unique_id=1481187082]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_vertical = 2
+step = 0.0
+value = 5.0
+nine_patch_stretch = true
+texture_progress = SubResource("GradientTexture2D_White")
+tint_under = Color(1, 1, 1, 0)
+tint_progress = Color(0.25098, 0.823529, 0.360784, 1)
+
+[node name="HPLabel" type="Label" parent="VBoxContainer/HPBarHolder/HPBar" unique_id=1365590348]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "10/10"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SPBarHolder" type="MarginContainer" parent="VBoxContainer" unique_id=266557436]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="SPGhost" type="TextureProgressBar" parent="VBoxContainer/SPBarHolder" unique_id=1020641836]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_vertical = 2
+step = 0.0
+value = 3.0
+nine_patch_stretch = true
+texture_under = SubResource("GradientTexture2D_White")
+texture_progress = SubResource("GradientTexture2D_White")
+tint_under = Color(0.133333, 0.133333, 0.133333, 1)
+tint_progress = Color(1, 0.5, 0, 1)
+
+[node name="SPBar" type="TextureProgressBar" parent="VBoxContainer/SPBarHolder" unique_id=2137503929]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+size_flags_vertical = 2
+step = 0.0
+value = 2.0
+nine_patch_stretch = true
+texture_progress = SubResource("GradientTexture2D_White")
+tint_under = Color(1, 1, 1, 0)
+tint_progress = Color(0.231373, 0.639216, 0.92549, 1)
+
+[node name="SPLabel" type="Label" parent="VBoxContainer/SPBarHolder/SPBar" unique_id=1526591500]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "3/3"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer" unique_id=1997395326]
+layout_mode = 2
+
+[node name="Portrait" type="TextureRect" parent="." unique_id=762868820]
+z_index = -100
+layout_mode = 0
+offset_left = 220.0
+offset_top = 135.0
+offset_right = 520.0
+offset_bottom = 435.0
+texture = ExtResource("2_yqw7w")
+expand_mode = 1
+
+
+========================================
+FILE PATH: res://Scenes/SceneLoader.tscn
+========================================
+[gd_scene load_steps=6 format=3 uid="uid://doem7fxw0c2cs"]
+
+[ext_resource type="Script" uid="uid://dkoyxaq8d0owx" path="res://Scripts/SceneLoader.gd" id="1_jgsyn"]
+
+[sub_resource type="Animation" id="Animation_llroc"]
+resource_name = "fade_in"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BlackOverlay:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("BlackOverlay:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="Animation" id="Animation_jgsyn"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BlackOverlay:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("BlackOverlay:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="Animation" id="Animation_62osk"]
+resource_name = "fade_out"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("BlackOverlay:modulate")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("BlackOverlay:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_62osk"]
+_data = {
+&"RESET": SubResource("Animation_jgsyn"),
+&"fade_in": SubResource("Animation_llroc"),
+&"fade_out": SubResource("Animation_62osk")
+}
+
+[node name="SceneLoader" type="CanvasLayer"]
+layer = 128
+script = ExtResource("1_jgsyn")
+
+[node name="BlackOverlay" type="ColorRect" parent="."]
+modulate = Color(1, 1, 1, 0)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_62osk")
+}
+
+
+========================================
+FILE PATH: res://Scenes/VsScreen.tscn
+========================================
+[gd_scene format=3 uid="uid://db1jjjv5ewb8x"]
+
+[ext_resource type="Script" uid="uid://ccf5qx3faud61" path="res://Scripts/VsScreen.gd" id="1_qw5ky"]
+
+[node name="VsScreen" type="Control" unique_id=1731259570]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_qw5ky")
+
+[node name="Background" type="TextureRect" parent="." unique_id=814263392]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=843035782]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.39215687)
+
+[node name="Content" type="Control" parent="." unique_id=288401882]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="P1_Container" type="VBoxContainer" parent="Content" unique_id=2040645311]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="Content/P1_Container" unique_id=454312075]
+layout_mode = 2
+
+[node name="SpeechBubble" type="Label" parent="Content/P1_Container/PanelContainer" unique_id=1298631522]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="Content/P1_Container" unique_id=1881686358]
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="Content/P1_Container" unique_id=487469269]
+layout_mode = 2
+text = "Player 1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ClassLabel" type="Label" parent="Content/P1_Container" unique_id=2022137226]
+layout_mode = 2
+text = "Heavy Class"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="VsLabel" type="Label" parent="Content" unique_id=1900404297]
+layout_mode = 0
+offset_left = 566.0
+offset_top = 312.0
+offset_right = 585.0
+offset_bottom = 335.0
+text = "VS"
+
+[node name="P2_Container" type="VBoxContainer" parent="Content" unique_id=819383389]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="Content/P2_Container" unique_id=145062261]
+layout_mode = 2
+
+[node name="SpeechBubble" type="Label" parent="Content/P2_Container/PanelContainer" unique_id=614714463]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="Content/P2_Container" unique_id=1179981689]
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+
+[node name="NameLabel" type="Label" parent="Content/P2_Container" unique_id=1124967152]
+layout_mode = 2
+text = "Player 2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ClassLabel" type="Label" parent="Content/P2_Container" unique_id=585448502]
+layout_mode = 2
+text = "Quick Class"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ArenaLabel" type="Label" parent="." unique_id=1332158513]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -20.0
+offset_top = -34.0
+offset_right = 20.0
+offset_bottom = -11.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 40
+text = "Dojo"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+
+========================================
+FILE PATH: res://Scripts/RunStatusOverlay.tscn
+========================================
+[gd_scene load_steps=2 format=3 uid="uid://cewadnjen7l21"]
+
+[ext_resource type="Script" uid="uid://lhwn0eq4bdj4" path="res://Scripts/RunStatusOverlay.gd" id="1_kfi2q"]
+
+[node name="RunStatusOverlay" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_kfi2q")
+
+[node name="ToggleBtn" type="Button" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -139.0
+offset_top = 6.0
+offset_right = -6.0
+offset_bottom = 37.0
+grow_horizontal = 0
+text = "View Run Status"
+
+[node name="StatusPanel" type="PanelContainer" parent="."]
+visible = false
+custom_minimum_size = Vector2(300, 150)
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -46.0
+offset_top = 37.0
+offset_right = -6.0
+offset_bottom = 77.0
+grow_horizontal = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="StatusPanel"]
+layout_mode = 2
+
+[node name="HpLabel" type="Label" parent="StatusPanel/VBoxContainer"]
+layout_mode = 2
+text = "SP"
+
+[node name="SpLabel" type="Label" parent="StatusPanel/VBoxContainer"]
+layout_mode = 2
+text = "SP"
+
+[node name="HSeparator" type="HSeparator" parent="StatusPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="EquipLabel" type="Label" parent="StatusPanel/VBoxContainer"]
+layout_mode = 2
+text = "Equipment"
+
+[node name="EquipmentGrid" type="HFlowContainer" parent="StatusPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 10
+
+

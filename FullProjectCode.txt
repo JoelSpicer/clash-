@@ -1178,6 +1178,9 @@ signal p2_mode_toggled(is_human)
 @onready var inspect_popup = $InspectPopup
 @onready var inspect_grid = $InspectPopup/ScrollContainer/InspectGrid
 
+@onready var p1_bark_label = $P1_Bark # Adjust path
+@onready var p2_bark_label = $P2_Bark
+
 var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
 
 # --- DATA ---
@@ -1701,6 +1704,16 @@ func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
 		if target_id == 1: p1_hud.play_hit_animation()
 		else: p2_hud.play_hit_animation()
 	
+	# React to heavy hits (>3 damage)
+	if amount >= 3:
+		var victim = GameManager.p1_data if target_id == 1 else GameManager.p2_data
+		var line = DialogueManager.get_reaction(victim.class_type, "HURT_HEAVY")
+		# High priority: Show this even if we barked recently
+		_show_bark(target_id, line)
+		
+	# React to Death?
+	# (Already covered by Low HP lines potentially, or add a specific check here)
+	
 	# --- NEW: CHECK FOR FINISHER ---
 	# We check if the victim is dead, and trigger the cinematic
 	var victim_data = GameManager.p1_data if target_id == 1 else GameManager.p2_data
@@ -1737,7 +1750,19 @@ func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
 		p2_hud.play_attack_animation(Vector2(-50, 0))
 		
 	AudioManager.play_sfx("clash", 0.1)
-
+	
+	# 25% chance to bark on win (don't spam every turn)
+	if randf() < 0.25:
+		var winner_data = GameManager.p1_data if winner_id == 1 else GameManager.p2_data
+		var winner_card = p1_card if winner_id == 1 else p2_card
+		
+		var context = "WIN_OFFENCE"
+		if winner_card.type == ActionData.Type.DEFENCE:
+			context = "WIN_DEFENCE"
+			
+		var line = DialogueManager.get_reaction(winner_data.class_type, context)
+		_show_bark(winner_id, line)
+	
 func _on_log_toggled(toggled_on: bool):
 	combat_log.visible = toggled_on
 
@@ -1919,6 +1944,23 @@ func _update_background():
 		background.texture = GameManager.environment_backgrounds[env_name]
 	else:
 		print("Warning: No art found for '" + env_name + "'. Using default.")
+
+func _show_bark(player_id: int, text: String):
+	var lbl = p1_bark_label if player_id == 1 else p2_bark_label
+	lbl.text = text
+	
+	# Simple Pop-in Animation
+	lbl.modulate.a = 0
+	lbl.scale = Vector2(0.5, 0.5)
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(lbl, "modulate:a", 1.0, 0.2)
+	tween.tween_property(lbl, "scale", Vector2(1.2, 1.2), 0.2).set_trans(Tween.TRANS_BACK)
+	
+	# Wait, then fade out
+	tween.chain().tween_interval(1.5)
+	tween.chain().tween_property(lbl, "modulate:a", 0.0, 0.3)
 
 
 ========================================
@@ -4045,10 +4087,17 @@ FILE PATH: res://Scripts/PlayerHud.gd
 extends Control
 
 @onready var name_label = $VBoxContainer/NameLabel
-@onready var hp_bar = $VBoxContainer/HPBar
-@onready var hp_text = $VBoxContainer/HPBar/HPLabel
-@onready var sp_bar = $VBoxContainer/SPBar
-@onready var sp_text = $VBoxContainer/SPBar/SPLabel
+
+# HP References
+@onready var hp_bar = $VBoxContainer/HPBarHolder/HPBar
+@onready var hp_ghost = $VBoxContainer/HPBarHolder/HPGhost
+@onready var hp_text = $VBoxContainer/HPBarHolder/HPBar/HPLabel
+
+# SP References (Updated Paths)
+@onready var sp_bar = $VBoxContainer/SPBarHolder/SPBar
+@onready var sp_ghost = $VBoxContainer/SPBarHolder/SPGhost # New
+@onready var sp_text = $VBoxContainer/SPBarHolder/SPBar/SPLabel
+
 @onready var status_label = $VBoxContainer/StatusLabel
 @onready var portrait = get_node_or_null("Portrait")
 
@@ -4056,142 +4105,159 @@ var original_pos: Vector2 = Vector2.ZERO
 
 func _ready():
 	if portrait: original_pos = portrait.position
+	
+	# Sync Ghosts on load
+	if hp_ghost:
+		hp_ghost.max_value = hp_bar.max_value
+		hp_ghost.value = hp_bar.value
+	if sp_ghost:
+		sp_ghost.max_value = sp_bar.max_value
+		sp_ghost.value = sp_bar.value
 
 func setup(character: CharacterData):
 	name_label.text = character.character_name
+	
+	# HP Setup
 	hp_bar.max_value = character.max_hp
 	hp_bar.value = character.current_hp
+	if hp_ghost:
+		hp_ghost.max_value = character.max_hp
+		hp_ghost.value = character.current_hp
 	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
 	
+	# SP Setup
 	sp_bar.max_value = character.max_sp
 	sp_bar.value = character.current_sp
+	if sp_ghost:
+		sp_ghost.max_value = character.max_sp
+		sp_ghost.value = character.current_sp
 	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
 	
 	if portrait and character.portrait:
 		portrait.texture = character.portrait
 
-# --- NEW LAYOUT SYSTEM ---
-# Scripts/PlayerHud.gd
-
 func configure_visuals(is_player_2: bool):
-	scale = Vector2(1, 1)
+	# ... (Paste your existing layout code here) ...
+	# Just ensuring the fill modes update correctly for the new ghosts
 	
-	# 1. SETUP DIMENSIONS
+	scale = Vector2(1, 1)
 	var hud_width = 300 
-	var screen_margin = 20 # <--- NEW: Margin from the side of the screen
-	var gap = 15           # Gap between bars and portrait
+	var screen_margin = 20
+	var gap = 15
 	var offset = 150
-	# Force the VBox to be the right width
 	$VBoxContainer.custom_minimum_size.x = hud_width
 	$VBoxContainer.size.x = hud_width 
 	
-	# Find the background node
 	var bg = get_node_or_null("Panel") 
 	if not bg: bg = get_node_or_null("Background")
 	
-	# Force bars to expand
+	# Force Expand
 	if hp_bar: hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if hp_ghost: hp_ghost.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if sp_bar: sp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if sp_ghost: sp_ghost.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	
 	if is_player_2:
-		# --- PLAYER 2 (Right Side) ---
-		
-		# 1. Anchor VBox to Top-Right
 		$VBoxContainer.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		
-		# 2. Position it inwards (Negative X)
-		# Logic: -300 (Width) - 20 (Margin) = -320 from the right edge
 		$VBoxContainer.position.x = + screen_margin  - hud_width
 		$VBoxContainer.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		
-		# 3. Snap Background to match VBox
 		if bg:
 			bg.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 			bg.position = $VBoxContainer.position
 			bg.size = $VBoxContainer.size
 			bg.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-
-		# 4. Align Text & Bars
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		
+		# Set Fill Modes (Right to Left)
 		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
+		if hp_ghost: hp_ghost.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
 		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
+		if sp_ghost: sp_ghost.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
 		
-		# 5. Position Portrait (To the LEFT of the VBox)
 		if portrait:
 			portrait.scale.x = -1
 			portrait.pivot_offset = portrait.size / 2
 			portrait.position.x = $VBoxContainer.position.x - portrait.size.x - gap + offset
-			
 	else:
-		# --- PLAYER 1 (Left Side) ---
-		
-		# 1. Anchor VBox to Top-Left
 		$VBoxContainer.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		
-		# 2. Position it inwards (Positive X)
-		# Logic: 0 + 20 (Margin) = 20 from the left edge
 		$VBoxContainer.position.x = screen_margin
 		$VBoxContainer.grow_horizontal = Control.GROW_DIRECTION_END
-		
-		# 3. Snap Background to match VBox
 		if bg:
 			bg.set_anchors_preset(Control.PRESET_TOP_LEFT)
 			bg.position = $VBoxContainer.position
 			bg.size = $VBoxContainer.size
 			bg.grow_horizontal = Control.GROW_DIRECTION_END
-			
-		# 4. Align Text & Bars
 		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		
+		# Set Fill Modes (Left to Right)
 		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+		if hp_ghost: hp_ghost.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
 		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
+		if sp_ghost: sp_ghost.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
 		
-		# 5. Position Portrait (To the RIGHT of the VBox)
 		if portrait:
 			portrait.scale.x = 1
 			portrait.pivot_offset = portrait.size / 2
 			portrait.position.x = $VBoxContainer.position.x + hud_width + gap - offset
 
-	# Save position for animations
 	if portrait: original_pos = portrait.position
 
-# REMOVED 'is_injured' argument from this line:
 func update_stats(character: CharacterData, opportunity: int, opening: int, bide_active: bool):
-	var tween = create_tween()
-	tween.tween_property(hp_bar, "value", character.current_hp, 0.3).set_trans(Tween.TRANS_SINE)
-	tween.parallel().tween_property(sp_bar, "value", character.current_sp, 0.3)
 	
 	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
 	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
 	
-	var status_txt = ""
+	var tween = create_tween()
+	tween.set_parallel(true)
 	
-	# [cite_start]1. SCALABLE STATUS LOOP [cite: 139]
-	# Automatically lists ANY status in the dictionary (Injured, Poison, etc.)
+	# --- HP ANIMATION ---
+	tween.tween_property(hp_bar, "value", character.current_hp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
+	
+	if hp_ghost:
+		if character.current_hp < hp_ghost.value:
+			# Taken Damage: Delay then slide
+			var t = create_tween()
+			t.tween_interval(0.4)
+			t.tween_property(hp_ghost, "value", character.current_hp, 0.6).set_trans(Tween.TRANS_SINE)
+		else:
+			# Healed: Instant catch up
+			hp_ghost.value = character.current_hp
+
+	# --- SP ANIMATION ---
+	tween.tween_property(sp_bar, "value", character.current_sp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
+	
+	if sp_ghost:
+		if character.current_sp < sp_ghost.value:
+			# Spent SP: Delay then slide (Orange Ghost)
+			var t = create_tween()
+			t.tween_interval(0.4)
+			t.tween_property(sp_ghost, "value", character.current_sp, 0.6).set_trans(Tween.TRANS_SINE)
+		else:
+			# Recovered SP: Instant catch up
+			sp_ghost.value = character.current_sp
+
+	# ... (Rest of existing status text logic) ...
+	var status_txt = ""
 	for s_name in character.statuses:
 		status_txt += "[" + s_name.to_upper() + "] "
 	
-	# 2. Add other stats
 	if opportunity > 0: status_txt += "[OPPORTUNITY] "
 	if opening > 0: status_txt += "[OPENING: " + str(opening) + "]"
 	if bide_active: status_txt += "[BIDE (+1 DMG)]"
 	
 	status_label.text = status_txt
 	
-	# 3. Dynamic Coloring
-	# Check the dictionary instead of a boolean
 	if character.statuses.has("Injured"):
 		status_label.modulate = Color.ORANGE_RED
 	elif bide_active:
-		status_label.modulate = Color(0.3, 1.0, 1.0) # Cyan
+		status_label.modulate = Color(0.3, 1.0, 1.0)
 	elif opportunity > 0:
 		status_label.modulate = Color.YELLOW
 	else:
 		status_label.modulate = Color.WHITE
-
+		
 func play_attack_animation(direction: Vector2):
 	if not portrait: return
 	var tween = create_tween()
@@ -4400,6 +4466,81 @@ class_name ClassDefinition
 @export_group("Progression")
 @export var starting_deck: Array[ActionData] = []
 @export var skill_tree_root_id: int = 0
+
+
+========================================
+FILE PATH: res://Scripts/Resources/DialogueManager.gd
+========================================
+extends Node
+
+# --- DATA STRUCTURE ---
+# Key: ClassType (Who is speaking?)
+# Value: Dictionary of Contexts -> Array of Strings
+var lines = {
+	CharacterData.ClassType.HEAVY: {
+		"INTRO_GENERIC": ["I'm gonna break you in half!", "Don't cry when this is over.", "Hmph. Tiny."],
+		"INTRO_VS_QUICK": ["Stop hopping around and FIGHT!", "I'll swat you like a fly."],
+		"WIN_OFFENCE": ["CRUSHED!", "Too weak!", "Boom!"],
+		"WIN_DEFENCE": ["Is that it?", "Tickles.", "My turn."],
+		"HURT_HEAVY": ["GAAH!", "You'll pay for that...", "Finally, a challenge!"],
+		"USE_SUPER": ["GAME OVER!", "GOODNIGHT!"],
+		"LOW_HP": ["I... am not... done...", "Just... a scratch..."]
+	},
+	CharacterData.ClassType.QUICK: {
+		"INTRO_GENERIC": ["Too slow!", "Catch me if you can!", "This will be over in a second."],
+		"INTRO_VS_HEAVY": ["Big target. Easy target.", "You'll never hit me, big guy!"],
+		"WIN_OFFENCE": ["Too slow!", "Keep up!", "Gotcha!"],
+		"WIN_DEFENCE": ["Missed me!", "Too obvious.", "Nope!"],
+		"HURT_HEAVY": ["Oof! Okay...", "Hey! Watch the face!", "That... actually hurt."],
+		"USE_SUPER": ["MAXIMUM SPEED!", "LIGHTSPEED!"],
+		"LOW_HP": ["Running... on fumes...", "Can't... stop..."]
+	},
+	CharacterData.ClassType.TECHNICAL: {
+		"INTRO_GENERIC": ["I've already calculated your defeat.", "Your stance is full of openings.", "Let's test my theory."],
+		"INTRO_VS_PATIENT": ["Stalling won't save you.", "I know exactly what you're waiting for."],
+		"WIN_OFFENCE": ["Calculated.", "Precision strikes.", "Dissected."],
+		"WIN_DEFENCE": ["Predictable.", "As expected.", "Flawed technique."],
+		"HURT_HEAVY": ["Miscalculation...", "An error in judgment.", "Critical damage taken."],
+		"USE_SUPER": ["CHECKMATE.", "SOLUTION FOUND."],
+		"LOW_HP": ["System... failing...", "Impossible..."]
+	},
+	CharacterData.ClassType.PATIENT: {
+		"INTRO_GENERIC": ["Patience is a weapon.", "I can wait all day.", "Your anger makes you sloppy."],
+		"INTRO_VS_TECHNICAL": ["Analyze all you want. I'm not moving.", "Overthinking creates doubt."],
+		"WIN_OFFENCE": ["An opening.", "Now.", "Exposed."],
+		"WIN_DEFENCE": ["Denied.", "Wasted effort.", "Not yet."],
+		"HURT_HEAVY": ["A solid hit...", "I underestimated you.", "Focus..."],
+		"USE_SUPER": ["THE WAIT IS OVER.", "STRIKE TRUE."],
+		"LOW_HP": ["Breathing... difficult...", "Must... stay... calm..."]
+	}
+}
+
+# --- FUNCTIONS ---
+
+# Returns a dictionary { "p1": "Line", "p2": "Line" }
+func get_intro_banter(p1_type, p2_type) -> Dictionary:
+	var p1_line = _get_line(p1_type, "INTRO_GENERIC")
+	var p2_line = _get_line(p2_type, "INTRO_GENERIC")
+	
+	# Check for specific match-up lines (P1 vs P2)
+	var p1_specific_key = "INTRO_VS_" + ClassFactory.class_enum_to_string(p2_type).to_upper()
+	if lines.has(p1_type) and lines[p1_type].has(p1_specific_key):
+		p1_line = lines[p1_type][p1_specific_key].pick_random()
+		
+	# Check for specific match-up lines (P2 vs P1)
+	var p2_specific_key = "INTRO_VS_" + ClassFactory.class_enum_to_string(p1_type).to_upper()
+	if lines.has(p2_type) and lines[p2_type].has(p2_specific_key):
+		p2_line = lines[p2_type][p2_specific_key].pick_random()
+		
+	return { "p1":"'" +  p1_line + "'", "p2":"'" +  p2_line + "'" }
+
+func get_reaction(class_type, context: String) -> String:
+	return _get_line(class_type, context)
+
+func _get_line(class_type, key: String) -> String:
+	if not lines.has(class_type): return "..."
+	if not lines[class_type].has(key): return "..."
+	return lines[class_type][key].pick_random()
 
 
 ========================================
@@ -6771,6 +6912,9 @@ extends Control
 @onready var vs_label = $Content/VsLabel
 @onready var arena_label = $ArenaLabel
 
+@onready var p1_bubble = $Content/P1_Container/PanelContainer/SpeechBubble # Adjust path if needed
+@onready var p2_bubble = $Content/P2_Container/PanelContainer/SpeechBubble
+
 func _ready():
 	_setup_visuals()
 	
@@ -6779,7 +6923,7 @@ func _ready():
 	_play_intro_animation()
 	
 	# Wait 3.5 seconds, then load the fight
-	await get_tree().create_timer(3.5).timeout
+	await get_tree().create_timer(5.0).timeout
 	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 func _setup_visuals():
@@ -6836,3 +6980,24 @@ func _play_intro_animation():
 	
 	# Pop the VS Label
 	tween.tween_property(vs_label, "scale", Vector2.ONE, 0.5).set_delay(0.6).set_trans(Tween.TRANS_ELASTIC)
+	
+	# --- NEW: TRIGGER DIALOGUE ---
+	var p1_type = GameManager.next_match_p1_data.class_type
+	var p2_type = GameManager.next_match_p2_data.class_type
+	
+	var banter = DialogueManager.get_intro_banter(p1_type, p2_type)
+	
+	# Set text
+	p1_bubble.text = banter["p1"] # Assuming Bubble is a Panel with a Label child
+	p2_bubble.text = banter["p2"]
+	
+	# Sequence: 
+	# 1. Slide In (0.8s) -> 2. Show P1 Text (1.5s) -> 3. Show P2 Text (1.5s) -> 4. Fight
+	
+	await get_tree().create_timer(1.0).timeout
+	p1_bubble.visible = true
+	AudioManager.play_sfx("ui_hover") # Or a "speech" sound
+	
+	await get_tree().create_timer(1.5).timeout
+	p2_bubble.visible = true
+	AudioManager.play_sfx("ui_hover")
