@@ -102,4 +102,4 @@ func _get_char(idx, pname):
 		return ClassFactory.create_character(idx as CharacterData.ClassType, pname)
 	var preset_idx = idx - base_classes.size() - 1
 	if preset_idx >= 0: return ClassFactory.create_from_preset(presets[preset_idx])
-	return ClassFactory.create_character(0, "Error")
+	return ClassFactory.create_character(0 as CharacterData.ClassType, "Error")
