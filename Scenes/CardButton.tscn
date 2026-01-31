@@ -2,28 +2,91 @@
 
 [ext_resource type="Script" uid="uid://5nso7yfr4m14" path="res://Scripts/CardButton.gd" id="1_ab6ye"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ab6ye"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8er2a"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
 [node name="CardButton" type="Button" unique_id=325152128]
-custom_minimum_size = Vector2(200, 40)
+custom_minimum_size = Vector2(140, 100)
 offset_right = 8.0
 offset_bottom = 8.0
 toggle_mode = true
+flat = true
 script = ExtResource("1_ab6ye")
 
-[node name="CostLabel" type="Label" parent="." unique_id=1998346681]
+[node name="CardBackground" type="Panel" parent="." unique_id=747251541]
 layout_mode = 1
-anchors_preset = -1
-anchor_left = 1.0
-anchor_top = 0.5
+anchors_preset = 15
 anchor_right = 1.0
-anchor_bottom = 0.5
-offset_left = -37.0
-offset_top = -11.5
-offset_right = -2.0
-offset_bottom = 11.5
-grow_horizontal = 0
+anchor_bottom = 1.0
+grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ab6ye")
+
+[node name="CardBorder" type="Panel" parent="." unique_id=1954349075]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_8er2a")
+
+[node name="InnerMargin" type="MarginContainer" parent="." unique_id=190911731]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBox" type="VBoxContainer" parent="InnerMargin" unique_id=2049046113]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="InnerMargin/VBox" unique_id=532731549]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="IconContainer" type="CenterContainer" parent="InnerMargin/VBox" unique_id=772809809]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TypeIcon" type="Label" parent="InnerMargin/VBox/IconContainer" unique_id=2084336206]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+
+[node name="CostPanel" type="PanelContainer" parent="InnerMargin/VBox" unique_id=438844957]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="CostLabel" type="Label" parent="InnerMargin/VBox/CostPanel" unique_id=1998346681]
+layout_mode = 2
 theme_override_font_sizes/font_size = 13
-text = "1SP"
+text = "1 SP"
 horizontal_alignment = 1
 vertical_alignment = 1
 

@@ -1,5 +1,5 @@
 --- GODOT PROJECT SCENE DUMP ---
-Generated: 2026-01-30T23:30:50
+Generated: 2026-01-31T10:58:05
 
 ========================================
 FILE PATH: res://Scenes/ActionNode.tscn
@@ -1247,7 +1247,7 @@ size_flags_horizontal = 3
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-columns = 3
+columns = 8
 
 [node name="MomentumSlider" type="HSlider" parent="." unique_id=1893970328]
 offset_left = 414.0
@@ -1410,30 +1410,97 @@ theme_override_constants/outline_size = 4
 ========================================
 FILE PATH: res://Scenes/CardButton.tscn
 ========================================
-[gd_scene load_steps=2 format=3 uid="uid://pn3d56xopa7y"]
+[gd_scene format=3 uid="uid://pn3d56xopa7y"]
 
 [ext_resource type="Script" uid="uid://5nso7yfr4m14" path="res://Scripts/CardButton.gd" id="1_ab6ye"]
 
-[node name="CardButton" type="Button"]
-custom_minimum_size = Vector2(200, 40)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ab6ye"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8er2a"]
+bg_color = Color(0.6, 0.6, 0.6, 0)
+border_width_left = 4
+border_width_top = 4
+border_width_right = 4
+border_width_bottom = 4
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="CardButton" type="Button" unique_id=325152128]
+custom_minimum_size = Vector2(140, 100)
 offset_right = 8.0
 offset_bottom = 8.0
 toggle_mode = true
+flat = true
 script = ExtResource("1_ab6ye")
 
-[node name="CostLabel" type="Label" parent="."]
+[node name="CardBackground" type="Panel" parent="." unique_id=747251541]
 layout_mode = 1
-anchors_preset = -1
-anchor_left = 1.0
-anchor_top = 0.5
+anchors_preset = 15
 anchor_right = 1.0
-anchor_bottom = 0.5
-offset_left = -40.0
-offset_top = -11.5
-offset_right = -5.0
-offset_bottom = 11.5
-grow_horizontal = 0
+anchor_bottom = 1.0
+grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_ab6ye")
+
+[node name="CardBorder" type="Panel" parent="." unique_id=1954349075]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_8er2a")
+
+[node name="InnerMargin" type="MarginContainer" parent="." unique_id=190911731]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="VBox" type="VBoxContainer" parent="InnerMargin" unique_id=2049046113]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="InnerMargin/VBox" unique_id=532731549]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="IconContainer" type="CenterContainer" parent="InnerMargin/VBox" unique_id=772809809]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="TypeIcon" type="Label" parent="InnerMargin/VBox/IconContainer" unique_id=2084336206]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+
+[node name="CostPanel" type="PanelContainer" parent="InnerMargin/VBox" unique_id=438844957]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="CostLabel" type="Label" parent="InnerMargin/VBox/CostPanel" unique_id=1998346681]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "1 SP"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [connection signal="mouse_entered" from="." to="." method="_on_mouse_entered"]
 [connection signal="mouse_exited" from="." to="." method="_on_mouse_exited"]
@@ -2934,11 +3001,18 @@ grow_vertical = 2
 size_flags_horizontal = 3
 
 [node name="PanelContainer" type="PanelContainer" parent="Content/P1_Container" unique_id=454312075]
+self_modulate = Color(1, 1, 1, 0)
 layout_mode = 2
 
 [node name="SpeechBubble" type="Label" parent="Content/P1_Container/PanelContainer" unique_id=1298631522]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "speech"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -2950,22 +3024,44 @@ stretch_mode = 5
 
 [node name="NameLabel" type="Label" parent="Content/P1_Container" unique_id=487469269]
 layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 25
 text = "Player 1"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="ClassLabel" type="Label" parent="Content/P1_Container" unique_id=2022137226]
 layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
 text = "Heavy Class"
 horizontal_alignment = 1
 vertical_alignment = 1
 
+[node name="Panel" type="Panel" parent="Content/P1_Container" unique_id=419564503]
+modulate = Color(1, 1, 1, 0)
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+
 [node name="VsLabel" type="Label" parent="Content" unique_id=1900404297]
-layout_mode = 0
-offset_left = 566.0
-offset_top = 312.0
-offset_right = 585.0
-offset_bottom = 335.0
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -58.5
+offset_top = -68.5
+offset_right = 58.5
+offset_bottom = 68.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 100
 text = "VS"
 
 [node name="P2_Container" type="VBoxContainer" parent="Content" unique_id=819383389]
@@ -2979,11 +3075,18 @@ grow_vertical = 2
 size_flags_horizontal = 3
 
 [node name="PanelContainer" type="PanelContainer" parent="Content/P2_Container" unique_id=145062261]
+self_modulate = Color(1, 1, 1, 0)
 layout_mode = 2
 
 [node name="SpeechBubble" type="Label" parent="Content/P2_Container/PanelContainer" unique_id=614714463]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "speech"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -2995,15 +3098,26 @@ stretch_mode = 5
 
 [node name="NameLabel" type="Label" parent="Content/P2_Container" unique_id=1124967152]
 layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 25
 text = "Player 2"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="ClassLabel" type="Label" parent="Content/P2_Container" unique_id=585448502]
 layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
 text = "Quick Class"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="Panel" type="Panel" parent="Content/P2_Container" unique_id=750278151]
+modulate = Color(1, 1, 1, 0)
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
 
 [node name="ArenaLabel" type="Label" parent="." unique_id=1332158513]
 layout_mode = 1
@@ -3012,13 +3126,17 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -20.0
-offset_top = -34.0
-offset_right = 20.0
+offset_left = -44.5
+offset_top = -66.0
+offset_right = 44.5
 offset_bottom = -11.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_font_sizes/font_size = 40
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_constants/shadow_outline_size = 1
+theme_override_font_sizes/font_size = 35
 text = "Dojo"
 horizontal_alignment = 1
 vertical_alignment = 1
