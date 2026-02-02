@@ -1,5 +1,5 @@
 --- GODOT PROJECT SCENE DUMP ---
-Generated: 2026-02-02T18:20:10
+Generated: 2026-02-02T19:46:32
 
 ========================================
 FILE PATH: res://Scenes/ActionNode.tscn
@@ -1582,13 +1582,15 @@ size_flags_vertical = 3
 layout_mode = 2
 theme_override_font_sizes/font_size = 64
 
-[node name="StatsLabel" type="Label" parent="InnerMargin/VBox" unique_id=1819978088]
+[node name="StatsLabel" type="RichTextLabel" parent="InnerMargin/VBox" unique_id=847423630]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+mouse_filter = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
 horizontal_alignment = 1
 vertical_alignment = 1
-autowrap_mode = 3
 
 [node name="CostPanel" type="PanelContainer" parent="InnerMargin/VBox" unique_id=836118486]
 layout_mode = 2
@@ -2854,6 +2856,61 @@ offset_right = 520.0
 offset_bottom = 435.0
 texture = ExtResource("2_yqw7w")
 expand_mode = 1
+
+
+========================================
+FILE PATH: res://Scenes/RewardScreen.tscn
+========================================
+[gd_scene format=3 uid="uid://d1matpbdep121"]
+
+[ext_resource type="Script" uid="uid://d2tyi2fkt8os2" path="res://Scripts/RewardScreen.gd" id="1_fx078"]
+
+[node name="RewardScreen" type="Control" unique_id=1803089007]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_fx078")
+
+[node name="Background" type="ColorRect" parent="." unique_id=588904117]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.9372549)
+
+[node name="TitleLabel" type="Label" parent="." unique_id=1115673774]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -130.0
+offset_top = 11.0
+offset_right = 130.0
+offset_bottom = 34.0
+grow_horizontal = 2
+text = "VICTORY! CHOOSE YOUR REWARD"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RewardContainer" type="HBoxContainer" parent="." unique_id=385531029]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 40
 
 
 ========================================

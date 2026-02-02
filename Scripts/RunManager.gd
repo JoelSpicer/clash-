@@ -155,19 +155,9 @@ func handle_win():
 	
 	var level_beaten = current_level - 1
 	
-	# 1. Guaranteed Equipment (Every 3rd Win)
-	if level_beaten > 0 and level_beaten % 3 == 0:
-		print("Milestone Reached! Loading Equipment Draft...")
-		SceneLoader.change_scene("res://Scenes/equipmentdraft.tscn")
-		
-	# 2. Random Event (35% Chance on normal wins)
-	elif level_beaten > 0 and randf() < 0.35:
-		print("Random Event Triggered!")
-		SceneLoader.change_scene("res://Scenes/EventRoom.tscn")
-		
-	# 3. Standard Action Tree
-	else:
-		SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
+# DIRECT TO REWARD SCREEN (The New Hybrid Flow)
+	print("Victory! Loading Reward Screen...")
+	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
 
 # Helper to fetch all equipment for the draft
 func get_all_equipment() -> Array[EquipmentData]:
@@ -186,3 +176,77 @@ func get_all_equipment() -> Array[EquipmentData]:
 
 func handle_loss():
 	is_arcade_mode = false
+
+# --- REWARD POOL LOGIC ---
+
+# 1. Fetch Valid Actions (The "Invisible Tree" Logic)
+func get_valid_action_rewards() -> Array[ActionData]:
+	var valid_actions: Array[ActionData] = []
+	var neighbor_ids = []
+	
+	# Look at every node we currently own
+	for owned_id in player_owned_tree_ids:
+		# Check its connections in the static Tree Map
+		if ClassFactory.TREE_CONNECTIONS.has(owned_id):
+			for neighbor in ClassFactory.TREE_CONNECTIONS[owned_id]:
+				# If we don't own it yet, it's a valid reward
+				if neighbor not in player_owned_tree_ids and neighbor not in neighbor_ids:
+					neighbor_ids.append(neighbor)
+	
+	# Convert IDs to actual Resources
+	for id in neighbor_ids:
+		var c_name = ClassFactory.ID_TO_NAME_MAP.get(id)
+		if c_name:
+			var card = ClassFactory.find_action_resource(c_name)
+			if card: valid_actions.append(card)
+			
+	return valid_actions
+
+# 2. Fetch Stat Upgrades (Generated on the fly)
+func get_stat_upgrades() -> Array[Dictionary]:
+	return [
+		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +4 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 4; p.current_hp += 4 },
+		{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
+		{ "type": "stat", "text": "FULL RESTORE", "desc": "Heal to Full HP.", "icon": "heal", "func": func(p): p.current_hp = p.max_hp }
+	]
+
+# 3. Handle Reward Selection
+func apply_reward(reward):
+	# A. If it's an Action (Resource)
+	if reward is ActionData:
+		# 1. Unlock in Tree
+		var id = ClassFactory.get_id_by_name(reward.display_name)
+		if id != 0: player_owned_tree_ids.append(id)
+		
+		# 2. Add to Deck/Library
+		player_run_data.unlocked_actions.append(reward)
+		if player_run_data.deck.size() < ClassFactory.HAND_LIMIT:
+			player_run_data.deck.append(reward)
+		
+		# 3. The "Draft Heal" (Action is its own reward + tiny sustain)
+		player_run_data.current_hp = min(player_run_data.current_hp + 2, player_run_data.max_hp)
+		print("Drafted Action: " + reward.display_name + " (Healed 2 HP)")
+
+	# B. If it's Equipment (Resource)
+	elif reward is EquipmentData:
+		player_run_data.equipment.append(reward)
+		# Recalculate stats immediately to apply bonuses
+		ClassFactory._recalculate_stats(player_run_data)
+		print("Drafted Item: " + reward.display_name)
+
+	# C. If it's a Stat Upgrade (Dictionary)
+	elif reward is Dictionary and reward.has("func"):
+		reward["func"].call(player_run_data)
+		print("Drafted Upgrade: " + reward.text)
+
+	# Save/Continue
+	handle_reward_complete()
+
+func handle_reward_complete():
+	# If deck is full, maybe go to a "Deck Management" screen later.
+	# For now, just go to next fight or Hub.
+	if current_level % 3 == 0:
+		# Maybe a shop or event every 3 levels? For now, just loop.
+		pass
+	
+	start_next_fight()

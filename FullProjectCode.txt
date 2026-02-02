@@ -2117,6 +2117,7 @@ FILE PATH: res://Scripts/CardDisplay.gd
 extends Control
 
 # --- NODES ---
+# Ensure these names match your Scene Tree exactly
 @onready var title_label = $InnerMargin/VBox/TitleLabel
 @onready var type_icon = $InnerMargin/VBox/IconContainer/TypeIcon
 @onready var stats_label = $InnerMargin/VBox/StatsLabel
@@ -2124,34 +2125,46 @@ extends Control
 @onready var card_border = $CardBorder
 @onready var card_background = $CardBackground
 
+# --- DATA STORAGE ---
+var _pending_action: ActionData = null
+var _pending_cost: int = -1
+
 # --- STYLING CONSTANTS ---
-const COL_OFFENCE = Color("#ff6666") # Soft Red
-const COL_DEFENCE = Color("#66a3ff") # Soft Blue
-const COL_UTIL = Color("#cfcfcf")    # Grey
+const COL_OFFENCE = Color("#ff6666") 
+const COL_DEFENCE = Color("#66a3ff") 
+const COL_UTIL = Color("#cfcfcf")    
+
+func _ready():
+	# When the node finishes loading, check if we have data waiting
+	if _pending_action:
+		set_card_data(_pending_action, _pending_cost)
 
 func set_card_data(action: ActionData, override_cost: int = -1):
-	# 1. Basic Title
+	# 1. Store data (so we can use it later if the node isn't ready yet)
+	_pending_action = action
+	_pending_cost = override_cost
+	
+	# 2. Silent Safety Check
+	# If variables are not loaded yet, stop here. 
+	# The _ready() function will trigger this again automatically.
+	if not title_label:
+		return
+
+	# --- RENDER LOGIC ---
+	
+	# Basic Title
 	title_label.text = action.display_name
 	
-	if action.display_name.begins_with("CLASS:"):
-		$InnerMargin/VBox/IconContainer.visible = false
-		$InnerMargin/VBox/CostPanel.visible = false
-		stats_label.add_theme_font_size_override("normal_font_size", 14) # Smaller text
-	else:
-		$InnerMargin/VBox/IconContainer.visible = true
-		$InnerMargin/VBox/CostPanel.visible = true
-		stats_label.remove_theme_font_size_override("normal_font_size") # Reset to default
-	
-	# 2. Cost Logic (With Discount Support)
+	# Cost Logic
 	var final_cost = action.cost
 	if override_cost != -1: final_cost = override_cost
 	
 	if cost_label:
 		cost_label.text = str(final_cost) + " SP"
 		if override_cost != -1 and override_cost < action.cost:
-			cost_label.modulate = Color(0.5, 1.0, 0.5) # Green
+			cost_label.modulate = Color(0.5, 1.0, 0.5) 
 		else:
-			cost_label.modulate = Color(1, 1, 1) # White
+			cost_label.modulate = Color(1, 1, 1) 
 			
 		var cost_bg = StyleBoxFlat.new()
 		cost_bg.bg_color = Color(0, 0, 0, 0.6)
@@ -2159,17 +2172,15 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 		if has_node("InnerMargin/VBox/CostPanel"):
 			$InnerMargin/VBox/CostPanel.add_theme_stylebox_override("panel", cost_bg)
 
-	# 3. Visual Theme (Icons & Colors)
-	var style = card_border.get_theme_stylebox("panel").duplicate()
-	type_icon.text = "" # Reset
+	# Visual Theme (Border & Icons)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0)
+	style.set_border_width_all(6)
+	style.set_corner_radius_all(12)
 	
-	# --- FORCE BORDER VISIBILITY ---
-	style.bg_color = Color(0, 0, 0, 0) # Transparent center
-	style.set_border_width_all(6)      # Force 6px thickness
-	style.set_corner_radius_all(12)    # Force rounded corners
-	# -------------------------------
+	type_icon.text = "" 
+	stats_label.text = ""
 	
-	# Set Colors & Icons based on Type
 	if action.type == ActionData.Type.OFFENCE:
 		style.border_color = COL_OFFENCE
 		type_icon.text = "⚔️"
@@ -2182,23 +2193,19 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 		if action.dodge_value > 0: type_icon.text = "💨"
 		stats_label.modulate = COL_DEFENCE
 	
-	# Special Icon Overrides
 	if action.heal_value > 0:
 		type_icon.text = "❤️"
 		stats_label.modulate = Color.GREEN_YELLOW
-	if action.statuses_to_apply.size() > 0 and action.damage == 0 and action.block_value == 0:
-		type_icon.text = "☠️"
-		stats_label.modulate = Color.PURPLE
+		
+	if action.statuses_to_apply.size() > 0:
+		if action.damage == 0 and action.block_value == 0:
+			type_icon.text = "☠️"
+			stats_label.modulate = Color.PURPLE
 
-# 4. DESCRIPTION LOGIC (Rich Text Upgrade)
-	
-	# Determine the final text string
-	var final_text = ""
-	
+	# Description Logic
 	if action.description and action.description != "":
-		final_text = action.description
+		stats_label.text = "[center]" + action.description + "[/center]"
 	else:
-		# Auto-generate text for non-class cards
 		var parts = []
 		if action.damage > 0: parts.append("[color=#ff9999]" + str(action.damage) + " DMG[/color]")
 		if action.block_value > 0: parts.append("[color=#99ccff]" + str(action.block_value) + " BLOCK[/color]")
@@ -2212,25 +2219,15 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 			if duration > 0: status_text += " (" + str(duration) + ")"
 			parts.append(status_text)
 			
-		final_text = "\n".join(parts)
+		stats_label.text = "[center]" + "\n".join(parts) + "[/center]"
 
-	# Apply to RichTextLabel
-	stats_label.text = "[center]" + final_text + "[/center]"
-	
-	# Optional: Adjust color based on card type if not manually colored
-	if action.type == ActionData.Type.OFFENCE:
-		stats_label.modulate = Color(1, 0.9, 0.9) # Slight red tint
-	else:
-		stats_label.modulate = Color(0.9, 0.9, 1.0) # Slight blue tint
-
-	# Apply the border style
 	card_border.add_theme_stylebox_override("panel", style)
-
-# Optional: Reset function if you pool these objects
-func clear():
-	title_label.text = ""
-	type_icon.text = ""
-	stats_label.text = ""
+	
+	# HIDE ICON FOR CLASSES (Optional polish)
+	if action.display_name.begins_with("CLASS:"):
+		$InnerMargin/VBox/IconContainer.visible = false
+	else:
+		$InnerMargin/VBox/IconContainer.visible = true
 
 
 ========================================
@@ -5637,6 +5634,164 @@ class_name PresetCharacter
 
 
 ========================================
+FILE PATH: res://Scripts/RewardScreen.gd
+========================================
+extends Control
+
+@onready var container = $RewardContainer
+@onready var title_label = $TitleLabel # Make sure you have this node
+
+# Preload your existing displays
+var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
+
+func _ready():
+	_generate_rewards()
+
+func _generate_rewards():
+	# 1. Clear old rewards
+	for c in container.get_children():
+		c.queue_free()
+		
+	# 2. Fetch Pools
+	var valid_actions = RunManager.get_valid_action_rewards()
+	var all_items = RunManager.get_all_equipment()
+	var stat_upgrades = RunManager.get_stat_upgrades()
+	
+	# Filter items player already has (Unique Equip Rule)
+	var valid_items = []
+	for item in all_items:
+		if not _player_has_item(item):
+			valid_items.append(item)
+	
+	# 3. THE "SAFETY SLOT" ALGORITHM
+	var choices = []
+	
+	# SLOT 1: ACTION (The Class Progression)
+	if valid_actions.size() > 0:
+		choices.append(valid_actions.pick_random())
+	else:
+		# Fallback if tree is maxed out
+		choices.append(stat_upgrades.pick_random())
+		
+	# SLOT 2: UPGRADE/ITEM (The Build Control)
+	# 50/50 chance between Equipment and Stats
+	if valid_items.size() > 0 and randf() > 0.5:
+		choices.append(valid_items.pick_random())
+	else:
+		choices.append(stat_upgrades.pick_random())
+		
+	# SLOT 3: WILDCARD (Pure Chaos)
+	var roll = randf()
+	if roll < 0.4 and valid_actions.size() > 0: # 40% Action
+		# Try to pick a DIFFERENT action than slot 1
+		var act = valid_actions.pick_random()
+		choices.append(act) 
+	elif roll < 0.7 and valid_items.size() > 0: # 30% Item
+		choices.append(valid_items.pick_random())
+	else: # 30% Stat
+		choices.append(stat_upgrades.pick_random())
+		
+	# 4. Render Options
+	for reward in choices:
+		_create_reward_card(reward)
+
+func _create_reward_card(reward):
+	var btn = Button.new()
+	btn.custom_minimum_size = Vector2(220, 320)
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	
+	container.add_child(btn)
+	
+	# Styling (Dark Card Base)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.1, 1.0)
+	style.set_corner_radius_all(10)
+	style.set_border_width_all(2)
+	style.border_color = Color(0.3, 0.3, 0.3)
+	btn.add_theme_stylebox_override("normal", style)
+	
+	var hover = style.duplicate()
+	hover.border_color = Color(1.0, 0.8, 0.2) # Gold Border on Hover
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", hover)
+	
+	
+	# --- CONTENT GENERATION ---
+	
+	# A. ACTION CARD
+	if reward is ActionData:
+		# We reuse your nice CardDisplay, but scale it down slightly
+		var disp = card_display_scene.instantiate()
+		disp.set_card_data(reward)
+		disp.scale = Vector2(0.8, 0.8)
+		disp.position = Vector2(10, 10) # Padding
+		disp.mouse_filter = Control.MOUSE_FILTER_IGNORE # Let button catch clicks
+		btn.add_child(disp)
+		
+		# Label for "New Action"
+		var lbl = Label.new()
+		lbl.text = "NEW ACTION"
+		lbl.modulate = Color.GREEN
+		lbl.position = Vector2(0, -30)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.size.x = 220
+		btn.add_child(lbl)
+
+	# B. EQUIPMENT
+	elif reward is EquipmentData:
+		_build_info_card(btn, reward.display_name, reward.description, Color(0.4, 0.6, 1.0), "EQUIPMENT")
+		
+	# C. STAT UPGRADE
+	elif reward is Dictionary:
+		_build_info_card(btn, reward.text, reward.desc, Color(1.0, 0.5, 0.5), "UPGRADE")
+
+	# Connection
+	btn.pressed.connect(func(): _on_selected(reward))
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+
+func _build_info_card(parent, title, desc, color, category):
+	# Title
+	var t = Label.new()
+	t.text = title
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.add_theme_font_size_override("font_size", 20)
+	t.modulate = color
+	t.position = Vector2(10, 40)
+	t.size = Vector2(200, 60)
+	parent.add_child(t)
+	
+	# Category Header
+	var cat = Label.new()
+	cat.text = category
+	cat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cat.modulate = Color(0.5, 0.5, 0.5)
+	cat.position = Vector2(0, 10)
+	cat.size.x = 220
+	parent.add_child(cat)
+	
+	# Description
+	var d = RichTextLabel.new()
+	d.text = "[center]" + desc + "[/center]"
+	d.bbcode_enabled = true
+	d.position = Vector2(10, 120)
+	d.size = Vector2(200, 150)
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(d)
+
+func _on_selected(reward):
+	AudioManager.play_sfx("ui_click")
+	RunManager.apply_reward(reward)
+
+func _player_has_item(item_data):
+	var p = RunManager.player_run_data
+	for i in p.equipment:
+		if i.display_name == item_data.display_name: return true
+	return false
+
+
+========================================
 FILE PATH: res://Scripts/RunManager.gd
 ========================================
 extends Node
@@ -5796,19 +5951,9 @@ func handle_win():
 	
 	var level_beaten = current_level - 1
 	
-	# 1. Guaranteed Equipment (Every 3rd Win)
-	if level_beaten > 0 and level_beaten % 3 == 0:
-		print("Milestone Reached! Loading Equipment Draft...")
-		SceneLoader.change_scene("res://Scenes/equipmentdraft.tscn")
-		
-	# 2. Random Event (35% Chance on normal wins)
-	elif level_beaten > 0 and randf() < 0.35:
-		print("Random Event Triggered!")
-		SceneLoader.change_scene("res://Scenes/EventRoom.tscn")
-		
-	# 3. Standard Action Tree
-	else:
-		SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
+# DIRECT TO REWARD SCREEN (The New Hybrid Flow)
+	print("Victory! Loading Reward Screen...")
+	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
 
 # Helper to fetch all equipment for the draft
 func get_all_equipment() -> Array[EquipmentData]:
@@ -5827,6 +5972,80 @@ func get_all_equipment() -> Array[EquipmentData]:
 
 func handle_loss():
 	is_arcade_mode = false
+
+# --- REWARD POOL LOGIC ---
+
+# 1. Fetch Valid Actions (The "Invisible Tree" Logic)
+func get_valid_action_rewards() -> Array[ActionData]:
+	var valid_actions: Array[ActionData] = []
+	var neighbor_ids = []
+	
+	# Look at every node we currently own
+	for owned_id in player_owned_tree_ids:
+		# Check its connections in the static Tree Map
+		if ClassFactory.TREE_CONNECTIONS.has(owned_id):
+			for neighbor in ClassFactory.TREE_CONNECTIONS[owned_id]:
+				# If we don't own it yet, it's a valid reward
+				if neighbor not in player_owned_tree_ids and neighbor not in neighbor_ids:
+					neighbor_ids.append(neighbor)
+	
+	# Convert IDs to actual Resources
+	for id in neighbor_ids:
+		var c_name = ClassFactory.ID_TO_NAME_MAP.get(id)
+		if c_name:
+			var card = ClassFactory.find_action_resource(c_name)
+			if card: valid_actions.append(card)
+			
+	return valid_actions
+
+# 2. Fetch Stat Upgrades (Generated on the fly)
+func get_stat_upgrades() -> Array[Dictionary]:
+	return [
+		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +4 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 4; p.current_hp += 4 },
+		{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
+		{ "type": "stat", "text": "FULL RESTORE", "desc": "Heal to Full HP.", "icon": "heal", "func": func(p): p.current_hp = p.max_hp }
+	]
+
+# 3. Handle Reward Selection
+func apply_reward(reward):
+	# A. If it's an Action (Resource)
+	if reward is ActionData:
+		# 1. Unlock in Tree
+		var id = ClassFactory.get_id_by_name(reward.display_name)
+		if id != 0: player_owned_tree_ids.append(id)
+		
+		# 2. Add to Deck/Library
+		player_run_data.unlocked_actions.append(reward)
+		if player_run_data.deck.size() < ClassFactory.HAND_LIMIT:
+			player_run_data.deck.append(reward)
+		
+		# 3. The "Draft Heal" (Action is its own reward + tiny sustain)
+		player_run_data.current_hp = min(player_run_data.current_hp + 2, player_run_data.max_hp)
+		print("Drafted Action: " + reward.display_name + " (Healed 2 HP)")
+
+	# B. If it's Equipment (Resource)
+	elif reward is EquipmentData:
+		player_run_data.equipment.append(reward)
+		# Recalculate stats immediately to apply bonuses
+		ClassFactory._recalculate_stats(player_run_data)
+		print("Drafted Item: " + reward.display_name)
+
+	# C. If it's a Stat Upgrade (Dictionary)
+	elif reward is Dictionary and reward.has("func"):
+		reward["func"].call(player_run_data)
+		print("Drafted Upgrade: " + reward.text)
+
+	# Save/Continue
+	handle_reward_complete()
+
+func handle_reward_complete():
+	# If deck is full, maybe go to a "Deck Management" screen later.
+	# For now, just go to next fight or Hub.
+	if current_level % 3 == 0:
+		# Maybe a shop or event every 3 levels? For now, just loop.
+		pass
+	
+	start_next_fight()
 
 
 ========================================
