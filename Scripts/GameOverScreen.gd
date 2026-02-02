@@ -51,22 +51,25 @@ func _setup_arcade_mode():
 
 func _on_main_action():
 	AudioManager.play_sfx("ui_confirm")
+	print("GameOverScreen: Main Button Pressed") # DEBUG
 	
 	# 1. ARCADE MODE LOGIC
 	if RunManager.player_run_data != null:
 		var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
+		print("GameOverScreen: Arcade Mode. Player Won? " + str(player_won)) # DEBUG
 		
 		if player_won:
-			# -> GO TO REWARDS
+			print("GameOverScreen: Calling handle_win()...") # DEBUG
 			RunManager.handle_win()
 		else:
-			# -> RETRY FIGHT (or restart run)
-			# For now, let's just reload the fight to be nice
+			print("GameOverScreen: Reloading Scene (Retry)...") # DEBUG
+			get_tree().paused = false # Safety unpause for retry too!
 			SceneLoader.reload_current_scene()
 			
 	# 2. QUICK MATCH LOGIC
 	else:
-		# Just reload the fight
+		print("GameOverScreen: Quick Match Rematch...") # DEBUG
+		get_tree().paused = false # Safety unpause
 		SceneLoader.reload_current_scene()
 
 func _on_menu_pressed():

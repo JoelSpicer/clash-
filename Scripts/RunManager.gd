@@ -150,13 +150,14 @@ func start_next_fight():
 	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 func handle_win():
+	# --- FIX: UNPAUSE THE GAME ---
+	# If we don't do this, the scene change might get stuck 
+	# or the next scene will start frozen.
+	get_tree().paused = false 
+	# -----------------------------
+	
+	print("Victory! Processing Level Up...")
 	current_level += 1
-	free_unlocks_remaining = 1 
-	
-	#var level_beaten = current_level - 1
-	
-# DIRECT TO REWARD SCREEN (The New Hybrid Flow)
-	print("Victory! Loading Reward Screen...")
 	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
 
 # Helper to fetch all equipment for the draft
