@@ -257,3 +257,32 @@ func _on_visibility_changed():
 	# If we just opened the window, wait for it to draw, then scroll to bottom.
 	if visible:
 		_auto_scroll()
+
+# --- NEW FUNCTION: This is what TestArena calls to get the text ---
+func get_log_text() -> String:
+	var full_log_string = ""
+	
+	# Iterate through every row in the log list
+	for child in log_list.get_children():
+		# We need a helper to find the label, because sometimes it's nested
+		# inside MarginContainers or other layout nodes.
+		var label = _find_richtext_recursive(child)
+		
+		if label:
+			# We use .text (includes BBCode) so the Game Over screen keeps the colors.
+			# If you want plain text, use label.get_parsed_text()
+			full_log_string += label.text + "\n"
+			
+	return full_log_string
+# -----------------------------------------------------------------
+
+func _find_richtext_recursive(node: Node) -> RichTextLabel:
+	if node is RichTextLabel:
+		return node
+	
+	for child in node.get_children():
+		var found = _find_richtext_recursive(child)
+		if found:
+			return found
+			
+	return null

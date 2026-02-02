@@ -3818,10 +3818,17 @@ extends Control
 
 @onready var title_label = $Panel/VBoxContainer/TitleLabel
 @onready var winner_label = $Panel/VBoxContainer/WinnerLabel
-@onready var main_btn = $Panel/VBoxContainer/RematchButton # Use your actual button name
+@onready var main_btn = $Panel/VBoxContainer/RematchButton # Check if this matches your scene (RematchBtn vs RematchButton)
 @onready var menu_btn = $Panel/VBoxContainer/MenuButton
+@onready var panel = $Panel
+@onready var view_btn = $Panel/VBoxContainer/ViewBtn
 
 var winner_data: CharacterData = null
+var match_log_text: String = ""
+
+# -- NEW: Code-generated Log Window --
+var log_popup: Panel = null
+var log_label: RichTextLabel = null
 
 func _ready():
 	# Default connections
@@ -3830,40 +3837,53 @@ func _ready():
 	
 	if not menu_btn.pressed.is_connected(_on_menu_pressed):
 		menu_btn.pressed.connect(_on_menu_pressed)
+	
+	# --- VIEW BUTTON CONNECTION ---
+	if view_btn:
+		view_btn.text = "VIEW LOG" 
+		if not view_btn.pressed.is_connected(_on_view_pressed): 
+			view_btn.pressed.connect(_on_view_pressed)
+	
+	# Build the popup immediately
+	_build_log_window()
 
-func setup(data: CharacterData):
+func setup(data: CharacterData, log_text: String = ""):
 	winner_data = data
+	match_log_text = log_text
+	
+	# DEBUG: Check if text is actually arriving
+	if log_text == "":
+		print("GameOverScreen: WARNING - log_text is empty!")
+		match_log_text = "[center]No log data recorded.[/center]"
+	else:
+		print("GameOverScreen: Log text received. Length: " + str(log_text.length()))
+
+	# Populate the log label
+	if log_label:
+		log_label.text = match_log_text
+		
 	winner_label.text = "Winner: " + data.character_name
 	
-	# --- MODE CHECK ---
+	# Mode Check
 	if RunManager.player_run_data != null:
 		_setup_arcade_mode()
 	else:
 		_setup_quick_match_mode()
 
 func _setup_quick_match_mode():
-	# Standard Fighting Game behavior
 	main_btn.text = "REMATCH"
-	# Logic stays as default (reload scene)
 
 func _setup_arcade_mode():
-	# Check if the PLAYER won (Arcade P1 is always the player)
 	var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
 	
 	if player_won:
 		title_label.text = "VICTORY!"
 		title_label.modulate = Color.GREEN
-		
 		main_btn.text = "CONTINUE"
-		# The _on_main_action function will handle the routing
 	else:
 		title_label.text = "GAME OVER"
 		title_label.modulate = Color.RED
-		
-		# In a roguelike, losing usually means the run ends
 		main_btn.text = "TRY AGAIN" 
-		# You could also hide this button if you want strict permadeath
-		# main_btn.visible = false 
 
 func _on_main_action():
 	AudioManager.play_sfx("ui_confirm")
@@ -3873,25 +3893,74 @@ func _on_main_action():
 		var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
 		
 		if player_won:
-			# -> GO TO REWARDS
 			RunManager.handle_win()
 		else:
-			# -> RETRY FIGHT (or restart run)
-			# For now, let's just reload the fight to be nice
+			get_tree().paused = false 
 			SceneLoader.reload_current_scene()
 			
 	# 2. QUICK MATCH LOGIC
 	else:
-		# Just reload the fight
+		get_tree().paused = false
 		SceneLoader.reload_current_scene()
 
 func _on_menu_pressed():
 	AudioManager.play_sfx("ui_back")
-	# If in arcade, maybe clear the run data?
 	if RunManager.player_run_data:
-		RunManager.player_run_data = null # End the run
-		
+		RunManager.player_run_data = null 
+	
+	get_tree().paused = false
 	SceneLoader.change_scene("res://Scenes/MenuArcade.tscn")
+
+func _on_view_pressed():
+	AudioManager.play_sfx("ui_click")
+	log_popup.visible = not log_popup.visible
+
+func _build_log_window():
+	# 1. Create the Popup Panel
+	log_popup = Panel.new()
+	log_popup.visible = false
+	log_popup.mouse_filter = Control.MOUSE_FILTER_STOP # Blocks clicks
+	
+	# Size and Position (Centered)
+	log_popup.custom_minimum_size = Vector2(600, 400)
+	log_popup.size = Vector2(600, 400)
+	# Center it on screen
+	log_popup.position = (get_viewport_rect().size / 2) - (Vector2(600, 400) / 2)
+	
+	# Style: Dark Overlay with Border
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.1, 0.95)
+	style.set_border_width_all(2)
+	style.border_color = Color.WHITE
+	style.set_corner_radius_all(8)
+	log_popup.add_theme_stylebox_override("panel", style)
+	
+	add_child(log_popup)
+	
+	# 2. FIX: Add an "X" Close Button inside the popup
+	var close_btn = Button.new()
+	close_btn.text = "X"
+	close_btn.position = Vector2(560, 10) # Top right corner
+	close_btn.size = Vector2(30, 30)
+	close_btn.pressed.connect(_on_view_pressed) # Re-use the toggle function
+	log_popup.add_child(close_btn)
+	
+	# 3. Create Scroll Container
+	var scroll = ScrollContainer.new()
+	scroll.position = Vector2(20, 50) # Below the close button
+	scroll.size = Vector2(560, 330) # Fill remaining space
+	log_popup.add_child(scroll)
+	
+	# 4. Create Text Label
+	log_label = RichTextLabel.new()
+	log_label.bbcode_enabled = true
+	# FIX: These flags ensure the label expands to hold the text
+	log_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL 
+	log_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	log_label.fit_content = true # CRITICAL: Allows scrolling to work
+	log_label.text = "Loading log..."
+	
+	scroll.add_child(log_label)
 
 
 ========================================
@@ -6042,13 +6111,14 @@ func start_next_fight():
 	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 func handle_win():
+	# --- FIX: UNPAUSE THE GAME ---
+	# If we don't do this, the scene change might get stuck 
+	# or the next scene will start frozen.
+	get_tree().paused = false 
+	# -----------------------------
+	
+	print("Victory! Processing Level Up...")
 	current_level += 1
-	free_unlocks_remaining = 1 
-	
-	#var level_beaten = current_level - 1
-	
-# DIRECT TO REWARD SCREEN (The New Hybrid Flow)
-	print("Victory! Loading Reward Screen...")
 	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
 
 # Helper to fetch all equipment for the draft
@@ -6878,22 +6948,42 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 
 # --- LOGGING ---
 func _on_game_over(winner_id: int):
-	# 1. Force one final visual update so the HP bar shows 0
+	# 1. Force visual update
 	_update_visuals()
-	
-	# 2. Wait 1 second so the player can see the final hit land
 	await get_tree().create_timer(1.0).timeout
 	
-	# 3. Determine which DATA OBJECT belongs to the winner
+	# 2. Identify Winner Data
 	var winner_data: CharacterData
 	if winner_id == 1:
 		winner_data = p1_resource
 	else:
 		winner_data = p2_resource
 	
-	# 4. Now we pause and show the screen, passing the OBJECT, not the ID
+	# 3. GRAB THE LOG TEXT (Fixed)
+	var final_log_text = ""
+	
+	# Access the log using the variable BattleUI already knows about
+	var log_obj = battle_ui.get("combat_log")
+	
+	if log_obj:
+		# Check if it has a 'text' property (RichTextLabel, Label, or custom script)
+		if "text" in log_obj:
+			final_log_text = log_obj.text
+		# Fallback: In Godot 4, sometimes 'text' is empty if only append_text was used.
+		# We can try 'get_parsed_text()' if it's a RichTextLabel, though 'text' usually works.
+		elif log_obj.has_method("get_parsed_text"):
+			final_log_text = log_obj.get_parsed_text()
+	else:
+		# Last Resort: Try to find it by name if the variable failed
+		if battle_ui.has_node("CombatLog"):
+			final_log_text = battle_ui.get_node("CombatLog").text
+			
+	# Debug Print to confirm what we got
+	print("TestArena: Grabbed Log Text. Length: " + str(final_log_text.length()))
+	
+	# 4. Show Screen
 	get_tree().paused = true 
-	game_over_screen.setup(winner_data) # <--- This was the fix
+	game_over_screen.setup(winner_data, final_log_text) 
 	game_over_screen.visible = true
 	
 	

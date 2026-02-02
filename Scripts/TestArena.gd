@@ -542,22 +542,35 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 
 # --- LOGGING ---
 func _on_game_over(winner_id: int):
-	# 1. Force one final visual update so the HP bar shows 0
 	_update_visuals()
-	
-	# 2. Wait 1 second so the player can see the final hit land
 	await get_tree().create_timer(1.0).timeout
 	
-	# 3. Determine which DATA OBJECT belongs to the winner
-	var winner_data: CharacterData
-	if winner_id == 1:
-		winner_data = p1_resource
-	else:
-		winner_data = p2_resource
+	var winner_data = p1_resource if winner_id == 1 else p2_resource
 	
-	# 4. Now we pause and show the screen, passing the OBJECT, not the ID
+	# --- FIX: ROBUST TEXT EXTRACTION ---
+	var final_log_text = "Log not found."
+	
+	# 1. Try to get the object
+	var log_node = battle_ui.get("combat_log")
+	
+	if log_node:
+		# 2. Try our new function (Best Case)
+		if log_node.has_method("get_log_text"):
+			final_log_text = log_node.get_log_text()
+			
+		# 3. Fallback: Check if it's a raw RichTextLabel
+		elif log_node is RichTextLabel:
+			final_log_text = log_node.get_parsed_text()
+			
+		# 4. Fallback: Check standard text property
+		elif "text" in log_node:
+			final_log_text = log_node.text
+			
+	print("TestArena: Log Text Length: " + str(final_log_text.length()))
+	# -----------------------------------
+
 	get_tree().paused = true 
-	game_over_screen.setup(winner_data) # <--- This was the fix
+	game_over_screen.setup(winner_data, final_log_text) 
 	game_over_screen.visible = true
 	
 	
