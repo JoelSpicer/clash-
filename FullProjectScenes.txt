@@ -1,5 +1,5 @@
 --- GODOT PROJECT SCENE DUMP ---
-Generated: 2026-01-31T10:58:05
+Generated: 2026-02-02T18:20:10
 
 ========================================
 FILE PATH: res://Scenes/ActionNode.tscn
@@ -1509,73 +1509,94 @@ vertical_alignment = 1
 ========================================
 FILE PATH: res://Scenes/CardDisplay.tscn
 ========================================
-[gd_scene load_steps=2 format=3 uid="uid://nnqjc4grjsyg"]
+[gd_scene format=3 uid="uid://nnqjc4grjsyg"]
 
-[ext_resource type="Script" uid="uid://coqrpen7juqml" path="res://Scripts/card_display.gd" id="1_bcrn8"]
+[ext_resource type="Script" uid="uid://mhee2sj7ttbx" path="res://Scripts/CardDisplay.gd" id="1_bcrn8"]
 
-[node name="CardDisplay" type="Control"]
-custom_minimum_size = Vector2(250, 350)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mt6rq"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nee6h"]
+bg_color = Color(0.13333334, 0.13333334, 0.13333334, 0)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="CardDisplay" type="Control" unique_id=420643410]
+custom_minimum_size = Vector2(200, 280)
 layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_bcrn8")
-
-[node name="Background" type="Panel" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="Border" type="ReferenceRect" parent="."]
-layout_mode = 0
+anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
+script = ExtResource("1_bcrn8")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="CardBackground" type="Panel" parent="." unique_id=1439018792]
 layout_mode = 1
-anchors_preset = -1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_mt6rq")
 
-[node name="Header" type="HBoxContainer" parent="VBoxContainer"]
+[node name="CardBorder" type="Panel" parent="." unique_id=379458705]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_nee6h")
+
+[node name="InnerMargin" type="MarginContainer" parent="." unique_id=1655635922]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="InnerMargin" unique_id=2107994330]
 layout_mode = 2
 
-[node name="CostLabel" type="Label" parent="VBoxContainer/Header"]
+[node name="TitleLabel" type="Label" parent="InnerMargin/VBox" unique_id=35730173]
 layout_mode = 2
-
-[node name="NameLabel" type="Label" parent="VBoxContainer/Header"]
-layout_mode = 2
+theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Art" type="TextureRect" parent="VBoxContainer"]
+[node name="IconContainer" type="CenterContainer" parent="InnerMargin/VBox" unique_id=880863094]
 layout_mode = 2
 size_flags_vertical = 3
-expand_mode = 1
-stretch_mode = 5
 
-[node name="StatsRow" type="HBoxContainer" parent="VBoxContainer"]
+[node name="TypeIcon" type="Label" parent="InnerMargin/VBox/IconContainer" unique_id=1516569543]
+layout_mode = 2
+theme_override_font_sizes/font_size = 64
+
+[node name="StatsLabel" type="Label" parent="InnerMargin/VBox" unique_id=1819978088]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="CostPanel" type="PanelContainer" parent="InnerMargin/VBox" unique_id=836118486]
 layout_mode = 2
 
-[node name="StatLabel" type="Label" parent="VBoxContainer/StatsRow"]
-visible = false
+[node name="CostLabel" type="Label" parent="InnerMargin/VBox/CostPanel" unique_id=337127209]
 layout_mode = 2
-
-[node name="Description" type="RichTextLabel" parent="VBoxContainer"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-bbcode_enabled = true
-fit_content = true
+horizontal_alignment = 1
+vertical_alignment = 1
 
 
 ========================================

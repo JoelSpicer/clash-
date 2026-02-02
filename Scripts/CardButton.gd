@@ -31,7 +31,7 @@ func setup(action: ActionData):
 	if action.type == ActionData.Type.OFFENCE:
 		style.border_color = COL_OFFENCE
 		type_icon.text = "⚔️"
-		if action.damage > 4: type_icon.text = "💥"
+		if action.damage > 3: type_icon.text = "💥"
 	elif action.type == ActionData.Type.DEFENCE:
 		style.border_color = COL_DEFENCE
 		type_icon.text = "🛡️"

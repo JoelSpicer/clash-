@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dfuqb2it1x8u7"]
+[gd_resource type="Resource" script_class="ActionData" format=3 uid="uid://dfuqb2it1x8u7"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_8kcff"]
 [ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_pwl4j"]

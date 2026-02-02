@@ -1,4 +1,4 @@
-extends "res://Scripts/card_display.gd"
+extends "res://Scripts/CardDisplay.gd"
 
 # Drag one of your Action Resources here in the Inspector
 @export var test_action: ActionData 

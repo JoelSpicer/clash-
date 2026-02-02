@@ -1999,7 +1999,7 @@ func setup(action: ActionData):
 	if action.type == ActionData.Type.OFFENCE:
 		style.border_color = COL_OFFENCE
 		type_icon.text = "⚔️"
-		if action.damage > 4: type_icon.text = "💥"
+		if action.damage > 3: type_icon.text = "💥"
 	elif action.type == ActionData.Type.DEFENCE:
 		style.border_color = COL_DEFENCE
 		type_icon.text = "🛡️"
@@ -2039,24 +2039,19 @@ func update_cost_display(new_cost: int):
 func _on_mouse_entered():
 	if disabled: return
 	emit_signal("card_hovered", my_action)
-	
-	# 1. Create the Ghost
 	_create_ghost()
 
 func _on_mouse_exited():
 	emit_signal("card_exited")
 	
-	# 2. Destroy the Ghost
 	if current_ghost:
 		current_ghost.queue_free()
 		current_ghost = null
 	
-	# 3. Show Real Button Again
 	self.modulate.a = 1.0
 
 func _pressed():
 	if not disabled:
-		# Small squash on the ghost if it exists
 		if current_ghost:
 			var tween = create_tween()
 			tween.tween_property(current_ghost, "scale", Vector2(0.95, 0.95), 0.05)
@@ -2065,122 +2060,148 @@ func _pressed():
 		emit_signal("card_selected", my_action)
 
 func _create_ghost():
-	# A. Make a duplicate of this button
-	current_ghost = self.duplicate(0) # 0 = DUPLICATE_SIGNALS (none)
+	var ui_layer = _get_ui_layer()
+	if not ui_layer: return
 	
-	# B. Add it to the highest layer (BattleUI root)
-	# We find the BattleUI by going up the tree or getting the main window
-	var root = get_tree().root.get_child(0) # Usually the current scene
-	root.add_child(current_ghost)
+	# 1. Duplicate
+	current_ghost = self.duplicate(0)
 	
-	# C. Position it exactly where the real button is
+	# 2. CRITICAL FIX: Recursively force IGNORE on the ghost AND all its children
+	_make_ghost_ignore_mouse(current_ghost)
+	
+	# 3. Add to UI Layer
+	ui_layer.add_child(current_ghost)
+	
+	# 4. Position & Setup
 	current_ghost.global_position = self.global_position
 	current_ghost.size = self.size
 	current_ghost.pivot_offset = self.pivot_offset
-	current_ghost.z_index = 100 # Ensure it's on top of everything
+	current_ghost.z_index = 100 
 	
-	# D. Hide the real button (opacity 0)
-	# We don't use visible=false because that would collapse the Grid layout
+	# 5. Hide Real Button
 	self.modulate.a = 0.0
 	
-	# E. Animate the Ghost
+	# 6. Animate
 	var tween = create_tween()
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(current_ghost, "scale", Vector2(1.15, 1.15), 0.15)
 	tween.tween_property(current_ghost, "rotation_degrees", randf_range(-3.0, 3.0), 0.15)
 	
-	# Glow Effect on Ghost Border
-	var ghost_border = current_ghost.get_node("CardBorder")
+	var ghost_border = current_ghost.get_node_or_null("CardBorder")
 	if ghost_border:
 		ghost_border.modulate = Color(1.3, 1.3, 1.3)
 
+# --- NEW HELPER FUNCTION ---
+func _make_ghost_ignore_mouse(node: Node):
+	# If this node is a UI Control, tell it to ignore the mouse
+	if node is Control:
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	
+	# Repeat for every single child, grandchild, etc.
+	for child in node.get_children():
+		_make_ghost_ignore_mouse(child)
+
+func _get_ui_layer() -> Node:
+	var parent = get_parent()
+	while parent:
+		if parent is CanvasLayer:
+			return parent
+		parent = parent.get_parent()
+	return get_tree().current_scene
+
 
 ========================================
-FILE PATH: res://Scripts/card_display.gd
+FILE PATH: res://Scripts/CardDisplay.gd
 ========================================
 extends Control
 
-# UI References
-@onready var background = $Background
-@onready var cost_label = $VBoxContainer/Header/CostLabel
-@onready var name_label = $VBoxContainer/Header/NameLabel
-@onready var art_rect = $VBoxContainer/Art
-@onready var stat_label = $VBoxContainer/StatsRow/StatLabel
-@onready var desc_label = $VBoxContainer/Description
+# --- NODES ---
+@onready var title_label = $InnerMargin/VBox/TitleLabel
+@onready var type_icon = $InnerMargin/VBox/IconContainer/TypeIcon
+@onready var stats_label = $InnerMargin/VBox/StatsLabel
+@onready var cost_label = $InnerMargin/VBox/CostPanel/CostLabel
+@onready var card_border = $CardBorder
+@onready var card_background = $CardBackground
 
-# Colors
-const OFFENCE_COLOR = Color("#d14d4d") # Red
-const DEFENCE_COLOR = Color("#4d8ad1") # Blue
+# --- STYLING CONSTANTS ---
+const COL_OFFENCE = Color("#ff6666") # Soft Red
+const COL_DEFENCE = Color("#66a3ff") # Soft Blue
+const COL_UTIL = Color("#cfcfcf")    # Grey
 
 func set_card_data(action: ActionData, override_cost: int = -1):
-	# 1. Set Basic Text
-	name_label.text = action.display_name
+	# 1. Basic Text
+	title_label.text = action.display_name
 	
-	# Determine Cost Display
 	var final_cost = action.cost
 	if override_cost != -1:
 		final_cost = override_cost
-		
-	cost_label.text = str(final_cost) + " SP"
-	desc_label.text = action.description
 	
-	if final_cost == 0 and override_cost == -1:
-		cost_label.text = "" # Hide for classes
-	else:
+	# Cost Badge
+	if cost_label:
 		cost_label.text = str(final_cost) + " SP"
+		# Styling: If cost is discounted, make text Green
+		if override_cost != -1 and override_cost < action.cost:
+			cost_label.modulate = Color(0.5, 1.0, 0.5) # Green
+		else:
+			cost_label.modulate = Color(1, 1, 1) # White
+		# Styling the badge background
+		var cost_bg = StyleBoxFlat.new()
+		cost_bg.bg_color = Color(0, 0, 0, 0.6)
+		cost_bg.set_corner_radius_all(6)
+		$InnerMargin/VBox/CostPanel.add_theme_stylebox_override("panel", cost_bg)
+
+	# 2. Visual Theme (Border & Icons)
+	var style = card_border.get_theme_stylebox("panel").duplicate()
 	
-	# 2. Set Art
-	if action.icon:
-		art_rect.texture = action.icon
-	
-	# 3. Set Color based on Type
-	var bg_style = StyleBoxFlat.new()
 	if action.type == ActionData.Type.OFFENCE:
-		bg_style.bg_color = OFFENCE_COLOR
-	else:
-		bg_style.bg_color = DEFENCE_COLOR
-	
-	bg_style.set_corner_radius_all(10)
-	background.add_theme_stylebox_override("panel", bg_style)
-	
-	# 4. Compile Stats String
-	var stats_text = ""
-	
-	if action.damage > 0: stats_text += str(action.damage) + " DMG  "
-	if action.block_value > 0: stats_text += str(action.block_value) + " BLK  "
-	if action.dodge_value > 0: stats_text += str(action.dodge_value) + " DDG  "
-	if action.heal_value > 0: stats_text += str(action.heal_value) + " HEAL "
+		style.border_color = COL_OFFENCE
+		type_icon.text = "⚔️"
+		if action.damage > 4: type_icon.text = "💥"
 		
-	# Recover Logic (Visuals matching Game Logic)
-	var final_rec = action.recover_value
-	if action.type == ActionData.Type.DEFENCE:
-		final_rec += 1
-	if final_rec > 0: stats_text += str(final_rec) + " REC "
+		# Show Damage Stat
+		stats_label.text = str(action.damage) + " DMG"
+		stats_label.modulate = COL_OFFENCE
+		
+	elif action.type == ActionData.Type.DEFENCE:
+		style.border_color = COL_DEFENCE
+		type_icon.text = "🛡️"
+		if action.dodge_value > 0: type_icon.text = "💨"
+		
+		# Show Block Stat
+		var val = action.block_value
+		if action.dodge_value > 0: val = action.dodge_value
+		stats_label.text = str(val) + " BLOCK"
+		if action.dodge_value > 0: stats_label.text = str(val) + " DODGE"
+		stats_label.modulate = COL_DEFENCE
 	
-	# Boolean Tags
-	if action.tiring > 0: stats_text += str(action.tiring) + " TIRE "
-	if action.retaliate: stats_text += "RETAL "
-	if action.feint: stats_text += "FEINT "
+	# Special Icons
+	if action.heal_value > 0:
+		type_icon.text = "❤️"
+		stats_label.text = "+" + str(action.heal_value) + " HP"
+		stats_label.modulate = Color.GREEN_YELLOW
+		
+	if action.statuses_to_apply.size() > 0:
+		# If it's purely a status card
+		if action.damage == 0 and action.block_value == 0:
+			type_icon.text = "☠️"
+			stats_label.text = "STATUS"
+			stats_label.modulate = Color.PURPLE
 	
-	# NEW: GENERIC STATUS TEXT
-	for effect in action.statuses_to_apply:
-		var s_name = effect.get("name", "???").to_upper()
-		var s_val = effect.get("amount", 1)
-		var is_self = effect.get("self", false)
-		
-		var prefix = "SELF " if is_self else ""
-		var val_str = str(s_val) + " " if s_val > 1 else ""
-		
-		stats_text += prefix + val_str + s_name + " "
-		
-	stat_label.text = stats_text
+	# Apply the border style
+	card_border.add_theme_stylebox_override("panel", style)
+
+# Optional: Reset function if you pool these objects
+func clear():
+	title_label.text = ""
+	type_icon.text = ""
+	stats_label.text = ""
 
 
 ========================================
 FILE PATH: res://Scripts/card_displayTEST.gd
 ========================================
-extends "res://Scripts/card_display.gd"
+extends "res://Scripts/CardDisplay.gd"
 
 # Drag one of your Action Resources here in the Inspector
 @export var test_action: ActionData 
