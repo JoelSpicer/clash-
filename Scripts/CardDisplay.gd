@@ -17,6 +17,15 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 	# 1. Basic Title
 	title_label.text = action.display_name
 	
+	if action.display_name.begins_with("CLASS:"):
+		$InnerMargin/VBox/IconContainer.visible = false
+		$InnerMargin/VBox/CostPanel.visible = false
+		stats_label.add_theme_font_size_override("normal_font_size", 14) # Smaller text
+	else:
+		$InnerMargin/VBox/IconContainer.visible = true
+		$InnerMargin/VBox/CostPanel.visible = true
+		stats_label.remove_theme_font_size_override("normal_font_size") # Reset to default
+	
 	# 2. Cost Logic (With Discount Support)
 	var final_cost = action.cost
 	if override_cost != -1: final_cost = override_cost
@@ -65,36 +74,40 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 		type_icon.text = "☠️"
 		stats_label.modulate = Color.PURPLE
 
-	# 4. DESCRIPTION TEXT (The Upgrade)
-	# Prioritize the written description from the Resource
+# 4. DESCRIPTION LOGIC (Rich Text Upgrade)
+	
+	# Determine the final text string
+	var final_text = ""
+	
 	if action.description and action.description != "":
-		stats_label.text = action.description
+		final_text = action.description
 	else:
-		# Fallback: Auto-generate text if description is empty
+		# Auto-generate text for non-class cards
 		var parts = []
-		if action.damage > 0: parts.append(str(action.damage) + " DMG")
-		if action.block_value > 0: parts.append(str(action.block_value) + " BLOCK")
-		if action.dodge_value > 0: parts.append(str(action.dodge_value) + " DODGE")
-		if action.heal_value > 0: parts.append("+" + str(action.heal_value) + " HP")
+		if action.damage > 0: parts.append("[color=#ff9999]" + str(action.damage) + " DMG[/color]")
+		if action.block_value > 0: parts.append("[color=#99ccff]" + str(action.block_value) + " BLOCK[/color]")
+		if action.dodge_value > 0: parts.append("[color=#99ccff]" + str(action.dodge_value) + " DODGE[/color]")
+		if action.heal_value > 0: parts.append("[color=#aaffaa]+" + str(action.heal_value) + " HP[/color]")
 		
-		# Add statuses
 		for s in action.statuses_to_apply:
-			# We know 's' is a Dictionary, so we just use it directly
 			var status_name = s.get("name", "Effect")
 			var duration = s.get("duration", 0)
-			
 			var status_text = "Apply " + str(status_name)
-			if duration > 0:
-				status_text += " (" + str(duration) + ")"
-				
+			if duration > 0: status_text += " (" + str(duration) + ")"
 			parts.append(status_text)
-
-		# Join all parts with newlines
-		if parts.size() > 0:
-			stats_label.text = "\n".join(parts)
 			
-		#stats_label.text = "\n".join(parts) # Use newlines for lists
+		final_text = "\n".join(parts)
 
+	# Apply to RichTextLabel
+	stats_label.text = "[center]" + final_text + "[/center]"
+	
+	# Optional: Adjust color based on card type if not manually colored
+	if action.type == ActionData.Type.OFFENCE:
+		stats_label.modulate = Color(1, 0.9, 0.9) # Slight red tint
+	else:
+		stats_label.modulate = Color(0.9, 0.9, 1.0) # Slight blue tint
+
+	# Apply the border style
 	card_border.add_theme_stylebox_override("panel", style)
 
 # Optional: Reset function if you pool these objects

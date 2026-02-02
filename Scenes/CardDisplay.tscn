@@ -71,13 +71,15 @@ size_flags_vertical = 3
 layout_mode = 2
 theme_override_font_sizes/font_size = 64
 
-[node name="StatsLabel" type="Label" parent="InnerMargin/VBox" unique_id=1819978088]
+[node name="StatsLabel" type="RichTextLabel" parent="InnerMargin/VBox" unique_id=847423630]
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+mouse_filter = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
 horizontal_alignment = 1
 vertical_alignment = 1
-autowrap_mode = 3
 
 [node name="CostPanel" type="PanelContainer" parent="InnerMargin/VBox" unique_id=836118486]
 layout_mode = 2
