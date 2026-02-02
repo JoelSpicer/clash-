@@ -1,128 +1,78 @@
 extends Control
 
+@onready var title_label = $Panel/VBoxContainer/TitleLabel
 @onready var winner_label = $Panel/VBoxContainer/WinnerLabel
-@onready var main_panel = $Panel
-@onready var vbox = $Panel/VBoxContainer
-@onready var background_rect = $Background
+@onready var main_btn = $Panel/VBoxContainer/RematchButton # Use your actual button name
+@onready var menu_btn = $Panel/VBoxContainer/MenuButton
 
-var view_board_btn: Button
-var stats_panel: RichTextLabel
+var winner_data: CharacterData = null
 
 func _ready():
-	# 1. Get Existing References
-	var btn_rematch = $Panel/VBoxContainer/RematchButton
-	var btn_menu = $Panel/VBoxContainer/MenuButton
+	# Default connections
+	if not main_btn.pressed.is_connected(_on_main_action):
+		main_btn.pressed.connect(_on_main_action)
 	
-	# 2. Connect Logic
-	btn_rematch.pressed.connect(_on_rematch_pressed)
-	btn_menu.pressed.connect(_on_menu_pressed)
-	_attach_sfx(btn_rematch)
-	_attach_sfx(btn_menu)
-	
-	# 3. Add "VIEW BOARD" Button (Dynamically created)
-	view_board_btn = Button.new()
-	view_board_btn.text = "Hide Screen (View Board)"
-	view_board_btn.pressed.connect(_on_view_board_pressed)
-	_attach_sfx(view_board_btn)
-	
-	# Add it to the top right of the screen
-	add_child(view_board_btn)
-	view_board_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	view_board_btn.position -= Vector2(20, -20)
-	
-	# 4. Create Run Stats Container (Hidden by default)
-	stats_panel = RichTextLabel.new()
-	stats_panel.bbcode_enabled = true
-	stats_panel.fit_content = true
-	stats_panel.custom_minimum_size.y = 100
-	stats_panel.visible = false
-	vbox.add_child(stats_panel)
-	vbox.move_child(stats_panel, 1) # Put it under the Winner Label
+	if not menu_btn.pressed.is_connected(_on_menu_pressed):
+		menu_btn.pressed.connect(_on_menu_pressed)
 
-func setup(winner_id: int):
-	# --- STANDARD SETUP ---
-	if winner_id == 1:
-		winner_label.text = "PLAYER 1 WINS!"
-		winner_label.modulate = Color("#ff9999")
-	elif winner_id == 2:
-		winner_label.text = "PLAYER 2 WINS!"
-		winner_label.modulate = Color("#99ccff")
+func setup(data: CharacterData):
+	winner_data = data
+	winner_label.text = "Winner: " + data.character_name
+	
+	# --- MODE CHECK ---
+	if RunManager.player_run_data != null:
+		_setup_arcade_mode()
 	else:
-		winner_label.text = "DRAW!"
+		_setup_quick_match_mode()
 
-	# --- ARCADE LOGIC & STATS ---
-	if RunManager.is_arcade_mode:
-		if winner_id == 1:
-			# Player Won: Proceed to next level
-			$Panel/VBoxContainer/RematchButton.text = "CLAIM REWARD"
-			$Panel/VBoxContainer/RematchButton.pressed.disconnect(_on_rematch_pressed)
-			$Panel/VBoxContainer/RematchButton.pressed.connect(_on_claim_reward_pressed)
-			
+func _setup_quick_match_mode():
+	# Standard Fighting Game behavior
+	main_btn.text = "REMATCH"
+	# Logic stays as default (reload scene)
+
+func _setup_arcade_mode():
+	# Check if the PLAYER won (Arcade P1 is always the player)
+	var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
+	
+	if player_won:
+		title_label.text = "VICTORY!"
+		title_label.modulate = Color.GREEN
+		
+		main_btn.text = "CONTINUE"
+		# The _on_main_action function will handle the routing
+	else:
+		title_label.text = "GAME OVER"
+		title_label.modulate = Color.RED
+		
+		# In a roguelike, losing usually means the run ends
+		main_btn.text = "TRY AGAIN" 
+		# You could also hide this button if you want strict permadeath
+		# main_btn.visible = false 
+
+func _on_main_action():
+	AudioManager.play_sfx("ui_confirm")
+	
+	# 1. ARCADE MODE LOGIC
+	if RunManager.player_run_data != null:
+		var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
+		
+		if player_won:
+			# -> GO TO REWARDS
+			RunManager.handle_win()
 		else:
-			# Player Lost: SHOW RUN SUMMARY
-			$Panel/VBoxContainer/RematchButton.visible = false 
-			$Panel/VBoxContainer/MenuButton.text = "MAIN MENU"
+			# -> RETRY FIGHT (or restart run)
+			# For now, let's just reload the fight to be nice
+			SceneLoader.reload_current_scene()
 			
-			_populate_run_stats()
-
-func _populate_run_stats():
-	stats_panel.visible = true
-	
-	# 1. Basic Stats
-	var levels_beat = RunManager.current_level - 1
-	var txt = "[center][b]--- ARCADE RUN SUMMARY ---[/b][/center]\n\n"
-	txt += "[color=yellow]Enemies Defeated:[/color] " + str(levels_beat) + "\n"
-	
-	# 2. Deck Summary
-	txt += "[color=yellow]Final Deck:[/color] "
-	var deck_names = []
-	for card in RunManager.player_run_data.deck:
-		deck_names.append(card.display_name)
-	txt += ", ".join(deck_names) + "\n"
-	
-	# 3. Placeholder for Future Stats
-	txt += "\n[color=gray][i]Total Damage Dealt: (Coming Soon)[/i][/color]"
-	txt += "\n[color=gray][i]Total SP Spent: (Coming Soon)[/i][/color]"
-	
-	stats_panel.text = txt
-
-# --- UI INTERACTION ---
-
-func _on_view_board_pressed():
-	# Toggle visibility of the visuals
-	main_panel.visible = not main_panel.visible
-	background_rect.visible = not background_rect.visible 
-	
-	if main_panel.visible:
-		view_board_btn.text = "Hide Screen (View Board)"
-		# --- FIX: Block clicks from passing through ---
-		mouse_filter = Control.MOUSE_FILTER_STOP 
+	# 2. QUICK MATCH LOGIC
 	else:
-		view_board_btn.text = "Show Game Over Screen"
-		# --- FIX: Let clicks pass through the invisible root node ---
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-func _on_rematch_pressed():
-	# --- FIX: Unpause before reloading ---
-	get_tree().paused = false 
-	# -------------------------------------
-	GameManager.reset_combat() 
-	get_tree().reload_current_scene()
+		# Just reload the fight
+		SceneLoader.reload_current_scene()
 
 func _on_menu_pressed():
-	# --- FIX: Unpause before leaving ---
-	get_tree().paused = false 
-	# -----------------------------------
-	GameManager.reset_combat() 
-	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
-	
-func _attach_sfx(btn: BaseButton):
-	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
-	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
-
-func _on_claim_reward_pressed():
-	# 1. Unpause the game safely
-	get_tree().paused = false
-	
-	# 2. Tell the RunManager to load the Action Tree
-	RunManager.handle_win()
+	AudioManager.play_sfx("ui_back")
+	# If in arcade, maybe clear the run data?
+	if RunManager.player_run_data:
+		RunManager.player_run_data = null # End the run
+		
+	SceneLoader.change_scene("res://Scenes/MenuArcade.tscn")

@@ -420,3 +420,33 @@ func _simulate_draft_ids(class_type, count) -> Array:
 		_add_neighbors_to_list(pick, owned, available)
 		
 	return results
+
+# --- STARTER DECK GENERATION ---
+func get_basic_actions() -> Array[ActionData]:
+	var basics: Array[ActionData] = []
+	
+	# Create the Basic Punch
+	var punch = ActionData.new()
+	punch.display_name = "Punch"
+	punch.type = ActionData.Type.OFFENCE
+	punch.cost = 1
+	punch.damage = 3
+	punch.description = "Deal 3 DMG."
+	
+	# Create the Basic Block
+	var block = ActionData.new()
+	block.display_name = "Defend"
+	block.type = ActionData.Type.DEFENCE
+	block.cost = 1
+	block.block_value = 3
+	block.description = "Gain 3 BLOCK."
+	
+	# RETURN A FULL STARTER HAND (e.g., 3 Punches, 2 Blocks)
+	# We use .duplicate() to ensure they are unique instances
+	basics.append(punch.duplicate())
+	basics.append(punch.duplicate())
+	basics.append(punch.duplicate())
+	basics.append(block.duplicate())
+	basics.append(block.duplicate())
+	
+	return basics

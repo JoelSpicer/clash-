@@ -3101,6 +3101,36 @@ func _simulate_draft_ids(class_type, count) -> Array:
 		
 	return results
 
+# --- STARTER DECK GENERATION ---
+func get_basic_actions() -> Array[ActionData]:
+	var basics: Array[ActionData] = []
+	
+	# Create the Basic Punch
+	var punch = ActionData.new()
+	punch.display_name = "Punch"
+	punch.type = ActionData.Type.OFFENCE
+	punch.cost = 1
+	punch.damage = 3
+	punch.description = "Deal 3 DMG."
+	
+	# Create the Basic Block
+	var block = ActionData.new()
+	block.display_name = "Defend"
+	block.type = ActionData.Type.DEFENCE
+	block.cost = 1
+	block.block_value = 3
+	block.description = "Gain 3 BLOCK."
+	
+	# RETURN A FULL STARTER HAND (e.g., 3 Punches, 2 Blocks)
+	# We use .duplicate() to ensure they are unique instances
+	basics.append(punch.duplicate())
+	basics.append(punch.duplicate())
+	basics.append(punch.duplicate())
+	basics.append(block.duplicate())
+	basics.append(block.duplicate())
+	
+	return basics
+
 
 ========================================
 FILE PATH: res://Scripts/CombatLog.gd
@@ -3475,6 +3505,111 @@ func _populate_section(container: Control, data: Dictionary):
 
 
 ========================================
+FILE PATH: res://Scripts/DeckEditScreen.gd
+========================================
+extends Control
+
+@onready var card_grid = $ScrollContainer/CardGrid
+@onready var count_label = $CountLabel
+@onready var fight_btn = $FightBtn
+
+var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
+var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
+
+func _ready():
+	# 1. Add Status Overlay
+	var overlay = overlay_scene.instantiate()
+	add_child(overlay)
+	
+	# 2. Connect Button
+	fight_btn.pressed.connect(_on_fight_pressed)
+	
+	# 3. Draw Grid
+	_refresh_grid()
+
+func _refresh_grid():
+	# Clear old
+	for c in card_grid.get_children():
+		c.queue_free()
+	
+	var deck = RunManager.player_run_data.deck
+	var unlocked = RunManager.player_run_data.unlocked_actions
+	
+	# Update Label
+	count_label.text = "HAND: " + str(deck.size()) + " / " + str(ClassFactory.HAND_LIMIT)
+	count_label.modulate = Color.GREEN if deck.size() == ClassFactory.HAND_LIMIT else Color.WHITE
+
+	# Draw all unlocked cards
+	for action in unlocked:
+		var wrapper = Control.new()
+		wrapper.custom_minimum_size = Vector2(180, 240) 
+		wrapper.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		
+		var disp = card_display_scene.instantiate()
+		# Add child FIRST (Safety fix we learned earlier)
+		wrapper.add_child(disp)
+		disp.set_card_data(action)
+		disp.scale = Vector2(0.75, 0.75)
+		disp.position = Vector2(10, 10)
+		disp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		# Check if Equipped
+		if _is_in_deck(action):
+			disp.modulate = Color(1, 1, 1, 1) # Bright
+			_add_equipped_badge(wrapper)
+		else:
+			disp.modulate = Color(0.5, 0.5, 0.5, 0.8) # Dim
+		
+		# Click Handling
+		wrapper.gui_input.connect(func(ev): 
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				_toggle_card(action)
+		)
+		
+		card_grid.add_child(wrapper)
+
+func _toggle_card(action):
+	var deck = RunManager.player_run_data.deck
+	
+	if _is_in_deck(action):
+		# Remove
+		for i in range(deck.size()):
+			if deck[i].display_name == action.display_name:
+				deck.remove_at(i)
+				AudioManager.play_sfx("ui_back")
+				break
+	else:
+		# Add
+		if deck.size() < ClassFactory.HAND_LIMIT:
+			deck.append(action)
+			AudioManager.play_sfx("ui_click")
+		else:
+			AudioManager.play_sfx("error")
+			
+	_refresh_grid()
+
+func _is_in_deck(action):
+	for c in RunManager.player_run_data.deck:
+		if c.display_name == action.display_name: return true
+	return false
+
+func _add_equipped_badge(parent):
+	var lbl = Label.new()
+	lbl.text = "EQUIPPED"
+	lbl.add_theme_color_override("font_color", Color.GREEN)
+	lbl.position = Vector2(30, -5)
+	lbl.z_index = 5
+	parent.add_child(lbl)
+
+func _on_fight_pressed():
+	if RunManager.player_run_data.deck.size() < 1: return
+	
+	AudioManager.play_sfx("ui_confirm")
+	# Start the actual battle
+	RunManager.start_next_fight()
+
+
+========================================
 FILE PATH: res://Scripts/equipmentdraft.gd
 ========================================
 extends Control
@@ -3681,132 +3816,82 @@ FILE PATH: res://Scripts/GameOverScreen.gd
 ========================================
 extends Control
 
+@onready var title_label = $Panel/VBoxContainer/TitleLabel
 @onready var winner_label = $Panel/VBoxContainer/WinnerLabel
-@onready var main_panel = $Panel
-@onready var vbox = $Panel/VBoxContainer
-@onready var background_rect = $Background
+@onready var main_btn = $Panel/VBoxContainer/RematchButton # Use your actual button name
+@onready var menu_btn = $Panel/VBoxContainer/MenuButton
 
-var view_board_btn: Button
-var stats_panel: RichTextLabel
+var winner_data: CharacterData = null
 
 func _ready():
-	# 1. Get Existing References
-	var btn_rematch = $Panel/VBoxContainer/RematchButton
-	var btn_menu = $Panel/VBoxContainer/MenuButton
+	# Default connections
+	if not main_btn.pressed.is_connected(_on_main_action):
+		main_btn.pressed.connect(_on_main_action)
 	
-	# 2. Connect Logic
-	btn_rematch.pressed.connect(_on_rematch_pressed)
-	btn_menu.pressed.connect(_on_menu_pressed)
-	_attach_sfx(btn_rematch)
-	_attach_sfx(btn_menu)
-	
-	# 3. Add "VIEW BOARD" Button (Dynamically created)
-	view_board_btn = Button.new()
-	view_board_btn.text = "Hide Screen (View Board)"
-	view_board_btn.pressed.connect(_on_view_board_pressed)
-	_attach_sfx(view_board_btn)
-	
-	# Add it to the top right of the screen
-	add_child(view_board_btn)
-	view_board_btn.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	view_board_btn.position -= Vector2(20, -20)
-	
-	# 4. Create Run Stats Container (Hidden by default)
-	stats_panel = RichTextLabel.new()
-	stats_panel.bbcode_enabled = true
-	stats_panel.fit_content = true
-	stats_panel.custom_minimum_size.y = 100
-	stats_panel.visible = false
-	vbox.add_child(stats_panel)
-	vbox.move_child(stats_panel, 1) # Put it under the Winner Label
+	if not menu_btn.pressed.is_connected(_on_menu_pressed):
+		menu_btn.pressed.connect(_on_menu_pressed)
 
-func setup(winner_id: int):
-	# --- STANDARD SETUP ---
-	if winner_id == 1:
-		winner_label.text = "PLAYER 1 WINS!"
-		winner_label.modulate = Color("#ff9999")
-	elif winner_id == 2:
-		winner_label.text = "PLAYER 2 WINS!"
-		winner_label.modulate = Color("#99ccff")
+func setup(data: CharacterData):
+	winner_data = data
+	winner_label.text = "Winner: " + data.character_name
+	
+	# --- MODE CHECK ---
+	if RunManager.player_run_data != null:
+		_setup_arcade_mode()
 	else:
-		winner_label.text = "DRAW!"
+		_setup_quick_match_mode()
 
-	# --- ARCADE LOGIC & STATS ---
-	if RunManager.is_arcade_mode:
-		if winner_id == 1:
-			# Player Won: Proceed to next level
-			$Panel/VBoxContainer/RematchButton.text = "CLAIM REWARD"
-			$Panel/VBoxContainer/RematchButton.pressed.disconnect(_on_rematch_pressed)
-			$Panel/VBoxContainer/RematchButton.pressed.connect(_on_claim_reward_pressed)
-			
+func _setup_quick_match_mode():
+	# Standard Fighting Game behavior
+	main_btn.text = "REMATCH"
+	# Logic stays as default (reload scene)
+
+func _setup_arcade_mode():
+	# Check if the PLAYER won (Arcade P1 is always the player)
+	var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
+	
+	if player_won:
+		title_label.text = "VICTORY!"
+		title_label.modulate = Color.GREEN
+		
+		main_btn.text = "CONTINUE"
+		# The _on_main_action function will handle the routing
+	else:
+		title_label.text = "GAME OVER"
+		title_label.modulate = Color.RED
+		
+		# In a roguelike, losing usually means the run ends
+		main_btn.text = "TRY AGAIN" 
+		# You could also hide this button if you want strict permadeath
+		# main_btn.visible = false 
+
+func _on_main_action():
+	AudioManager.play_sfx("ui_confirm")
+	
+	# 1. ARCADE MODE LOGIC
+	if RunManager.player_run_data != null:
+		var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
+		
+		if player_won:
+			# -> GO TO REWARDS
+			RunManager.handle_win()
 		else:
-			# Player Lost: SHOW RUN SUMMARY
-			$Panel/VBoxContainer/RematchButton.visible = false 
-			$Panel/VBoxContainer/MenuButton.text = "MAIN MENU"
+			# -> RETRY FIGHT (or restart run)
+			# For now, let's just reload the fight to be nice
+			SceneLoader.reload_current_scene()
 			
-			_populate_run_stats()
-
-func _populate_run_stats():
-	stats_panel.visible = true
-	
-	# 1. Basic Stats
-	var levels_beat = RunManager.current_level - 1
-	var txt = "[center][b]--- ARCADE RUN SUMMARY ---[/b][/center]\n\n"
-	txt += "[color=yellow]Enemies Defeated:[/color] " + str(levels_beat) + "\n"
-	
-	# 2. Deck Summary
-	txt += "[color=yellow]Final Deck:[/color] "
-	var deck_names = []
-	for card in RunManager.player_run_data.deck:
-		deck_names.append(card.display_name)
-	txt += ", ".join(deck_names) + "\n"
-	
-	# 3. Placeholder for Future Stats
-	txt += "\n[color=gray][i]Total Damage Dealt: (Coming Soon)[/i][/color]"
-	txt += "\n[color=gray][i]Total SP Spent: (Coming Soon)[/i][/color]"
-	
-	stats_panel.text = txt
-
-# --- UI INTERACTION ---
-
-func _on_view_board_pressed():
-	# Toggle visibility of the visuals
-	main_panel.visible = not main_panel.visible
-	background_rect.visible = not background_rect.visible 
-	
-	if main_panel.visible:
-		view_board_btn.text = "Hide Screen (View Board)"
-		# --- FIX: Block clicks from passing through ---
-		mouse_filter = Control.MOUSE_FILTER_STOP 
+	# 2. QUICK MATCH LOGIC
 	else:
-		view_board_btn.text = "Show Game Over Screen"
-		# --- FIX: Let clicks pass through the invisible root node ---
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-func _on_rematch_pressed():
-	# --- FIX: Unpause before reloading ---
-	get_tree().paused = false 
-	# -------------------------------------
-	GameManager.reset_combat() 
-	get_tree().reload_current_scene()
+		# Just reload the fight
+		SceneLoader.reload_current_scene()
 
 func _on_menu_pressed():
-	# --- FIX: Unpause before leaving ---
-	get_tree().paused = false 
-	# -----------------------------------
-	GameManager.reset_combat() 
-	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
-	
-func _attach_sfx(btn: BaseButton):
-	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
-	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
-
-func _on_claim_reward_pressed():
-	# 1. Unpause the game safely
-	get_tree().paused = false
-	
-	# 2. Tell the RunManager to load the Action Tree
-	RunManager.handle_win()
+	AudioManager.play_sfx("ui_back")
+	# If in arcade, maybe clear the run data?
+	if RunManager.player_run_data:
+		RunManager.player_run_data = null # End the run
+		
+	SceneLoader.change_scene("res://Scenes/MenuArcade.tscn")
 
 
 ========================================
@@ -3944,8 +4029,9 @@ extends Control
 
 # --- DATA ---
 var classes = ["Heavy", "Patient", "Quick", "Technical"]
-var base_classes = ["Heavy", "Patient", "Quick", "Technical"]
+@export var base_classes: Array[ClassDefinition]
 var presets: Array[PresetCharacter] = []
+
 
 func _ready():
 	_load_presets()
@@ -3967,12 +4053,16 @@ func _on_start_pressed():
 	
 	# 2. Identify Selection
 	var selected_idx = p1_option.selected
+	
 	if selected_idx < base_classes.size():
-		# Standard Class Start
-		var class_enum = selected_idx as CharacterData.ClassType
-		RunManager.start_run(class_enum)
+		# 1. GET THE RESOURCE (The .tres file)
+		var selected_resource = base_classes[selected_idx]
+		
+		# 2. PASS IT TO RUN MANAGER
+		RunManager.start_new_run(selected_resource)
+		
 	else:
-		# Preset Start
+		# Preset Start (Keep existing logic or update similarly)
 		var preset_idx = selected_idx - base_classes.size() - 1
 		if preset_idx >= 0 and preset_idx < presets.size():
 			var preset = presets[preset_idx]
@@ -5643,8 +5733,14 @@ extends Control
 
 # Preload your existing displays
 var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
+var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
 
 func _ready():
+	# 1. Add Overlay
+	var overlay = overlay_scene.instantiate()
+	add_child(overlay)
+	
+	# 2. Generate Rewards
 	_generate_rewards()
 
 func _generate_rewards():
@@ -5826,21 +5922,21 @@ func start_run(starting_class: CharacterData.ClassType):
 	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 # OPTION B: PRESET RUN
-func start_run_from_preset(preset: PresetCharacter):
-	is_arcade_mode = true
-	current_level = max(1, preset.level)
-	print("Starting Arcade Run with Preset: " + preset.character_name + " (Lv. " + str(current_level) + ")")
+# 2. Preset Start (If you use Presets)
+func start_run_from_preset(preset_data: CharacterData):
+	# A. Deep Copy the preset so we don't modify the original resource
+	player_run_data = preset_data.duplicate(true)
 	
-	player_run_data = ClassFactory.create_from_preset(preset)
+	# B. Reset Loop State
+	current_level = 1
+	player_owned_tree_ids.clear() # Presets might need manual ID setup if you want them to use the tree later
 	
-	_init_tree_root(preset.class_type)
-	for skill_name in preset.extra_skills:
-		var id = ClassFactory.get_id_by_name(skill_name)
-		if id != 0 and id not in player_owned_tree_ids:
-			player_owned_tree_ids.append(id)
+	# C. Ensure Class Root is unlocked (so Draft works later)
+	_unlock_class_starters(player_run_data)
 	
-	free_unlocks_remaining = 0
-	start_next_fight()
+	# D. Route
+	print("Starting Preset Run. Loading Deck Editor...")
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 # Helper
 func _init_tree_root(class_type: CharacterData.ClassType):
@@ -5949,7 +6045,7 @@ func handle_win():
 	current_level += 1
 	free_unlocks_remaining = 1 
 	
-	var level_beaten = current_level - 1
+	#var level_beaten = current_level - 1
 	
 # DIRECT TO REWARD SCREEN (The New Hybrid Flow)
 	print("Victory! Loading Reward Screen...")
@@ -6038,14 +6134,100 @@ func apply_reward(reward):
 	# Save/Continue
 	handle_reward_complete()
 
-func handle_reward_complete():
-	# If deck is full, maybe go to a "Deck Management" screen later.
-	# For now, just go to next fight or Hub.
-	if current_level % 3 == 0:
-		# Maybe a shop or event every 3 levels? For now, just loop.
-		pass
+# --- NEW: CENTRALIZED RUN START ---
+# 1. Standard Start (From Class Selection)
+# CHANGED: Accept the Resource (ClassStats) instead of just an int
+# Update this function
+func start_new_run(source_class: ClassDefinition):
+	# 1. Reset Run State
+	current_level = 1
+	player_owned_tree_ids.clear()
+	free_unlocks_remaining = 0
 	
-	start_next_fight()
+	# 2. Create Character Data
+	var p_data = CharacterData.new()
+	
+	# --- FIX START: COPY IDENTITY FROM RESOURCE ---
+	p_data.class_type = source_class.class_type # Crucial: Sets the Enum (Heavy/Quick/etc)
+	p_data.character_name = source_class.class_named
+	p_data.portrait = source_class.portrait
+	p_data.passive_desc = source_class.passive_description
+	
+	# Copy Stats (Optional: if your resource has custom start stats)
+	p_data.max_hp = 30
+	p_data.current_hp = 30
+	p_data.max_sp = 3
+	p_data.current_sp = 3
+	# --- FIX END ---
+	
+	#print("Starting Run: " + p_data.display_name + " (" + str(p_data.class_type) + ")")
+	
+	# 3. LOAD STARTING DECK
+	if source_class.starting_deck.size() > 0:
+		for card_res in source_class.starting_deck:
+			if card_res:
+				p_data.unlocked_actions.append(card_res.duplicate())
+	else:
+		p_data.unlocked_actions.append_array(ClassFactory.get_basic_actions())
+	
+	# 4. Auto-Unlock Class Starter Node
+	_unlock_class_starters(p_data, source_class)
+	
+	# 5. Fill Initial Hand
+	for action in p_data.unlocked_actions:
+		if p_data.deck.size() < ClassFactory.HAND_LIMIT:
+			p_data.deck.append(action)
+	
+	# 6. Save & Route
+	player_run_data = p_data
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+
+# --- HELPER: Unlock the first node so the Draft System has "Neighbors" to find ---
+# CHANGED: Added '= null' to make the second argument optional
+func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition = null):
+	var root_id = 0
+	
+	# Priority 1: Read from the Resource (The new, flexible way)
+	if source_class:
+		root_id = source_class.skill_tree_root_id
+	
+	# Priority 2: Fallback to defaults if Resource is missing (Safety net for Presets)
+	if root_id == 0:
+		match p_data.class_type:
+			ClassFactory.ClassType.HEAVY: root_id = 76
+			ClassFactory.ClassType.QUICK: root_id = 73
+			ClassFactory.ClassType.TECHNICAL:  root_id = 74
+			ClassFactory.ClassType.PATIENT: root_id = 75
+	
+	# --- UNLOCK LOGIC ---
+	if root_id != 0:
+		if not player_owned_tree_ids.has(root_id):
+			player_owned_tree_ids.append(root_id)
+		
+		var c_name = ClassFactory.ID_TO_NAME_MAP.get(root_id)
+		if c_name:
+			var card = ClassFactory.find_action_resource(c_name)
+			
+			# --- FIX: CHECK IF CARD EXISTS BEFORE USING IT ---
+			if card:
+				# Now it is safe to check for duplicates
+				var already_has = false
+				for c in p_data.unlocked_actions:
+					# Check c is valid too, just to be super safe
+					if c and c.display_name == card.display_name: 
+						already_has = true
+						break
+				
+				if not already_has:
+					p_data.unlocked_actions.append(card)
+			else:
+				print("ERROR: Could not find Starter Card resource for name: " + str(c_name))
+
+# --- UPDATE: REWARD ROUTING ---
+func handle_reward_complete():
+	# Loop back to Deck Editor after picking a reward
+	print("Reward Claimed. Going to Deck Editor...")
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 
 ========================================
@@ -6702,9 +6884,16 @@ func _on_game_over(winner_id: int):
 	# 2. Wait 1 second so the player can see the final hit land
 	await get_tree().create_timer(1.0).timeout
 	
-	# 3. Now we pause and show the screen
+	# 3. Determine which DATA OBJECT belongs to the winner
+	var winner_data: CharacterData
+	if winner_id == 1:
+		winner_data = p1_resource
+	else:
+		winner_data = p2_resource
+	
+	# 4. Now we pause and show the screen, passing the OBJECT, not the ID
 	get_tree().paused = true 
-	game_over_screen.setup(winner_id)
+	game_over_screen.setup(winner_data) # <--- This was the fix
 	game_over_screen.visible = true
 	
 	
@@ -7367,24 +7556,47 @@ func _setup_visuals():
 		background.texture = GameManager.environment_backgrounds[env_name]
 	arena_label.text = "Stage:\n" + "- " + env_name.to_upper() + " -"
 
-	# -- Player 1 --
+	# --- FETCH DATA ---
 	var p1 = GameManager.next_match_p1_data
+	var p2 = GameManager.next_match_p2_data
+	
+	# ARCADE MODE SAFETY CHECK:
+	# Sometimes GameManager might not be synced perfectly, so we grab P1 directly from the RunManager.
+	if RunManager.is_arcade_mode and RunManager.player_run_data:
+		p1 = RunManager.player_run_data
+		# Note: P2 (The Enemy) is still fetched from GameManager (set by RunManager.start_next_fight)
+
+	# -- Player 1 --
 	if p1:
-		p1_portrait.texture = p1.portrait
+		# Portrait Check
+		if p1.portrait:
+			p1_portrait.texture = p1.portrait
+		else:
+			print("VsScreen: P1 Portrait is missing!")
+			
+		# Name Check
 		p1_name.text = p1.character_name
-		p1_class.text = CharacterData.ClassType.keys()[p1.class_type]
+		
+		# Class Label
+		if p1.class_type >= 0 and p1.class_type < CharacterData.ClassType.size():
+			p1_class.text = CharacterData.ClassType.keys()[p1.class_type]
+		else:
+			p1_class.text = "UNKNOWN"
 
 	# -- Player 2 --
-	var p2 = GameManager.next_match_p2_data
 	if p2:
-		p2_portrait.texture = p2.portrait
-		p2_portrait.flip_h = true 
+		if p2.portrait:
+			p2_portrait.texture = p2.portrait
+			p2_portrait.flip_h = true 
+			
 		p2_name.text = p2.character_name
+		
 		if p2.character_name == "THE JUGGERNAUT": 
 			p2_class.text = "BOSS"
 			p2_class.modulate = Color.RED
 		else:
-			p2_class.text = CharacterData.ClassType.keys()[p2.class_type]
+			if p2.class_type >= 0 and p2.class_type < CharacterData.ClassType.size():
+				p2_class.text = CharacterData.ClassType.keys()[p2.class_type]
 
 func _play_intro_animation():
 	vs_label.scale = Vector2.ZERO

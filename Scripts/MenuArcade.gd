@@ -10,8 +10,9 @@ extends Control
 
 # --- DATA ---
 var classes = ["Heavy", "Patient", "Quick", "Technical"]
-var base_classes = ["Heavy", "Patient", "Quick", "Technical"]
+@export var base_classes: Array[ClassDefinition]
 var presets: Array[PresetCharacter] = []
+
 
 func _ready():
 	_load_presets()
@@ -33,12 +34,16 @@ func _on_start_pressed():
 	
 	# 2. Identify Selection
 	var selected_idx = p1_option.selected
+	
 	if selected_idx < base_classes.size():
-		# Standard Class Start
-		var class_enum = selected_idx as CharacterData.ClassType
-		RunManager.start_run(class_enum)
+		# 1. GET THE RESOURCE (The .tres file)
+		var selected_resource = base_classes[selected_idx]
+		
+		# 2. PASS IT TO RUN MANAGER
+		RunManager.start_new_run(selected_resource)
+		
 	else:
-		# Preset Start
+		# Preset Start (Keep existing logic or update similarly)
 		var preset_idx = selected_idx - base_classes.size() - 1
 		if preset_idx >= 0 and preset_idx < presets.size():
 			var preset = presets[preset_idx]

@@ -1,8 +1,13 @@
-[gd_scene load_steps=2 format=3 uid="uid://7q8sfitoh2xb"]
+[gd_scene format=3 uid="uid://7q8sfitoh2xb"]
 
 [ext_resource type="Script" uid="uid://ciu2sa2jx11fl" path="res://Scripts/MenuArcade.gd" id="1_trdke"]
+[ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_wu21k"]
+[ext_resource type="Resource" uid="uid://nr6gvrvw5pmd" path="res://Data/Classes/HeavyClass.tres" id="3_6bivt"]
+[ext_resource type="Resource" uid="uid://bpk3oy5rf8g3w" path="res://Data/Classes/PatientClass.tres" id="4_s7eqx"]
+[ext_resource type="Resource" uid="uid://c007py27u78qj" path="res://Data/Classes/QuickClass.tres" id="5_e67h7"]
+[ext_resource type="Resource" uid="uid://bg5ik82a2fybg" path="res://Data/Classes/TechnicalClass.tres" id="6_dinlh"]
 
-[node name="MenuArcade" type="Control"]
+[node name="MenuArcade" type="Control" unique_id=443753700]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -10,8 +15,9 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_trdke")
+base_classes = Array[ExtResource("2_wu21k")]([ExtResource("3_6bivt"), ExtResource("4_s7eqx"), ExtResource("5_e67h7"), ExtResource("6_dinlh")])
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=153896058]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,57 +29,57 @@ theme_override_constants/margin_top = 50
 theme_override_constants/margin_right = 50
 theme_override_constants/margin_bottom = 50
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1885117998]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=2124791326]
 layout_mode = 2
 horizontal_alignment = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1336012931]
 self_modulate = Color(0, 0, 0, 1)
 layout_mode = 2
 size_flags_vertical = 3
 alignment = 1
 
-[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=862813615]
 layout_mode = 2
 alignment = 1
 
-[node name="P1_Portrait" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column"]
+[node name="P1_Portrait" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=178845335]
 custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="InfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column"]
+[node name="InfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=1162463489]
 layout_mode = 2
 
-[node name="ClassOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column"]
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=412172724]
 custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
 alignment = 1
 text_overrun_behavior = 1
 
-[node name="Settings_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="Settings_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=509839584]
 layout_mode = 2
 alignment = 1
 
-[node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
+[node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1577746598]
 layout_mode = 2
 theme_override_constants/outline_size = 15
 text = "CPU Difficulty"
 horizontal_alignment = 1
 
-[node name="DifficultyOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
+[node name="DifficultyOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1010762416]
 layout_mode = 2
 
-[node name="MaintainHPToggle" type="CheckButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
+[node name="MaintainHPToggle" type="CheckButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=58537736]
 layout_mode = 2
 theme_override_constants/outline_size = 13
 text = "Maintain HP Between Fights?"
 
-[node name="StartButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column"]
+[node name="StartButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1870661896]
 layout_mode = 2
 theme_override_constants/outline_size = 5
 text = "Start Arcade Run"

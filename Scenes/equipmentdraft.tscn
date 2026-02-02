@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://cpiokfvajkjhq"]
+[gd_scene format=3 uid="uid://cpiokfvajkjhq"]
 
 [ext_resource type="Script" uid="uid://baqcbitr2k0tq" path="res://Scripts/equipmentdraft.gd" id="1_m3iom"]
-[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scripts/RunStatusOverlay.tscn" id="2_gd3t4"]
+[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scenes/RunStatusOverlay.tscn" id="2_gd3t4"]
 
-[node name="EquipmentDraft" type="Control"]
+[node name="EquipmentDraft" type="Control" unique_id=1328126045]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +12,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_m3iom")
 
-[node name="ColorRect" type="ColorRect" parent="."]
+[node name="ColorRect" type="ColorRect" parent="." unique_id=994687668]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -21,7 +21,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.24477637, 0.2447764, 0.24477637, 1)
 
-[node name="Label" type="Label" parent="ColorRect"]
+[node name="Label" type="Label" parent="ColorRect" unique_id=1663961463]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
@@ -32,7 +32,7 @@ offset_bottom = 23.0
 grow_horizontal = 2
 text = "CHOOSE YOUR REWARD"
 
-[node name="ItemGrid" type="HBoxContainer" parent="ColorRect"]
+[node name="ItemGrid" type="HBoxContainer" parent="ColorRect" unique_id=1028200695]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -48,4 +48,4 @@ grow_vertical = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="RunStatusOverlay" parent="." instance=ExtResource("2_gd3t4")]
+[node name="RunStatusOverlay" parent="." unique_id=728623920 instance=ExtResource("2_gd3t4")]

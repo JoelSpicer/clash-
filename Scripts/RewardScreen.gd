@@ -5,8 +5,14 @@ extends Control
 
 # Preload your existing displays
 var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
+var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
 
 func _ready():
+	# 1. Add Overlay
+	var overlay = overlay_scene.instantiate()
+	add_child(overlay)
+	
+	# 2. Generate Rewards
 	_generate_rewards()
 
 func _generate_rewards():

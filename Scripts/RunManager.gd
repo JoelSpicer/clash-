@@ -30,21 +30,21 @@ func start_run(starting_class: CharacterData.ClassType):
 	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
 
 # OPTION B: PRESET RUN
-func start_run_from_preset(preset: PresetCharacter):
-	is_arcade_mode = true
-	current_level = max(1, preset.level)
-	print("Starting Arcade Run with Preset: " + preset.character_name + " (Lv. " + str(current_level) + ")")
+# 2. Preset Start (If you use Presets)
+func start_run_from_preset(preset_data: CharacterData):
+	# A. Deep Copy the preset so we don't modify the original resource
+	player_run_data = preset_data.duplicate(true)
 	
-	player_run_data = ClassFactory.create_from_preset(preset)
+	# B. Reset Loop State
+	current_level = 1
+	player_owned_tree_ids.clear() # Presets might need manual ID setup if you want them to use the tree later
 	
-	_init_tree_root(preset.class_type)
-	for skill_name in preset.extra_skills:
-		var id = ClassFactory.get_id_by_name(skill_name)
-		if id != 0 and id not in player_owned_tree_ids:
-			player_owned_tree_ids.append(id)
+	# C. Ensure Class Root is unlocked (so Draft works later)
+	_unlock_class_starters(player_run_data)
 	
-	free_unlocks_remaining = 0
-	start_next_fight()
+	# D. Route
+	print("Starting Preset Run. Loading Deck Editor...")
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 # Helper
 func _init_tree_root(class_type: CharacterData.ClassType):
@@ -153,7 +153,7 @@ func handle_win():
 	current_level += 1
 	free_unlocks_remaining = 1 
 	
-	var level_beaten = current_level - 1
+	#var level_beaten = current_level - 1
 	
 # DIRECT TO REWARD SCREEN (The New Hybrid Flow)
 	print("Victory! Loading Reward Screen...")
@@ -242,11 +242,97 @@ func apply_reward(reward):
 	# Save/Continue
 	handle_reward_complete()
 
-func handle_reward_complete():
-	# If deck is full, maybe go to a "Deck Management" screen later.
-	# For now, just go to next fight or Hub.
-	if current_level % 3 == 0:
-		# Maybe a shop or event every 3 levels? For now, just loop.
-		pass
+# --- NEW: CENTRALIZED RUN START ---
+# 1. Standard Start (From Class Selection)
+# CHANGED: Accept the Resource (ClassStats) instead of just an int
+# Update this function
+func start_new_run(source_class: ClassDefinition):
+	# 1. Reset Run State
+	current_level = 1
+	player_owned_tree_ids.clear()
+	free_unlocks_remaining = 0
 	
-	start_next_fight()
+	# 2. Create Character Data
+	var p_data = CharacterData.new()
+	
+	# --- FIX START: COPY IDENTITY FROM RESOURCE ---
+	p_data.class_type = source_class.class_type # Crucial: Sets the Enum (Heavy/Quick/etc)
+	p_data.character_name = source_class.class_named
+	p_data.portrait = source_class.portrait
+	p_data.passive_desc = source_class.passive_description
+	
+	# Copy Stats (Optional: if your resource has custom start stats)
+	p_data.max_hp = 30
+	p_data.current_hp = 30
+	p_data.max_sp = 3
+	p_data.current_sp = 3
+	# --- FIX END ---
+	
+	#print("Starting Run: " + p_data.display_name + " (" + str(p_data.class_type) + ")")
+	
+	# 3. LOAD STARTING DECK
+	if source_class.starting_deck.size() > 0:
+		for card_res in source_class.starting_deck:
+			if card_res:
+				p_data.unlocked_actions.append(card_res.duplicate())
+	else:
+		p_data.unlocked_actions.append_array(ClassFactory.get_basic_actions())
+	
+	# 4. Auto-Unlock Class Starter Node
+	_unlock_class_starters(p_data, source_class)
+	
+	# 5. Fill Initial Hand
+	for action in p_data.unlocked_actions:
+		if p_data.deck.size() < ClassFactory.HAND_LIMIT:
+			p_data.deck.append(action)
+	
+	# 6. Save & Route
+	player_run_data = p_data
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+
+# --- HELPER: Unlock the first node so the Draft System has "Neighbors" to find ---
+# CHANGED: Added '= null' to make the second argument optional
+func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition = null):
+	var root_id = 0
+	
+	# Priority 1: Read from the Resource (The new, flexible way)
+	if source_class:
+		root_id = source_class.skill_tree_root_id
+	
+	# Priority 2: Fallback to defaults if Resource is missing (Safety net for Presets)
+	if root_id == 0:
+		match p_data.class_type:
+			ClassFactory.ClassType.HEAVY: root_id = 76
+			ClassFactory.ClassType.QUICK: root_id = 73
+			ClassFactory.ClassType.TECHNICAL:  root_id = 74
+			ClassFactory.ClassType.PATIENT: root_id = 75
+	
+	# --- UNLOCK LOGIC ---
+	if root_id != 0:
+		if not player_owned_tree_ids.has(root_id):
+			player_owned_tree_ids.append(root_id)
+		
+		var c_name = ClassFactory.ID_TO_NAME_MAP.get(root_id)
+		if c_name:
+			var card = ClassFactory.find_action_resource(c_name)
+			
+			# --- FIX: CHECK IF CARD EXISTS BEFORE USING IT ---
+			if card:
+				# Now it is safe to check for duplicates
+				var already_has = false
+				for c in p_data.unlocked_actions:
+					# Check c is valid too, just to be super safe
+					if c and c.display_name == card.display_name: 
+						already_has = true
+						break
+				
+				if not already_has:
+					p_data.unlocked_actions.append(card)
+			else:
+				print("ERROR: Could not find Starter Card resource for name: " + str(c_name))
+
+# --- UPDATE: REWARD ROUTING ---
+func handle_reward_complete():
+	# Loop back to Deck Editor after picking a reward
+	print("Reward Claimed. Going to Deck Editor...")
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")

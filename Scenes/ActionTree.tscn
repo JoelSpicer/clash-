@@ -1,11 +1,11 @@
-[gd_scene load_steps=5 format=3 uid="uid://c1i7rtedy5fyo"]
+[gd_scene format=3 uid="uid://c1i7rtedy5fyo"]
 
 [ext_resource type="Script" uid="uid://c7rt66m06w7vj" path="res://Scripts/ActionTree.gd" id="1_06akd"]
 [ext_resource type="Script" uid="uid://6te3b1tnse4e" path="res://Scripts/LinesLayer.gd" id="2_7wvbo"]
-[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scripts/RunStatusOverlay.tscn" id="4_kvaft"]
+[ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scenes/RunStatusOverlay.tscn" id="4_kvaft"]
 [ext_resource type="Script" uid="uid://cvvntr40ye1d4" path="res://Scripts/ActionNode.gd" id="4_r8c0s"]
 
-[node name="Control" type="Control"]
+[node name="Control" type="Control" unique_id=1278299104]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -14,7 +14,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_06akd")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=1080312300]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,7 +23,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.39308554, 0.3930855, 0.39308548, 1)
 
-[node name="TreeContainer" type="Control" parent="."]
+[node name="TreeContainer" type="Control" parent="." unique_id=140754249]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -34,7 +34,7 @@ grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(0.6, 0.6)
 
-[node name="LinesLayer" type="Control" parent="TreeContainer"]
+[node name="LinesLayer" type="Control" parent="TreeContainer" unique_id=423752732]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -45,7 +45,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("2_7wvbo")
 
-[node name="NodesLayer" type="Control" parent="TreeContainer"]
+[node name="NodesLayer" type="Control" parent="TreeContainer" unique_id=415116201]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -54,7 +54,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="1" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="1" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=520035070]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -67,7 +67,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="2" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="2" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=910876301]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -80,7 +80,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="3" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="3" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=2072548099]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -93,7 +93,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="4" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="4" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=478853479]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -106,7 +106,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="5" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="5" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1717732980]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -119,7 +119,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="6" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="6" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1565351289]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -132,7 +132,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="7" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="7" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=202681724]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -145,7 +145,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="8" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="8" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1625897920]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -158,7 +158,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="9" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="9" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=2082098260]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -171,7 +171,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="10" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="10" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=2029592133]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -184,7 +184,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="11" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="11" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1863371188]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -197,7 +197,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="12" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="12" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1751052827]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -210,7 +210,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="13" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="13" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1184775951]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -223,7 +223,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="14" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="14" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=24741]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -236,7 +236,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="15" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="15" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1286638029]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -249,7 +249,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="16" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="16" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=303965403]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -262,7 +262,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="17" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="17" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=154819345]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -275,7 +275,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="18" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="18" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=901876767]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -288,7 +288,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="19" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="19" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=925673544]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -301,7 +301,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="20" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="20" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=584335357]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -314,7 +314,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="21" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="21" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1476287813]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -327,7 +327,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="22" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="22" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1297878324]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -340,7 +340,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="23" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="23" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=954715164]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -353,7 +353,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="24" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="24" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=887004669]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -366,7 +366,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="25" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="25" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1470376989]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -379,7 +379,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="26" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="26" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1687555284]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -392,7 +392,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="27" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="27" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=213288782]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -405,7 +405,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="28" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="28" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=2056046107]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -418,7 +418,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="29" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="29" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=2071633212]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -431,7 +431,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="30" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="30" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=410020633]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -444,7 +444,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="31" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="31" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1870807712]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -457,7 +457,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="32" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="32" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=473829437]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -470,7 +470,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="33" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="33" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=2035644939]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -483,7 +483,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="34" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="34" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=827059675]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -496,7 +496,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="35" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="35" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=459906423]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -509,7 +509,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="36" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="36" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=881171754]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -522,7 +522,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="37" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="37" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=539280462]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -535,7 +535,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="38" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="38" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1056185799]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -548,7 +548,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="39" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="39" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1766039873]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -561,7 +561,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="40" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="40" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1565506357]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -574,7 +574,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="41" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="41" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=2018551311]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -587,7 +587,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="42" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="42" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=555035748]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -600,7 +600,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="43" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="43" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1836350021]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -613,7 +613,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="44" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="44" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1291365099]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -626,7 +626,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="45" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="45" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=323050440]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -639,7 +639,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="46" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="46" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1678602999]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -652,7 +652,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="47" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="47" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1298551159]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -665,7 +665,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="48" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="48" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=424299455]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -678,7 +678,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="49" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="49" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=30357710]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -691,7 +691,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="50" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="50" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=2019633938]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -704,7 +704,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="51" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="51" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=575891468]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -717,7 +717,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="52" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="52" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=585337307]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -730,7 +730,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="53" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="53" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=720425032]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -743,7 +743,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="54" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="54" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=29205112]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -756,7 +756,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="55" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="55" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=400690844]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -769,7 +769,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="56" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="56" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=192587999]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -782,7 +782,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="57" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="57" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=628929171]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -795,7 +795,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="58" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="58" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=815046793]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -808,7 +808,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="59" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="59" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1191848771]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -821,7 +821,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="60" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="60" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1697583636]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -834,7 +834,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="61" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="61" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=806610049]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -847,7 +847,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="62" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="62" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=552759018]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -860,7 +860,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="63" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="63" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1776326575]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -873,7 +873,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="64" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="64" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1038759896]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -886,7 +886,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="65" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="65" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1383104634]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -899,7 +899,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="66" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="66" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1447258844]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -912,7 +912,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="67" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="67" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1490269650]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -925,7 +925,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="68" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="68" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1591922214]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -938,7 +938,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="69" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="69" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=700280928]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -951,7 +951,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="70" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="70" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1291423320]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -964,7 +964,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="71" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="71" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=114364355]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -977,7 +977,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="72" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="72" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=963099519]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -990,7 +990,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="73" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="73" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=208779311]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -1003,7 +1003,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="74" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="74" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=1475137470]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -1016,7 +1016,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="75" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="75" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=211276761]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -1029,7 +1029,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="76" type="TextureButton" parent="TreeContainer/NodesLayer"]
+[node name="76" type="TextureButton" parent="TreeContainer/NodesLayer" unique_id=42670058]
 z_index = 1
 custom_minimum_size = Vector2(64, 40)
 layout_mode = 0
@@ -1042,7 +1042,7 @@ ignore_texture_size = true
 stretch_mode = 0
 script = ExtResource("4_r8c0s")
 
-[node name="ConfirmButton" type="Button" parent="TreeContainer"]
+[node name="ConfirmButton" type="Button" parent="TreeContainer" unique_id=290866608]
 layout_mode = 0
 offset_left = 93.33333
 offset_top = 168.33333
@@ -1050,7 +1050,7 @@ offset_right = 164.33333
 offset_bottom = 199.33333
 text = "Confirm"
 
-[node name="ResetButton" type="Button" parent="TreeContainer"]
+[node name="ResetButton" type="Button" parent="TreeContainer" unique_id=958763611]
 layout_mode = 0
 offset_left = 91.666664
 offset_top = 216.66666
@@ -1058,7 +1058,7 @@ offset_right = 162.66666
 offset_bottom = 247.66666
 text = "Reset Skills"
 
-[node name="BackButton" type="Button" parent="TreeContainer"]
+[node name="BackButton" type="Button" parent="TreeContainer" unique_id=1984529421]
 layout_mode = 0
 offset_left = 31.666666
 offset_top = 35.0
@@ -1066,7 +1066,7 @@ offset_right = 145.66667
 offset_bottom = 66.0
 text = "Back to Menu"
 
-[node name="RunStatusOverlay" parent="." instance=ExtResource("4_kvaft")]
+[node name="RunStatusOverlay" parent="." unique_id=1589469241 instance=ExtResource("4_kvaft")]
 
 [connection signal="pressed" from="TreeContainer/ConfirmButton" to="." method="_on_confirm_button_pressed"]
 [connection signal="pressed" from="TreeContainer/ResetButton" to="." method="_on_reset_button_pressed"]

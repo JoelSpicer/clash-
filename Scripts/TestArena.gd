@@ -548,9 +548,16 @@ func _on_game_over(winner_id: int):
 	# 2. Wait 1 second so the player can see the final hit land
 	await get_tree().create_timer(1.0).timeout
 	
-	# 3. Now we pause and show the screen
+	# 3. Determine which DATA OBJECT belongs to the winner
+	var winner_data: CharacterData
+	if winner_id == 1:
+		winner_data = p1_resource
+	else:
+		winner_data = p2_resource
+	
+	# 4. Now we pause and show the screen, passing the OBJECT, not the ID
 	get_tree().paused = true 
-	game_over_screen.setup(winner_id)
+	game_over_screen.setup(winner_data) # <--- This was the fix
 	game_over_screen.visible = true
 	
 	

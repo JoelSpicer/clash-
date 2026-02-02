@@ -1,0 +1,77 @@
+[gd_scene format=3 uid="uid://br3axbwopn7eq"]
+
+[ext_resource type="Script" uid="uid://cj43j163alhob" path="res://Scripts/DeckEditScreen.gd" id="1_wumxm"]
+
+[node name="DeckEditScreen" type="Control" unique_id=1993398877]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_wumxm")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1874035001]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.3779188, 0.37791887, 0.37791884, 1)
+
+[node name="Title" type="Label" parent="." unique_id=662869623]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -81.5
+offset_top = 10.0
+offset_right = 81.5
+offset_bottom = 33.0
+grow_horizontal = 2
+text = "PREPARE YOUR DECK"
+horizontal_alignment = 1
+
+[node name="CountLabel" type="Label" parent="." unique_id=1686723852]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -37.5
+offset_top = 32.0
+offset_right = 37.5
+offset_bottom = 55.0
+grow_horizontal = 2
+text = "Hand: 5/5"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1202832925]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 91.0
+offset_bottom = -111.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CardGrid" type="GridContainer" parent="ScrollContainer" unique_id=314030619]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 5
+
+[node name="FightBtn" type="Button" parent="." unique_id=1230484846]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -122.0
+offset_top = -41.0
+offset_right = -16.0
+offset_bottom = -10.0
+grow_horizontal = 0
+grow_vertical = 0
+text = "START FIGHT"

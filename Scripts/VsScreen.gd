@@ -35,24 +35,47 @@ func _setup_visuals():
 		background.texture = GameManager.environment_backgrounds[env_name]
 	arena_label.text = "Stage:\n" + "- " + env_name.to_upper() + " -"
 
-	# -- Player 1 --
+	# --- FETCH DATA ---
 	var p1 = GameManager.next_match_p1_data
+	var p2 = GameManager.next_match_p2_data
+	
+	# ARCADE MODE SAFETY CHECK:
+	# Sometimes GameManager might not be synced perfectly, so we grab P1 directly from the RunManager.
+	if RunManager.is_arcade_mode and RunManager.player_run_data:
+		p1 = RunManager.player_run_data
+		# Note: P2 (The Enemy) is still fetched from GameManager (set by RunManager.start_next_fight)
+
+	# -- Player 1 --
 	if p1:
-		p1_portrait.texture = p1.portrait
+		# Portrait Check
+		if p1.portrait:
+			p1_portrait.texture = p1.portrait
+		else:
+			print("VsScreen: P1 Portrait is missing!")
+			
+		# Name Check
 		p1_name.text = p1.character_name
-		p1_class.text = CharacterData.ClassType.keys()[p1.class_type]
+		
+		# Class Label
+		if p1.class_type >= 0 and p1.class_type < CharacterData.ClassType.size():
+			p1_class.text = CharacterData.ClassType.keys()[p1.class_type]
+		else:
+			p1_class.text = "UNKNOWN"
 
 	# -- Player 2 --
-	var p2 = GameManager.next_match_p2_data
 	if p2:
-		p2_portrait.texture = p2.portrait
-		p2_portrait.flip_h = true 
+		if p2.portrait:
+			p2_portrait.texture = p2.portrait
+			p2_portrait.flip_h = true 
+			
 		p2_name.text = p2.character_name
+		
 		if p2.character_name == "THE JUGGERNAUT": 
 			p2_class.text = "BOSS"
 			p2_class.modulate = Color.RED
 		else:
-			p2_class.text = CharacterData.ClassType.keys()[p2.class_type]
+			if p2.class_type >= 0 and p2.class_type < CharacterData.ClassType.size():
+				p2_class.text = CharacterData.ClassType.keys()[p2.class_type]
 
 func _play_intro_animation():
 	vs_label.scale = Vector2.ZERO
