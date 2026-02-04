@@ -42,6 +42,17 @@ layout_mode = 2
 size_flags_vertical = 3
 alignment = 1
 
+[node name="ClassScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=627875079]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+
+[node name="ClassList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/ClassScroll" unique_id=1518345046]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 5
+alignment = 1
+
 [node name="P1_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=862813615]
 layout_mode = 2
 alignment = 1
@@ -53,13 +64,11 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="InfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=1162463489]
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
-
-[node name="ClassOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=412172724]
-custom_minimum_size = Vector2(250, 20)
-layout_mode = 2
-alignment = 1
-text_overrun_behavior = 1
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
 
 [node name="Settings_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=509839584]
 layout_mode = 2

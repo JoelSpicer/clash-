@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ClassDefinition" load_steps=14 format=3 uid="uid://c007py27u78qj"]
+[gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://c007py27u78qj"]
 
 [ext_resource type="Texture2D" uid="uid://dg7l2syk1ev8h" path="res://Art/Portraits/Quick.png" id="1_4nr7a"]
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_btx3a"]
@@ -20,6 +20,7 @@ class_named = "Quick"
 class_type = 2
 portrait = ExtResource("1_4nr7a")
 passive_description = "Relentless: Every 3rd action in a combo gains Recover 1"
+playstyle_summary = "Throw unstoppable strings of light attacks while dodging your opponent's blows."
 base_speed = 4
 offence_hp_growth = 1
 defence_sp_growth = 2

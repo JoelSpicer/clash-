@@ -7,6 +7,8 @@ class_name ClassDefinition
 @export var portrait: Texture2D
 @export_multiline var passive_description: String
 
+@export_multiline var playstyle_summary: String = "A brief description of how this class plays."
+
 @export_group("Base Stats")
 @export var base_hp: int = 5
 @export var base_sp: int = 4

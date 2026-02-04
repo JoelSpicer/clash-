@@ -19,7 +19,7 @@ func _ready():
 	# 1. CLEANUP
 	for child in get_children():
 		child.queue_free()
-	
+	$".".print_tree_pretty()
 	# 2. CREATE SCROLL LIST
 	scroll_container = ScrollContainer.new()
 	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

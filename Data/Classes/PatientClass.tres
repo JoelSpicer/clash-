@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ClassDefinition" load_steps=14 format=3 uid="uid://bpk3oy5rf8g3w"]
+[gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://bpk3oy5rf8g3w"]
 
 [ext_resource type="Texture2D" uid="uid://ba7852i08m1lw" path="res://Art/Portraits/Patient.png" id="1_47x7k"]
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_vbh24"]
@@ -20,6 +20,7 @@ class_named = "Patient"
 class_type = 1
 portrait = ExtResource("1_47x7k")
 passive_description = "Bide: When you use a fall back action, your next action gains +1 damage, and cannot trigger this passive."
+playstyle_summary = "Wait for your moment and parry heavy strikes to take the offence."
 base_speed = 2
 offence_hp_growth = 1
 defence_hp_growth = 1
