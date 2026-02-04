@@ -8,7 +8,7 @@ func _ready():
 	_attach_sfx($VBoxContainer/StartButton)
 	_attach_sfx($VBoxContainer/QuitButton)
 	_attach_sfx($VBoxContainer/CompendiumButton)
-	
+	AudioManager.play_music("menu_theme")
 	var btn_compendium = find_child("CompendiumButton") # Or reference it directly if you prefer
 	if btn_compendium:
 		btn_compendium.pressed.connect(_on_compendium_pressed)
