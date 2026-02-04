@@ -263,10 +263,10 @@ func start_new_run(source_class: ClassDefinition):
 	p_data.passive_desc = source_class.passive_description
 	
 	# Copy Stats (Optional: if your resource has custom start stats)
-	p_data.max_hp = 30
-	p_data.current_hp = 30
-	p_data.max_sp = 3
-	p_data.current_sp = 3
+	p_data.max_hp = 5
+	p_data.current_hp = 5
+	p_data.max_sp = 4
+	p_data.current_sp = 4
 	# --- FIX END ---
 	
 	#print("Starting Run: " + p_data.display_name + " (" + str(p_data.class_type) + ")")
