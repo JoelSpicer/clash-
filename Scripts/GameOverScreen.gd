@@ -80,7 +80,7 @@ func _on_main_action():
 			RunManager.handle_win()
 		else:
 			get_tree().paused = false 
-			SceneLoader.reload_current_scene()
+			SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 			
 	# 2. QUICK MATCH LOGIC
 	else:
@@ -93,7 +93,7 @@ func _on_menu_pressed():
 		RunManager.player_run_data = null 
 	
 	get_tree().paused = false
-	SceneLoader.change_scene("res://Scenes/MenuArcade.tscn")
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 func _on_view_pressed():
 	AudioManager.play_sfx("ui_click")

@@ -107,3 +107,9 @@ alignment = 1
 layout_mode = 2
 theme_override_constants/outline_size = 5
 text = "Start Arcade Run"
+
+[node name="DeleteButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=436727636]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.97824043, 0, 0.17609239, 1)
+text = "Delete Save"

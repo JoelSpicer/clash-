@@ -9,7 +9,7 @@ extends Control
 @onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
 @onready var maintain_hp_toggle = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/MaintainHPToggle
 @onready var start_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/StartButton
-
+@onready var delete_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DeleteButton
 @onready var name_input = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/NameInput # <--- New Ref
 
 # --- DATA ---
@@ -31,6 +31,10 @@ func _ready():
 	name_input.text = "Hero-" + str(randi() % 1000)
 	
 	_select_class(0)
+	
+	if delete_btn:
+		delete_btn.pressed.connect(_on_delete_pressed)
+		delete_btn.hide() # Ensure hidden at start
 	
 # --- NEW: GRID GENERATION ---
 func _generate_grid():
@@ -176,6 +180,10 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		difficulty_option.selected = saved_diff
 		difficulty_option.disabled = true # <--- GRAY OUT
 		
+		# Force the toggle to match the save file, then disable interaction
+		maintain_hp_toggle.button_pressed = data.get("maintain_hp", false)
+		maintain_hp_toggle.disabled = true
+		
 		# C. BUILD STATS STRING
 		var p_data = data.player_data
 		var identity = p_data.identity
@@ -206,6 +214,7 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 			portrait_rect.texture = load(identity.portrait_path)
 		else:
 			portrait_rect.texture = null
+		delete_btn.show()
 
 	else:
 		# --- NEW RUN SELECTED ---
@@ -216,9 +225,10 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		
 		# UNLOCK DIFFICULTY (Allow player to choose)
 		difficulty_option.disabled = false 
-		
+		maintain_hp_toggle.disabled = false
 		# Show standard Class Preview
 		_update_preview_panel(index)
+		delete_btn.hide()
 
 # --- HELPER: Reset UI when picking a Base Class ---
 func _select_class(index: int):
@@ -231,7 +241,7 @@ func _select_class(index: int):
 	name_input.editable = true
 	start_btn.text = "START RUN"
 	difficulty_option.disabled = false # <--- RE-ENABLE
-	
+	maintain_hp_toggle.disabled = false # <--- RE-ENABLE
 	# Highlight buttons...
 	for i in range(buttons.size()):
 		var btn = buttons[i]
@@ -262,3 +272,21 @@ func _get_class_name(type_enum: int) -> String:
 		3: return "Technical"
 		4: return "Mage" # If you added this
 	return "Unknown Class"
+
+func _on_delete_pressed():
+	if selected_save_file == "": return
+	
+	AudioManager.play_sfx("ui_click")
+	
+	# 1. Delete the file
+	RunManager.delete_save_file(selected_save_file)
+	
+	# 2. Refresh the UI
+	selected_save_file = ""
+	delete_btn.hide()
+	
+	# Regenerate grid to remove the old button
+	_generate_grid()
+	
+	# Reset to the first class so we aren't selecting nothing
+	_select_class(0)

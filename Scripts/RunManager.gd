@@ -370,6 +370,7 @@ func save_run():
 	var file = FileAccess.open(file_path, FileAccess.WRITE)
 	file.store_string(JSON.stringify(save_data, "\t"))
 	file.close()
+	_show_save_notification()
 	print("Run saved to: " + file_path)
 
 func load_run(filename: String):
@@ -442,3 +443,48 @@ func peek_save_file(filename: String) -> Dictionary:
 	if json.parse(text) == OK:
 		return json.data
 	return {}
+
+# --- DELETE LOGIC ---
+func delete_save_file(filename: String):
+	var path = SAVE_DIR + filename
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+		print("Deleted save: " + filename)
+		
+func _show_save_notification():
+	var layer = CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	
+	var panel = PanelContainer.new()
+	layer.add_child(panel)
+	
+	# 1. FIX: Set Grow Directions BEFORE setting position
+	# This tells Godot: "When calculating size, expand Up and Left"
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	
+	# 2. Anchor to Bottom Right
+	panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	
+	# 3. Add Margin (Offsets)
+	# "offset_right = -20" means the right edge is 20px from the right screen edge
+	# "offset_bottom = -20" means the bottom edge is 20px from the bottom screen edge
+	panel.offset_right = -20
+	panel.offset_bottom = -20
+	
+	# Styling
+	panel.modulate.a = 0.0
+	
+	var label = Label.new()
+	label.text = " GAME SAVED "
+	label.add_theme_font_size_override("font_size", 20)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(label)
+	
+	# Animation
+	var tween = create_tween()
+	tween.tween_property(panel, "modulate:a", 1.0, 0.5)
+	tween.tween_interval(1.5)
+	tween.tween_property(panel, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(layer.queue_free)
