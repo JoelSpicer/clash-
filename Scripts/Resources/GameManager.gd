@@ -503,7 +503,8 @@ func resolve_clash():
 	if p1_data.current_hp <= 0 or p2_data.current_hp <= 0:
 		_handle_death(winner_id)
 		return
-
+	
+	
 	change_state(State.POST_CLASH)
 	change_state(State.SELECTION)
 
@@ -639,7 +640,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		if target.current_hp <= 0:
 			result["fatal"] = true
 			return result
-			
+	RunManager.check_danger_state()		
 	return result
 
 # ==============================================================================

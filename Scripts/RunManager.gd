@@ -158,7 +158,7 @@ func handle_win():
 	# or the next scene will start frozen.
 	get_tree().paused = false 
 	# -----------------------------
-	
+	AudioManager.reset_audio_state()
 	print("Victory! Processing Level Up...")
 	current_level += 1
 	save_run() # Save progress after winning
@@ -180,6 +180,7 @@ func get_all_equipment() -> Array[EquipmentData]:
 	return list
 
 func handle_loss():
+	AudioManager.reset_audio_state()
 	is_arcade_mode = false
 
 # --- REWARD POOL LOGIC ---
@@ -488,3 +489,15 @@ func _show_save_notification():
 	tween.tween_interval(1.5)
 	tween.tween_property(panel, "modulate:a", 0.0, 0.5)
 	tween.tween_callback(layer.queue_free)
+
+# Call this whenever Player HP changes (Heal or Damage)
+func check_danger_state():
+	if not player_run_data: return
+	
+	var hp_percent = float(player_run_data.current_hp) / float(player_run_data.max_hp)
+	
+	# If HP is 25% or lower (and alive), trigger danger
+	if player_run_data.current_hp > 0 and hp_percent <= 0.25:
+		AudioManager.set_danger_mode(true)
+	else:
+		AudioManager.set_danger_mode(false)
