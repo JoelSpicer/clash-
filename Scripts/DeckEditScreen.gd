@@ -8,6 +8,7 @@ var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
 var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
 
 func _ready():
+	AudioManager.play_music("menu_theme")
 	# 1. Add Status Overlay
 	var overlay = overlay_scene.instantiate()
 	add_child(overlay)

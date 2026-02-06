@@ -6,6 +6,9 @@ var player_run_data: CharacterData
 var player_owned_tree_ids: Array[int] = [] 
 var free_unlocks_remaining: int = 0
 
+var current_run_name: String = "Test Run" # <--- NEW
+const SAVE_DIR = "user://saves/"
+
 # --- NEW: RUN MODIFIERS ---
 var maintain_hp_enabled: bool = false
 const EQUIPMENT_DIR = "res://Data/Equipment/"
@@ -158,6 +161,7 @@ func handle_win():
 	
 	print("Victory! Processing Level Up...")
 	current_level += 1
+	save_run() # Save progress after winning
 	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
 
 # Helper to fetch all equipment for the draft
@@ -247,7 +251,8 @@ func apply_reward(reward):
 # 1. Standard Start (From Class Selection)
 # CHANGED: Accept the Resource (ClassStats) instead of just an int
 # Update this function
-func start_new_run(source_class: ClassDefinition):
+func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
+	current_run_name = run_name # <--- Set the name!n):
 	# 1. Reset Run State
 	current_level = 1
 	player_owned_tree_ids.clear()
@@ -335,5 +340,92 @@ func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition
 # --- UPDATE: REWARD ROUTING ---
 func handle_reward_complete():
 	# Loop back to Deck Editor after picking a reward
+	save_run() # Save progress after winning
 	print("Reward Claimed. Going to Deck Editor...")
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+
+# --- SAVE SYSTEM ---
+
+func save_run():
+	# 1. Ensure directory exists
+	if not DirAccess.dir_exists_absolute(SAVE_DIR):
+		DirAccess.make_dir_absolute(SAVE_DIR)
+	
+	# 2. Prepare Data
+	var save_data = {
+		"run_name": current_run_name,
+		"level": current_level,
+		"tree_ids": player_owned_tree_ids, # Save Skill Tree progress
+		"difficulty": GameManager.ai_difficulty,
+		"maintain_hp": maintain_hp_enabled,
+		"player_data": player_run_data.to_save_dictionary(),
+		"timestamp": Time.get_datetime_string_from_system()
+	}
+	
+	# 3. Write to File
+	# We sanitize the filename just in case user used special characters
+	var safe_name = current_run_name.validate_filename()
+	var file_path = SAVE_DIR + safe_name + ".save"
+	
+	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	file.store_string(JSON.stringify(save_data, "\t"))
+	file.close()
+	print("Run saved to: " + file_path)
+
+func load_run(filename: String):
+	var path = SAVE_DIR + filename
+	if not FileAccess.file_exists(path):
+		print("Save file not found: " + path)
+		return
+
+	var file = FileAccess.open(path, FileAccess.READ)
+	var text = file.get_as_text()
+	var json = JSON.new()
+	var parse_result = json.parse(text)
+	
+	if parse_result != OK:
+		print("Error parsing save file.")
+		return
+		
+	var data = json.data
+	
+	# --- RESTORE STATE ---
+	current_run_name = data.run_name
+	current_level = int(data.level)
+	player_owned_tree_ids.assign(data.tree_ids)
+	GameManager.ai_difficulty = int(data.difficulty) as GameManager.Difficulty
+	maintain_hp_enabled = data.maintain_hp
+	
+	# Rebuild Player
+	player_run_data = CharacterData.from_save_dictionary(data.player_data)
+	
+	# Re-link Equipment (Since CharacterData only saved the names)
+	var saved_equip_names = data.player_data.equipment
+	player_run_data.equipment.clear()
+	
+	# Inefficient but safe: search all equipment for matches
+	var all_equip = get_all_equipment()
+	for equip_name in saved_equip_names:
+		for e in all_equip:
+			if e.display_name == equip_name:
+				player_run_data.equipment.append(e)
+				break
+	
+	is_arcade_mode = true
+	
+	# Launch Game (Go to Map or Deck Editor)
+	print("Run Loaded: " + current_run_name)
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+
+# Helper for Menu to list files
+func get_save_files() -> Array:
+	var files = []
+	var dir = DirAccess.open(SAVE_DIR)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and file_name.ends_with(".save"):
+				files.append(file_name)
+			file_name = dir.get_next()
+	return files

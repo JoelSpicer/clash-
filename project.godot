@@ -20,6 +20,10 @@ config/features=PackedStringArray("4.6", "Mobile")
 boot_splash/image="uid://uubvvpgfs52s"
 config/icon="res://icon.svg"
 
+[audio]
+
+buses/default_bus_layout="uid://by8dhki3npw6q"
+
 [autoload]
 
 GameManager="*res://Scripts/Resources/GameManager.gd"
@@ -30,6 +34,7 @@ VfxManager="*res://Scripts/VFXManager.gd"
 AudioManager="*res://Scripts/AudioManager.gd"
 SceneLoader="*res://Scenes/SceneLoader.tscn"
 DialogueManager="*uid://bq2klpbljl1qb"
+SettingsManager="*uid://btwusus0fp7xb"
 
 [display]
 

@@ -19,7 +19,7 @@ extends Control
 
 func _ready():
 	_setup_visuals()
-	
+	AudioManager.play_music("battle_theme")
 	# Wait a frame to let Godot calculate the new Anchors we set
 	await get_tree().process_frame
 	_play_intro_animation()

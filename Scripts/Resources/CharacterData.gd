@@ -97,3 +97,60 @@ func _apply_level_up_stats(card_type):
 	current_hp = max_hp
 	current_sp = max_sp
 	print("Level Up! New Stats - HP: " + str(max_hp) + " | SP: " + str(max_sp))
+
+# --- SERIALIZATION (SAVE/LOAD) ---
+
+func to_save_dictionary() -> Dictionary:
+	return {
+		"identity": {
+			"name": character_name,
+			"type": class_type,
+			"portrait_path": portrait.resource_path if portrait else ""
+		},
+		"stats": {
+			"current_hp": current_hp,
+			"max_hp": max_hp,
+			"current_sp": current_sp,
+			"max_sp": max_sp,
+			"speed": speed
+		},
+		# Save Cards by their Display Name (which ClassFactory uses to find them)
+		"deck": deck.map(func(c): return c.display_name),
+		"library": unlocked_actions.map(func(c): return c.display_name),
+		# Save Equipment by Display Name
+		"equipment": equipment.map(func(e): return e.display_name),
+		"statuses": statuses
+	}
+
+# Static helper to rebuild data from the dictionary
+static func from_save_dictionary(data: Dictionary) -> CharacterData:
+	var new_char = CharacterData.new()
+	
+	# 1. Identity
+	new_char.character_name = data.identity.name
+	new_char.class_type = data.identity.type as ClassType
+	if data.identity.portrait_path != "":
+		new_char.portrait = load(data.identity.portrait_path)
+	
+	# 2. Stats
+	new_char.current_hp = data.stats.current_hp
+	new_char.max_hp = data.stats.max_hp
+	new_char.current_sp = data.stats.current_sp
+	new_char.max_sp = data.stats.max_sp
+	new_char.speed = data.stats.speed
+	new_char.statuses = data.statuses
+	
+	# 3. Reconstruct Deck (String -> Resource)
+	for card_name in data.deck:
+		var card = ClassFactory.find_action_resource(card_name)
+		if card: new_char.deck.append(card)
+		
+	# 4. Reconstruct Library
+	for card_name in data.library:
+		var card = ClassFactory.find_action_resource(card_name)
+		if card: new_char.unlocked_actions.append(card)
+	
+	# 5. Reconstruct Equipment (Requires RunManager helper)
+	# We will handle equipment re-linking in RunManager because it owns the equipment list
+	
+	return new_char

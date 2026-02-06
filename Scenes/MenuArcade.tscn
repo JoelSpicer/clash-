@@ -98,6 +98,11 @@ layout_mode = 2
 theme_override_constants/outline_size = 13
 text = "Maintain HP Between Fights?"
 
+[node name="NameInput" type="LineEdit" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1793080627]
+layout_mode = 2
+placeholder_text = "Enter Run Name..."
+alignment = 1
+
 [node name="StartButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1870661896]
 layout_mode = 2
 theme_override_constants/outline_size = 5
