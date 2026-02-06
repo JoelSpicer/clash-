@@ -11,8 +11,8 @@ var sounds = {
 	"clash": preload("res://Audio/Combat/clash.wav"),
 	
 	# MUSIC (Add your music files here)
-	"menu_theme": preload("res://Audio/Music/MenuTheme.mp3"),
-	"battle_theme": preload("res://Audio/Music/BattleTheme.mp3"),
+	"menu_theme": preload("res://Audio/Music/MenuTheme.wav"),
+	"battle_theme": preload("res://Audio/Music/BattleTheme.wav"),
 }
 
 # --- SFX POOL ---

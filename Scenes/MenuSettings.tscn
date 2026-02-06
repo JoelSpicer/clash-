@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://clrhc07bmkygu"]
+[gd_scene format=3 uid="uid://clrhc07bmkygu"]
 
-[ext_resource type="Script" uid="uid://cxutqps1iq1wk" path="res://scripts/MenuSettings.gd" id="1_8a0lb"]
+[ext_resource type="Script" uid="uid://cxutqps1iq1wk" path="res://Scripts/MenuSettings.gd" id="1_8a0lb"]
 
-[node name="MenuSettings" type="Control"]
+[node name="MenuSettings" type="Control" unique_id=842952949]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_8a0lb")
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1600752943]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -19,23 +19,33 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=555637527]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1243792487]
 layout_mode = 2
 text = "AUDIO SETTINGS"
 
-[node name="Label2" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="Label2" type="Label" parent="CenterContainer/VBoxContainer" unique_id=643262368]
 layout_mode = 2
 text = "Master Volume"
+horizontal_alignment = 1
 
-[node name="MasterSlider" type="HSlider" parent="CenterContainer/VBoxContainer"]
+[node name="MasterSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=536774335]
 layout_mode = 2
 
-[node name="Label3" type="Label" parent="CenterContainer/VBoxContainer"]
+[node name="Label3" type="Label" parent="CenterContainer/VBoxContainer" unique_id=36439776]
 layout_mode = 2
 text = "Music Volume"
+horizontal_alignment = 1
 
-[node name="MusicSlider" type="HSlider" parent="CenterContainer/VBoxContainer"]
+[node name="MusicSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=971282247]
+layout_mode = 2
+
+[node name="Label4" type="Label" parent="CenterContainer/VBoxContainer" unique_id=113207794]
+layout_mode = 2
+text = "SFX Volume"
+horizontal_alignment = 1
+
+[node name="SFXSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=1459500008]
 layout_mode = 2

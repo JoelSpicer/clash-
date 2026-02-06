@@ -206,7 +206,7 @@ func get_valid_action_rewards() -> Array[ActionData]:
 # 2. Fetch Stat Upgrades (Generated on the fly)
 func get_stat_upgrades() -> Array[Dictionary]:
 	return [
-		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +4 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 4; p.current_hp += 4 },
+		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +4 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 2; p.current_hp += 2 },
 		{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
 		{ "type": "stat", "text": "FULL RESTORE", "desc": "Heal to Full HP.", "icon": "heal", "func": func(p): p.current_hp = p.max_hp }
 	]
