@@ -83,23 +83,6 @@ func _on_class_hover(index: int):
 	AudioManager.play_sfx("ui_hover", 0.1)
 	_update_preview_panel(index)
 
-func _select_class(index: int):
-	AudioManager.play_sfx("ui_click")
-	selected_index = index
-	
-	# Visual Feedback: Highlight the border/text of the selected character
-	for i in range(buttons.size()):
-		var btn = buttons[i]
-		if i == index:
-			# Selected Style: Green Text, maybe Modulate slightly?
-			btn.add_theme_color_override("font_color", Color.GREEN)
-			btn.modulate = Color(1.2, 1.2, 1.2) # Brighten
-		else:
-			# Normal Style
-			btn.remove_theme_color_override("font_color")
-			btn.modulate = Color.WHITE
-			
-	_update_preview_panel(index)
 
 func _update_preview_panel(index: int):
 	if index >= base_classes.size(): return
@@ -159,29 +142,123 @@ func _setup_difficulty():
 func _on_difficulty_changed(index: int):
 	GameManager.ai_difficulty = index as GameManager.Difficulty
 
+# --- UPDATED INTERACTION LOGIC ---
+
 func _on_item_selected(index: int, text: String, is_save: bool):
 	AudioManager.play_sfx("ui_click")
 	
-	# Visual Feedback (Reuse your highlight loop)
-	for btn in buttons:
-		btn.modulate = Color(1,1,1) if btn != buttons.back() else Color(0.6, 0.8, 1.0) # Reset
-		# (Add your green highlight logic here)
+	# 1. Visual Highlight (Reset others, highlight this)
+	for i in range(buttons.size()):
+		var btn = buttons[i]
+		if i == index:
+			btn.modulate = Color(1.2, 1.2, 1.2)
+			btn.add_theme_color_override("font_color", Color.GREEN)
+		else:
+			btn.modulate = Color(1, 1, 1)
+			btn.remove_theme_color_override("font_color")
 
 	if is_save:
+		# --- SAVE FILE SELECTED ---
 		selected_save_file = text + ".save"
 		start_btn.text = "LOAD RUN"
 		name_input.editable = false
-		name_input.text = text # Show name of save
+		name_input.text = text
 		
-		# Show simple info
-		info_label.text = "[center][b]SAVED RUN[/b][/center]\n\n" + text
-		portrait_rect.texture = null 
+		# A. LOAD DATA FOR PREVIEW
+		var data = RunManager.peek_save_file(selected_save_file)
 		
+		if data.is_empty():
+			info_label.text = "[color=red]Error: Could not read save file.[/color]"
+			return
+
+		# B. LOCK DIFFICULTY (Enforce saved difficulty)
+		var saved_diff = int(data.difficulty)
+		difficulty_option.selected = saved_diff
+		difficulty_option.disabled = true # <--- GRAY OUT
+		
+		# C. BUILD STATS STRING
+		var p_data = data.player_data
+		var identity = p_data.identity
+		var stats = p_data.stats
+		
+		# Header
+		var txt = "[center][b][font_size=24]" + data.run_name + "[/font_size][/b][/center]\n"
+		txt += "[center][color=gray]Level " + str(data.level) + " - " + _get_difficulty_name(saved_diff) + "[/color][/center]\n\n"
+		
+		# Core Stats
+		txt += "[b]Class:[/b] " + _get_class_name(int(identity.type)) + "\n"
+		txt += "[b]HP:[/b] " + str(stats.current_hp) + "/" + str(stats.max_hp) + "   "
+		txt += "[b]SP:[/b] " + str(stats.current_sp) + "/" + str(stats.max_sp) + "\n"
+		txt += "[b]Opponents Defeated:[/b] " + str(int(data.level) - 1) + "\n"
+		
+		# Equipment List
+		txt += "\n[b]Equipment:[/b]\n"
+		if p_data.equipment.size() > 0:
+			for item_name in p_data.equipment:
+				txt += "• " + item_name + "\n"
+		else:
+			txt += "[i]None[/i]\n"
+
+		info_label.text = txt
+		
+		# Portrait (Try to load if path exists, otherwise generic)
+		if identity.portrait_path != "":
+			portrait_rect.texture = load(identity.portrait_path)
+		else:
+			portrait_rect.texture = null
+
 	else:
-		selected_save_file = "" # Reset to New Run mode
-		selected_index = index # Store class index
+		# --- NEW RUN SELECTED ---
+		selected_save_file = "" 
+		selected_index = index
 		start_btn.text = "START RUN"
 		name_input.editable = true
 		
-		# Update Preview normally
+		# UNLOCK DIFFICULTY (Allow player to choose)
+		difficulty_option.disabled = false 
+		
+		# Show standard Class Preview
 		_update_preview_panel(index)
+
+# --- HELPER: Reset UI when picking a Base Class ---
+func _select_class(index: int):
+	# ... (Existing audio/highlight logic) ...
+	AudioManager.play_sfx("ui_click")
+	selected_index = index
+	selected_save_file = "" # Clear save selection
+	
+	# Reset UI for New Run
+	name_input.editable = true
+	start_btn.text = "START RUN"
+	difficulty_option.disabled = false # <--- RE-ENABLE
+	
+	# Highlight buttons...
+	for i in range(buttons.size()):
+		var btn = buttons[i]
+		if i == index:
+			btn.modulate = Color(1.2, 1.2, 1.2)
+			btn.add_theme_color_override("font_color", Color.GREEN)
+		else:
+			btn.modulate = Color(1, 1, 1)
+			btn.remove_theme_color_override("font_color")
+			
+	_update_preview_panel(index)
+
+# --- STRING HELPERS ---
+func _get_difficulty_name(value: int) -> String:
+	match value:
+		0: return "Very Easy"
+		1: return "Easy"
+		2: return "Medium"
+		3: return "Hard"
+	return "Unknown"
+
+func _get_class_name(type_enum: int) -> String:
+	# Matches your ClassType Enum in CharacterData
+	match type_enum:
+		0: return "Heavy"
+		1: return "Patient"
+		2: return "Quick"
+		3: return "Technical"
+		4: return "Mage" # If you added this
+	return "Unknown Class"

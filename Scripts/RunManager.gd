@@ -429,3 +429,16 @@ func get_save_files() -> Array:
 				files.append(file_name)
 			file_name = dir.get_next()
 	return files
+
+
+func peek_save_file(filename: String) -> Dictionary:
+	var path = SAVE_DIR + filename
+	if not FileAccess.file_exists(path):
+		return {}
+
+	var file = FileAccess.open(path, FileAccess.READ)
+	var text = file.get_as_text()
+	var json = JSON.new()
+	if json.parse(text) == OK:
+		return json.data
+	return {}
