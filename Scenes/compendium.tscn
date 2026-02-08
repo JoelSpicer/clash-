@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://cm1rql55op5wn"]
+[gd_scene format=3 uid="uid://cm1rql55op5wn"]
 
 [ext_resource type="Script" uid="uid://2rcv6fa6yax" path="res://Scripts/compendium.gd" id="1_sj3ga"]
 
-[node name="Compendium" type="Control"]
+[node name="Compendium" type="Control" unique_id=1765162170]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_sj3ga")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="ColorRect" parent="." unique_id=1805813444]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,7 +20,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.38928655, 0.38928664, 0.38928658, 1)
 
-[node name="TabContainer" type="TabContainer" parent="."]
+[node name="TabContainer" type="TabContainer" parent="." unique_id=1669885147]
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
@@ -31,13 +31,14 @@ offset_right = -50.0
 offset_bottom = -50.0
 grow_horizontal = 2
 grow_vertical = 2
-current_tab = 0
+current_tab = 3
 
-[node name="Rules" type="ScrollContainer" parent="TabContainer"]
+[node name="Rules" type="ScrollContainer" parent="TabContainer" unique_id=1679244808]
+visible = false
 layout_mode = 2
 metadata/_tab_index = 0
 
-[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Rules"]
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Rules" unique_id=1325699383]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -46,16 +47,16 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Rules/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Rules/MarginContainer" unique_id=1998873065]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Combat" type="ScrollContainer" parent="TabContainer"]
+[node name="Combat" type="ScrollContainer" parent="TabContainer" unique_id=995293852]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 1
 
-[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Combat"]
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Combat" unique_id=51746046]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -64,16 +65,16 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Combat/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Combat/MarginContainer" unique_id=2065444444]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Traits" type="ScrollContainer" parent="TabContainer"]
+[node name="Traits" type="ScrollContainer" parent="TabContainer" unique_id=938768841]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 2
 
-[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Traits"]
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Traits" unique_id=574440577]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -82,34 +83,36 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Traits/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Traits/MarginContainer" unique_id=331729510]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="Card Library" type="ScrollContainer" parent="TabContainer"]
-visible = false
+[node name="Card Library" type="ScrollContainer" parent="TabContainer" unique_id=1888943011]
 layout_mode = 2
 metadata/_tab_index = 3
 
-[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Card Library"]
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Card Library" unique_id=1801472066]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 15
 
-[node name="GridContainer" type="GridContainer" parent="TabContainer/Card Library/MarginContainer"]
+[node name="GridContainer" type="GridContainer" parent="TabContainer/Card Library/MarginContainer" unique_id=1193952494]
+clip_contents = true
 layout_mode = 2
+localize_numeral_system = false
+theme_override_constants/v_separation = 5
 columns = 5
 
-[node name="Modes" type="ScrollContainer" parent="TabContainer"]
+[node name="Modes" type="ScrollContainer" parent="TabContainer" unique_id=1404989254]
 visible = false
 layout_mode = 2
 metadata/_tab_index = 4
 
-[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Modes"]
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Modes" unique_id=1066832284]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -118,12 +121,12 @@ theme_override_constants/margin_top = 20
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 20
 
-[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Modes/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Modes/MarginContainer" unique_id=503385378]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="BackButton" type="Button" parent="."]
+[node name="BackButton" type="Button" parent="." unique_id=858159310]
 layout_mode = 0
 offset_left = 988.0
 offset_top = 5.0

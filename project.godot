@@ -41,3 +41,7 @@ SettingsManager="*uid://btwusus0fp7xb"
 window/size/window_width_override=1920
 window/size/window_height_override=1080
 window/stretch/mode="canvas_items"
+
+[gui]
+
+theme/custom_font="uid://duq28l4oqkf3r"

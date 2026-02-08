@@ -28,7 +28,7 @@ func _ready():
 	start_btn.pressed.connect(_on_start_pressed)
 	
 	# Default Name
-	name_input.text = "Hero-" + str(randi() % 1000)
+	#name_input.text = "Fighter No. " + str(randi() % 1000)
 	
 	_select_class(0)
 	

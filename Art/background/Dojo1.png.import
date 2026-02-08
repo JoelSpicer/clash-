@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ba1smgis1mi4q"
-path="res://.godot/imported/Dojo1.png-ebf1f43de34e40720dd492f30e1a2018.ctex"
+path="res://.godot/imported/Dojo1.png-9e2a3deb10b53514a946fc0a74e4f546.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Art/background/Dojo1.png"
-dest_files=["res://.godot/imported/Dojo1.png-ebf1f43de34e40720dd492f30e1a2018.ctex"]
+source_file="res://Art/Background/Dojo1.png"
+dest_files=["res://.godot/imported/Dojo1.png-9e2a3deb10b53514a946fc0a74e4f546.ctex"]
 
 [params]
 

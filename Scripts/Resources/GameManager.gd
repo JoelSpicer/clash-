@@ -889,7 +889,7 @@ func remove_status(target_id: int, status_name: String):
 		emit_signal("status_applied", target_id, "CURED") # Generic cure msg
 
 func _load_backgrounds():
-	var path = "res://Art/background/"
+	var path = "res://Art/Background/"
 	var dir = DirAccess.open(path)
 	
 	if dir:
@@ -911,4 +911,4 @@ func _load_backgrounds():
 			
 			file_name = dir.get_next()
 	else:
-		print("ERROR: Could not find 'res://Art/background/' folder.")
+		print("ERROR: Could not find 'res://Art/Background/' folder.")

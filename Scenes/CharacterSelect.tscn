@@ -1,9 +1,9 @@
-[gd_scene load_steps=3 format=3 uid="uid://c3jl31vkltf5h"]
+[gd_scene format=3 uid="uid://c3jl31vkltf5h"]
 
 [ext_resource type="Script" uid="uid://bkm6gg67mwbyu" path="res://Scripts/CharacterSelect.gd" id="1_r5nmx"]
-[ext_resource type="Texture2D" uid="uid://d0oodbqfjx62d" path="res://Art/background/1.png" id="2_amipf"]
+[ext_resource type="Texture2D" uid="uid://d0oodbqfjx62d" path="res://Art/Background/1.png" id="2_amipf"]
 
-[node name="CharacterSelect" type="Control"]
+[node name="CharacterSelect" type="Control" unique_id=2132815269]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +12,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_r5nmx")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=1943589652]
 modulate = Color(1, 1, 1, 0.44313726)
 layout_mode = 1
 anchors_preset = 15
@@ -23,7 +23,7 @@ grow_vertical = 2
 texture = ExtResource("2_amipf")
 expand_mode = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=1357111962]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -37,99 +37,99 @@ offset_bottom = 46.5
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="P1_Column" type="VBoxContainer" parent="HBoxContainer"]
+[node name="P1_Column" type="VBoxContainer" parent="HBoxContainer" unique_id=747872178]
 layout_mode = 2
 
-[node name="P1Label" type="Label" parent="HBoxContainer/P1_Column"]
+[node name="P1Label" type="Label" parent="HBoxContainer/P1_Column" unique_id=685410235]
 layout_mode = 2
 text = "PLAYER 1"
 horizontal_alignment = 1
 
-[node name="P1_Portrait" type="TextureRect" parent="HBoxContainer/P1_Column"]
+[node name="P1_Portrait" type="TextureRect" parent="HBoxContainer/P1_Column" unique_id=787902013]
 custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ClassOption" type="OptionButton" parent="HBoxContainer/P1_Column"]
+[node name="ClassOption" type="OptionButton" parent="HBoxContainer/P1_Column" unique_id=1087739845]
 custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
 alignment = 1
 text_overrun_behavior = 1
 
-[node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P1_Column"]
+[node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P1_Column" unique_id=32575345]
 layout_mode = 2
 
-[node name="Center_Column" type="VBoxContainer" parent="HBoxContainer"]
+[node name="Center_Column" type="VBoxContainer" parent="HBoxContainer" unique_id=432099689]
 layout_mode = 2
 
-[node name="VSLabel" type="Label" parent="HBoxContainer/Center_Column"]
+[node name="VSLabel" type="Label" parent="HBoxContainer/Center_Column" unique_id=623979640]
 layout_mode = 2
 text = "VS"
 horizontal_alignment = 1
 
-[node name="QuickFightButton" type="Button" parent="HBoxContainer/Center_Column"]
+[node name="QuickFightButton" type="Button" parent="HBoxContainer/Center_Column" unique_id=494997697]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "Quick CLASH!"
 
-[node name="CustomDeckButton" type="Button" parent="HBoxContainer/Center_Column"]
+[node name="CustomDeckButton" type="Button" parent="HBoxContainer/Center_Column" unique_id=322099405]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "Quick CLASH! 
 (build action list)"
 
-[node name="ArcadeButton" type="Button" parent="HBoxContainer/Center_Column"]
+[node name="ArcadeButton" type="Button" parent="HBoxContainer/Center_Column" unique_id=1869889133]
 layout_mode = 2
 theme_override_constants/outline_size = 5
 text = "Start Arcade Run"
 
-[node name="DifficultyLabel" type="Label" parent="HBoxContainer/Center_Column"]
+[node name="DifficultyLabel" type="Label" parent="HBoxContainer/Center_Column" unique_id=1194650448]
 layout_mode = 2
 text = "CPU Difficulty"
 horizontal_alignment = 1
 
-[node name="DifficultyOption" type="OptionButton" parent="HBoxContainer/Center_Column"]
+[node name="DifficultyOption" type="OptionButton" parent="HBoxContainer/Center_Column" unique_id=1270973674]
 layout_mode = 2
 
-[node name="BackButton" type="Button" parent="HBoxContainer/Center_Column"]
+[node name="BackButton" type="Button" parent="HBoxContainer/Center_Column" unique_id=1911252417]
 layout_mode = 2
 text = "Back"
 
-[node name="P2_Column" type="VBoxContainer" parent="HBoxContainer"]
+[node name="P2_Column" type="VBoxContainer" parent="HBoxContainer" unique_id=402015870]
 layout_mode = 2
 
-[node name="P2Label" type="Label" parent="HBoxContainer/P2_Column"]
+[node name="P2Label" type="Label" parent="HBoxContainer/P2_Column" unique_id=1011195328]
 layout_mode = 2
 text = "PLAYER 2"
 horizontal_alignment = 1
 
-[node name="P2_Portrait" type="TextureRect" parent="HBoxContainer/P2_Column"]
+[node name="P2_Portrait" type="TextureRect" parent="HBoxContainer/P2_Column" unique_id=1007992607]
 custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ClassOption" type="OptionButton" parent="HBoxContainer/P2_Column"]
+[node name="ClassOption" type="OptionButton" parent="HBoxContainer/P2_Column" unique_id=1502124336]
 custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
 alignment = 1
 text_overrun_behavior = 1
 
-[node name="P2ModeButton" type="Button" parent="HBoxContainer/P2_Column"]
+[node name="P2ModeButton" type="Button" parent="HBoxContainer/P2_Column" unique_id=71342714]
 layout_mode = 2
 text = "OPPONENT: CPU"
 
-[node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P2_Column"]
+[node name="InfoLabel" type="RichTextLabel" parent="HBoxContainer/P2_Column" unique_id=1667984530]
 visible = false
 layout_mode = 2
 
-[node name="P2CustomCheck" type="CheckBox" parent="HBoxContainer/P2_Column"]
+[node name="P2CustomCheck" type="CheckBox" parent="HBoxContainer/P2_Column" unique_id=1038385273]
 visible = false
 layout_mode = 2
 text = "Also build movelist for P2?"
 
-[node name="HelpButton" type="Button" parent="."]
+[node name="HelpButton" type="Button" parent="." unique_id=1324419561]
 custom_minimum_size = Vector2(35, 35)
 layout_mode = 0
 offset_left = 1033.0
@@ -138,7 +138,7 @@ offset_right = 1068.0
 offset_bottom = 47.0
 text = "?"
 
-[node name="RunSettingsPopup" type="ColorRect" parent="."]
+[node name="RunSettingsPopup" type="ColorRect" parent="." unique_id=1888209346]
 visible = false
 layout_mode = 1
 anchors_preset = 15
@@ -148,7 +148,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0, 0, 0, 0.5803922)
 
-[node name="Panel" type="Panel" parent="RunSettingsPopup"]
+[node name="Panel" type="Panel" parent="RunSettingsPopup" unique_id=1480498573]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -162,7 +162,7 @@ offset_bottom = 150.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="RunSettingsPopup/Panel"]
+[node name="VBoxContainer" type="VBoxContainer" parent="RunSettingsPopup/Panel" unique_id=617553636]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -176,31 +176,31 @@ offset_bottom = 51.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="ClassConfirmLabel" type="Label" parent="RunSettingsPopup/Panel/VBoxContainer"]
+[node name="ClassConfirmLabel" type="Label" parent="RunSettingsPopup/Panel/VBoxContainer" unique_id=180414106]
 layout_mode = 2
 text = "Start run with: Heavy?"
 horizontal_alignment = 1
 
-[node name="HSeparator" type="HSeparator" parent="RunSettingsPopup/Panel/VBoxContainer"]
+[node name="HSeparator" type="HSeparator" parent="RunSettingsPopup/Panel/VBoxContainer" unique_id=389751885]
 layout_mode = 2
 
-[node name="MaintainHPToggle" type="CheckBox" parent="RunSettingsPopup/Panel/VBoxContainer"]
+[node name="MaintainHPToggle" type="CheckBox" parent="RunSettingsPopup/Panel/VBoxContainer" unique_id=335080878]
 layout_mode = 2
 text = "Maintain HP Between Fights"
 alignment = 1
 
-[node name="HSeparator2" type="HSeparator" parent="RunSettingsPopup/Panel/VBoxContainer"]
+[node name="HSeparator2" type="HSeparator" parent="RunSettingsPopup/Panel/VBoxContainer" unique_id=1429723542]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="RunSettingsPopup/Panel/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="RunSettingsPopup/Panel/VBoxContainer" unique_id=569272998]
 layout_mode = 2
 
-[node name="CancelRunButton" type="Button" parent="RunSettingsPopup/Panel/VBoxContainer/HBoxContainer"]
+[node name="CancelRunButton" type="Button" parent="RunSettingsPopup/Panel/VBoxContainer/HBoxContainer" unique_id=1736325168]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Cancel"
 
-[node name="ConfirmRunButton" type="Button" parent="RunSettingsPopup/Panel/VBoxContainer/HBoxContainer"]
+[node name="ConfirmRunButton" type="Button" parent="RunSettingsPopup/Panel/VBoxContainer/HBoxContainer" unique_id=840715665]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "START RUN"

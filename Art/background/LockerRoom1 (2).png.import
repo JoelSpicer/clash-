@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dx6riscu1t34r"
-path="res://.godot/imported/LockerRoom1 (2).png-02dd4d0492a5b534b0c750508eef68bc.ctex"
+path="res://.godot/imported/LockerRoom1 (2).png-a0046052962556e1359a398ea5b59167.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Art/background/LockerRoom1 (2).png"
-dest_files=["res://.godot/imported/LockerRoom1 (2).png-02dd4d0492a5b534b0c750508eef68bc.ctex"]
+source_file="res://Art/Background/LockerRoom1 (2).png"
+dest_files=["res://.godot/imported/LockerRoom1 (2).png-a0046052962556e1359a398ea5b59167.ctex"]
 
 [params]
 
