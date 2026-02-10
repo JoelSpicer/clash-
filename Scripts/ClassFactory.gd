@@ -75,6 +75,7 @@ var art_technical = preload("res://Art/Portraits/Technical.png")
 const HAND_LIMIT = 8
 
 # --- NEW: ENEMY GENERATOR ---
+# --- NEW: ENEMY GENERATOR ---
 func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
 	var types = [
@@ -85,19 +86,19 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	]
 	var selected_class = types.pick_random()
 	
-	# 2. Create the Base Character (Starter Library)
-	# Note: This assumes create_character() correctly populates unlocked_actions
+	# 2. Create the Base Character
+	# This sets the BASE stats (e.g. 5 HP / 4 SP) from the Class Definition
 	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
 	
 	# --- ASSIGN RANDOM PERSONALITY ---
 	var personalities = CharacterData.AIArchetype.values()
 	bot_data.ai_archetype = personalities.pick_random()
 	
-	# A. Get Rank Title based on Level
+	# Flavor: Rank Title
 	var title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
 	var rank_title = RANK_TITLES[title_index]
 	
-	# Flavor: Rename the bot based on its brain
+	# Flavor: Prefix
 	var prefix = ""
 	match bot_data.ai_archetype:
 		CharacterData.AIArchetype.AGGRESSIVE: prefix = "Furious "
@@ -107,14 +108,12 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	
 	bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
 	
-	# 3. Calculate how many extra cards they get (Library expansion)
+	# 3. DRAFT CARDS (Kept for gameplay variety, but ignored for stats now)
 	var cards_to_draft = level + 1
-	
-	# 4. "Draft" cards legally by walking the tree
 	var owned_ids = []
 	var unlockable_options = []
 	
-	# Identify the starting Root Node for this class
+	# Identify the starting Root Node
 	var root_id = 0
 	match selected_class:
 		CharacterData.ClassType.QUICK: root_id = 73
@@ -122,7 +121,7 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 		CharacterData.ClassType.PATIENT: root_id = 75
 		CharacterData.ClassType.HEAVY: root_id = 76
 	
-	# Initialize the 'shop' with the root's neighbors
+	# Init Shop
 	owned_ids.append(root_id)
 	if root_id in TREE_CONNECTIONS:
 		for neighbor in TREE_CONNECTIONS[root_id]:
@@ -130,42 +129,47 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 			
 	# Draft Loop
 	for i in range(cards_to_draft):
-		if unlockable_options.is_empty():
-			break 
-			
-		# Pick a random valid card
-		var picked_id = unlockable_options.pick_random()
+		if unlockable_options.is_empty(): break 
 		
-		# "Buy" it -> Add to LIBRARY (unlocked_actions), NOT Deck
+		var picked_id = unlockable_options.pick_random()
 		var card_name = ID_TO_NAME_MAP.get(picked_id)
+		
 		if card_name:
 			var new_card = find_action_resource(card_name)
-			# Ensure we don't add duplicates to the library
 			if new_card and not _has_card(bot_data.unlocked_actions, new_card):
 				bot_data.unlocked_actions.append(new_card)
 		
-		# Update the tree state for the next pick
 		owned_ids.append(picked_id)
 		unlockable_options.erase(picked_id)
 		
-		# Add new neighbors to the pool
 		if picked_id in TREE_CONNECTIONS:
 			for neighbor in TREE_CONNECTIONS[picked_id]:
 				if neighbor not in owned_ids and neighbor not in unlockable_options:
 					unlockable_options.append(neighbor)
 	
-	# 5. CUT DOWN TO 8 (The Smart Selection)
-	# Select the best hand from the large library we just built
+	# 4. SELECT SMART HAND
 	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions, bot_data.ai_archetype)
 	
-	# 6. Recalculate stats based on the ACTIVE deck
-	_recalculate_stats(bot_data)
+	# ---------------------------------------------------------
+	# 5. NEW STAT SCALING (LINEAR GROWTH)
+	# ---------------------------------------------------------
+	# Old way: _recalculate_stats(bot_data) <--- REMOVED
 	
-	# Debug Print to verify
+	# New way: +1 HP and +1 SP per Level
+	# Level 1 = 0 Bonus (Base Stats)
+	# Level 2 = +1 Bonus
+	var stat_bonus = max(0, level - 1)
+	
+	bot_data.max_hp += stat_bonus
+	bot_data.max_sp += stat_bonus
+	
+	# Ensure they start full
+	bot_data.current_hp = bot_data.max_hp
+	bot_data.current_sp = bot_data.max_sp
+	
+	# Debug Print
 	print("\n=== ENEMY GENERATED (" + str(selected_class) + ") ===")
-	print("Level: " + str(level) + " | Drafted: " + str(cards_to_draft))
-	print("Library Size: " + str(bot_data.unlocked_actions.size()))
-	print("Active Deck: " + str(bot_data.deck.size()))
+	print("Level: " + str(level) + " | Title: " + rank_title)
 	print("HP: " + str(bot_data.max_hp) + " | SP: " + str(bot_data.max_sp))
 	print("==============================\n")
 	

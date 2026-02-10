@@ -1,11 +1,11 @@
 extends Control
 
-@onready var title_label = $Panel/VBoxContainer/TitleLabel
-@onready var winner_label = $Panel/VBoxContainer/WinnerLabel
-@onready var main_btn = $Panel/VBoxContainer/RematchButton # Check if this matches your scene (RematchBtn vs RematchButton)
-@onready var menu_btn = $Panel/VBoxContainer/MenuButton
+@onready var title_label = $Panel/MarginContainer/VBoxContainer/TitleLabel
+@onready var winner_label = $Panel/MarginContainer/VBoxContainer/WinnerLabel
+@onready var main_btn = $Panel/MarginContainer/VBoxContainer/RematchButton # Check if this matches your scene (RematchBtn vs RematchButton)
+@onready var menu_btn = $Panel/MarginContainer/VBoxContainer/MenuButton
 @onready var panel = $Panel
-@onready var view_btn = $Panel/VBoxContainer/ViewBtn
+@onready var view_btn = $Panel/MarginContainer/VBoxContainer/ViewBtn
 
 var winner_data: CharacterData = null
 var match_log_text: String = ""
