@@ -831,68 +831,166 @@ FILE PATH: res://Scripts/AudioManager.gd
 ========================================
 extends Node
 
-# --- SOUND LIBRARY ---
-# Replace these paths with your actual files later!
-# If you don't have files yet, the game will just print a warning instead of crashing.
+# --- ASSET LIBRARY ---
 var sounds = {
-	# UI
+	# SFX (Keep your existing ones)
 	"ui_hover": preload("res://Audio/UI/hover.wav"),
 	"ui_click": preload("res://Audio/UI/click.wav"),
-	"game_start": preload("res://Audio/UI/game_start.ogg"),
-	
-	# COMBAT
 	"hit_light": preload("res://Audio/Combat/hit_light.wav"),
 	"hit_heavy": preload("res://Audio/Combat/hit_heavy.wav"),
 	"block": preload("res://Audio/Combat/block.wav"),
 	"clash": preload("res://Audio/Combat/clash.wav"),
-	"clash_win": preload("res://Audio/Combat/clash_win.wav"),
-	"buff": preload("res://Audio/Combat/buff.wav"),
+	
+	# MUSIC (Add your music files here)
+	"menu_theme": preload("res://Audio/Music/MenuTheme.wav"),
+	"battle_theme": preload("res://Audio/Music/BattleTheme.wav"),
 }
 
-# --- PLAYER POOL ---
-# We create 10 players so up to 10 sounds can happen at once.
+var is_danger_mode: bool = false
+var heartbeat_player: AudioStreamPlayer
+
+# --- SFX POOL ---
 var pool_size = 10
 var sfx_players: Array[AudioStreamPlayer] = []
 
+# --- MUSIC SYSTEM ---
+var music_player_1: AudioStreamPlayer
+var music_player_2: AudioStreamPlayer
+var active_music_player: AudioStreamPlayer = null
+var current_music_key: String = ""
+
 func _ready():
-	# Create the pool of players
+	process_mode = Node.PROCESS_MODE_ALWAYS # Ensure audio keeps playing if game pauses
+
+	# 1. Setup SFX Pool
 	for i in range(pool_size):
 		var p = AudioStreamPlayer.new()
-		p.bus = "SFX" # Make sure you have an 'SFX' bus in Audio tab, or default to 'Master'
+		p.bus = "SFX"
 		add_child(p)
 		sfx_players.append(p)
-
-# --- PUBLIC FUNCTION ---
+		
+	# 2. Setup Music Players (Dual for crossfading)
+	music_player_1 = AudioStreamPlayer.new()
+	music_player_1.bus = "Music"
+	add_child(music_player_1)
+	
+	music_player_2 = AudioStreamPlayer.new()
+	music_player_2.bus = "Music"
+	add_child(music_player_2)
+	
+	active_music_player = music_player_1
+	
+	# NEW: Setup Heartbeat
+	heartbeat_player = AudioStreamPlayer.new()
+	heartbeat_player.stream = preload("res://Audio/SFX/heartbeat.wav") # Make sure file exists!
+	heartbeat_player.bus = "SFX"
+	heartbeat_player.volume_db = 5.0 # Subtle background thump
+	add_child(heartbeat_player)
+	
+# --- PUBLIC FUNCTION: SFX ---
 func play_sfx(key: String, pitch_variance: float = 0.0):
 	if not sounds.has(key):
-		print_debug("Audio Key not found: " + key)
+		# Optional: Comment out print to avoid spam if files are missing
+		# print_debug("Audio Key not found: " + key)
 		return
 		
 	var stream = sounds[key]
-	if not stream: return # File might be missing
+	if not stream: return 
 	
-	# Find a free player
 	var player = _get_available_player()
 	if player:
 		player.stream = stream
-		
-		# Add random pitch variation for "Juice" (e.g., 0.9 to 1.1)
 		if pitch_variance > 0:
 			player.pitch_scale = randf_range(1.0 - pitch_variance, 1.0 + pitch_variance)
 		else:
 			player.pitch_scale = 1.0
-			
 		player.play()
 
+# --- PUBLIC FUNCTION: MUSIC ---
+func play_music(key: String, fade_duration: float = 1.0):
+	if not sounds.has(key):
+		print("Music track not found: " + key)
+		return
+		
+	# Don't restart if it's already playing
+	if current_music_key == key: return
+	
+	current_music_key = key
+	var new_stream = sounds[key]
+	
+	# Identify which player is free
+	var next_player = music_player_2 if active_music_player == music_player_1 else music_player_1
+	var old_player = active_music_player
+	
+	# Setup Next Player
+	next_player.stream = new_stream
+	next_player.volume_db = -80 # Start silent
+	next_player.play()
+	
+	# Fade IN the new track
+	var tween_in = create_tween()
+	tween_in.tween_property(next_player, "volume_db", 0.0, fade_duration)
+	
+	# Fade OUT the old track (if playing)
+	if old_player.playing:
+		var tween_out = create_tween()
+		tween_out.tween_property(old_player, "volume_db", -80.0, fade_duration)
+		tween_out.tween_callback(old_player.stop) # Stop it when fade finishes
+	
+	# Swap reference
+	active_music_player = next_player
+
+func stop_music(fade_duration: float = 1.0):
+	if active_music_player.playing:
+		var tween = create_tween()
+		tween.tween_property(active_music_player, "volume_db", -80.0, fade_duration)
+		tween.tween_callback(active_music_player.stop)
+	current_music_key = ""
+
+# --- HELPERS ---
 func _get_available_player() -> AudioStreamPlayer:
 	for p in sfx_players:
-		if not p.playing:
-			return p
+		if not p.playing: return p
 	
-	# If all are busy, steal the oldest one (index 0) and move it to back
 	var p = sfx_players.pop_front()
 	sfx_players.append(p)
 	return p
+
+# --- DANGER STATE LOGIC ---
+func set_danger_mode(active: bool):
+	# Prevent spamming the same state
+	if active == is_danger_mode: return
+	is_danger_mode = active
+	
+	var music_bus_idx = AudioServer.get_bus_index("Music")
+	# We assume LowPassFilter is the FIRST effect (index 0) on the Music bus
+	var filter = AudioServer.get_bus_effect(music_bus_idx, 0) as AudioEffectLowPassFilter
+	
+	if not filter:
+		print("Error: No LowPassFilter found on Music Bus!")
+		return
+		
+	var tween = create_tween()
+	
+	if active:
+		print(">> DANGER STATE: ON")
+		# 1. Muffle Music (Tween Cutoff down to 600Hz)
+		tween.tween_property(filter, "cutoff_hz", 600.0, 1.0)
+		
+		# 2. Start Heartbeat
+		heartbeat_player.play()
+		
+	else:
+		print(">> DANGER STATE: OFF")
+		# 1. Restore Music (Tween Cutoff up to 20500Hz)
+		tween.tween_property(filter, "cutoff_hz", 20500.0, 1.0)
+		
+		# 2. Stop Heartbeat
+		heartbeat_player.stop()
+
+# Helper to ensure music resets when switching scenes/winning
+func reset_audio_state():
+	set_danger_mode(false)
 
 
 ========================================
@@ -2755,6 +2853,7 @@ var art_technical = preload("res://Art/Portraits/Technical.png")
 const HAND_LIMIT = 8
 
 # --- NEW: ENEMY GENERATOR ---
+# --- NEW: ENEMY GENERATOR ---
 func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
 	var types = [
@@ -2765,19 +2864,19 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	]
 	var selected_class = types.pick_random()
 	
-	# 2. Create the Base Character (Starter Library)
-	# Note: This assumes create_character() correctly populates unlocked_actions
+	# 2. Create the Base Character
+	# This sets the BASE stats (e.g. 5 HP / 4 SP) from the Class Definition
 	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
 	
 	# --- ASSIGN RANDOM PERSONALITY ---
 	var personalities = CharacterData.AIArchetype.values()
 	bot_data.ai_archetype = personalities.pick_random()
 	
-	# A. Get Rank Title based on Level
+	# Flavor: Rank Title
 	var title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
 	var rank_title = RANK_TITLES[title_index]
 	
-	# Flavor: Rename the bot based on its brain
+	# Flavor: Prefix
 	var prefix = ""
 	match bot_data.ai_archetype:
 		CharacterData.AIArchetype.AGGRESSIVE: prefix = "Furious "
@@ -2787,14 +2886,12 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	
 	bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
 	
-	# 3. Calculate how many extra cards they get (Library expansion)
+	# 3. DRAFT CARDS (Kept for gameplay variety, but ignored for stats now)
 	var cards_to_draft = level + 1
-	
-	# 4. "Draft" cards legally by walking the tree
 	var owned_ids = []
 	var unlockable_options = []
 	
-	# Identify the starting Root Node for this class
+	# Identify the starting Root Node
 	var root_id = 0
 	match selected_class:
 		CharacterData.ClassType.QUICK: root_id = 73
@@ -2802,7 +2899,7 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 		CharacterData.ClassType.PATIENT: root_id = 75
 		CharacterData.ClassType.HEAVY: root_id = 76
 	
-	# Initialize the 'shop' with the root's neighbors
+	# Init Shop
 	owned_ids.append(root_id)
 	if root_id in TREE_CONNECTIONS:
 		for neighbor in TREE_CONNECTIONS[root_id]:
@@ -2810,42 +2907,47 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 			
 	# Draft Loop
 	for i in range(cards_to_draft):
-		if unlockable_options.is_empty():
-			break 
-			
-		# Pick a random valid card
-		var picked_id = unlockable_options.pick_random()
+		if unlockable_options.is_empty(): break 
 		
-		# "Buy" it -> Add to LIBRARY (unlocked_actions), NOT Deck
+		var picked_id = unlockable_options.pick_random()
 		var card_name = ID_TO_NAME_MAP.get(picked_id)
+		
 		if card_name:
 			var new_card = find_action_resource(card_name)
-			# Ensure we don't add duplicates to the library
 			if new_card and not _has_card(bot_data.unlocked_actions, new_card):
 				bot_data.unlocked_actions.append(new_card)
 		
-		# Update the tree state for the next pick
 		owned_ids.append(picked_id)
 		unlockable_options.erase(picked_id)
 		
-		# Add new neighbors to the pool
 		if picked_id in TREE_CONNECTIONS:
 			for neighbor in TREE_CONNECTIONS[picked_id]:
 				if neighbor not in owned_ids and neighbor not in unlockable_options:
 					unlockable_options.append(neighbor)
 	
-	# 5. CUT DOWN TO 8 (The Smart Selection)
-	# Select the best hand from the large library we just built
+	# 4. SELECT SMART HAND
 	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions, bot_data.ai_archetype)
 	
-	# 6. Recalculate stats based on the ACTIVE deck
-	_recalculate_stats(bot_data)
+	# ---------------------------------------------------------
+	# 5. NEW STAT SCALING (LINEAR GROWTH)
+	# ---------------------------------------------------------
+	# Old way: _recalculate_stats(bot_data) <--- REMOVED
 	
-	# Debug Print to verify
+	# New way: +1 HP and +1 SP per Level
+	# Level 1 = 0 Bonus (Base Stats)
+	# Level 2 = +1 Bonus
+	var stat_bonus = max(0, level - 1)
+	
+	bot_data.max_hp += stat_bonus
+	bot_data.max_sp += stat_bonus
+	
+	# Ensure they start full
+	bot_data.current_hp = bot_data.max_hp
+	bot_data.current_sp = bot_data.max_sp
+	
+	# Debug Print
 	print("\n=== ENEMY GENERATED (" + str(selected_class) + ") ===")
-	print("Level: " + str(level) + " | Drafted: " + str(cards_to_draft))
-	print("Library Size: " + str(bot_data.unlocked_actions.size()))
-	print("Active Deck: " + str(bot_data.deck.size()))
+	print("Level: " + str(level) + " | Title: " + rank_title)
 	print("HP: " + str(bot_data.max_hp) + " | SP: " + str(bot_data.max_sp))
 	print("==============================\n")
 	
@@ -3156,7 +3258,7 @@ func _ready():
 	# 1. CLEANUP
 	for child in get_children():
 		child.queue_free()
-	
+	$".".print_tree_pretty()
 	# 2. CREATE SCROLL LIST
 	scroll_container = ScrollContainer.new()
 	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -3395,6 +3497,35 @@ func _on_visibility_changed():
 	if visible:
 		_auto_scroll()
 
+# --- NEW FUNCTION: This is what TestArena calls to get the text ---
+func get_log_text() -> String:
+	var full_log_string = ""
+	
+	# Iterate through every row in the log list
+	for child in log_list.get_children():
+		# We need a helper to find the label, because sometimes it's nested
+		# inside MarginContainers or other layout nodes.
+		var label = _find_richtext_recursive(child)
+		
+		if label:
+			# We use .text (includes BBCode) so the Game Over screen keeps the colors.
+			# If you want plain text, use label.get_parsed_text()
+			full_log_string += label.text + "\n"
+			
+	return full_log_string
+# -----------------------------------------------------------------
+
+func _find_richtext_recursive(node: Node) -> RichTextLabel:
+	if node is RichTextLabel:
+		return node
+	
+	for child in node.get_children():
+		var found = _find_richtext_recursive(child)
+		if found:
+			return found
+			
+	return null
+
 
 ========================================
 FILE PATH: res://Scripts/compendium.gd
@@ -3517,6 +3648,7 @@ var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
 var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
 
 func _ready():
+	AudioManager.play_music("menu_theme")
 	# 1. Add Status Overlay
 	var overlay = overlay_scene.instantiate()
 	add_child(overlay)
@@ -3816,12 +3948,12 @@ FILE PATH: res://Scripts/GameOverScreen.gd
 ========================================
 extends Control
 
-@onready var title_label = $Panel/VBoxContainer/TitleLabel
-@onready var winner_label = $Panel/VBoxContainer/WinnerLabel
-@onready var main_btn = $Panel/VBoxContainer/RematchButton # Check if this matches your scene (RematchBtn vs RematchButton)
-@onready var menu_btn = $Panel/VBoxContainer/MenuButton
+@onready var title_label = $Panel/MarginContainer/VBoxContainer/TitleLabel
+@onready var winner_label = $Panel/MarginContainer/VBoxContainer/WinnerLabel
+@onready var main_btn = $Panel/MarginContainer/VBoxContainer/RematchButton # Check if this matches your scene (RematchBtn vs RematchButton)
+@onready var menu_btn = $Panel/MarginContainer/VBoxContainer/MenuButton
 @onready var panel = $Panel
-@onready var view_btn = $Panel/VBoxContainer/ViewBtn
+@onready var view_btn = $Panel/MarginContainer/VBoxContainer/ViewBtn
 
 var winner_data: CharacterData = null
 var match_log_text: String = ""
@@ -3896,7 +4028,7 @@ func _on_main_action():
 			RunManager.handle_win()
 		else:
 			get_tree().paused = false 
-			SceneLoader.reload_current_scene()
+			SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 			
 	# 2. QUICK MATCH LOGIC
 	else:
@@ -3909,7 +4041,7 @@ func _on_menu_pressed():
 		RunManager.player_run_data = null 
 	
 	get_tree().paused = false
-	SceneLoader.change_scene("res://Scenes/MenuArcade.tscn")
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 func _on_view_pressed():
 	AudioManager.play_sfx("ui_click")
@@ -4059,7 +4191,7 @@ func _ready():
 	_attach_sfx($VBoxContainer/StartButton)
 	_attach_sfx($VBoxContainer/QuitButton)
 	_attach_sfx($VBoxContainer/CompendiumButton)
-	
+	AudioManager.play_music("menu_theme")
 	var btn_compendium = find_child("CompendiumButton") # Or reference it directly if you prefer
 	if btn_compendium:
 		btn_compendium.pressed.connect(_on_compendium_pressed)
@@ -4084,111 +4216,363 @@ func _attach_sfx(btn: BaseButton):
 
 
 ========================================
+FILE PATH: res://Scripts/MapNode.gd
+========================================
+# Scripts/UI/MapNode.gd
+extends PanelContainer
+
+signal node_clicked(index: int)
+
+@onready var icon = $VBoxContainer/Icon
+@onready var label = $VBoxContainer/Label
+@onready var status = $VBoxContainer/Status
+@onready var button = $Button
+
+var my_index: int = -1
+var data: MapNodeData
+
+func setup(node_data: MapNodeData, index: int):
+	my_index = index
+	data = node_data
+	
+	# 1. Set Title
+	label.text = node_data.title
+	
+	# 2. Set Icon based on Type
+	match node_data.type:
+		MapNodeData.Type.BOSS:
+			icon.texture = preload("res://Art/Icons/icon_Opening.png") # Placeholder
+			modulate = Color(1.5, 1.0, 1.0) # Red tint for danger
+		MapNodeData.Type.GYM:
+			icon.texture = preload("res://Art/Icons/icon_Bide.png") # Placeholder
+			modulate = Color(1.0, 1.0, 1.5) # Blue tint
+		_:
+			# Standard Fight
+			# If we generated an enemy, try to show their class icon
+			icon.texture = preload("res://Art/Icons/icon_Opportunity.png") # Placeholder
+	
+	# 3. Handle Status (Locked/Completed)
+	if node_data.is_completed:
+		status.text = "VICTORY"
+		status.modulate = Color.GREEN
+		modulate.a = 0.5 # Dim it
+		button.disabled = true
+	elif node_data.is_locked:
+		status.text = "LOCKED"
+		status.modulate = Color.GRAY
+		button.disabled = true
+	else:
+		status.text = "READY"
+		status.modulate = Color.YELLOW
+		button.disabled = false
+		
+		# Juice: Make the current node pulse!
+		var tween = create_tween().set_loops()
+		tween.tween_property(self, "scale", Vector2(1.05, 1.05), 0.5)
+		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.5)
+
+func _on_button_pressed():
+	node_clicked.emit(my_index)
+
+func _ready():
+	button.pressed.connect(_on_button_pressed)
+
+
+========================================
 FILE PATH: res://Scripts/MenuArcade.gd
 ========================================
 extends Control
 
-# --- NODES ---
-@onready var p1_option = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/ClassOption
-@onready var p1_info = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/InfoLabel
-@onready var p1_portrait = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
+# --- UI REFERENCES ---
+@onready var class_grid = $MarginContainer/VBoxContainer/HBoxContainer/ClassScroll/ClassList
+@onready var info_label = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/InfoLabel
+@onready var portrait_rect = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
+
+# Settings
 @onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
 @onready var maintain_hp_toggle = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/MaintainHPToggle
 @onready var start_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/StartButton
+@onready var delete_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DeleteButton
+@onready var name_input = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/NameInput # <--- New Ref
 
 # --- DATA ---
-var classes = ["Heavy", "Patient", "Quick", "Technical"]
 @export var base_classes: Array[ClassDefinition]
-var presets: Array[PresetCharacter] = []
+
+# --- STATE ---
+var selected_index: int = 0
+var buttons: Array[Button] = []
+var selected_save_file: String = "" # Empty means "New Run Mode"
 
 
 func _ready():
-	_load_presets()
-	_setup_options(p1_option)
 	_setup_difficulty()
+	_generate_grid() # Renamed from _generate_class_grid for clarity
 	
-	# Connect Signals
-	p1_option.item_selected.connect(_on_selection_changed)
-	difficulty_option.item_selected.connect(_on_difficulty_changed)
 	start_btn.pressed.connect(_on_start_pressed)
 	
-	# Initial UI State
-	p1_option.selected = 0
-	_update_info()
+	# Default Name
+	#name_input.text = "Fighter No. " + str(randi() % 1000)
+	
+	_select_class(0)
+	
+	if delete_btn:
+		delete_btn.pressed.connect(_on_delete_pressed)
+		delete_btn.hide() # Ensure hidden at start
+	
+# --- NEW: GRID GENERATION ---
+func _generate_grid():
+	# Clear children...
+	for child in class_grid.get_children(): child.queue_free()
+	buttons.clear()
+	
+	# 1. NEW RUN BUTTONS (Base Classes)
+	for i in range(base_classes.size()):
+		var def = base_classes[i]
+		_create_grid_button(i, def.class_named, def.portrait, false)
 
+	# 2. LOAD RUN BUTTONS (Save Files)
+	var saves = RunManager.get_save_files()
+	if saves.size() > 0:
+		# Divider
+		# (Optional: Add a label or separator here if using a VBox, but GridContainer handles flow)
+		pass
+		
+	for i in range(saves.size()):
+		var filename = saves[i]
+		# Pass a generic "Floppy Disk" icon or reuse a portrait if you want
+		# Using a higher index range to distinguish saves
+		var save_index = 100 + i 
+		_create_grid_button(save_index, filename.replace(".save", ""), null, true)
+
+func _create_grid_button(index: int, text: String, icon: Texture2D, is_save: bool):
+	var btn = Button.new()
+	btn.text = text
+	btn.icon = icon
+	if is_save:
+		# Use a default icon or color for saves
+		btn.modulate = Color(0.6, 0.8, 1.0) # Blue tint
+	else:
+		btn.expand_icon = true
+	
+	# ... (Standard Layout Code) ...
+	btn.custom_minimum_size = Vector2(140, 160)
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	btn.clip_text = true
+	
+	btn.pressed.connect(func(): _on_item_selected(index, text, is_save))
+	class_grid.add_child(btn)
+	buttons.append(btn)
+
+# --- INTERACTION ---
+func _on_class_hover(index: int):
+	AudioManager.play_sfx("ui_hover", 0.1)
+	_update_preview_panel(index)
+
+
+func _update_preview_panel(index: int):
+	if index >= base_classes.size(): return
+	var data = base_classes[index]
+	
+	# --- MIDDLE COLUMN: DESCRIPTION ONLY ---
+	# (As requested, this focuses on the description/stats)
+	
+	var txt = "[center][b][font_size=28]" + data.class_named + "[/font_size][/b][/center]\n"
+	
+	# Playstyle Summary
+	if data.playstyle_summary != "":
+		txt += "[center][i][color=light_gray]" + data.playstyle_summary + "[/color][/i][/center]\n\n"
+	
+	# Stats Block
+	txt += "[b]HP:[/b] " + str(data.base_hp) + "   [b]SP:[/b] " + str(data.base_sp) + "\n"
+	txt += "[b]Speed:[/b] " + str(data.base_speed) + "\n"
+	txt += "----------------\n"
+	
+	# Passive
+	txt += "[color=yellow]" + data.passive_description + "[/color]"
+	
+	info_label.text = txt
+	
+	# Big Portrait (Optional: You can hide this if you ONLY want text in the middle)
+	if portrait_rect:
+		portrait_rect.texture = data.portrait
+
+# --- START RUN ---
 func _on_start_pressed():
-	# 1. Save Run Modifiers
+	AudioManager.play_sfx("ui_confirm")
 	RunManager.maintain_hp_enabled = maintain_hp_toggle.button_pressed
 	
-	# 2. Identify Selection
-	var selected_idx = p1_option.selected
-	
-	if selected_idx < base_classes.size():
-		# 1. GET THE RESOURCE (The .tres file)
-		var selected_resource = base_classes[selected_idx]
-		
-		# 2. PASS IT TO RUN MANAGER
-		RunManager.start_new_run(selected_resource)
-		
+	if selected_save_file != "":
+		# LOAD MODE
+		RunManager.load_run(selected_save_file)
 	else:
-		# Preset Start (Keep existing logic or update similarly)
-		var preset_idx = selected_idx - base_classes.size() - 1
-		if preset_idx >= 0 and preset_idx < presets.size():
-			var preset = presets[preset_idx]
-			RunManager.start_run_from_preset(preset)
+		# NEW RUN MODE
+		if selected_index < base_classes.size():
+			var run_name = name_input.text
+			if run_name.strip_edges() == "": run_name = "Unnamed"
+			
+			RunManager.start_new_run(base_classes[selected_index], run_name)
 
-func _update_info():
-	var idx = p1_option.selected
-	# Helper function derived from your old code [cite: 353]
-	var temp = _get_character_data_from_selection(idx, "Preview")
-	
-	var txt = "[b]" + temp.character_name + "[/b]\n"
-	txt += "HP: " + str(temp.max_hp) + " | SP: " + str(temp.max_sp) + "\n"
-	txt += "[color=yellow]" + temp.passive_desc + "[/color]"
-	p1_info.text = txt
-	
-	if p1_portrait:
-		p1_portrait.texture = temp.portrait
-
-# --- REUSED HELPERS (Copied from CharacterSelect.gd) ---
-
-func _load_presets():
-	presets.clear()
-	var path = "res://Data/Presets/"
-	var dir = DirAccess.open(path)
-	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
-		while file_name != "":
-			if not dir.current_is_dir() and (file_name.ends_with(".tres") or file_name.ends_with(".res")):
-				var res = load(path + file_name)
-				if res is PresetCharacter: presets.append(res)
-			file_name = dir.get_next()
-
-func _setup_options(opt: OptionButton):
-	opt.clear()
-	for c in classes: opt.add_item(c)
-	if presets.size() > 0: opt.add_separator("Presets")
-	for p in presets: opt.add_item(p.character_name)
-
+# --- SETTINGS HELPERS ---
 func _setup_difficulty():
 	difficulty_option.clear()
-	difficulty_option.add_item("Very Easy"); difficulty_option.add_item("Easy")
-	difficulty_option.add_item("Medium"); difficulty_option.add_item("Hard")
-	difficulty_option.selected = 2 # Medium Default
+	difficulty_option.add_item("Very Easy")
+	difficulty_option.add_item("Easy")
+	difficulty_option.add_item("Medium")
+	difficulty_option.add_item("Hard")
+	difficulty_option.selected = 2 # Medium
+	
+	if not difficulty_option.item_selected.is_connected(_on_difficulty_changed):
+		difficulty_option.item_selected.connect(_on_difficulty_changed)
 
 func _on_difficulty_changed(index: int):
 	GameManager.ai_difficulty = index as GameManager.Difficulty
 
-func _on_selection_changed(_idx):
-	_update_info()
+# --- UPDATED INTERACTION LOGIC ---
 
-func _get_character_data_from_selection(index: int, p_name: String) -> CharacterData:
-	if index < base_classes.size():
-		return ClassFactory.create_character(index as CharacterData.ClassType, p_name)
-	var preset_idx = index - base_classes.size() - 1
-	if preset_idx >= 0: return ClassFactory.create_from_preset(presets[preset_idx])
-	return null
+func _on_item_selected(index: int, text: String, is_save: bool):
+	AudioManager.play_sfx("ui_click")
+	
+	# 1. Visual Highlight (Reset others, highlight this)
+	for i in range(buttons.size()):
+		var btn = buttons[i]
+		if i == index:
+			btn.modulate = Color(1.2, 1.2, 1.2)
+			btn.add_theme_color_override("font_color", Color.GREEN)
+		else:
+			btn.modulate = Color(1, 1, 1)
+			btn.remove_theme_color_override("font_color")
+
+	if is_save:
+		# --- SAVE FILE SELECTED ---
+		selected_save_file = text + ".save"
+		start_btn.text = "LOAD RUN"
+		name_input.editable = false
+		name_input.text = text
+		
+		# A. LOAD DATA FOR PREVIEW
+		var data = RunManager.peek_save_file(selected_save_file)
+		
+		if data.is_empty():
+			info_label.text = "[color=red]Error: Could not read save file.[/color]"
+			return
+
+		# B. LOCK DIFFICULTY (Enforce saved difficulty)
+		var saved_diff = int(data.difficulty)
+		difficulty_option.selected = saved_diff
+		difficulty_option.disabled = true # <--- GRAY OUT
+		
+		# Force the toggle to match the save file, then disable interaction
+		maintain_hp_toggle.button_pressed = data.get("maintain_hp", false)
+		maintain_hp_toggle.disabled = true
+		
+		# C. BUILD STATS STRING
+		var p_data = data.player_data
+		var identity = p_data.identity
+		var stats = p_data.stats
+		
+		# Header
+		var txt = "[center][b][font_size=24]" + data.run_name + "[/font_size][/b][/center]\n"
+		txt += "[center][color=gray]Level " + str(data.level) + " - " + _get_difficulty_name(saved_diff) + "[/color][/center]\n\n"
+		
+		# Core Stats
+		txt += "[b]Class:[/b] " + _get_class_name(int(identity.type)) + "\n"
+		txt += "[b]HP:[/b] " + str(stats.current_hp) + "/" + str(stats.max_hp) + "   "
+		txt += "[b]SP:[/b] " + str(stats.current_sp) + "/" + str(stats.max_sp) + "\n"
+		txt += "[b]Opponents Defeated:[/b] " + str(int(data.level) - 1) + "\n"
+		
+		# Equipment List
+		txt += "\n[b]Equipment:[/b]\n"
+		if p_data.equipment.size() > 0:
+			for item_name in p_data.equipment:
+				txt += "• " + item_name + "\n"
+		else:
+			txt += "[i]None[/i]\n"
+
+		info_label.text = txt
+		
+		# Portrait (Try to load if path exists, otherwise generic)
+		if identity.portrait_path != "":
+			portrait_rect.texture = load(identity.portrait_path)
+		else:
+			portrait_rect.texture = null
+		delete_btn.show()
+
+	else:
+		# --- NEW RUN SELECTED ---
+		selected_save_file = "" 
+		selected_index = index
+		start_btn.text = "START RUN"
+		name_input.editable = true
+		
+		# UNLOCK DIFFICULTY (Allow player to choose)
+		difficulty_option.disabled = false 
+		maintain_hp_toggle.disabled = false
+		# Show standard Class Preview
+		_update_preview_panel(index)
+		delete_btn.hide()
+
+# --- HELPER: Reset UI when picking a Base Class ---
+func _select_class(index: int):
+	# ... (Existing audio/highlight logic) ...
+	AudioManager.play_sfx("ui_click")
+	selected_index = index
+	selected_save_file = "" # Clear save selection
+	
+	# Reset UI for New Run
+	name_input.editable = true
+	start_btn.text = "START RUN"
+	difficulty_option.disabled = false # <--- RE-ENABLE
+	maintain_hp_toggle.disabled = false # <--- RE-ENABLE
+	# Highlight buttons...
+	for i in range(buttons.size()):
+		var btn = buttons[i]
+		if i == index:
+			btn.modulate = Color(1.2, 1.2, 1.2)
+			btn.add_theme_color_override("font_color", Color.GREEN)
+		else:
+			btn.modulate = Color(1, 1, 1)
+			btn.remove_theme_color_override("font_color")
+			
+	_update_preview_panel(index)
+
+# --- STRING HELPERS ---
+func _get_difficulty_name(value: int) -> String:
+	match value:
+		0: return "Very Easy"
+		1: return "Easy"
+		2: return "Medium"
+		3: return "Hard"
+	return "Unknown"
+
+func _get_class_name(type_enum: int) -> String:
+	# Matches your ClassType Enum in CharacterData
+	match type_enum:
+		0: return "Heavy"
+		1: return "Patient"
+		2: return "Quick"
+		3: return "Technical"
+		4: return "Mage" # If you added this
+	return "Unknown Class"
+
+func _on_delete_pressed():
+	if selected_save_file == "": return
+	
+	AudioManager.play_sfx("ui_click")
+	
+	# 1. Delete the file
+	RunManager.delete_save_file(selected_save_file)
+	
+	# 2. Refresh the UI
+	selected_save_file = ""
+	delete_btn.hide()
+	
+	# Regenerate grid to remove the old button
+	_generate_grid()
+	
+	# Reset to the first class so we aren't selecting nothing
+	_select_class(0)
 
 
 ========================================
@@ -4306,40 +4690,41 @@ FILE PATH: res://Scripts/MenuSettings.gd
 ========================================
 extends Control
 
-#@onready var master_slider = $CenterContainer/VBoxContainer/MasterSlider
-#@onready var music_slider = $CenterContainer/VBoxContainer/MusicSlider
-#@onready var sfx_slider = $CenterContainer/VBoxContainer/SFXSlider
-#@onready var delete_save_btn = $CenterContainer/VBoxContainer/DeleteSaveButton
-#
-#func _ready():
-	## 1. Set initial slider positions based on current volume
-	#master_slider.value = db_to_linear(AudioServer.get_bus_volume_db(0))
-	#music_slider.value = db_to_linear(AudioServer.get_bus_volume_db(1))
-	#sfx_slider.value = db_to_linear(AudioServer.get_bus_volume_db(2))
-	#
-	## 2. Connect signals
-	#master_slider.value_changed.connect(func(v): _set_volume(0, v))
-	#music_slider.value_changed.connect(func(v): _set_volume(1, v))
-	#sfx_slider.value_changed.connect(func(v): _set_volume(2, v))
-	#
-	#if delete_save_btn:
-		#delete_save_btn.pressed.connect(_on_delete_save_pressed)
-#
-#func _set_volume(bus_idx: int, value: float):
-	## Convert linear slider value (0-1) to Decibels
-	#AudioServer.set_bus_volume_db(bus_idx, linear_to_db(value))
-	#
-	## Optional: Mute if slider is at 0
-	#AudioServer.set_bus_mute(bus_idx, value < 0.05)
-#
-#func _on_delete_save_pressed():
-	## Simple safety confirmation could be added here later
-	#var dir = DirAccess.open("user://")
-	#if dir.file_exists("save_game.json"): # Or whatever you name your save
-		#dir.remove("save_game.json")
-		#print("Save file deleted.")
-		#delete_save_btn.text = "DATA DELETED"
-		#delete_save_btn.disabled = true
+# References to UI nodes
+@onready var master_slider = $CenterContainer/VBoxContainer/MasterSlider
+@onready var music_slider = $CenterContainer/VBoxContainer/MusicSlider
+# We use get_node_or_null for SFX just in case you haven't added it to the scene yet
+@onready var sfx_slider = $CenterContainer/VBoxContainer/SFXSlider 
+
+func _ready():
+	# Use the Manager to initialize sliders
+	_setup_slider(master_slider, "Master")
+	_setup_slider(music_slider, "Music")
+	
+	if sfx_slider:
+		_setup_slider(sfx_slider, "SFX")
+
+func _setup_slider(slider: HSlider, bus_name: String):
+	# 1. Visual Configuration
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	
+	# 2. Get Initial Value from Manager (Correctly synced with save file)
+	slider.value = SettingsManager.get_saved_volume(bus_name)
+	
+	# 3. Connect Signal
+	# When slider moves -> Tell Manager to Update & Save
+	slider.value_changed.connect(func(val): 
+		SettingsManager.update_volume(bus_name, val)
+	)
+
+func _on_volume_changed(bus_index: int, value: float):
+	# Convert slider (0-1) back to Decibels
+	AudioServer.set_bus_volume_db(bus_index, linear_to_db(value))
+	
+	# Quality of Life: If volume is very low, actually 'Mute' it to save performance
+	AudioServer.set_bus_mute(bus_index, value < 0.05)
 
 
 ========================================
@@ -4734,6 +5119,63 @@ func _apply_level_up_stats(card_type):
 	current_sp = max_sp
 	print("Level Up! New Stats - HP: " + str(max_hp) + " | SP: " + str(max_sp))
 
+# --- SERIALIZATION (SAVE/LOAD) ---
+
+func to_save_dictionary() -> Dictionary:
+	return {
+		"identity": {
+			"name": character_name,
+			"type": class_type,
+			"portrait_path": portrait.resource_path if portrait else ""
+		},
+		"stats": {
+			"current_hp": current_hp,
+			"max_hp": max_hp,
+			"current_sp": current_sp,
+			"max_sp": max_sp,
+			"speed": speed
+		},
+		# Save Cards by their Display Name (which ClassFactory uses to find them)
+		"deck": deck.map(func(c): return c.display_name),
+		"library": unlocked_actions.map(func(c): return c.display_name),
+		# Save Equipment by Display Name
+		"equipment": equipment.map(func(e): return e.display_name),
+		"statuses": statuses
+	}
+
+# Static helper to rebuild data from the dictionary
+static func from_save_dictionary(data: Dictionary) -> CharacterData:
+	var new_char = CharacterData.new()
+	
+	# 1. Identity
+	new_char.character_name = data.identity.name
+	new_char.class_type = data.identity.type as ClassType
+	if data.identity.portrait_path != "":
+		new_char.portrait = load(data.identity.portrait_path)
+	
+	# 2. Stats
+	new_char.current_hp = data.stats.current_hp
+	new_char.max_hp = data.stats.max_hp
+	new_char.current_sp = data.stats.current_sp
+	new_char.max_sp = data.stats.max_sp
+	new_char.speed = data.stats.speed
+	new_char.statuses = data.statuses
+	
+	# 3. Reconstruct Deck (String -> Resource)
+	for card_name in data.deck:
+		var card = ClassFactory.find_action_resource(card_name)
+		if card: new_char.deck.append(card)
+		
+	# 4. Reconstruct Library
+	for card_name in data.library:
+		var card = ClassFactory.find_action_resource(card_name)
+		if card: new_char.unlocked_actions.append(card)
+	
+	# 5. Reconstruct Equipment (Requires RunManager helper)
+	# We will handle equipment re-linking in RunManager because it owns the equipment list
+	
+	return new_char
+
 
 ========================================
 FILE PATH: res://Scripts/Resources/ClassDefinition.gd
@@ -4746,6 +5188,8 @@ class_name ClassDefinition
 @export var class_type: CharacterData.ClassType # Keep enum for safety, or switch to String ID
 @export var portrait: Texture2D
 @export_multiline var passive_description: String
+
+@export_multiline var playstyle_summary: String = "A brief description of how this class plays."
 
 @export_group("Base Stats")
 @export var base_hp: int = 5
@@ -5367,7 +5811,8 @@ func resolve_clash():
 	if p1_data.current_hp <= 0 or p2_data.current_hp <= 0:
 		_handle_death(winner_id)
 		return
-
+	
+	
 	change_state(State.POST_CLASH)
 	change_state(State.SELECTION)
 
@@ -5503,7 +5948,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		if target.current_hp <= 0:
 			result["fatal"] = true
 			return result
-			
+	RunManager.check_danger_state()		
 	return result
 
 # ==============================================================================
@@ -5752,7 +6197,7 @@ func remove_status(target_id: int, status_name: String):
 		emit_signal("status_applied", target_id, "CURED") # Generic cure msg
 
 func _load_backgrounds():
-	var path = "res://Art/background/"
+	var path = "res://Art/Background/"
 	var dir = DirAccess.open(path)
 	
 	if dir:
@@ -5774,7 +6219,28 @@ func _load_backgrounds():
 			
 			file_name = dir.get_next()
 	else:
-		print("ERROR: Could not find 'res://Art/background/' folder.")
+		print("ERROR: Could not find 'res://Art/Background/' folder.")
+
+
+========================================
+FILE PATH: res://Scripts/Resources/MapNodeData.gd
+========================================
+class_name MapNodeData
+extends Resource
+
+enum Type { FIGHT, BOSS, GYM, SHOP, EVENT, MYSTERY }
+
+@export var type: Type = Type.FIGHT
+@export var title: String = "Round 1"
+@export var is_completed: bool = false
+@export var is_locked: bool = true # Unlock when previous node is beaten
+
+# --- CONTENT ---
+# If it's a fight, we store the generated enemy here
+@export var enemy_data: CharacterData 
+
+# If it's a shop/gym, we can store specific seed data here later
+@export var special_data: Dictionary = {}
 
 
 ========================================
@@ -5787,6 +6253,8 @@ class_name PresetCharacter
 @export var character_name: String = "New Hero"
 @export var class_type: CharacterData.ClassType = CharacterData.ClassType.HEAVY
 @export var level: int = 1 # Mostly for flavor, or you could display it
+
+@export_multiline var description: String = "Preset description."
 
 @export_group("Build")
 @export var extra_skills: Array[String] = [] # List the EXACT names of actions here (e.g. "Drop Kick")
@@ -5805,6 +6273,7 @@ var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
 var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
 
 func _ready():
+	AudioManager.play_music("menu_theme")
 	# 1. Add Overlay
 	var overlay = overlay_scene.instantiate()
 	add_child(overlay)
@@ -5967,10 +6436,23 @@ var player_run_data: CharacterData
 var player_owned_tree_ids: Array[int] = [] 
 var free_unlocks_remaining: int = 0
 
+var current_run_name: String = "Test Run" # <--- NEW
+const SAVE_DIR = "user://saves/"
+
 # --- NEW: RUN MODIFIERS ---
 var maintain_hp_enabled: bool = false
 const EQUIPMENT_DIR = "res://Data/Equipment/"
 const BOSS_DIR = "res://Data/Presets/Bosses/"
+
+# --- MAP STATE ---
+var tournament_map: Array[MapNodeData] = []
+var current_map_index: int = 0
+var leagues_completed: int = 0
+var current_enemy_data: CharacterData # The enemy we are currently fighting
+
+# --- CONFIGURATION ---
+# A standard "Cup" might be 8 steps long
+const LEAGUE_LENGTH = 8
 
 const BOSS_SCHEDULE = {
 	5: "juggernaut_boss.tres",
@@ -6041,7 +6523,7 @@ func start_next_fight():
 	
 	# 1. Setup Player
 	GameManager.next_match_p1_data = player_run_data
-	
+	AudioManager.play_music("battle_theme")
 	# --- NEW: RANDOMIZE ENVIRONMENT ---
 	var envs = ["Ring", "Dojo", "Street"]
 	var selected_env = envs.pick_random()
@@ -6116,9 +6598,10 @@ func handle_win():
 	# or the next scene will start frozen.
 	get_tree().paused = false 
 	# -----------------------------
-	
+	AudioManager.reset_audio_state()
 	print("Victory! Processing Level Up...")
 	current_level += 1
+	save_run() # Save progress after winning
 	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
 
 # Helper to fetch all equipment for the draft
@@ -6137,6 +6620,7 @@ func get_all_equipment() -> Array[EquipmentData]:
 	return list
 
 func handle_loss():
+	AudioManager.reset_audio_state()
 	is_arcade_mode = false
 
 # --- REWARD POOL LOGIC ---
@@ -6167,7 +6651,7 @@ func get_valid_action_rewards() -> Array[ActionData]:
 # 2. Fetch Stat Upgrades (Generated on the fly)
 func get_stat_upgrades() -> Array[Dictionary]:
 	return [
-		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +4 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 4; p.current_hp += 4 },
+		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +4 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 2; p.current_hp += 2 },
 		{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
 		{ "type": "stat", "text": "FULL RESTORE", "desc": "Heal to Full HP.", "icon": "heal", "func": func(p): p.current_hp = p.max_hp }
 	]
@@ -6208,12 +6692,13 @@ func apply_reward(reward):
 # 1. Standard Start (From Class Selection)
 # CHANGED: Accept the Resource (ClassStats) instead of just an int
 # Update this function
-func start_new_run(source_class: ClassDefinition):
+func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
+	current_run_name = run_name # <--- Set the name!n):
 	# 1. Reset Run State
 	current_level = 1
 	player_owned_tree_ids.clear()
 	free_unlocks_remaining = 0
-	
+	leagues_completed = 0 # Reset league count
 	# 2. Create Character Data
 	var p_data = CharacterData.new()
 	
@@ -6224,10 +6709,10 @@ func start_new_run(source_class: ClassDefinition):
 	p_data.passive_desc = source_class.passive_description
 	
 	# Copy Stats (Optional: if your resource has custom start stats)
-	p_data.max_hp = 30
-	p_data.current_hp = 30
-	p_data.max_sp = 3
-	p_data.current_sp = 3
+	p_data.max_hp = 5
+	p_data.current_hp = 5
+	p_data.max_sp = 4
+	p_data.current_sp = 4
 	# --- FIX END ---
 	
 	#print("Starting Run: " + p_data.display_name + " (" + str(p_data.class_type) + ")")
@@ -6250,7 +6735,13 @@ func start_new_run(source_class: ClassDefinition):
 	
 	# 6. Save & Route
 	player_run_data = p_data
-	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+	#SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+	
+	# --- CHANGED: GENERATE MAP INSTEAD OF SCENE CHANGE ---
+	generate_new_league()
+	
+	# Go to the Map Screen (The player will click "Round 1" to start)
+	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
 
 # --- HELPER: Unlock the first node so the Draft System has "Neighbors" to find ---
 # CHANGED: Added '= null' to make the second argument optional
@@ -6296,8 +6787,238 @@ func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition
 # --- UPDATE: REWARD ROUTING ---
 func handle_reward_complete():
 	# Loop back to Deck Editor after picking a reward
+	save_run() # Save progress after winning
 	print("Reward Claimed. Going to Deck Editor...")
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+
+# --- SAVE SYSTEM ---
+
+func save_run():
+	# 1. Ensure directory exists
+	if not DirAccess.dir_exists_absolute(SAVE_DIR):
+		DirAccess.make_dir_absolute(SAVE_DIR)
+	
+	# 2. Prepare Data
+	var save_data = {
+		"run_name": current_run_name,
+		"level": current_level,
+		"tree_ids": player_owned_tree_ids, # Save Skill Tree progress
+		"difficulty": GameManager.ai_difficulty,
+		"maintain_hp": maintain_hp_enabled,
+		"player_data": player_run_data.to_save_dictionary(),
+		"timestamp": Time.get_datetime_string_from_system()
+	}
+	
+	# 3. Write to File
+	# We sanitize the filename just in case user used special characters
+	var safe_name = current_run_name.validate_filename()
+	var file_path = SAVE_DIR + safe_name + ".save"
+	
+	var file = FileAccess.open(file_path, FileAccess.WRITE)
+	file.store_string(JSON.stringify(save_data, "\t"))
+	file.close()
+	_show_save_notification()
+	print("Run saved to: " + file_path)
+
+func load_run(filename: String):
+	var path = SAVE_DIR + filename
+	if not FileAccess.file_exists(path):
+		print("Save file not found: " + path)
+		return
+
+	var file = FileAccess.open(path, FileAccess.READ)
+	var text = file.get_as_text()
+	var json = JSON.new()
+	var parse_result = json.parse(text)
+	
+	if parse_result != OK:
+		print("Error parsing save file.")
+		return
+		
+	var data = json.data
+	
+	# --- RESTORE STATE ---
+	current_run_name = data.run_name
+	current_level = int(data.level)
+	player_owned_tree_ids.assign(data.tree_ids)
+	GameManager.ai_difficulty = int(data.difficulty) as GameManager.Difficulty
+	maintain_hp_enabled = data.maintain_hp
+	
+	# Rebuild Player
+	player_run_data = CharacterData.from_save_dictionary(data.player_data)
+	
+	# Re-link Equipment (Since CharacterData only saved the names)
+	var saved_equip_names = data.player_data.equipment
+	player_run_data.equipment.clear()
+	
+	# Inefficient but safe: search all equipment for matches
+	var all_equip = get_all_equipment()
+	for equip_name in saved_equip_names:
+		for e in all_equip:
+			if e.display_name == equip_name:
+				player_run_data.equipment.append(e)
+				break
+	
+	is_arcade_mode = true
+	
+	# Launch Game (Go to Map or Deck Editor)
+	print("Run Loaded: " + current_run_name)
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+
+# Helper for Menu to list files
+func get_save_files() -> Array:
+	var files = []
+	var dir = DirAccess.open(SAVE_DIR)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and file_name.ends_with(".save"):
+				files.append(file_name)
+			file_name = dir.get_next()
+	return files
+
+
+func peek_save_file(filename: String) -> Dictionary:
+	var path = SAVE_DIR + filename
+	if not FileAccess.file_exists(path):
+		return {}
+
+	var file = FileAccess.open(path, FileAccess.READ)
+	var text = file.get_as_text()
+	var json = JSON.new()
+	if json.parse(text) == OK:
+		return json.data
+	return {}
+
+# --- DELETE LOGIC ---
+func delete_save_file(filename: String):
+	var path = SAVE_DIR + filename
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+		print("Deleted save: " + filename)
+		
+func _show_save_notification():
+	var layer = CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	
+	var panel = PanelContainer.new()
+	layer.add_child(panel)
+	
+	# 1. FIX: Set Grow Directions BEFORE setting position
+	# This tells Godot: "When calculating size, expand Up and Left"
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	
+	# 2. Anchor to Bottom Right
+	panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	
+	# 3. Add Margin (Offsets)
+	# "offset_right = -20" means the right edge is 20px from the right screen edge
+	# "offset_bottom = -20" means the bottom edge is 20px from the bottom screen edge
+	panel.offset_right = -20
+	panel.offset_bottom = -20
+	
+	# Styling
+	panel.modulate.a = 0.0
+	
+	var label = Label.new()
+	label.text = " GAME SAVED "
+	label.add_theme_font_size_override("font_size", 20)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(label)
+	
+	# Animation
+	var tween = create_tween()
+	tween.tween_property(panel, "modulate:a", 1.0, 0.5)
+	tween.tween_interval(1.5)
+	tween.tween_property(panel, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(layer.queue_free)
+
+# Call this whenever Player HP changes (Heal or Damage)
+func check_danger_state():
+	if not player_run_data: return
+	
+	var hp_percent = float(player_run_data.current_hp) / float(player_run_data.max_hp)
+	
+	# If HP is 25% or lower (and alive), trigger danger
+	if player_run_data.current_hp > 0 and hp_percent <= 0.25:
+		AudioManager.set_danger_mode(true)
+	else:
+		AudioManager.set_danger_mode(false)
+
+# --- GENERATION LOGIC ---
+func generate_new_league():
+	tournament_map.clear()
+	current_map_index = 0
+	
+	print("Generating League " + str(leagues_completed + 1) + "...")
+	
+	for i in range(LEAGUE_LENGTH):
+		var node = MapNodeData.new()
+		var step_number = i + 1
+		
+		# 1. DETERMINE TYPE
+		if i == LEAGUE_LENGTH - 1:
+			# Last node is always a Boss (Finals)
+			node.type = MapNodeData.Type.BOSS
+			node.title = "FINALS"
+		elif i == 3 or i == 6:
+			# Fixed "Rest" spots (e.g., Round 4 and 7)
+			# (We can make this random later)
+			node.type = MapNodeData.Type.GYM
+			node.title = "Training"
+		else:
+			# Standard Fight
+			node.type = MapNodeData.Type.FIGHT
+			node.title = "Round " + str(step_number)
+			
+		# 2. GENERATE CONTENT (If Fight)
+		if node.type == MapNodeData.Type.FIGHT or node.type == MapNodeData.Type.BOSS:
+			# Scale difficulty based on League + Round
+			var level_scale = 1 + (leagues_completed * 2) + (i / 2)
+			
+			if node.type == MapNodeData.Type.BOSS:
+				# Boss is tougher
+				node.enemy_data = ClassFactory.create_random_enemy(level_scale + 2, GameManager.ai_difficulty)
+				node.enemy_data.character_name = "CHAMPION " + node.enemy_data.character_name
+			else:
+				node.enemy_data = ClassFactory.create_random_enemy(level_scale, GameManager.ai_difficulty)
+		
+		# 3. LOCK STATE
+		# Only the first node is unlocked at start
+		node.is_locked = (i != 0)
+		
+		tournament_map.append(node)
+	
+	# Save the generated map immediately
+	save_run()
+
+# --- NAVIGATION ---
+func advance_map():
+	# Mark current node complete
+	if current_map_index < tournament_map.size():
+		tournament_map[current_map_index].is_completed = true
+		
+	current_map_index += 1
+	
+	# Check for League Victory
+	if current_map_index >= tournament_map.size():
+		handle_league_victory()
+	else:
+		# Unlock next node
+		tournament_map[current_map_index].is_locked = false
+		save_run()
+		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+func handle_league_victory():
+	leagues_completed += 1
+	print("League Complete! Starting next tier...")
+	# For now, just generate the next one immediately
+	# Later, we can add a "Victory Lap" screen
+	generate_new_league()
+	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
 
 
 ========================================
@@ -6399,6 +7120,91 @@ func change_scene(path: String):
 	# 4. Fade back in
 	anim.play("fade_out")
 	await anim.animation_finished
+
+
+========================================
+FILE PATH: res://Scripts/SettingsManager.gd
+========================================
+extends Node
+
+const SAVE_PATH = "user://settings.cfg"
+var config = ConfigFile.new()
+
+# Store current values in memory
+var settings_data = {
+	"audio": {
+		"Master": 1.0,
+		"Music": 1.0,
+		"SFX": 1.0
+	},
+	"video": {
+		"fullscreen": false
+	}
+}
+
+func _ready():
+	load_settings()
+
+func load_settings():
+	var err = config.load(SAVE_PATH)
+	
+	# If file doesn't exist (first run), apply defaults and save
+	if err != OK:
+		apply_all_settings()
+		save_settings()
+		return
+	
+	# Load Audio
+	settings_data.audio.Master = config.get_value("audio", "Master", 1.0)
+	settings_data.audio.Music = config.get_value("audio", "Music", 1.0)
+	settings_data.audio.SFX = config.get_value("audio", "SFX", 1.0)
+	
+	# Load Video (Future proofing)
+	settings_data.video.fullscreen = config.get_value("video", "fullscreen", false)
+	
+	apply_all_settings()
+
+func save_settings():
+	# Write memory to file
+	config.set_value("audio", "Master", settings_data.audio.Master)
+	config.set_value("audio", "Music", settings_data.audio.Music)
+	config.set_value("audio", "SFX", settings_data.audio.SFX)
+	
+	config.set_value("video", "fullscreen", settings_data.video.fullscreen)
+	
+	config.save(SAVE_PATH)
+
+func apply_all_settings():
+	_apply_volume("Master", settings_data.audio.Master)
+	_apply_volume("Music", settings_data.audio.Music)
+	_apply_volume("SFX", settings_data.audio.SFX)
+	
+	# Video
+	# DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN if settings_data.video.fullscreen else DisplayServer.WINDOW_MODE_WINDOWED)
+
+# --- PUBLIC FUNCTIONS ---
+
+func update_volume(bus_name: String, linear_value: float):
+	# 1. Update Memory
+	if settings_data.audio.has(bus_name):
+		settings_data.audio[bus_name] = linear_value
+		
+	# 2. Apply Immediately
+	_apply_volume(bus_name, linear_value)
+	
+	# 3. Save to Disk
+	save_settings()
+
+func get_saved_volume(bus_name: String) -> float:
+	return settings_data.audio.get(bus_name, 1.0)
+
+# --- INTERNAL HELPERS ---
+
+func _apply_volume(bus_name: String, linear_val: float):
+	var bus_idx = AudioServer.get_bus_index(bus_name)
+	if bus_idx != -1:
+		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear_val))
+		AudioServer.set_bus_mute(bus_idx, linear_val < 0.05)
 
 
 ========================================
@@ -6948,40 +7754,33 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 
 # --- LOGGING ---
 func _on_game_over(winner_id: int):
-	# 1. Force visual update
 	_update_visuals()
 	await get_tree().create_timer(1.0).timeout
 	
-	# 2. Identify Winner Data
-	var winner_data: CharacterData
-	if winner_id == 1:
-		winner_data = p1_resource
-	else:
-		winner_data = p2_resource
+	var winner_data = p1_resource if winner_id == 1 else p2_resource
 	
-	# 3. GRAB THE LOG TEXT (Fixed)
-	var final_log_text = ""
+	# --- FIX: ROBUST TEXT EXTRACTION ---
+	var final_log_text = "Log not found."
 	
-	# Access the log using the variable BattleUI already knows about
-	var log_obj = battle_ui.get("combat_log")
+	# 1. Try to get the object
+	var log_node = battle_ui.get("combat_log")
 	
-	if log_obj:
-		# Check if it has a 'text' property (RichTextLabel, Label, or custom script)
-		if "text" in log_obj:
-			final_log_text = log_obj.text
-		# Fallback: In Godot 4, sometimes 'text' is empty if only append_text was used.
-		# We can try 'get_parsed_text()' if it's a RichTextLabel, though 'text' usually works.
-		elif log_obj.has_method("get_parsed_text"):
-			final_log_text = log_obj.get_parsed_text()
-	else:
-		# Last Resort: Try to find it by name if the variable failed
-		if battle_ui.has_node("CombatLog"):
-			final_log_text = battle_ui.get_node("CombatLog").text
+	if log_node:
+		# 2. Try our new function (Best Case)
+		if log_node.has_method("get_log_text"):
+			final_log_text = log_node.get_log_text()
 			
-	# Debug Print to confirm what we got
-	print("TestArena: Grabbed Log Text. Length: " + str(final_log_text.length()))
-	
-	# 4. Show Screen
+		# 3. Fallback: Check if it's a raw RichTextLabel
+		elif log_node is RichTextLabel:
+			final_log_text = log_node.get_parsed_text()
+			
+		# 4. Fallback: Check standard text property
+		elif "text" in log_node:
+			final_log_text = log_node.text
+			
+	print("TestArena: Log Text Length: " + str(final_log_text.length()))
+	# -----------------------------------
+
 	get_tree().paused = true 
 	game_over_screen.setup(winner_data, final_log_text) 
 	game_over_screen.visible = true
@@ -7304,6 +8103,77 @@ func _read_file_content(file_path: String) -> String:
 		
 	content += "\n\n"
 	return content
+
+
+========================================
+FILE PATH: res://Scripts/TournamentMap.gd
+========================================
+extends Control
+
+@onready var container = $ScrollContainer/HBoxContainer
+# Preload the Node scene we just made
+var node_scene = preload("res://Scenes/UI/MapNode.tscn")
+
+func _ready():
+	_generate_map_visuals()
+
+func _generate_map_visuals():
+	# Clear previous children (if any)
+	for child in container.get_children():
+		child.queue_free()
+	
+	# Loop through the data generated by RunManager
+	for i in range(RunManager.tournament_map.size()):
+		var data = RunManager.tournament_map[i]
+		
+		var node_instance = node_scene.instantiate()
+		container.add_child(node_instance)
+		
+		# Setup the data
+		node_instance.setup(data, i)
+		
+		# Connect the click signal
+		node_instance.node_clicked.connect(_on_node_clicked)
+
+	# Optional: Draw lines connecting them (requires waiting 1 frame for layout)
+	call_deferred("_draw_connections")
+
+func _on_node_clicked(index: int):
+	var data = RunManager.tournament_map[index]
+	
+	match data.type:
+		MapNodeData.Type.FIGHT, MapNodeData.Type.BOSS:
+			_start_fight(data)
+		MapNodeData.Type.GYM:
+			_enter_gym(data)
+
+func _start_fight(data: MapNodeData):
+	# 1. Pass the enemy data to the RunManager (so Battle scene can find it)
+	RunManager.current_enemy_data = data.enemy_data
+	
+	# 2. Transition
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
+
+func _enter_gym(_data: MapNodeData):
+	print("Entering Gym...")
+	# SceneLoader.change_scene("res://Scenes/Gym.tscn") 
+	# (We haven't made this yet, so just print for now!)
+
+# --- VISUAL FLUFF: CONNECTING LINES ---
+func _draw_connections():
+	# This is a bit advanced: We create a Line2D behind the nodes
+	var line = Line2D.new()
+	line.width = 4
+	line.default_color = Color.WHITE
+	line.z_index = -1 # Draw behind nodes
+	container.add_child(line)
+	
+	var nodes = container.get_children()
+	for node in nodes:
+		if node is Control:
+			# Get center position relative to the container
+			var center = node.position + (node.size / 2)
+			line.add_point(center)
 
 
 ========================================
@@ -7630,7 +8500,7 @@ extends Control
 
 func _ready():
 	_setup_visuals()
-	
+	AudioManager.play_music("battle_theme")
 	# Wait a frame to let Godot calculate the new Anchors we set
 	await get_tree().process_frame
 	_play_intro_animation()

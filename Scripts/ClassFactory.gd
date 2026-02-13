@@ -76,7 +76,7 @@ const HAND_LIMIT = 8
 
 # --- NEW: ENEMY GENERATOR ---
 # --- NEW: ENEMY GENERATOR ---
-func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
+func create_random_enemy(level: int, difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
 	var types = [
 		CharacterData.ClassType.HEAVY, 
@@ -95,7 +95,11 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	bot_data.ai_archetype = personalities.pick_random()
 	
 	# Flavor: Rank Title
-	var title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
+	# If level is 1 or negative, default to 0 ("Foolish")
+	var title_index = 0
+	if level > 0:
+		title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
+
 	var rank_title = RANK_TITLES[title_index]
 	
 	# Flavor: Prefix
@@ -151,17 +155,19 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions, bot_data.ai_archetype)
 	
 	# ---------------------------------------------------------
-	# 5. NEW STAT SCALING (LINEAR GROWTH)
+	# 5. NEW STAT SCALING (LINEAR GROWTH - SKIPPING ZERO)
 	# ---------------------------------------------------------
-	# Old way: _recalculate_stats(bot_data) <--- REMOVED
+	var stat_bonus = 0
 	
-	# New way: +1 HP and +1 SP per Level
-	# Level 1 = 0 Bonus (Base Stats)
-	# Level 2 = +1 Bonus
-	var stat_bonus = max(0, level - 1)
+	# If Level is 1 or higher, subtract 1 (Level 1 = 0 Bonus)
+	if level > 0:
+		stat_bonus = level - 1
+	# If Level is negative, use it directly (Level -1 = -1 Bonus)
+	else:
+		stat_bonus = level 
 	
-	bot_data.max_hp += stat_bonus
-	bot_data.max_sp += stat_bonus
+	bot_data.max_hp = max(1, bot_data.max_hp + stat_bonus)
+	bot_data.max_sp = max(1, bot_data.max_sp + stat_bonus)
 	
 	# Ensure they start full
 	bot_data.current_hp = bot_data.max_hp

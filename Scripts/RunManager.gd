@@ -14,6 +14,16 @@ var maintain_hp_enabled: bool = false
 const EQUIPMENT_DIR = "res://Data/Equipment/"
 const BOSS_DIR = "res://Data/Presets/Bosses/"
 
+# --- MAP STATE ---
+var tournament_map: Array[MapNodeData] = []
+var current_map_index: int = 0
+var leagues_completed: int = 0
+var current_enemy_data: CharacterData # The enemy we are currently fighting
+
+# --- CONFIGURATION ---
+# A standard "Cup" might be 8 steps long
+const LEAGUE_LENGTH = 8
+
 const BOSS_SCHEDULE = {
 	5: "juggernaut_boss.tres",
 	10: "grandmaster_boss.tres"
@@ -258,7 +268,7 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	current_level = 1
 	player_owned_tree_ids.clear()
 	free_unlocks_remaining = 0
-	
+	leagues_completed = 0 # Reset league count
 	# 2. Create Character Data
 	var p_data = CharacterData.new()
 	
@@ -295,7 +305,13 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	
 	# 6. Save & Route
 	player_run_data = p_data
-	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+	#SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+	
+	# --- CHANGED: GENERATE MAP INSTEAD OF SCENE CHANGE ---
+	generate_new_league()
+	
+	# Go to the Map Screen (The player will click "Round 1" to start)
+	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
 
 # --- HELPER: Unlock the first node so the Draft System has "Neighbors" to find ---
 # CHANGED: Added '= null' to make the second argument optional
@@ -352,8 +368,15 @@ func save_run():
 	if not DirAccess.dir_exists_absolute(SAVE_DIR):
 		DirAccess.make_dir_absolute(SAVE_DIR)
 	
-	# 2. Prepare Data
+	# Convert map array to array of dictionaries
+	var map_data = []
+	for node in tournament_map:
+		map_data.append(node.to_save_dict())
+
 	var save_data = {
+		# ... (Existing fields) ...
+		"current_map_index": current_map_index, # Don't forget this!
+		"map_data": map_data,
 		"run_name": current_run_name,
 		"level": current_level,
 		"tree_ids": player_owned_tree_ids, # Save Skill Tree progress
@@ -414,6 +437,18 @@ func load_run(filename: String):
 				break
 	
 	is_arcade_mode = true
+	
+	# RESTORE MAP
+	current_map_index = data.get("current_map_index", 0)
+	tournament_map.clear()
+	
+	if data.has("map_data"):
+		for node_dict in data.map_data:
+			var node = MapNodeData.from_save_dict(node_dict)
+			tournament_map.append(node)
+	else:
+		# Legacy save support: Generate new map if none exists
+		generate_new_league()
 	
 	# Launch Game (Go to Map or Deck Editor)
 	print("Run Loaded: " + current_run_name)
@@ -501,3 +536,106 @@ func check_danger_state():
 		AudioManager.set_danger_mode(true)
 	else:
 		AudioManager.set_danger_mode(false)
+
+# --- GENERATION LOGIC ---
+# --- GENERATION LOGIC ---
+# --- GENERATION LOGIC ---
+# --- GENERATION LOGIC ---
+func generate_new_league():
+	tournament_map.clear()
+	current_map_index = 0
+	
+	print("Generating League " + str(leagues_completed + 1) + "...")
+	
+	# 1. Calculate Difficulty Offset
+	# Medium starts at base (0). Very Easy pushes you 2 steps back (-2).
+	var diff_offset = 0
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.VERY_EASY: diff_offset = -2
+		GameManager.Difficulty.EASY:      diff_offset = -1
+		GameManager.Difficulty.MEDIUM:    diff_offset = 0
+		GameManager.Difficulty.HARD:      diff_offset = 1
+		
+	var fight_counter = 0 
+	
+	for i in range(LEAGUE_LENGTH):
+		var node = MapNodeData.new()
+		var step_number = i + 1
+		
+		# The player's actual progression step (1, 2, 3...)
+		var actual_progress_level = current_level + fight_counter 
+		
+		# Apply the difficulty shift (Results in -1, 0, 1...)
+		var raw_rank = actual_progress_level + diff_offset
+		
+		# THE ZERO-SKIPPER: If rank is 0 or less, subtract 1 to skip zero.
+		# Example for Very Easy: rank -1 becomes Level -2. rank 0 becomes Level -1. rank 1 stays Level 1.
+		var fight_level = raw_rank if raw_rank > 0 else raw_rank - 1
+		
+		# 1. CHECK BOSS SCHEDULE
+		if BOSS_SCHEDULE.has(actual_progress_level):
+			node.type = MapNodeData.Type.BOSS
+			node.title = "RIVAL"
+			
+			var boss_path = BOSS_DIR + BOSS_SCHEDULE[actual_progress_level]
+			if ResourceLoader.exists(boss_path):
+				var boss_preset = load(boss_path) as PresetCharacter
+				node.enemy_data = ClassFactory.create_from_preset(boss_preset)
+				# Apply difficulty scaling to the preset boss
+				node.enemy_data.max_hp = max(1, node.enemy_data.max_hp + diff_offset)
+				node.enemy_data.max_sp = max(1, node.enemy_data.max_sp + diff_offset)
+				node.enemy_data.reset_stats()
+				node.enemy_data.character_name = "RIVAL: " + node.enemy_data.character_name
+			else:
+				node.enemy_data = ClassFactory.create_random_enemy(fight_level + 2, GameManager.ai_difficulty)
+			fight_counter += 1
+				
+		# 2. FIXED REST SPOTS (GYM)
+		elif i == 3 or i == 6:
+			node.type = MapNodeData.Type.GYM
+			node.title = "Training"
+			
+		# 3. LEAGUE FINALS
+		elif i == LEAGUE_LENGTH - 1:
+			node.type = MapNodeData.Type.BOSS
+			node.title = "FINALS"
+			node.enemy_data = ClassFactory.create_random_enemy(fight_level + 2, GameManager.ai_difficulty)
+			node.enemy_data.character_name = "CHAMPION " + node.enemy_data.character_name
+			fight_counter += 1
+			
+		# 4. STANDARD FIGHT
+		else:
+			node.type = MapNodeData.Type.FIGHT
+			node.title = "Round " + str(step_number)
+			node.enemy_data = ClassFactory.create_random_enemy(fight_level, GameManager.ai_difficulty)
+			fight_counter += 1
+			
+		node.is_locked = (i != 0)
+		tournament_map.append(node)
+	
+	save_run()
+
+# --- NAVIGATION ---
+func advance_map():
+	# Mark current node complete
+	if current_map_index < tournament_map.size():
+		tournament_map[current_map_index].is_completed = true
+		
+	current_map_index += 1
+	
+	# Check for League Victory
+	if current_map_index >= tournament_map.size():
+		handle_league_victory()
+	else:
+		# Unlock next node
+		tournament_map[current_map_index].is_locked = false
+		save_run()
+		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+func handle_league_victory():
+	leagues_completed += 1
+	print("League Complete! Starting next tier...")
+	# For now, just generate the next one immediately
+	# Later, we can add a "Victory Lap" screen
+	generate_new_league()
+	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")

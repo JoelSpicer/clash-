@@ -1,8 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://crugd7hminj5p"]
+[gd_scene format=3 uid="uid://crugd7hminj5p"]
 
 [ext_resource type="Script" uid="uid://c873im0nw7ebj" path="res://Scripts/MenuQuick.gd" id="1_yp31r"]
 
-[node name="MenuQuick" type="Control"]
+[node name="MenuQuick" type="Control" unique_id=1729773511]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_yp31r")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=2017957618]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -23,61 +23,61 @@ theme_override_constants/margin_top = 50
 theme_override_constants/margin_right = 50
 theme_override_constants/margin_bottom = 50
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=607826649]
 layout_mode = 2
 alignment = 1
 
-[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=1044157135]
 layout_mode = 2
 alignment = 1
 
-[node name="P1Label" type="Label" parent="MarginContainer/HBoxContainer/P1_Column"]
+[node name="P1Label" type="Label" parent="MarginContainer/HBoxContainer/P1_Column" unique_id=425793245]
 layout_mode = 2
 text = "PLAYER 1"
 horizontal_alignment = 1
 
-[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P1_Column"]
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P1_Column" unique_id=758426362]
 custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P1_Column"]
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P1_Column" unique_id=40870938]
 custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
 alignment = 1
 text_overrun_behavior = 1
 
-[node name="VS_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+[node name="VS_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=202432771]
 layout_mode = 2
 alignment = 1
 
-[node name="VSLabel" type="Label" parent="MarginContainer/HBoxContainer/VS_Column"]
+[node name="VSLabel" type="Label" parent="MarginContainer/HBoxContainer/VS_Column" unique_id=928118028]
 layout_mode = 2
 text = "VS"
 horizontal_alignment = 1
 
-[node name="QuickFightButton" type="Button" parent="MarginContainer/HBoxContainer/VS_Column"]
+[node name="QuickFightButton" type="Button" parent="MarginContainer/HBoxContainer/VS_Column" unique_id=877221279]
 custom_minimum_size = Vector2(200, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "Quick CLASH!"
 
-[node name="P2_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer"]
+[node name="P2_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=1588201652]
 layout_mode = 2
 alignment = 1
 
-[node name="P2_Mode_Button" type="Button" parent="MarginContainer/HBoxContainer/P2_Column"]
+[node name="P2_Mode_Button" type="Button" parent="MarginContainer/HBoxContainer/P2_Column" unique_id=1918727360]
 layout_mode = 2
 text = "OPPONENT: CPU"
 
-[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P2_Column"]
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P2_Column" unique_id=71408849]
 custom_minimum_size = Vector2(200, 200)
 layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
 
-[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P2_Column"]
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P2_Column" unique_id=995511497]
 custom_minimum_size = Vector2(250, 20)
 layout_mode = 2
 alignment = 1

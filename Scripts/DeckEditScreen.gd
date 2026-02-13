@@ -15,7 +15,8 @@ func _ready():
 	
 	# 2. Connect Button
 	fight_btn.pressed.connect(_on_fight_pressed)
-	
+	# NEW: Update text to reflect new flow
+	fight_btn.text = "CONTINUE"
 	# 3. Draw Grid
 	_refresh_grid()
 
@@ -97,5 +98,6 @@ func _on_fight_pressed():
 	if RunManager.player_run_data.deck.size() < 1: return
 	
 	AudioManager.play_sfx("ui_confirm")
-	# Start the actual battle
-	RunManager.start_next_fight()
+	
+	# NEW LINE: Advance the bracket index and load the Map
+	RunManager.advance_map()
