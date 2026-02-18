@@ -438,6 +438,15 @@ func resolve_clash():
 	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
 	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
 	
+	# --- STRICT PARRY SUCCESS CHECK ---
+	# Parry only triggers if (My Gain + Stolen Gain) is strictly greater than My Fall Back.
+	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
+	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
+	
+	var p1_parry_success = (p1_parries and p1_net_gain > 0)
+	var p2_parry_success = (p2_parries and p2_net_gain > 0)
+	# ---------------------------------------	
+	
 	# --- WALL CRUSH CHECK ---
 	if p1_fb > 0 and momentum >= TOTAL_MOMENTUM_SLOTS:
 		_apply_wall_crush(1, p1_fb)
@@ -448,14 +457,7 @@ func resolve_clash():
 		p2_fb = 0 
 	# ------------------------------
 	
-	# --- STRICT PARRY SUCCESS CHECK ---
-	# Parry only triggers if (My Gain + Stolen Gain) is strictly greater than My Fall Back.
-	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
-	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
-	
-	var p1_parry_success = (p1_parries and p1_net_gain > 0)
-	var p2_parry_success = (p2_parries and p2_net_gain > 0)
-	# ---------------------------------------
+
 
 	# Calculate the final combined movement for the UI tracker
 	var p1_contribution = p1_total_gain
