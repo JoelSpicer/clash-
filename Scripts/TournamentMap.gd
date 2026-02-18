@@ -75,5 +75,4 @@ func _start_fight(data: MapNodeData):
 
 func _enter_gym(_data: MapNodeData):
 	print("Entering Gym...")
-	# SceneLoader.change_scene("res://Scenes/Gym.tscn") 
-	# (We haven't made this yet, so just print for now!)
+	SceneLoader.change_scene("res://Scenes/Gym.tscn") 

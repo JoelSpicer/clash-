@@ -1,0 +1,63 @@
+[gd_scene format=3 uid="uid://d2ihynvt26fh3"]
+
+[ext_resource type="Script" uid="uid://bwm5gvi2aambr" path="res://Scripts/GymMain.gd" id="1_begwh"]
+
+[node name="GymMain" type="Control" unique_id=1597010198]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_begwh")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1808671618]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(8.4228816e-07, 0.37562722, 0.37670597, 1)
+
+[node name="Content" type="VBoxContainer" parent="." unique_id=848111045]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 30
+
+[node name="Title" type="Label" parent="Content" unique_id=309230774]
+layout_mode = 2
+text = "THE GYM"
+horizontal_alignment = 1
+
+[node name="StatsLabel" type="Label" parent="Content" unique_id=547492767]
+layout_mode = 2
+text = "HP 5/5"
+horizontal_alignment = 1
+
+[node name="ChoicesContainer" type="HBoxContainer" parent="Content" unique_id=326316447]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="BtnHeal" type="Button" parent="Content/ChoicesContainer" unique_id=93195004]
+custom_minimum_size = Vector2(200, 150)
+layout_mode = 2
+
+[node name="BtnBlock" type="Button" parent="Content/ChoicesContainer" unique_id=1695695308]
+custom_minimum_size = Vector2(200, 150)
+layout_mode = 2
+
+[node name="BtnDebuff" type="Button" parent="Content/ChoicesContainer" unique_id=687453339]
+custom_minimum_size = Vector2(200, 150)
+layout_mode = 2
+
+[node name="FlavorText" type="Label" parent="Content" unique_id=756546565]
+layout_mode = 2
+text = "Choose your preparation..."
+horizontal_alignment = 1

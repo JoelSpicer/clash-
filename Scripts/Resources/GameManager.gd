@@ -166,6 +166,26 @@ func reset_combat():
 		p2_data.current_sp += item.starting_sp_bonus
 	# ----------------------------------------------------
 	
+	# --- NEW: APPLY GYM BUFFS ---
+	if RunManager.active_gym_buff != "":
+		print("Applying Gym Buff: " + RunManager.active_gym_buff)
+		
+		if RunManager.active_gym_buff == "iron_stance":
+			# Since 'Block' is calculated per-card in your system, 
+			# we simulate a 'Start with 10 Block' by adding 10 Temporary HP.
+			# (Or you could use p1_opportunity_stat += 2 for a speed advantage)
+			p1_data.current_hp += 10
+			print(">> Iron Stance: +10 Temp HP")
+			
+		elif RunManager.active_gym_buff == "exploit_weakness":
+			# Reduce enemy starting HP by 20%
+			var damage = max(1, roundi(p2_data.max_hp * 0.2))
+			p2_data.current_hp -= damage
+			print(">> Exploit Weakness: Enemy took " + str(damage) + " dmg")
+			
+		# IMPORTANT: Clear the buff so it doesn't apply to the NEXT fight too
+		RunManager.active_gym_buff = ""
+	
 	if p1_data.speed > p2_data.speed: priority_player = 1
 	elif p2_data.speed > p1_data.speed: priority_player = 2
 	else: priority_player = randi_range(1, 2)

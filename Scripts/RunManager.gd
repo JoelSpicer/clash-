@@ -6,6 +6,8 @@ var player_run_data: CharacterData
 var player_owned_tree_ids: Array[int] = [] 
 var free_unlocks_remaining: int = 0
 
+var active_gym_buff: String = ""
+
 var current_run_name: String = "Test Run" # <--- NEW
 const SAVE_DIR = "user://saves/"
 
@@ -22,11 +24,11 @@ var current_enemy_data: CharacterData # The enemy we are currently fighting
 
 # --- CONFIGURATION ---
 # A standard "Cup" might be 8 steps long
-const LEAGUE_LENGTH = 8
+const LEAGUE_LENGTH = 20
 
 const BOSS_SCHEDULE = {
-	5: "juggernaut_boss.tres",
-	10: "grandmaster_boss.tres"
+	#5: "juggernaut_boss.tres",
+	#10: "grandmaster_boss.tres"
 }
 
 # ... (start_run and start_run_from_preset remain exactly the same) ...
@@ -221,8 +223,8 @@ func get_valid_action_rewards() -> Array[ActionData]:
 # 2. Fetch Stat Upgrades (Generated on the fly)
 func get_stat_upgrades() -> Array[Dictionary]:
 	return [
-		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +4 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 2; p.current_hp += 2 },
-		{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
+		#{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +4 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 2; p.current_hp += 2 },
+		#{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
 		{ "type": "stat", "text": "FULL RESTORE", "desc": "Heal to Full HP.", "icon": "heal", "func": func(p): p.current_hp = p.max_hp }
 	]
 
@@ -591,7 +593,7 @@ func generate_new_league():
 			fight_counter += 1
 				
 		# 2. FIXED REST SPOTS (GYM)
-		elif i == 3 or i == 6:
+		elif i == 0:
 			node.type = MapNodeData.Type.GYM
 			node.title = "Training"
 			
