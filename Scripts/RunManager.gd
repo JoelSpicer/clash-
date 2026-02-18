@@ -8,6 +8,8 @@ var free_unlocks_remaining: int = 0
 
 var active_gym_buff: String = ""
 
+var pending_advancement: bool = false
+
 var current_run_name: String = "Test Run" # <--- NEW
 const SAVE_DIR = "user://saves/"
 
@@ -313,7 +315,8 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	generate_new_league()
 	
 	# Go to the Map Screen (The player will click "Round 1" to start)
-	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+	pending_advancement = false 
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 # --- HELPER: Unlock the first node so the Draft System has "Neighbors" to find ---
 # CHANGED: Added '= null' to make the second argument optional
@@ -358,9 +361,12 @@ func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition
 
 # --- UPDATE: REWARD ROUTING ---
 func handle_reward_complete():
-	# Loop back to Deck Editor after picking a reward
-	save_run() # Save progress after winning
+	save_run()
 	print("Reward Claimed. Going to Deck Editor...")
+	
+	# We just finished a reward, so when we leave the deck screen, we should advance the map.
+	pending_advancement = true 
+	
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 # --- SAVE SYSTEM ---
@@ -451,6 +457,10 @@ func load_run(filename: String):
 	else:
 		# Legacy save support: Generate new map if none exists
 		generate_new_league()
+	
+	# SAFETY: When loading, we are already at the correct map index. 
+	# Do not advance again or we will skip a fight.
+	pending_advancement = false
 	
 	# Launch Game (Go to Map or Deck Editor)
 	print("Run Loaded: " + current_run_name)
@@ -641,3 +651,15 @@ func handle_league_victory():
 	# Later, we can add a "Victory Lap" screen
 	generate_new_league()
 	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+# Call this from the Deck Editor "Continue" button
+func exit_deck_editor():
+	if pending_advancement:
+		# Case: We just won a fight and grabbed rewards.
+		# Mark previous node complete and unlock the next one.
+		pending_advancement = false
+		advance_map()
+	else:
+		# Case: We just started a run, or loaded a save.
+		# The map is already ready, just go there.
+		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")

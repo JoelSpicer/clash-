@@ -99,5 +99,5 @@ func _on_fight_pressed():
 	
 	AudioManager.play_sfx("ui_confirm")
 	
-	# NEW LINE: Advance the bracket index and load the Map
-	RunManager.advance_map()
+	# CHANGED: Use the new smart exit function
+	RunManager.exit_deck_editor()
