@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EquipmentData" format=3 uid="uid://ctdad11hknabx"]
+
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="1_0ypc4"]
+
+[resource]
+script = ExtResource("1_0ypc4")
+display_name = "Body Armour"
+description = "+1 block, and start fight with 5 temporary HP, -3 Max SP"
+max_sp_bonus = -3
+starting_barrier = 5
+block_modifier = 1
+metadata/_custom_type_script = "uid://b3y0gojixwh16"

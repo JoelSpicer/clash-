@@ -76,7 +76,7 @@ const HAND_LIMIT = 8
 
 # --- NEW: ENEMY GENERATOR ---
 # --- NEW: ENEMY GENERATOR ---
-func create_random_enemy(level: int, difficulty: GameManager.Difficulty) -> CharacterData:
+func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
 	var types = [
 		CharacterData.ClassType.HEAVY, 

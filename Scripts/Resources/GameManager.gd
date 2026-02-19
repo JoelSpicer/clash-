@@ -127,21 +127,21 @@ func start_combat(p1: CharacterData, p2: CharacterData):
 	reset_combat()
 
 func reset_combat():
-	# --- FIX: Check if P1 should maintain HP ---
+	# --- 1. RESET STATS ---
+	# Check if P1 should maintain HP (for runs/tournaments)
 	var p1_maintain = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
 	p1_data.reset_stats(p1_maintain) 
 	
 	# P2 (The Enemy) always resets to full
 	p2_data.reset_stats(false)
-	# -------------------------------------------
 	
-	# --- FIX: INJECT EVENT STATUSES AFTER RESET ---
+	# --- 2. INJECT EVENT STATUSES ---
 	if RunManager.is_arcade_mode:
 		for s in RunManager.next_fight_statuses:
 			p1_data.statuses[s] = 1
 		RunManager.next_fight_statuses.clear() # Clear so it doesn't happen next fight
-	# ----------------------------------------------
 	
+	# --- 3. RESET COMBAT VARIABLES ---
 	momentum = 0 
 	current_combo_attacker = 0
 	p1_locked_card = null; p2_locked_card = null
@@ -150,30 +150,51 @@ func reset_combat():
 	p1_opening_stat = 0; p2_opening_stat = 0
 	p1_opportunity_stat = 0; p2_opportunity_stat = 0
 	p1_must_opener = false; p2_must_opener = false
-	# REMOVED: p1_is_injured = false
-	# REMOVED: p2_is_injured = false
 	p1_pending_feint = false; p2_pending_feint = false
 	
 	p1_rage_active = false; p2_rage_active = false
 	p1_keep_up_active = false; p2_keep_up_active = false
 	
-	# --- NEW: EQUIPMENT START-OF-COMBAT EFFECTS ---
-	for item in p1_data.equipment:
-		# FIX: Removed min() clamp so players can start with MORE than their max SP
-		p1_data.current_sp += item.starting_sp_bonus
+	# --- 4. APPLY PLAYER EQUIPMENT BONUSES ---
+	var total_momentum_bonus = 0
+	var p1_speed_bonus = 0
+	
+	if RunManager.player_run_data:
+		for equip in RunManager.player_run_data.equipment:
+			
+			# A. SP Bonus
+			p1_data.current_sp += equip.starting_sp_bonus
+			
+			# B. Barrier (Temporary HP)
+			if equip.starting_barrier > 0:
+				p1_data.current_hp += equip.starting_barrier
+				print("Equipment Barrier Applied: +%d HP" % equip.starting_barrier)
+
+			# C. Collect Momentum Bonus
+			total_momentum_bonus += equip.starting_momentum
+			
+			# D. Collect Speed Bonus
+			p1_speed_bonus += equip.speed_bonus
+
+	# --- 5. APPLY MOMENTUM STARTING POSITION ---
+	# If we have a bonus, we skip the "0" (Neutral) state and start on our side.
+	# MOMENTUM_P1_MAX is the "front line". Subscripting moves it closer to the enemy wall (1).
+	if total_momentum_bonus > 0:
+		momentum = MOMENTUM_P1_MAX - (total_momentum_bonus - 1)
+		# Clamp so we don't accidentally glitch past the wall (1)
+		momentum = clampi(momentum, 1, MOMENTUM_P1_MAX)
+		print(">> Head Start! Momentum set to: " + str(momentum))
 		
+	# --- 6. APPLY ENEMY EQUIPMENT BONUSES ---
 	for item in p2_data.equipment:
 		p2_data.current_sp += item.starting_sp_bonus
-	# ----------------------------------------------------
 	
-	# --- NEW: APPLY GYM BUFFS ---
+	# --- 7. APPLY GYM BUFFS ---
 	if RunManager.active_gym_buff != "":
 		print("Applying Gym Buff: " + RunManager.active_gym_buff)
 		
 		if RunManager.active_gym_buff == "iron_stance":
-			# Since 'Block' is calculated per-card in your system, 
-			# we simulate a 'Start with 10 Block' by adding 10 Temporary HP.
-			# (Or you could use p1_opportunity_stat += 2 for a speed advantage)
+			# Simulate a 'Start with 10 Block' by adding 10 Temporary HP.
 			p1_data.current_hp += 10
 			print(">> Iron Stance: +10 Temp HP")
 			
@@ -186,9 +207,16 @@ func reset_combat():
 		# IMPORTANT: Clear the buff so it doesn't apply to the NEXT fight too
 		RunManager.active_gym_buff = ""
 	
-	if p1_data.speed > p2_data.speed: priority_player = 1
-	elif p2_data.speed > p1_data.speed: priority_player = 2
-	else: priority_player = randi_range(1, 2)
+	# --- 8. CALCULATE PRIORITY (SPEED TIES) ---
+	var p1_final_speed = p1_data.speed + p1_speed_bonus
+	var p2_final_speed = p2_data.speed
+	
+	if p1_final_speed > p2_final_speed: 
+		priority_player = 1
+	elif p2_final_speed > p1_final_speed: 
+		priority_player = 2
+	else: 
+		priority_player = randi_range(1, 2)
 		
 	print("\n>>> COMBAT RESET! Starting from Initial Clash (Neutral) <<<")
 	change_state(State.SELECTION)
@@ -336,11 +364,20 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	new_card.repeat_count = max(new_card.repeat_count, sec.repeat_count)
 	
 	if sec.guard_break: new_card.guard_break = true
-	if sec.injure: new_card.injure = true
 	if sec.retaliate: new_card.retaliate = true
 	if sec.is_parry: new_card.is_parry = true
 	if sec.is_super: new_card.is_super = true
 	if sec.is_opener: new_card.is_opener = true
+	
+	# --- NEW: COMBINE STATUS EFFECTS SAFELY ---
+	# We merge both cards' status arrays so all effects carry over!
+	var combined_statuses = []
+	combined_statuses.append_array(base.statuses_to_apply)
+	for s in sec.statuses_to_apply:
+		# duplicate(true) ensures we don't accidentally modify the original card's dictionary
+		combined_statuses.append(s.duplicate(true)) 
+	new_card.statuses_to_apply = combined_statuses
+	# ------------------------------------------
 	
 	new_card.feint = false 
 	return new_card
@@ -599,12 +636,37 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		emit_signal("status_applied", target_id, "DODGED")
 		return result
 
+	# --- 1. CALCULATE EQUIPMENT PASSIVES ---
+	var dmg_mod = 0
+	var attacker_block_mod = 0 # In case they get hit by Thorns/Retaliate
+	
+	var defender_block_mod = 0
+	var thorns_dmg = 0
+	
+	# Attacker's bonuses
+	for eq in character.equipment:
+		dmg_mod += eq.damage_modifier
+		attacker_block_mod += eq.block_modifier
+		
+	# Defender's bonuses
+	for eq in target.equipment:
+		defender_block_mod += eq.block_modifier
+		thorns_dmg += eq.thorns
+	# -----------------------------------------
+
 	var total_hits = max(1, my_card.repeat_count)
 	for i in range(total_hits):
-		var enemy_block = enemy_card.block_value 
-		if my_card.guard_break: enemy_block = 0
-		var net_damage = max(0, my_card.damage - enemy_block)
 		
+		# --- 2. APPLY OFFENSIVE / DEFENSIVE MODIFIERS ---
+		var total_damage = max(0, my_card.damage + dmg_mod)
+		var enemy_block = enemy_card.block_value + defender_block_mod
+		
+		if my_card.guard_break: 
+			enemy_block = 0
+			
+		var net_damage = max(0, total_damage - enemy_block)
+		
+		# --- 3. TIRING (SP DRAIN) ---
 		if my_card.tiring > 0:
 			if target.class_type == CharacterData.ClassType.HEAVY and target.current_sp < my_card.tiring:
 				var drain_amount = my_card.tiring
@@ -618,19 +680,17 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 				target.current_sp = max(0, target.current_sp - my_card.tiring)
 				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
 		
-		# --- NEW: GENERIC STATUS APPLICATION ---
+		# --- 4. STATUSES ---
 		for effect in my_card.statuses_to_apply:
-			# Default keys: "name" (String), "amount" (int), "self" (bool)
 			var s_name = effect.get("name", "Unknown")
 			var s_val = effect.get("amount", 1)
 			var is_self = effect.get("self", false)
-			
 			var dest_id = owner_id if is_self else target_id
 			
-			# Apply it (using our helper from the previous step)
 			if not has_status(dest_id, s_name):
 				apply_status(dest_id, s_name, s_val)
 
+		# --- 5. OPENINGS / OPPORTUNITY ---
 		if my_card.create_opening > 0:
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
 			result["opening"] = my_card.create_opening
@@ -638,30 +698,50 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		if my_card.opportunity > 0:
 			result["opportunity"] = my_card.opportunity
 
+		# --- 6. APPLY DAMAGE AND THORNS ---
 		if net_damage > 0:
 			target.current_hp -= net_damage
 			emit_signal("damage_dealt", target_id, net_damage, false)
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
-		elif my_card.damage > 0:
+			
+			# Trigger Thorns if the attack connects
+			if thorns_dmg > 0:
+				character.current_hp -= thorns_dmg
+				emit_signal("damage_dealt", owner_id, thorns_dmg, false)
+				emit_signal("combat_log_updated", ">> Spikes! P" + str(owner_id) + " took " + str(thorns_dmg) + " Thorns damage!")
+				
+				# Check if attacker died from Thorns
+				if character.current_hp <= 0:
+					result["fatal"] = true
+					return result
+					
+		elif total_damage > 0:
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
 			emit_signal("damage_dealt", target_id, 0, true)
 
-		if my_card.damage > 0 and enemy_card.retaliate:
-			var raw_recoil = my_card.damage
-			var self_block = my_card.block_value + my_card.dodge_value 
+		# --- 7. RETALIATE (REFLECT DAMAGE) ---
+		if total_damage > 0 and enemy_card.retaliate:
+			var raw_recoil = total_damage
+			# Notice the attacker's equipment block modifier applies to incoming reflect damage!
+			var self_block = my_card.block_value + my_card.dodge_value + attacker_block_mod 
 			var net_recoil = max(0, raw_recoil - self_block)
+			
 			if net_recoil > 0:
 				character.current_hp -= net_recoil
 				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
+				
+				# Check if attacker died from Retaliate
 				if character.current_hp <= 0:
 					result["fatal"] = true
 					return result
 			else:
 				emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
 
+		# --- 8. FATALITY CHECK ---
 		if target.current_hp <= 0:
 			result["fatal"] = true
 			return result
+			
 	RunManager.check_danger_state()		
 	return result
 
@@ -751,10 +831,25 @@ func _handle_death(winner_id):
 	if p1_data.current_hp > 0: game_winner = 1
 	elif p2_data.current_hp > 0: game_winner = 2
 	else: game_winner = winner_id 
+	
+	# --- NEW: HEAL ON WIN (EQUIPMENT) ---
+	if game_winner == 1 and RunManager.player_run_data:
+		var heal_amt = 0
+		for eq in RunManager.player_run_data.equipment:
+			heal_amt += eq.heal_on_win
+		
+		if heal_amt > 0:
+			# Apply healing, making sure not to exceed Max HP
+			p1_data.current_hp = min(p1_data.current_hp + heal_amt, p1_data.max_hp)
+			
+			emit_signal("combat_log_updated", ">> Victory Sustain! Recovered " + str(heal_amt) + " HP.")
+			print("Victory Heal: +%d HP" % heal_amt)
+	# ------------------------------------
+	
 	emit_signal("game_over", game_winner)
 	
 	# REMOVED: reset_combat() 
-	# We want the stats to stay at 0 so the player can see the final board state. 
+	# We want the stats to stay at 0 so the player can see the final board state.
 
 func _check_reversal_state():
 	var active_attacker = get_attacker()

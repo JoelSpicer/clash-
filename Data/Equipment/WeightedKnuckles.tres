@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EquipmentData" format=3 uid="uid://j2u5b8l1ekxo"]
+
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="1_2ewo2"]
+
+[resource]
+script = ExtResource("1_2ewo2")
+display_name = "Weighted Knuckles"
+description = "-3 Max SP, +1 Damage"
+max_sp_bonus = -3
+damage_modifier = 1
+metadata/_custom_type_script = "uid://b3y0gojixwh16"

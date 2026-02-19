@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="EquipmentData" load_steps=2 format=3 uid="uid://cxrxlxt6tol8r"]
+[gd_resource type="Resource" script_class="EquipmentData" format=3 uid="uid://cxrxlxt6tol8r"]
 
 [ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="1_5o11t"]
 
 [resource]
 script = ExtResource("1_5o11t")
 display_name = "Boxing Tape"
-description = "Max HP +2"
+description = "Max HP +2, -1 Starting SP"
 max_hp_bonus = 2
+starting_sp_bonus = -1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

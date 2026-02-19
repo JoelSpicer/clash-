@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="EquipmentData" format=3 uid="uid://cy6pi7snd4krj"]
+
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="1_pxe01"]
+
+[resource]
+script = ExtResource("1_pxe01")
+display_name = "Spiked Jacket"
+description = "-3 Max SP, Opponent Takes 1 Dam when they hit you."
+max_sp_bonus = -3
+thorns = 1
+metadata/_custom_type_script = "uid://b3y0gojixwh16"
