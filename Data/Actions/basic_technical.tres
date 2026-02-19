@@ -13,5 +13,6 @@ cost = 2
 damage = 1
 momentum_gain = 1
 tiring = 1
+is_basic = true
 guard_break = true
 repeat_count = 0

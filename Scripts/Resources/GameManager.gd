@@ -973,6 +973,7 @@ func _handle_patient_passive(player_id: int, card: ActionData):
 func get_struggle_action(force_type: ActionData.Type) -> ActionData:
 	var action = ActionData.new()
 	action.display_name = "Struggle"
+	action.is_struggle = true
 	action.description = "Offence, Defence, Recover 1, Fall Back 2"
 	action.type = force_type
 	action.cost = 0

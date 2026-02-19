@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://dc23tmqsq7iod"]
+[gd_resource type="Resource" script_class="ActionData" format=3 uid="uid://dc23tmqsq7iod"]
 
 [ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_i2qcg"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_iohcx"]
@@ -12,4 +12,5 @@ description = "Defence, Cost 2, Dodge 2, Basic"
 type = 1
 cost = 2
 dodge_value = 2
+is_basic = true
 repeat_count = 0

@@ -30,6 +30,8 @@ enum Type { OFFENCE, DEFENCE }
 
 # --- SPECIAL BOOLEANS ---
 @export_group("Special Mechanics")
+@export var is_basic: bool = false       # <--- NEW: Flags this as a starter/basic card
+@export var is_struggle: bool = false    # <--- NEW: Flags this as the universal struggle move
 @export var is_opener: bool = false      # Can be played at 0 Momentum or start of combo
 @export var is_super: bool = false       # Requires specific Momentum; 1 use per match
 @export var guard_break: bool = false    # Ignores opponent's Block/Dodge

@@ -152,7 +152,7 @@ func _display_stats(idx: int, label: RichTextLabel, portrait_rect: TextureRect):
 	if idx >= base_classes.size():
 		txt += "[u]Custom Skills:[/u]\n"
 		for card in temp.deck:
-			if not card.display_name.begins_with("Basic"):
+			if not card.is_basic:
 				txt += "- " + card.display_name + "\n"
 	
 	txt += "\n[color=yellow]" + temp.passive_desc + "[/color]"

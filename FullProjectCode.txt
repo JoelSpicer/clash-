@@ -2854,7 +2854,7 @@ const HAND_LIMIT = 8
 
 # --- NEW: ENEMY GENERATOR ---
 # --- NEW: ENEMY GENERATOR ---
-func create_random_enemy(level: int, difficulty: GameManager.Difficulty) -> CharacterData:
+func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	# 1. Pick a Random Class
 	var types = [
 		CharacterData.ClassType.HEAVY, 
@@ -3745,8 +3745,8 @@ func _on_fight_pressed():
 	
 	AudioManager.play_sfx("ui_confirm")
 	
-	# NEW LINE: Advance the bracket index and load the Map
-	RunManager.advance_map()
+	# CHANGED: Use the new smart exit function
+	RunManager.exit_deck_editor()
 
 
 ========================================
@@ -4106,17 +4106,92 @@ func _build_log_window():
 ========================================
 FILE PATH: res://Scripts/GymMain.gd
 ========================================
-extends Node
+extends Control
 
+# UI References
+@onready var stats_label = $Content/StatsLabel
+@onready var btn_heal = $Content/ChoicesContainer/BtnHeal
+@onready var btn_block = $Content/ChoicesContainer/BtnBlock
+@onready var btn_debuff = $Content/ChoicesContainer/BtnDebuff
+@onready var flavor_text = $Content/FlavorText
 
-# Called when the node enters the scene tree for the first time.
-func _ready() -> void:
-	pass # Replace with function body.
+var player: CharacterData
 
+func _ready():
+	# 1. Grab Player Data
+	player = RunManager.player_run_data
+	
+	# 2. Setup Texts
+	_update_stats_display()
+	
+	# HEAL: 30% of Max HP
+	var heal_amt = max(1, roundi(player.max_hp * 0.3))
+	btn_heal.text = "FIRST AID\n\nHeal %d HP\n(Immediate)" % heal_amt
+	
+	# BLOCK: Flat 10 (You can adjust this number)
+	btn_block.text = "IRON STANCE\n\nStart Next Fight\nwith 10 Block"
+	
+	# DEBUFF: 20% of Enemy HP
+	btn_debuff.text = "EXPLOIT WEAKNESS\n\nNext Enemy Starts\nwith -20% HP"
+	
+	# 3. Connect Signals
+	btn_heal.pressed.connect(_on_heal_pressed)
+	btn_block.pressed.connect(_on_block_pressed)
+	btn_debuff.pressed.connect(_on_debuff_pressed)
+	
+	# Optional: Play Chill Music
+	# AudioManager.play_music("gym_theme")
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
-	pass
+func _update_stats_display():
+	stats_label.text = "CURRENT CONDITION\nHP: %d / %d   |   SP: %d / %d" % [
+		player.current_hp, player.max_hp,
+		player.current_sp, player.max_sp
+	]
+
+# --- CHOICE 1: IMMEDIATE HEAL ---
+func _on_heal_pressed():
+	AudioManager.play_sfx("ui_confirm")
+	
+	var heal_amt = max(1, roundi(player.max_hp * 0.3))
+	player.current_hp = min(player.current_hp + heal_amt, player.max_hp)
+	
+	flavor_text.text = "Patched up and ready to fight."
+	_finish_gym()
+
+# --- CHOICE 2: DEFENSIVE BUFF ---
+func _on_block_pressed():
+	AudioManager.play_sfx("ui_confirm")
+	
+	# Store the string key in RunManager
+	RunManager.active_gym_buff = "iron_stance"
+	
+	flavor_text.text = "Practicing your guard..."
+	_finish_gym()
+
+# --- CHOICE 3: OFFENSIVE DEBUFF ---
+func _on_debuff_pressed():
+	AudioManager.play_sfx("ui_confirm")
+	
+	# Store the string key in RunManager
+	RunManager.active_gym_buff = "exploit_weakness"
+	
+	flavor_text.text = "Studying enemy weak points..."
+	_finish_gym()
+
+# --- EXIT LOGIC ---
+func _finish_gym():
+	_update_stats_display()
+	
+	# Disable all buttons to prevent double clicking
+	btn_heal.disabled = true
+	btn_block.disabled = true
+	btn_debuff.disabled = true
+	
+	# Visual Juice: Wait 1.0 second so the player sees the result, then leave
+	await get_tree().create_timer(1.0).timeout
+	
+	# Return to Map
+	RunManager.advance_map()
 
 
 ========================================
@@ -5318,13 +5393,25 @@ extends Resource
 @export_multiline var description: String
 @export var icon: Texture2D
 
-@export_group("Stat Modifiers")
+@export_group("Trade-offs")
+# We keep these so you can make items like "Cursed Ring: +Damage, -Max HP"
 @export var max_hp_bonus: int = 0
 @export var max_sp_bonus: int = 0
-@export var starting_sp_bonus: int = 0 # Gives extra SP at the start of a fight
 
-@export_group("Combat Modifiers")
+@export_group("Start of Fight")
+@export var starting_sp_bonus: int = 0
+@export var starting_barrier: int = 0    # Starts fight with Temporary HP (Shield)
+@export var starting_momentum: int = 0   # Positive starts momentum closer to enemy
+
+@export_group("Combat Passives")
+@export var damage_modifier: int = 0     # Added to every attack
+@export var block_modifier: int = 0      # Added to every block
+@export var speed_bonus: int = 0         # Helps win Priority clashes (Speed ties)
 @export var wall_crush_damage_bonus: int = 0
+
+@export_group("Reactionary")
+@export var thorns: int = 0              # Deal X damage to opponent when they hit you
+@export var heal_on_win: int = 0         # Sustain for long runs
 
 
 ========================================
@@ -5459,21 +5546,21 @@ func start_combat(p1: CharacterData, p2: CharacterData):
 	reset_combat()
 
 func reset_combat():
-	# --- FIX: Check if P1 should maintain HP ---
+	# --- 1. RESET STATS ---
+	# Check if P1 should maintain HP (for runs/tournaments)
 	var p1_maintain = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
 	p1_data.reset_stats(p1_maintain) 
 	
 	# P2 (The Enemy) always resets to full
 	p2_data.reset_stats(false)
-	# -------------------------------------------
 	
-	# --- FIX: INJECT EVENT STATUSES AFTER RESET ---
+	# --- 2. INJECT EVENT STATUSES ---
 	if RunManager.is_arcade_mode:
 		for s in RunManager.next_fight_statuses:
 			p1_data.statuses[s] = 1
 		RunManager.next_fight_statuses.clear() # Clear so it doesn't happen next fight
-	# ----------------------------------------------
 	
+	# --- 3. RESET COMBAT VARIABLES ---
 	momentum = 0 
 	current_combo_attacker = 0
 	p1_locked_card = null; p2_locked_card = null
@@ -5482,25 +5569,73 @@ func reset_combat():
 	p1_opening_stat = 0; p2_opening_stat = 0
 	p1_opportunity_stat = 0; p2_opportunity_stat = 0
 	p1_must_opener = false; p2_must_opener = false
-	# REMOVED: p1_is_injured = false
-	# REMOVED: p2_is_injured = false
 	p1_pending_feint = false; p2_pending_feint = false
 	
 	p1_rage_active = false; p2_rage_active = false
 	p1_keep_up_active = false; p2_keep_up_active = false
 	
-	# --- NEW: EQUIPMENT START-OF-COMBAT EFFECTS ---
-	for item in p1_data.equipment:
-		# FIX: Removed min() clamp so players can start with MORE than their max SP
-		p1_data.current_sp += item.starting_sp_bonus
+	# --- 4. APPLY PLAYER EQUIPMENT BONUSES ---
+	var total_momentum_bonus = 0
+	var p1_speed_bonus = 0
+	
+	if RunManager.player_run_data:
+		for equip in RunManager.player_run_data.equipment:
+			
+			# A. SP Bonus
+			p1_data.current_sp += equip.starting_sp_bonus
+			
+			# B. Barrier (Temporary HP)
+			if equip.starting_barrier > 0:
+				p1_data.current_hp += equip.starting_barrier
+				print("Equipment Barrier Applied: +%d HP" % equip.starting_barrier)
+
+			# C. Collect Momentum Bonus
+			total_momentum_bonus += equip.starting_momentum
+			
+			# D. Collect Speed Bonus
+			p1_speed_bonus += equip.speed_bonus
+
+	# --- 5. APPLY MOMENTUM STARTING POSITION ---
+	# If we have a bonus, we skip the "0" (Neutral) state and start on our side.
+	# MOMENTUM_P1_MAX is the "front line". Subscripting moves it closer to the enemy wall (1).
+	if total_momentum_bonus > 0:
+		momentum = MOMENTUM_P1_MAX - (total_momentum_bonus - 1)
+		# Clamp so we don't accidentally glitch past the wall (1)
+		momentum = clampi(momentum, 1, MOMENTUM_P1_MAX)
+		print(">> Head Start! Momentum set to: " + str(momentum))
 		
+	# --- 6. APPLY ENEMY EQUIPMENT BONUSES ---
 	for item in p2_data.equipment:
 		p2_data.current_sp += item.starting_sp_bonus
-	# ----------------------------------------------------
 	
-	if p1_data.speed > p2_data.speed: priority_player = 1
-	elif p2_data.speed > p1_data.speed: priority_player = 2
-	else: priority_player = randi_range(1, 2)
+	# --- 7. APPLY GYM BUFFS ---
+	if RunManager.active_gym_buff != "":
+		print("Applying Gym Buff: " + RunManager.active_gym_buff)
+		
+		if RunManager.active_gym_buff == "iron_stance":
+			# Simulate a 'Start with 10 Block' by adding 10 Temporary HP.
+			p1_data.current_hp += 10
+			print(">> Iron Stance: +10 Temp HP")
+			
+		elif RunManager.active_gym_buff == "exploit_weakness":
+			# Reduce enemy starting HP by 20%
+			var damage = max(1, roundi(p2_data.max_hp * 0.2))
+			p2_data.current_hp -= damage
+			print(">> Exploit Weakness: Enemy took " + str(damage) + " dmg")
+			
+		# IMPORTANT: Clear the buff so it doesn't apply to the NEXT fight too
+		RunManager.active_gym_buff = ""
+	
+	# --- 8. CALCULATE PRIORITY (SPEED TIES) ---
+	var p1_final_speed = p1_data.speed + p1_speed_bonus
+	var p2_final_speed = p2_data.speed
+	
+	if p1_final_speed > p2_final_speed: 
+		priority_player = 1
+	elif p2_final_speed > p1_final_speed: 
+		priority_player = 2
+	else: 
+		priority_player = randi_range(1, 2)
 		
 	print("\n>>> COMBAT RESET! Starting from Initial Clash (Neutral) <<<")
 	change_state(State.SELECTION)
@@ -5648,11 +5783,20 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	new_card.repeat_count = max(new_card.repeat_count, sec.repeat_count)
 	
 	if sec.guard_break: new_card.guard_break = true
-	if sec.injure: new_card.injure = true
 	if sec.retaliate: new_card.retaliate = true
 	if sec.is_parry: new_card.is_parry = true
 	if sec.is_super: new_card.is_super = true
 	if sec.is_opener: new_card.is_opener = true
+	
+	# --- NEW: COMBINE STATUS EFFECTS SAFELY ---
+	# We merge both cards' status arrays so all effects carry over!
+	var combined_statuses = []
+	combined_statuses.append_array(base.statuses_to_apply)
+	for s in sec.statuses_to_apply:
+		# duplicate(true) ensures we don't accidentally modify the original card's dictionary
+		combined_statuses.append(s.duplicate(true)) 
+	new_card.statuses_to_apply = combined_statuses
+	# ------------------------------------------
 	
 	new_card.feint = false 
 	return new_card
@@ -5750,6 +5894,15 @@ func resolve_clash():
 	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
 	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
 	
+	# --- STRICT PARRY SUCCESS CHECK ---
+	# Parry only triggers if (My Gain + Stolen Gain) is strictly greater than My Fall Back.
+	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
+	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
+	
+	var p1_parry_success = (p1_parries and p1_net_gain > 0)
+	var p2_parry_success = (p2_parries and p2_net_gain > 0)
+	# ---------------------------------------	
+	
 	# --- WALL CRUSH CHECK ---
 	if p1_fb > 0 and momentum >= TOTAL_MOMENTUM_SLOTS:
 		_apply_wall_crush(1, p1_fb)
@@ -5760,14 +5913,7 @@ func resolve_clash():
 		p2_fb = 0 
 	# ------------------------------
 	
-	# --- STRICT PARRY SUCCESS CHECK ---
-	# Parry only triggers if (My Gain + Stolen Gain) is strictly greater than My Fall Back.
-	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
-	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
-	
-	var p1_parry_success = (p1_parries and p1_net_gain > 0)
-	var p2_parry_success = (p2_parries and p2_net_gain > 0)
-	# ---------------------------------------
+
 
 	# Calculate the final combined movement for the UI tracker
 	var p1_contribution = p1_total_gain
@@ -5909,12 +6055,37 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		emit_signal("status_applied", target_id, "DODGED")
 		return result
 
+	# --- 1. CALCULATE EQUIPMENT PASSIVES ---
+	var dmg_mod = 0
+	var attacker_block_mod = 0 # In case they get hit by Thorns/Retaliate
+	
+	var defender_block_mod = 0
+	var thorns_dmg = 0
+	
+	# Attacker's bonuses
+	for eq in character.equipment:
+		dmg_mod += eq.damage_modifier
+		attacker_block_mod += eq.block_modifier
+		
+	# Defender's bonuses
+	for eq in target.equipment:
+		defender_block_mod += eq.block_modifier
+		thorns_dmg += eq.thorns
+	# -----------------------------------------
+
 	var total_hits = max(1, my_card.repeat_count)
 	for i in range(total_hits):
-		var enemy_block = enemy_card.block_value 
-		if my_card.guard_break: enemy_block = 0
-		var net_damage = max(0, my_card.damage - enemy_block)
 		
+		# --- 2. APPLY OFFENSIVE / DEFENSIVE MODIFIERS ---
+		var total_damage = max(0, my_card.damage + dmg_mod)
+		var enemy_block = enemy_card.block_value + defender_block_mod
+		
+		if my_card.guard_break: 
+			enemy_block = 0
+			
+		var net_damage = max(0, total_damage - enemy_block)
+		
+		# --- 3. TIRING (SP DRAIN) ---
 		if my_card.tiring > 0:
 			if target.class_type == CharacterData.ClassType.HEAVY and target.current_sp < my_card.tiring:
 				var drain_amount = my_card.tiring
@@ -5928,19 +6099,17 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 				target.current_sp = max(0, target.current_sp - my_card.tiring)
 				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
 		
-		# --- NEW: GENERIC STATUS APPLICATION ---
+		# --- 4. STATUSES ---
 		for effect in my_card.statuses_to_apply:
-			# Default keys: "name" (String), "amount" (int), "self" (bool)
 			var s_name = effect.get("name", "Unknown")
 			var s_val = effect.get("amount", 1)
 			var is_self = effect.get("self", false)
-			
 			var dest_id = owner_id if is_self else target_id
 			
-			# Apply it (using our helper from the previous step)
 			if not has_status(dest_id, s_name):
 				apply_status(dest_id, s_name, s_val)
 
+		# --- 5. OPENINGS / OPPORTUNITY ---
 		if my_card.create_opening > 0:
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
 			result["opening"] = my_card.create_opening
@@ -5948,30 +6117,50 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		if my_card.opportunity > 0:
 			result["opportunity"] = my_card.opportunity
 
+		# --- 6. APPLY DAMAGE AND THORNS ---
 		if net_damage > 0:
 			target.current_hp -= net_damage
 			emit_signal("damage_dealt", target_id, net_damage, false)
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
-		elif my_card.damage > 0:
+			
+			# Trigger Thorns if the attack connects
+			if thorns_dmg > 0:
+				character.current_hp -= thorns_dmg
+				emit_signal("damage_dealt", owner_id, thorns_dmg, false)
+				emit_signal("combat_log_updated", ">> Spikes! P" + str(owner_id) + " took " + str(thorns_dmg) + " Thorns damage!")
+				
+				# Check if attacker died from Thorns
+				if character.current_hp <= 0:
+					result["fatal"] = true
+					return result
+					
+		elif total_damage > 0:
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
 			emit_signal("damage_dealt", target_id, 0, true)
 
-		if my_card.damage > 0 and enemy_card.retaliate:
-			var raw_recoil = my_card.damage
-			var self_block = my_card.block_value + my_card.dodge_value 
+		# --- 7. RETALIATE (REFLECT DAMAGE) ---
+		if total_damage > 0 and enemy_card.retaliate:
+			var raw_recoil = total_damage
+			# Notice the attacker's equipment block modifier applies to incoming reflect damage!
+			var self_block = my_card.block_value + my_card.dodge_value + attacker_block_mod 
 			var net_recoil = max(0, raw_recoil - self_block)
+			
 			if net_recoil > 0:
 				character.current_hp -= net_recoil
 				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
+				
+				# Check if attacker died from Retaliate
 				if character.current_hp <= 0:
 					result["fatal"] = true
 					return result
 			else:
 				emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
 
+		# --- 8. FATALITY CHECK ---
 		if target.current_hp <= 0:
 			result["fatal"] = true
 			return result
+			
 	RunManager.check_danger_state()		
 	return result
 
@@ -6061,10 +6250,25 @@ func _handle_death(winner_id):
 	if p1_data.current_hp > 0: game_winner = 1
 	elif p2_data.current_hp > 0: game_winner = 2
 	else: game_winner = winner_id 
+	
+	# --- NEW: HEAL ON WIN (EQUIPMENT) ---
+	if game_winner == 1 and RunManager.player_run_data:
+		var heal_amt = 0
+		for eq in RunManager.player_run_data.equipment:
+			heal_amt += eq.heal_on_win
+		
+		if heal_amt > 0:
+			# Apply healing, making sure not to exceed Max HP
+			p1_data.current_hp = min(p1_data.current_hp + heal_amt, p1_data.max_hp)
+			
+			emit_signal("combat_log_updated", ">> Victory Sustain! Recovered " + str(heal_amt) + " HP.")
+			print("Victory Heal: +%d HP" % heal_amt)
+	# ------------------------------------
+	
 	emit_signal("game_over", game_winner)
 	
 	# REMOVED: reset_combat() 
-	# We want the stats to stay at 0 so the player can see the final board state. 
+	# We want the stats to stay at 0 so the player can see the final board state.
 
 func _check_reversal_state():
 	var active_attacker = get_attacker()
@@ -6487,6 +6691,8 @@ var free_unlocks_remaining: int = 0
 
 var active_gym_buff: String = ""
 
+var pending_advancement: bool = false
+
 var current_run_name: String = "Test Run" # <--- NEW
 const SAVE_DIR = "user://saves/"
 
@@ -6702,8 +6908,8 @@ func get_valid_action_rewards() -> Array[ActionData]:
 # 2. Fetch Stat Upgrades (Generated on the fly)
 func get_stat_upgrades() -> Array[Dictionary]:
 	return [
-		#{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +4 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 2; p.current_hp += 2 },
-		#{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
+		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +2 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 2; p.current_hp += 2 },
+		{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
 		{ "type": "stat", "text": "FULL RESTORE", "desc": "Heal to Full HP.", "icon": "heal", "func": func(p): p.current_hp = p.max_hp }
 	]
 
@@ -6792,7 +6998,8 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	generate_new_league()
 	
 	# Go to the Map Screen (The player will click "Round 1" to start)
-	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+	pending_advancement = false 
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 # --- HELPER: Unlock the first node so the Draft System has "Neighbors" to find ---
 # CHANGED: Added '= null' to make the second argument optional
@@ -6837,9 +7044,12 @@ func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition
 
 # --- UPDATE: REWARD ROUTING ---
 func handle_reward_complete():
-	# Loop back to Deck Editor after picking a reward
-	save_run() # Save progress after winning
+	save_run()
 	print("Reward Claimed. Going to Deck Editor...")
+	
+	# We just finished a reward, so when we leave the deck screen, we should advance the map.
+	pending_advancement = true 
+	
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 # --- SAVE SYSTEM ---
@@ -6930,6 +7140,10 @@ func load_run(filename: String):
 	else:
 		# Legacy save support: Generate new map if none exists
 		generate_new_league()
+	
+	# SAFETY: When loading, we are already at the correct map index. 
+	# Do not advance again or we will skip a fight.
+	pending_advancement = false
 	
 	# Launch Game (Go to Map or Deck Editor)
 	print("Run Loaded: " + current_run_name)
@@ -7072,7 +7286,7 @@ func generate_new_league():
 			fight_counter += 1
 				
 		# 2. FIXED REST SPOTS (GYM)
-		elif i == 3 or i == 6:
+		elif randf() < 0.2 and i > 0:
 			node.type = MapNodeData.Type.GYM
 			node.title = "Training"
 			
@@ -7120,6 +7334,18 @@ func handle_league_victory():
 	# Later, we can add a "Victory Lap" screen
 	generate_new_league()
 	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+# Call this from the Deck Editor "Continue" button
+func exit_deck_editor():
+	if pending_advancement:
+		# Case: We just won a fight and grabbed rewards.
+		# Mark previous node complete and unlock the next one.
+		pending_advancement = false
+		advance_map()
+	else:
+		# Case: We just started a run, or loaded a save.
+		# The map is already ready, just go there.
+		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
 
 
 ========================================
@@ -8286,8 +8512,7 @@ func _start_fight(data: MapNodeData):
 
 func _enter_gym(_data: MapNodeData):
 	print("Entering Gym...")
-	# SceneLoader.change_scene("res://Scenes/Gym.tscn") 
-	# (We haven't made this yet, so just print for now!)
+	SceneLoader.change_scene("res://Scenes/Gym.tscn") 
 
 
 ========================================

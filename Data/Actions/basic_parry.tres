@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ActionData" load_steps=3 format=3 uid="uid://bpen1jdisykl"]
+[gd_resource type="Resource" script_class="ActionData" format=3 uid="uid://bpen1jdisykl"]
 
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="1_bwqbq"]
 [ext_resource type="Texture2D" uid="uid://dm0i5pmg7kasj" path="res://Art/DefenceBasic.jpg" id="1_rcy5b"]
@@ -11,5 +11,6 @@ icon = ExtResource("1_rcy5b")
 description = "Defence, Parry, Fall Back 2"
 type = 1
 fall_back_value = 2
+is_basic = true
 is_parry = true
 repeat_count = 0

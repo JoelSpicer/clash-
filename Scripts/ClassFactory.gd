@@ -202,7 +202,7 @@ func _select_smart_hand(pool: Array[ActionData], _archetype: CharacterData.AIArc
 	# We prioritize "cool" cards over "Basic" ones
 	for i in range(remaining.size() - 1, -1, -1):
 		var c = remaining[i]
-		if not c.display_name.begins_with("Basic"):
+		if not c.is_basic:
 			chosen.append(c)
 			remaining.remove_at(i)
 			
@@ -385,7 +385,7 @@ func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionD
 	# 2. Calculate
 	for card in deck:
 		if card == null: continue
-		if card.display_name in ignore_names or card.display_name.begins_with("Basic"):
+		if card.display_name in ignore_names or card.is_basic:
 			continue
 			
 		# 3. GENERIC MATH (Reads from Resource)

@@ -11,5 +11,6 @@ icon = ExtResource("1_iarty")
 description = "Offence, Opener, Recover 1, Fall Back 1"
 recover_value = 1
 fall_back_value = 1
+is_basic = true
 is_opener = true
 repeat_count = 0
