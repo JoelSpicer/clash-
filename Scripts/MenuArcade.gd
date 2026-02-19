@@ -59,7 +59,7 @@ func _generate_grid():
 		# Pass a generic "Floppy Disk" icon or reuse a portrait if you want
 		# Using a higher index range to distinguish saves
 		var save_index = 100 + i 
-		_create_grid_button(save_index, filename.replace(".save", ""), null, true)
+		_create_grid_button(save_index, filename.replace(".tres", ""), null, true)
 
 func _create_grid_button(index: int, text: String, icon: Texture2D, is_save: bool):
 	var btn = Button.new()
@@ -163,57 +163,51 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 
 	if is_save:
 		# --- SAVE FILE SELECTED ---
-		selected_save_file = text + ".save"
+		selected_save_file = text + ".tres" # Changed to .tres
 		start_btn.text = "LOAD RUN"
 		name_input.editable = false
 		name_input.text = text
 		
-		# A. LOAD DATA FOR PREVIEW
-		var data = RunManager.peek_save_file(selected_save_file)
+		# A. NATIVE LOAD FOR PREVIEW
+		var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
 		
-		if data.is_empty():
+		if data == null:
 			info_label.text = "[color=red]Error: Could not read save file.[/color]"
 			return
 
-		# B. LOCK DIFFICULTY (Enforce saved difficulty)
-		var saved_diff = int(data.difficulty)
+		# B. LOCK DIFFICULTY
+		var saved_diff = data.difficulty
 		difficulty_option.selected = saved_diff
-		difficulty_option.disabled = true # <--- GRAY OUT
+		difficulty_option.disabled = true 
 		
-		# Force the toggle to match the save file, then disable interaction
-		maintain_hp_toggle.button_pressed = data.get("maintain_hp", false)
+		maintain_hp_toggle.button_pressed = data.maintain_hp
 		maintain_hp_toggle.disabled = true
 		
 		# C. BUILD STATS STRING
 		var p_data = data.player_data
-		var identity = p_data.identity
-		var stats = p_data.stats
 		
-		# Header
 		var txt = "[center][b][font_size=24]" + data.run_name + "[/font_size][/b][/center]\n"
-		txt += "[center][color=gray]Level " + str(data.level) + " - " + _get_difficulty_name(saved_diff) + "[/color][/center]\n\n"
+		txt += "[center][color=gray]Level " + str(data.current_level) + " - " + _get_difficulty_name(saved_diff) + "[/color][/center]\n\n"
 		
-		# Core Stats
-		txt += "[b]Class:[/b] " + _get_class_name(int(identity.type)) + "\n"
-		txt += "[b]HP:[/b] " + str(stats.current_hp) + "/" + str(stats.max_hp) + "   "
-		txt += "[b]SP:[/b] " + str(stats.current_sp) + "/" + str(stats.max_sp) + "\n"
-		txt += "[b]Opponents Defeated:[/b] " + str(int(data.level) - 1) + "\n"
+		txt += "[b]Class:[/b] " + _get_class_name(p_data.class_type) + "\n"
+		txt += "[b]HP:[/b] " + str(p_data.current_hp) + "/" + str(p_data.max_hp) + "   "
+		txt += "[b]SP:[/b] " + str(p_data.current_sp) + "/" + str(p_data.max_sp) + "\n"
+		txt += "[b]Opponents Defeated:[/b] " + str(data.current_level - 1) + "\n"
 		
-		# Equipment List
 		txt += "\n[b]Equipment:[/b]\n"
 		if p_data.equipment.size() > 0:
-			for item_name in p_data.equipment:
-				txt += "• " + item_name + "\n"
+			for item in p_data.equipment:
+				txt += "• " + item.display_name + "\n"
 		else:
 			txt += "[i]None[/i]\n"
 
 		info_label.text = txt
 		
-		# Portrait (Try to load if path exists, otherwise generic)
-		if identity.portrait_path != "":
-			portrait_rect.texture = load(identity.portrait_path)
+		if p_data.portrait:
+			portrait_rect.texture = p_data.portrait
 		else:
 			portrait_rect.texture = null
+			
 		delete_btn.show()
 
 	else:

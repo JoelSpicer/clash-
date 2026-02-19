@@ -381,101 +381,59 @@ func handle_reward_complete():
 # --- SAVE SYSTEM ---
 
 func save_run():
-	# 1. Ensure directory exists
 	if not DirAccess.dir_exists_absolute(SAVE_DIR):
 		DirAccess.make_dir_absolute(SAVE_DIR)
 	
-	# Convert map array to array of dictionaries
-	var map_data = []
-	for node in tournament_map:
-		map_data.append(node.to_save_dict())
-
-	var save_data = {
-		# ... (Existing fields) ...
-		"current_map_index": current_map_index, # Don't forget this!
-		"map_data": map_data,
-		"run_name": current_run_name,
-		"level": current_level,
-		"tree_ids": player_owned_tree_ids, # Save Skill Tree progress
-		"difficulty": GameManager.ai_difficulty,
-		"maintain_hp": maintain_hp_enabled,
-		"player_data": player_run_data.to_save_dictionary(),
-		"timestamp": Time.get_datetime_string_from_system()
-	}
+	# 1. Create our Save Resource
+	var save_data = RunSaveData.new()
+	save_data.run_name = current_run_name
+	save_data.current_level = current_level
+	save_data.current_map_index = current_map_index
+	save_data.difficulty = GameManager.ai_difficulty
+	save_data.maintain_hp = maintain_hp_enabled
+	save_data.tree_ids = player_owned_tree_ids.duplicate()
+	save_data.player_data = player_run_data
 	
-	# 3. Write to File
-	# We sanitize the filename just in case user used special characters
+	# We duplicate the array so we aren't saving by reference accidentally
+	save_data.map_data = tournament_map.duplicate() 
+	save_data.timestamp = Time.get_datetime_string_from_system()
+	
+	# 2. Save it as a .tres file!
 	var safe_name = current_run_name.validate_filename()
-	var file_path = SAVE_DIR + safe_name + ".save"
+	var file_path = SAVE_DIR + safe_name + ".tres"
 	
-	var file = FileAccess.open(file_path, FileAccess.WRITE)
-	file.store_string(JSON.stringify(save_data, "\t"))
-	file.close()
+	ResourceSaver.save(save_data, file_path)
+	
 	_show_save_notification()
 	print("Run saved to: " + file_path)
 
 func load_run(filename: String):
 	var path = SAVE_DIR + filename
-	if not FileAccess.file_exists(path):
-		print("Save file not found: " + path)
-		return
+	if not FileAccess.file_exists(path): return
 
-	var file = FileAccess.open(path, FileAccess.READ)
-	var text = file.get_as_text()
-	var json = JSON.new()
-	var parse_result = json.parse(text)
-	
-	if parse_result != OK:
-		print("Error parsing save file.")
+	# 1. Native Load!
+	var save_data = ResourceLoader.load(path) as RunSaveData
+	if not save_data:
+		print("Error loading save file.")
 		return
-		
-	var data = json.data
 	
-	# --- RESTORE STATE ---
-	current_run_name = data.run_name
-	current_level = int(data.level)
-	player_owned_tree_ids.assign(data.tree_ids)
-	GameManager.ai_difficulty = int(data.difficulty) as GameManager.Difficulty
-	maintain_hp_enabled = data.maintain_hp
+	# 2. Restore State
+	current_run_name = save_data.run_name
+	current_level = save_data.current_level
+	current_map_index = save_data.current_map_index
+	GameManager.ai_difficulty = save_data.difficulty as GameManager.Difficulty
+	maintain_hp_enabled = save_data.maintain_hp
+	player_owned_tree_ids.assign(save_data.tree_ids)
 	
-	# Rebuild Player
-	player_run_data = CharacterData.from_save_dictionary(data.player_data)
-	
-	# Re-link Equipment (Since CharacterData only saved the names)
-	var saved_equip_names = data.player_data.equipment
-	player_run_data.equipment.clear()
-	
-	# Inefficient but safe: search all equipment for matches
-	var all_equip = get_all_equipment()
-	for equip_name in saved_equip_names:
-		for e in all_equip:
-			if e.display_name == equip_name:
-				player_run_data.equipment.append(e)
-				break
+	player_run_data = save_data.player_data
+	tournament_map.assign(save_data.map_data)
 	
 	is_arcade_mode = true
+	pending_advancement = false 
 	
-	# RESTORE MAP
-	current_map_index = data.get("current_map_index", 0)
-	tournament_map.clear()
-	
-	if data.has("map_data"):
-		for node_dict in data.map_data:
-			var node = MapNodeData.from_save_dict(node_dict)
-			tournament_map.append(node)
-	else:
-		# Legacy save support: Generate new map if none exists
-		generate_new_league()
-	
-	# SAFETY: When loading, we are already at the correct map index. 
-	# Do not advance again or we will skip a fight.
-	pending_advancement = false
-	
-	# Launch Game (Go to Map or Deck Editor)
 	print("Run Loaded: " + current_run_name)
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
-# Helper for Menu to list files
 func get_save_files() -> Array:
 	var files = []
 	var dir = DirAccess.open(SAVE_DIR)
@@ -483,25 +441,16 @@ func get_save_files() -> Array:
 		dir.list_dir_begin()
 		var file_name = dir.get_next()
 		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".save"):
+			if not dir.current_is_dir() and file_name.ends_with(".tres"): # Changed to .tres
 				files.append(file_name)
 			file_name = dir.get_next()
 	return files
 
-
-func peek_save_file(filename: String) -> Dictionary:
+func peek_save_file(filename: String) -> RunSaveData:
 	var path = SAVE_DIR + filename
-	if not FileAccess.file_exists(path):
-		return {}
+	if not FileAccess.file_exists(path): return null
+	return ResourceLoader.load(path) as RunSaveData
 
-	var file = FileAccess.open(path, FileAccess.READ)
-	var text = file.get_as_text()
-	var json = JSON.new()
-	if json.parse(text) == OK:
-		return json.data
-	return {}
-
-# --- DELETE LOGIC ---
 func delete_save_file(filename: String):
 	var path = SAVE_DIR + filename
 	if FileAccess.file_exists(path):

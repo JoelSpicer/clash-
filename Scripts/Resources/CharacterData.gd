@@ -37,23 +37,18 @@ enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
 
 # --- RUNTIME STATE ---
 @export_group("Runtime State")
-var current_hp: int
-var current_sp: int
-var has_used_super: bool = false 
-var combo_action_count: int = 0 # Track for Relentless passive
-var patient_buff_active: bool = false #Tracks the +1 Damage Buff
-# NEW: Passive Flags inherited from Class
-var can_pay_with_hp: bool = false
-var tiring_drains_hp: bool = false
-var combo_sp_recovery_rate: int = 0
-var has_bide_mechanic: bool = false
-var has_keep_up_toggle: bool = false
-var has_technique_dropdown: bool = false
-
-
-# --- NEW: STATUS DICTIONARY ---
-# Format: { "Injured": 1, "Poison": 3, "Stunned": 1 }
-var statuses: Dictionary = {}
+@export var current_hp: int
+@export var current_sp: int
+@export var has_used_super: bool = false 
+@export var combo_action_count: int = 0
+@export var patient_buff_active: bool = false
+@export var can_pay_with_hp: bool = false
+@export var tiring_drains_hp: bool = false
+@export var combo_sp_recovery_rate: int = 0
+@export var has_bide_mechanic: bool = false
+@export var has_keep_up_toggle: bool = false
+@export var has_technique_dropdown: bool = false
+@export var statuses: Dictionary = {}
 
 
 #endregion
@@ -105,74 +100,6 @@ func _apply_level_up_stats(card_type):
 	current_hp = max_hp
 	current_sp = max_sp
 	print("Level Up! New Stats - HP: " + str(max_hp) + " | SP: " + str(max_sp))
-
-# --- SERIALIZATION (SAVE/LOAD) ---
-
-func to_save_dictionary() -> Dictionary:
-	return {
-		"identity": {
-			"name": character_name,
-			"type": class_type,
-			"portrait_path": portrait.resource_path if portrait else ""
-		},
-		"stats": {
-			"current_hp": current_hp,
-			"max_hp": max_hp,
-			"current_sp": current_sp,
-			"max_sp": max_sp,
-			"speed": speed
-		},
-		# Save Cards by their Display Name (which ClassFactory uses to find them)
-		"deck": deck.map(func(c): return c.display_name),
-		"library": unlocked_actions.map(func(c): return c.display_name),
-		# Save Equipment by Display Name
-		"equipment": equipment.map(func(e): return e.display_name),
-		"statuses": statuses
-	}
-
-# Static helper to rebuild data from the dictionary
-static func from_save_dictionary(data: Dictionary) -> CharacterData:
-	var new_char = CharacterData.new()
-	
-	# 1. Identity
-	new_char.character_name = data.identity.name
-	new_char.class_type = data.identity.type as ClassType
-	
-	# --- NEW: INJECT PASSIVES FROM REGISTRY ---
-	var def = ClassFactory.class_registry.get(new_char.class_type)
-	if def:
-		new_char.can_pay_with_hp = def.can_pay_with_hp
-		new_char.tiring_drains_hp = def.tiring_drains_hp
-		new_char.combo_sp_recovery_rate = def.combo_sp_recovery_rate
-		new_char.has_bide_mechanic = def.has_bide_mechanic
-		new_char.has_keep_up_toggle = def.has_keep_up_toggle
-		new_char.has_technique_dropdown = def.has_technique_dropdown
-	# ------------------------------------------
-	if data.identity.portrait_path != "":
-		new_char.portrait = load(data.identity.portrait_path)
-	
-	# 2. Stats
-	new_char.current_hp = data.stats.current_hp
-	new_char.max_hp = data.stats.max_hp
-	new_char.current_sp = data.stats.current_sp
-	new_char.max_sp = data.stats.max_sp
-	new_char.speed = data.stats.speed
-	new_char.statuses = data.statuses
-	
-	# 3. Reconstruct Deck (String -> Resource)
-	for card_name in data.deck:
-		var card = ClassFactory.find_action_resource(card_name)
-		if card: new_char.deck.append(card)
-		
-	# 4. Reconstruct Library
-	for card_name in data.library:
-		var card = ClassFactory.find_action_resource(card_name)
-		if card: new_char.unlocked_actions.append(card)
-	
-	# 5. Reconstruct Equipment (Requires RunManager helper)
-	# We will handle equipment re-linking in RunManager because it owns the equipment list
-	
-	return new_char
 
 # --- DECK HELPERS ---
 func has_card_in_deck(card_name: String) -> bool:
