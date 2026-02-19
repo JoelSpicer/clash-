@@ -12,14 +12,15 @@ const P1_COLOR = "#ff9999"
 const P2_COLOR = "#99ccff"
 const HOVER_COLOR = Color(0.2, 0.2, 0.2, 0.8) 
 const NORMAL_COLOR = Color(0, 0, 0, 0)        
-
+const MAX_ACTIVE_ROWS = 30
+var archive_label: RichTextLabel
 var card_scene = preload("res://Scenes/CardDisplay.tscn")
 
 func _ready():
 	# 1. CLEANUP
 	for child in get_children():
 		child.queue_free()
-	$".".print_tree_pretty()
+		
 	# 2. CREATE SCROLL LIST
 	scroll_container = ScrollContainer.new()
 	scroll_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -32,10 +33,18 @@ func _ready():
 	log_list.add_theme_constant_override("separation", 2) 
 	scroll_container.add_child(log_list)
 	
+	# --- NEW: CREATE ARCHIVE LABEL ---
+	archive_label = RichTextLabel.new()
+	archive_label.bbcode_enabled = true
+	archive_label.fit_content = true
+	archive_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	archive_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	log_list.add_child(archive_label)
+	# ---------------------------------
+	
 	# 3. CREATE TOOLTIP POPUP
 	_create_tooltip_popup()
 	
-	# --- FIX: Listen for when the player opens the log ---
 	visibility_changed.connect(_on_visibility_changed)
 
 func _create_tooltip_popup():
@@ -78,6 +87,7 @@ func add_log(text: String):
 	row.add_child(label)
 	
 	log_list.add_child(row)
+	_archive_old_logs()
 	_auto_scroll()
 
 func add_clash_log(winner_id: int, p1_card: ActionData, p2_card: ActionData):
@@ -134,11 +144,16 @@ func add_clash_log(winner_id: int, p1_card: ActionData, p2_card: ActionData):
 	
 	row.add_child(btn)
 	log_list.add_child(row)
+	_archive_old_logs()
 	_auto_scroll()
 
 func clear_log():
 	for child in log_list.get_children():
-		child.queue_free()
+		if child != archive_label:
+			child.queue_free()
+			
+	if archive_label:
+		archive_label.text = ""
 
 # --- HELPERS ---
 
@@ -227,6 +242,7 @@ func add_round_summary(p1_diff: Dictionary, p2_diff: Dictionary, mom_val: int):
 	row.add_child(label)
 	
 	log_list.add_child(row)
+	_archive_old_logs()
 	_auto_scroll()
 
 # Helper to format changes (e.g., "-5 HP" in red, "+2 SP" in green)
@@ -286,3 +302,17 @@ func _find_richtext_recursive(node: Node) -> RichTextLabel:
 			return found
 			
 	return null
+
+func _archive_old_logs():
+	# We check for MAX + 1 because the archive_label itself is at index 0
+	while log_list.get_child_count() > MAX_ACTIVE_ROWS + 1:
+		var oldest_row = log_list.get_child(1) # Index 1 is the oldest interactive log
+		
+		# Find its text and append to archive
+		var label = _find_richtext_recursive(oldest_row)
+		if label:
+			archive_label.text += label.text + "\n"
+			
+		# Delete the heavy UI row
+		log_list.remove_child(oldest_row)
+		oldest_row.queue_free()
