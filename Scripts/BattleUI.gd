@@ -78,10 +78,22 @@ var shake_strength: float = 0.0
 var shake_decay: float = 5.0
 var zoom_strength: float = 0.0 
 var zoom_decay: float = 5.0    
+var camera: Camera2D
 #endregion
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS 
+	
+	# --- NEW: HARDWARE CAMERA SETUP ---
+	camera = Camera2D.new()
+	# Center the camera perfectly based on screen size
+	camera.position = get_viewport().get_visible_rect().size / 2.0
+	add_child(camera)
+	
+	# This magical checkbox tells Godot to apply the Camera's zoom and shake
+	# directly to the CanvasLayer using hardware acceleration!
+	self.follow_viewport_enabled = true
+	# ----------------------------------
 	
 	if not btn_offence or not btn_defence:
 		printerr("CRITICAL: Buttons missing in BattleUI")
@@ -178,9 +190,9 @@ func _ready():
 	_update_background()
 	
 # --- DYNAMIC CAMERA PROCESS ---
+# --- DYNAMIC CAMERA PROCESS ---
 func _process(delta):
 	# 1. Decay Values
-	# FIX: Only decay if we are NOT in the middle of a Finisher Freeze
 	var is_frozen = (finisher_triggered and get_tree().paused)
 	
 	if not is_frozen:
@@ -192,25 +204,20 @@ func _process(delta):
 			zoom_strength = lerpf(zoom_strength, 0, zoom_decay * delta)
 			if zoom_strength < 0.001: zoom_strength = 0
 
-	# 2. Calculate Scale (Base 1.0 + Zoom Punch)
-	var current_scale = 1.0 + zoom_strength
-	scale = Vector2(current_scale, current_scale)
-	
-	# 3. Calculate Centering Offset
-	var viewport_size = get_viewport().get_visible_rect().size
-	var center = viewport_size / 2
-	var center_offset = center - (center * current_scale)
-	
-	# 4. Calculate Shake Offset
-	var shake_offset = Vector2.ZERO
-	if shake_strength > 0:
-		shake_offset = Vector2(
-			randf_range(-shake_strength, shake_strength),
-			randf_range(-shake_strength, shake_strength)
-		)
-	
-	# 5. Apply Total Offset
-	offset = center_offset + shake_offset
+	# 2. Apply to Camera2D directly (Highly Efficient)
+	if camera:
+		# Base zoom is 1.0. We zoom IN by increasing the numbers.
+		var current_zoom = 1.0 + zoom_strength
+		camera.zoom = Vector2(current_zoom, current_zoom)
+		
+		# Shake Offset
+		if shake_strength > 0:
+			camera.offset = Vector2(
+				randf_range(-shake_strength, shake_strength),
+				randf_range(-shake_strength, shake_strength)
+			)
+		else:
+			camera.offset = Vector2.ZERO
 
 func apply_camera_impact(zoom_amount: float, shake_amount: float):
 	zoom_strength = max(zoom_strength, zoom_amount)
