@@ -709,20 +709,14 @@ func _is_id_equipped(id: int) -> bool:
 	if not RunManager.is_arcade_mode: return id in owned_ids
 	var player = RunManager.player_run_data
 	var c_name = id_to_name.get(id)
-	for card in player.deck:
-		if card.display_name == c_name: return true
-	return false
+	return player.has_card_in_deck(c_name)
 
 func _is_card_equipped(player, card_data) -> bool:
-	for c in player.deck:
-		if c.display_name == card_data.display_name: return true
-	return false
+	return player.has_card_in_deck(card_data.display_name)
 
 func _remove_from_deck(player, card_data):
-	for i in range(player.deck.size()):
-		if player.deck[i].display_name == card_data.display_name:
-			player.deck.remove_at(i)
-			return
+	player.remove_card_from_deck(card_data.display_name)
+
 
 func _get_class_enum_from_id(id: int) -> int:
 	match id:

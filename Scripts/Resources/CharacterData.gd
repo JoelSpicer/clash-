@@ -173,3 +173,15 @@ static func from_save_dictionary(data: Dictionary) -> CharacterData:
 	# We will handle equipment re-linking in RunManager because it owns the equipment list
 	
 	return new_char
+
+# --- DECK HELPERS ---
+func has_card_in_deck(card_name: String) -> bool:
+	for c in deck:
+		if c.display_name == card_name: return true
+	return false
+
+func remove_card_from_deck(card_name: String):
+	for i in range(deck.size()):
+		if deck[i].display_name == card_name:
+			deck.remove_at(i)
+			return

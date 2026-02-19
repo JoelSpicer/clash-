@@ -47,7 +47,7 @@ func _refresh_grid():
 		disp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		
 		# Check if Equipped
-		if _is_in_deck(action):
+		if RunManager.player_run_data.has_card_in_deck(action.display_name):
 			disp.modulate = Color(1, 1, 1, 1) # Bright
 			_add_equipped_badge(wrapper)
 		else:
@@ -62,29 +62,21 @@ func _refresh_grid():
 		card_grid.add_child(wrapper)
 
 func _toggle_card(action):
-	var deck = RunManager.player_run_data.deck
+	var player = RunManager.player_run_data
 	
-	if _is_in_deck(action):
+	if player.has_card_in_deck(action.display_name):
 		# Remove
-		for i in range(deck.size()):
-			if deck[i].display_name == action.display_name:
-				deck.remove_at(i)
-				AudioManager.play_sfx("ui_back")
-				break
+		player.remove_card_from_deck(action.display_name)
+		AudioManager.play_sfx("ui_back")
 	else:
 		# Add
-		if deck.size() < ClassFactory.HAND_LIMIT:
-			deck.append(action)
+		if player.deck.size() < ClassFactory.HAND_LIMIT:
+			player.deck.append(action)
 			AudioManager.play_sfx("ui_click")
 		else:
-			AudioManager.play_sfx("error")
+			AudioManager.play_sfx("error") # (Optional: Make sure you have an error sound!)
 			
 	_refresh_grid()
-
-func _is_in_deck(action):
-	for c in RunManager.player_run_data.deck:
-		if c.display_name == action.display_name: return true
-	return false
 
 func _add_equipped_badge(parent):
 	var lbl = Label.new()
