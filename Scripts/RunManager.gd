@@ -282,6 +282,15 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	p_data.portrait = source_class.portrait
 	p_data.passive_desc = source_class.passive_description
 	
+	# --- NEW: COPY PASSIVES ---
+	p_data.can_pay_with_hp = source_class.can_pay_with_hp
+	p_data.tiring_drains_hp = source_class.tiring_drains_hp
+	p_data.combo_sp_recovery_rate = source_class.combo_sp_recovery_rate
+	p_data.has_bide_mechanic = source_class.has_bide_mechanic
+	p_data.has_keep_up_toggle = source_class.has_keep_up_toggle
+	p_data.has_technique_dropdown = source_class.has_technique_dropdown
+	# -------
+	
 	# Copy Stats (Optional: if your resource has custom start stats)
 	p_data.max_hp = 5
 	p_data.current_hp = 5

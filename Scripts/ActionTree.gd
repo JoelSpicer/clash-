@@ -559,6 +559,18 @@ func _on_confirm_button_pressed():
 			75: final_character.class_type = CharacterData.ClassType.PATIENT
 			76: final_character.class_type = CharacterData.ClassType.HEAVY
 
+		# --- NEW: INJECT PASSIVES FROM REGISTRY ---
+		var def = ClassFactory.class_registry.get(final_character.class_type)
+		if def:
+			final_character.can_pay_with_hp = def.can_pay_with_hp
+			final_character.tiring_drains_hp = def.tiring_drains_hp
+			final_character.combo_sp_recovery_rate = def.combo_sp_recovery_rate
+			final_character.has_bide_mechanic = def.has_bide_mechanic
+			final_character.has_keep_up_toggle = def.has_keep_up_toggle
+			final_character.has_technique_dropdown = def.has_technique_dropdown
+			final_character.passive_desc = def.passive_description
+		# ------------------------------------------
+		
 		var base_deck = ClassFactory.get_starting_deck(final_character.class_type)
 		var final_deck: Array[ActionData] = []
 		final_deck.append_array(base_deck)

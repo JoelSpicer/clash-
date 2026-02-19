@@ -1508,10 +1508,10 @@ func _create_passive_toggles():
 	tech_dropdown.item_selected.connect(func(_idx): _refresh_grid())
 	container.add_child(tech_dropdown)
 	
-func setup_passive_toggles(class_type: CharacterData.ClassType):
-	rage_toggle.visible = (class_type == CharacterData.ClassType.HEAVY)
-	keep_up_toggle.visible = (class_type == CharacterData.ClassType.PATIENT)
-	tech_dropdown.visible = (class_type == CharacterData.ClassType.TECHNICAL)
+func setup_passive_toggles(character: CharacterData):
+	rage_toggle.visible = character.can_pay_with_hp
+	keep_up_toggle.visible = character.has_keep_up_toggle
+	tech_dropdown.visible = character.has_technique_dropdown
 	tech_dropdown.selected = 0 
 	rage_toggle.button_pressed = false
 	keep_up_toggle.button_pressed = false
@@ -2633,7 +2633,7 @@ func _display_stats(idx: int, label: RichTextLabel, portrait_rect: TextureRect):
 	if idx >= base_classes.size():
 		txt += "[u]Custom Skills:[/u]\n"
 		for card in temp.deck:
-			if not card.display_name.begins_with("Basic"):
+			if not card.is_basic:
 				txt += "- " + card.display_name + "\n"
 	
 	txt += "\n[color=yellow]" + temp.passive_desc + "[/color]"
@@ -2980,7 +2980,7 @@ func _select_smart_hand(pool: Array[ActionData], _archetype: CharacterData.AIArc
 	# We prioritize "cool" cards over "Basic" ones
 	for i in range(remaining.size() - 1, -1, -1):
 		var c = remaining[i]
-		if not c.display_name.begins_with("Basic"):
+		if not c.is_basic:
 			chosen.append(c)
 			remaining.remove_at(i)
 			
@@ -3042,6 +3042,14 @@ func create_character(type: CharacterData.ClassType, player_name: String) -> Cha
 	char_data.speed = def.base_speed
 	char_data.passive_desc = def.passive_description
 	char_data.portrait = def.portrait
+	
+	# --- NEW: COPY PASSIVES ---
+	char_data.can_pay_with_hp = def.can_pay_with_hp
+	char_data.tiring_drains_hp = def.tiring_drains_hp
+	char_data.combo_sp_recovery_rate = def.combo_sp_recovery_rate
+	char_data.has_bide_mechanic = def.has_bide_mechanic
+	char_data.has_keep_up_toggle = def.has_keep_up_toggle
+	char_data.has_technique_dropdown = def.has_technique_dropdown
 	
 	# 2. Library (Duplicate the array so we don't modify the Resource)
 	char_data.unlocked_actions = def.starting_deck.duplicate()
@@ -3163,7 +3171,7 @@ func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionD
 	# 2. Calculate
 	for card in deck:
 		if card == null: continue
-		if card.display_name in ignore_names or card.display_name.begins_with("Basic"):
+		if card.display_name in ignore_names or card.is_basic:
 			continue
 			
 		# 3. GENERIC MATH (Reads from Resource)
@@ -5093,6 +5101,8 @@ enum Type { OFFENCE, DEFENCE }
 
 # --- SPECIAL BOOLEANS ---
 @export_group("Special Mechanics")
+@export var is_basic: bool = false       # <--- NEW: Flags this as a starter/basic card
+@export var is_struggle: bool = false    # <--- NEW: Flags this as the universal struggle move
 @export var is_opener: bool = false      # Can be played at 0 Momentum or start of combo
 @export var is_super: bool = false       # Requires specific Momentum; 1 use per match
 @export var guard_break: bool = false    # Ignores opponent's Block/Dodge
@@ -5162,6 +5172,14 @@ var current_sp: int
 var has_used_super: bool = false 
 var combo_action_count: int = 0 # Track for Relentless passive
 var patient_buff_active: bool = false #Tracks the +1 Damage Buff
+# NEW: Passive Flags inherited from Class
+var can_pay_with_hp: bool = false
+var tiring_drains_hp: bool = false
+var combo_sp_recovery_rate: int = 0
+var has_bide_mechanic: bool = false
+var has_keep_up_toggle: bool = false
+var has_technique_dropdown: bool = false
+
 
 # --- NEW: STATUS DICTIONARY ---
 # Format: { "Injured": 1, "Poison": 3, "Stunned": 1 }
@@ -5249,6 +5267,17 @@ static func from_save_dictionary(data: Dictionary) -> CharacterData:
 	# 1. Identity
 	new_char.character_name = data.identity.name
 	new_char.class_type = data.identity.type as ClassType
+	
+	# --- NEW: INJECT PASSIVES FROM REGISTRY ---
+	var def = ClassFactory.class_registry.get(new_char.class_type)
+	if def:
+		new_char.can_pay_with_hp = def.can_pay_with_hp
+		new_char.tiring_drains_hp = def.tiring_drains_hp
+		new_char.combo_sp_recovery_rate = def.combo_sp_recovery_rate
+		new_char.has_bide_mechanic = def.has_bide_mechanic
+		new_char.has_keep_up_toggle = def.has_keep_up_toggle
+		new_char.has_technique_dropdown = def.has_technique_dropdown
+	# ------------------------------------------
 	if data.identity.portrait_path != "":
 		new_char.portrait = load(data.identity.portrait_path)
 	
@@ -5305,6 +5334,14 @@ class_name ClassDefinition
 @export_group("Progression")
 @export var starting_deck: Array[ActionData] = []
 @export var skill_tree_root_id: int = 0
+
+@export_group("Passive Mechanics")
+@export var can_pay_with_hp: bool = false
+@export var tiring_drains_hp: bool = false
+@export var combo_sp_recovery_rate: int = 0 # 0 means disabled, 3 means every 3 hits
+@export var has_bide_mechanic: bool = false
+@export var has_keep_up_toggle: bool = false
+@export var has_technique_dropdown: bool = false
 
 
 ========================================
@@ -6023,8 +6060,8 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 	var character = p1_data if owner_id == 1 else p2_data
 	var total_hits = max(1, my_card.repeat_count)
 	
-	if character.class_type == CharacterData.ClassType.QUICK:
-		if character.combo_action_count > 0 and (character.combo_action_count % 3 == 0):
+	if character.combo_sp_recovery_rate > 0:
+		if character.combo_action_count > 0 and (character.combo_action_count % character.combo_sp_recovery_rate == 0):
 			character.current_sp = min(character.current_sp + 1, character.max_sp)
 			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
 	
@@ -6087,7 +6124,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		
 		# --- 3. TIRING (SP DRAIN) ---
 		if my_card.tiring > 0:
-			if target.class_type == CharacterData.ClassType.HEAVY and target.current_sp < my_card.tiring:
+			if target.tiring_drains_hp and target.current_sp < my_card.tiring:
 				var drain_amount = my_card.tiring
 				var sp_avail = target.current_sp
 				var hp_cost = drain_amount - sp_avail
@@ -6191,7 +6228,7 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 	
 	if is_free: total_cost = 0
 	
-	if rage_is_on and character.class_type == CharacterData.ClassType.HEAVY:
+	if rage_is_on and character.can_pay_with_hp:
 		if character.current_hp > total_cost:
 			character.current_hp -= total_cost
 			emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
@@ -6205,7 +6242,7 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 		character.current_sp -= total_cost
 		return true
 	else:
-		if character.class_type == CharacterData.ClassType.HEAVY:
+		if character.can_pay_with_hp:
 			if (character.current_sp + character.current_hp) > total_cost:
 				var sp_avail = character.current_sp
 				var hp_cost = total_cost - sp_avail
@@ -6374,8 +6411,7 @@ func apply_environment_rules(env_type: String):
 
 func _handle_patient_passive(player_id: int, card: ActionData):
 	var character = p1_data if player_id == 1 else p2_data
-	if character.class_type != CharacterData.ClassType.PATIENT: return
-	
+	if not character.has_bide_mechanic: return
 	var consumed_buff = false
 	
 	if character.patient_buff_active:
@@ -6392,6 +6428,7 @@ func _handle_patient_passive(player_id: int, card: ActionData):
 func get_struggle_action(force_type: ActionData.Type) -> ActionData:
 	var action = ActionData.new()
 	action.display_name = "Struggle"
+	action.is_struggle = true
 	action.description = "Offence, Defence, Recover 1, Fall Back 2"
 	action.type = force_type
 	action.cost = 0
@@ -7777,7 +7814,7 @@ func _prepare_human_turn(player_id: int):
 	var character = p1_resource if player_id == 1 else p2_resource
 	
 	# --- NEW: SETUP UI TOGGLES ---
-	battle_ui.setup_passive_toggles(character.class_type)
+	battle_ui.setup_passive_toggles(character)
 	# -----------------------------
 	battle_ui.load_deck(character.deck)
 	
@@ -7875,7 +7912,7 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		var effective_cost = max(0, card.cost - my_opportunity)
 		var can_pay = (effective_cost <= character.current_sp)
 		
-		if character.class_type == CharacterData.ClassType.HEAVY:
+		if character.can_pay_with_hp:
 			if (character.current_sp + character.current_hp) > effective_cost:
 				can_pay = true
 				

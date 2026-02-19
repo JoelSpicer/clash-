@@ -267,10 +267,10 @@ func _create_passive_toggles():
 	tech_dropdown.item_selected.connect(func(_idx): _refresh_grid())
 	container.add_child(tech_dropdown)
 	
-func setup_passive_toggles(class_type: CharacterData.ClassType):
-	rage_toggle.visible = (class_type == CharacterData.ClassType.HEAVY)
-	keep_up_toggle.visible = (class_type == CharacterData.ClassType.PATIENT)
-	tech_dropdown.visible = (class_type == CharacterData.ClassType.TECHNICAL)
+func setup_passive_toggles(character: CharacterData):
+	rage_toggle.visible = character.can_pay_with_hp
+	keep_up_toggle.visible = character.has_keep_up_toggle
+	tech_dropdown.visible = character.has_technique_dropdown
 	tech_dropdown.selected = 0 
 	rage_toggle.button_pressed = false
 	keep_up_toggle.button_pressed = false

@@ -604,8 +604,8 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 	var character = p1_data if owner_id == 1 else p2_data
 	var total_hits = max(1, my_card.repeat_count)
 	
-	if character.class_type == CharacterData.ClassType.QUICK:
-		if character.combo_action_count > 0 and (character.combo_action_count % 3 == 0):
+	if character.combo_sp_recovery_rate > 0:
+		if character.combo_action_count > 0 and (character.combo_action_count % character.combo_sp_recovery_rate == 0):
 			character.current_sp = min(character.current_sp + 1, character.max_sp)
 			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
 	
@@ -668,7 +668,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		
 		# --- 3. TIRING (SP DRAIN) ---
 		if my_card.tiring > 0:
-			if target.class_type == CharacterData.ClassType.HEAVY and target.current_sp < my_card.tiring:
+			if target.tiring_drains_hp and target.current_sp < my_card.tiring:
 				var drain_amount = my_card.tiring
 				var sp_avail = target.current_sp
 				var hp_cost = drain_amount - sp_avail
@@ -772,7 +772,7 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 	
 	if is_free: total_cost = 0
 	
-	if rage_is_on and character.class_type == CharacterData.ClassType.HEAVY:
+	if rage_is_on and character.can_pay_with_hp:
 		if character.current_hp > total_cost:
 			character.current_hp -= total_cost
 			emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
@@ -786,7 +786,7 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 		character.current_sp -= total_cost
 		return true
 	else:
-		if character.class_type == CharacterData.ClassType.HEAVY:
+		if character.can_pay_with_hp:
 			if (character.current_sp + character.current_hp) > total_cost:
 				var sp_avail = character.current_sp
 				var hp_cost = total_cost - sp_avail
@@ -955,8 +955,7 @@ func apply_environment_rules(env_type: String):
 
 func _handle_patient_passive(player_id: int, card: ActionData):
 	var character = p1_data if player_id == 1 else p2_data
-	if character.class_type != CharacterData.ClassType.PATIENT: return
-	
+	if not character.has_bide_mechanic: return
 	var consumed_buff = false
 	
 	if character.patient_buff_active:

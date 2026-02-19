@@ -24,3 +24,11 @@ class_name ClassDefinition
 @export_group("Progression")
 @export var starting_deck: Array[ActionData] = []
 @export var skill_tree_root_id: int = 0
+
+@export_group("Passive Mechanics")
+@export var can_pay_with_hp: bool = false
+@export var tiring_drains_hp: bool = false
+@export var combo_sp_recovery_rate: int = 0 # 0 means disabled, 3 means every 3 hits
+@export var has_bide_mechanic: bool = false
+@export var has_keep_up_toggle: bool = false
+@export var has_technique_dropdown: bool = false

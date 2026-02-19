@@ -27,4 +27,6 @@ defence_hp_growth = 1
 defence_sp_growth = 1
 starting_deck = Array[ExtResource("3_io0np")]([ExtResource("4_dfopw"), ExtResource("5_0xrb5"), ExtResource("6_6c16w"), ExtResource("7_3e81u"), ExtResource("8_siept"), ExtResource("9_o5kx5"), ExtResource("10_4m100"), ExtResource("11_6jl5k"), ExtResource("12_aabbj"), ExtResource("13_2vuc8")])
 skill_tree_root_id = 75
+has_bide_mechanic = true
+has_keep_up_toggle = true
 metadata/_custom_type_script = "uid://bg3yi5728wpap"

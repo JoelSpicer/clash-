@@ -26,4 +26,5 @@ offence_hp_growth = 1
 defence_sp_growth = 2
 starting_deck = Array[ExtResource("3_0x3nb")]([ExtResource("4_drxnv"), ExtResource("5_nxnnb"), ExtResource("6_078es"), ExtResource("7_brwgy"), ExtResource("8_w407i"), ExtResource("9_itgx8"), ExtResource("10_8ym7e"), ExtResource("11_og7bm"), ExtResource("12_k1hmy"), ExtResource("13_iihhh")])
 skill_tree_root_id = 73
+combo_sp_recovery_rate = 3
 metadata/_custom_type_script = "uid://bg3yi5728wpap"

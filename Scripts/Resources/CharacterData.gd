@@ -42,6 +42,14 @@ var current_sp: int
 var has_used_super: bool = false 
 var combo_action_count: int = 0 # Track for Relentless passive
 var patient_buff_active: bool = false #Tracks the +1 Damage Buff
+# NEW: Passive Flags inherited from Class
+var can_pay_with_hp: bool = false
+var tiring_drains_hp: bool = false
+var combo_sp_recovery_rate: int = 0
+var has_bide_mechanic: bool = false
+var has_keep_up_toggle: bool = false
+var has_technique_dropdown: bool = false
+
 
 # --- NEW: STATUS DICTIONARY ---
 # Format: { "Injured": 1, "Poison": 3, "Stunned": 1 }
@@ -129,6 +137,17 @@ static func from_save_dictionary(data: Dictionary) -> CharacterData:
 	# 1. Identity
 	new_char.character_name = data.identity.name
 	new_char.class_type = data.identity.type as ClassType
+	
+	# --- NEW: INJECT PASSIVES FROM REGISTRY ---
+	var def = ClassFactory.class_registry.get(new_char.class_type)
+	if def:
+		new_char.can_pay_with_hp = def.can_pay_with_hp
+		new_char.tiring_drains_hp = def.tiring_drains_hp
+		new_char.combo_sp_recovery_rate = def.combo_sp_recovery_rate
+		new_char.has_bide_mechanic = def.has_bide_mechanic
+		new_char.has_keep_up_toggle = def.has_keep_up_toggle
+		new_char.has_technique_dropdown = def.has_technique_dropdown
+	# ------------------------------------------
 	if data.identity.portrait_path != "":
 		new_char.portrait = load(data.identity.portrait_path)
 	

@@ -265,6 +265,14 @@ func create_character(type: CharacterData.ClassType, player_name: String) -> Cha
 	char_data.passive_desc = def.passive_description
 	char_data.portrait = def.portrait
 	
+	# --- NEW: COPY PASSIVES ---
+	char_data.can_pay_with_hp = def.can_pay_with_hp
+	char_data.tiring_drains_hp = def.tiring_drains_hp
+	char_data.combo_sp_recovery_rate = def.combo_sp_recovery_rate
+	char_data.has_bide_mechanic = def.has_bide_mechanic
+	char_data.has_keep_up_toggle = def.has_keep_up_toggle
+	char_data.has_technique_dropdown = def.has_technique_dropdown
+	
 	# 2. Library (Duplicate the array so we don't modify the Resource)
 	char_data.unlocked_actions = def.starting_deck.duplicate()
 	

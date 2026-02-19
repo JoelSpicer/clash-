@@ -238,7 +238,7 @@ func _prepare_human_turn(player_id: int):
 	var character = p1_resource if player_id == 1 else p2_resource
 	
 	# --- NEW: SETUP UI TOGGLES ---
-	battle_ui.setup_passive_toggles(character.class_type)
+	battle_ui.setup_passive_toggles(character)
 	# -----------------------------
 	battle_ui.load_deck(character.deck)
 	
@@ -336,7 +336,7 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		var effective_cost = max(0, card.cost - my_opportunity)
 		var can_pay = (effective_cost <= character.current_sp)
 		
-		if character.class_type == CharacterData.ClassType.HEAVY:
+		if character.can_pay_with_hp:
 			if (character.current_sp + character.current_hp) > effective_cost:
 				can_pay = true
 				

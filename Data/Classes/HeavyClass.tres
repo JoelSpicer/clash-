@@ -24,4 +24,6 @@ offence_sp_growth = 1
 defence_hp_growth = 2
 starting_deck = Array[ExtResource("2_7e45r")]([ExtResource("4_6hi27"), ExtResource("5_lem5q"), ExtResource("6_5cusy"), ExtResource("7_x8tml"), ExtResource("8_bu5rw"), ExtResource("9_lktkg"), ExtResource("10_puvwn"), ExtResource("11_07s3j"), ExtResource("12_juwg8"), ExtResource("13_vd8an")])
 skill_tree_root_id = 76
+can_pay_with_hp = true
+tiring_drains_hp = true
 metadata/_custom_type_script = "uid://bg3yi5728wpap"

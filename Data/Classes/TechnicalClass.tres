@@ -27,4 +27,5 @@ offence_sp_growth = 1
 defence_sp_growth = 1
 starting_deck = Array[ExtResource("3_uhsbe")]([ExtResource("4_uqbt3"), ExtResource("5_g6u1v"), ExtResource("6_1uqk2"), ExtResource("7_22u1l"), ExtResource("8_ne6uf"), ExtResource("9_w4qhh"), ExtResource("10_xnubf"), ExtResource("11_037os"), ExtResource("12_7frj5"), ExtResource("13_67n4n")])
 skill_tree_root_id = 74
+has_technique_dropdown = true
 metadata/_custom_type_script = "uid://bg3yi5728wpap"
