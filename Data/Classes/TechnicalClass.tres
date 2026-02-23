@@ -1,16 +1,8 @@
-[gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://bg5ik82a2fybg"]
+[gd_resource type="Resource" script_class="ClassDefinition" load_steps=6 format=3 uid="uid://bg5ik82a2fybg"]
 
 [ext_resource type="Texture2D" uid="uid://dfmgsi58a4dh1" path="res://Art/Portraits/Technical.png" id="1_ndoru"]
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_aosid"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="3_uhsbe"]
-[ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="4_uqbt3"]
-[ext_resource type="Resource" uid="uid://dc23tmqsq7iod" path="res://Data/Actions/basic_dodge.tres" id="5_g6u1v"]
-[ext_resource type="Resource" uid="uid://bpen1jdisykl" path="res://Data/Actions/basic_parry.tres" id="6_1uqk2"]
-[ext_resource type="Resource" uid="uid://b8ai0k486ma37" path="res://Data/Actions/basic_reversal.tres" id="7_22u1l"]
-[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="8_ne6uf"]
-[ext_resource type="Resource" uid="uid://dybsgcdat5xva" path="res://Data/Actions/basic_light.tres" id="9_w4qhh"]
-[ext_resource type="Resource" uid="uid://ceqlrpt4vuc04" path="res://Data/Actions/basic_positioning.tres" id="10_xnubf"]
-[ext_resource type="Resource" uid="uid://cis47vu3ete28" path="res://Data/Actions/basic_technical.tres" id="11_037os"]
 [ext_resource type="Resource" uid="uid://duf05aj36lq7l" path="res://Data/Actions/discombobulate.tres" id="12_7frj5"]
 [ext_resource type="Resource" uid="uid://ldoghwg3xwhv" path="res://Data/Actions/hand_catch.tres" id="13_67n4n"]
 
@@ -29,11 +21,23 @@ arcade_description = "[center][b][font_size=28]TECHNICAL[/font_size][/b][/center
 [b]Speed:[/b] 3
 ----------------
 [color=yellow]Custom Technique: Spend 1 SP to add Opener, Tiring, or Momentum to any action.[/color]"
-base_speed = 3
-offence_hp_growth = 1
-offence_sp_growth = 1
-defence_sp_growth = 1
-starting_deck = Array[ExtResource("3_uhsbe")]([ExtResource("4_uqbt3"), ExtResource("5_g6u1v"), ExtResource("6_1uqk2"), ExtResource("7_22u1l"), ExtResource("8_ne6uf"), ExtResource("9_w4qhh"), ExtResource("10_xnubf"), ExtResource("11_037os"), ExtResource("12_7frj5"), ExtResource("13_67n4n")])
+starting_deck = Array[ExtResource("3_uhsbe")]([ExtResource("12_7frj5"), ExtResource("13_67n4n")])
 skill_tree_root_id = 74
+can_pay_with_hp = false
+tiring_drains_hp = false
+combo_sp_recovery_rate = 0
+has_bide_mechanic = false
+has_keep_up_toggle = false
 has_technique_dropdown = true
+barks = {
+"HURT": ["Miscalculation.", "Sloppy form.", "I see how it is."],
+"INTRO_GENERIC": ["I've analyzed your style.", "Technique conquers all.", "Let's test your fundamentals."],
+"INTRO_VS_HEAVY": ["Strength is nothing without precision.", "You're a large target."],
+"INTRO_VS_PATIENT": ["I can pick apart your defense.", "Waiting won't save you."],
+"INTRO_VS_QUICK": ["Efficiency beats speed.", "You're wasting energy moving like that."],
+"INTRO_VS_TECHNICAL": ["A mirror match? Interesting.", "Let's see whose style is superior."],
+"LOW_HP": ["I need a new strategy...", "Outcome uncertain."],
+"SUPER": ["Calculated.", "Checkmate!"],
+"WIN": ["All according to plan.", "Inefficient."]
+}
 metadata/_custom_type_script = "uid://bg3yi5728wpap"

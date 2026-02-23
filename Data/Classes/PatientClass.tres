@@ -1,40 +1,43 @@
-[gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://bpk3oy5rf8g3w"]
+[gd_resource type="Resource" script_class="ClassDefinition" load_steps=6 format=3 uid="uid://bpk3oy5rf8g3w"]
 
+[ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="1_1dmwk"]
 [ext_resource type="Texture2D" uid="uid://ba7852i08m1lw" path="res://Art/Portraits/Patient.png" id="1_47x7k"]
-[ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_vbh24"]
-[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="3_io0np"]
-[ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="4_dfopw"]
-[ext_resource type="Resource" uid="uid://dc23tmqsq7iod" path="res://Data/Actions/basic_dodge.tres" id="5_0xrb5"]
-[ext_resource type="Resource" uid="uid://bpen1jdisykl" path="res://Data/Actions/basic_parry.tres" id="6_6c16w"]
-[ext_resource type="Resource" uid="uid://b8ai0k486ma37" path="res://Data/Actions/basic_reversal.tres" id="7_3e81u"]
-[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="8_siept"]
-[ext_resource type="Resource" uid="uid://dybsgcdat5xva" path="res://Data/Actions/basic_light.tres" id="9_o5kx5"]
-[ext_resource type="Resource" uid="uid://ceqlrpt4vuc04" path="res://Data/Actions/basic_positioning.tres" id="10_4m100"]
-[ext_resource type="Resource" uid="uid://cis47vu3ete28" path="res://Data/Actions/basic_technical.tres" id="11_6jl5k"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_7e45r"]
 [ext_resource type="Resource" uid="uid://cvichi2xf1plu" path="res://Data/Actions/preparation.tres" id="12_aabbj"]
 [ext_resource type="Resource" uid="uid://dww40yaqty63w" path="res://Data/Actions/counter_strike.tres" id="13_2vuc8"]
 
 [resource]
-script = ExtResource("2_vbh24")
+script = ExtResource("1_1dmwk")
 class_named = "Patient"
 class_type = 1
 portrait = ExtResource("1_47x7k")
 passive_description = "Bide: When you use a fall back action, your next action gains +1 damage, and cannot trigger this passive."
 tree_description = "[b]Action: Preparation[/b]\\nFall Back 2, Opp 1, Reco 1\\n[b]Action: Counter Strike[/b]\\nDmg 2, Fall Back 2, Parry\\n[b]Passive: Keep-up[/b]\\nSpend SP to prevent Fall Back.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +1 HP/SP\\n[b]Speed:[/b] 2"
 playstyle_summary = "Wait for your moment and parry heavy strikes to take the offence."
-arcade_description = "[center][b][font_size=28]HEAVY[/font_size][/b][/center]
+arcade_description = "[center][b][font_size=28]PATIENT[/font_size][/b][/center]
 [center][i][color=light_gray]Bide your time to force openings.[/color][/i][/center]
 
 [b]HP:[/b] 5   [b]SP:[/b] 4
 [b]Speed:[/b] 2
 ----------------
 [color=yellow]Bide: When you use a fall back action, your next action gains +1 damage, and cannot trigger this passive.[/color]"
-base_speed = 2
-offence_hp_growth = 1
-defence_hp_growth = 1
-defence_sp_growth = 1
-starting_deck = Array[ExtResource("3_io0np")]([ExtResource("4_dfopw"), ExtResource("5_0xrb5"), ExtResource("6_6c16w"), ExtResource("7_3e81u"), ExtResource("8_siept"), ExtResource("9_o5kx5"), ExtResource("10_4m100"), ExtResource("11_6jl5k"), ExtResource("12_aabbj"), ExtResource("13_2vuc8")])
+starting_deck = Array[ExtResource("2_7e45r")]([ExtResource("12_aabbj"), ExtResource("13_2vuc8")])
 skill_tree_root_id = 75
+can_pay_with_hp = false
+tiring_drains_hp = false
+combo_sp_recovery_rate = 0
 has_bide_mechanic = true
 has_keep_up_toggle = true
+has_technique_dropdown = false
+barks = {
+"HURT": ["A calculation error...", "Predictable.", "Sloppy..."],
+"INTRO_GENERIC": ["I can wait all day.", "Your mistake will be your last.", "Patience is a weapon."],
+"INTRO_VS_HEAVY": ["Big and slow. Easy target.", "All that strength, wasted on hitting air."],
+"INTRO_VS_PATIENT": ["A staring contest? I'll win.", "Let's see who blinks first."],
+"INTRO_VS_QUICK": ["You'll tire yourself out eventually.", "Speed means nothing if you can't hit me."],
+"INTRO_VS_TECHNICAL": ["I've already calculated your moves.", "Your tricks won't work on me."],
+"LOW_HP": ["I must focus...", "The odds have shifted."],
+"SUPER": ["Checkmate.", "Now!"],
+"WIN": ["Just as calculated.", "Flawless."]
+}
 metadata/_custom_type_script = "uid://bg3yi5728wpap"

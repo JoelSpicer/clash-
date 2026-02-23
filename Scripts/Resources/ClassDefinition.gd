@@ -29,9 +29,9 @@ class_name ClassDefinition
 
 @export_group("Dialogue / Barks")
 # Keys: "INTRO", "WIN", "HURT", "SUPER", "LOW_HP"
-# Values: Array of Strings
+# PLUS Contexts: "INTRO_VS_QUICK", "INTRO_VS_HEAVY", etc.
 @export var barks: Dictionary = {
-	"INTRO": ["Let's fight!", "I'm ready."],
+	"INTRO_GENERIC": ["Let's fight!", "I'm ready."],
 	"WIN": ["Too easy.", "Victory!"],
 	"HURT": ["Ouch!", "Is that all?"],
 	"SUPER": ["Take this!", "Power up!"],

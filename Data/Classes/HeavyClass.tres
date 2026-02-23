@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://nr6gvrvw5pmd"]
+[gd_resource type="Resource" script_class="ClassDefinition" load_steps=6 format=3 uid="uid://nr6gvrvw5pmd"]
 
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="1_1dmwk"]
 [ext_resource type="Texture2D" uid="uid://c618p3j6o5ylb" path="res://Art/Portraits/Heavy.png" id="1_uqam5"]
@@ -9,6 +9,7 @@
 [resource]
 script = ExtResource("1_1dmwk")
 class_named = "Heavy"
+class_type = 0
 portrait = ExtResource("1_uqam5")
 passive_description = "RAGE: Pay HP instead of SP if stamina is low."
 tree_description = "[b]Action: Haymaker[/b]\\nOpener, Cost 3, Dmg 2, Mom 3\\n[b]Action: Elbow Block[/b]\\nBlock 1, Cost 2, Dmg 1\\n[b]Passive: Rage[/b]\\nPay HP instead of SP when low.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\\n[b]Speed:[/b] 1"
@@ -24,4 +25,19 @@ starting_deck = Array[ExtResource("2_7e45r")]([ExtResource("12_juwg8"), ExtResou
 skill_tree_root_id = 76
 can_pay_with_hp = true
 tiring_drains_hp = true
+combo_sp_recovery_rate = 0
+has_bide_mechanic = false
+has_keep_up_toggle = false
+has_technique_dropdown = false
+barks = {
+"HURT": ["Ouch!", "Is that all?"],
+"INTRO_GENERIC": ["I'm gonna break you in half!", "Don't cry when this is over."],
+"INTRO_VS_HEAVY": ["There's only room for one tank here.", "Let's see who breaks first!"],
+"INTRO_VS_PATIENT": ["Stop blocking and fight me!", "I'll smash right through that shield."],
+"INTRO_VS_QUICK": ["Stop hopping around, you little pest!", "You can't run forever!"],
+"INTRO_VS_TECHNICAL": ["Too many tricks, not enough muscle.", "I don't need a strategy to crush you."],
+"LOW_HP": ["Not good...", "I can still win."],
+"SUPER": ["Take this!", "Power up!"],
+"WIN": ["Too easy.", "Victory!"]
+}
 metadata/_custom_type_script = "uid://bg3yi5728wpap"
