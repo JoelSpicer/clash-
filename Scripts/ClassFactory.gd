@@ -280,7 +280,7 @@ func create_character(type: CharacterData.ClassType, player_name: String) -> Cha
 	char_data.has_technique_dropdown = def.has_technique_dropdown
 	
 	# 2. Library (Duplicate the array so we don't modify the Resource)
-	char_data.unlocked_actions = def.starting_deck.duplicate()
+	char_data.unlocked_actions = get_starting_deck(type)
 	
 	# 3. Select Hand
 	char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
@@ -288,37 +288,20 @@ func create_character(type: CharacterData.ClassType, player_name: String) -> Cha
 	char_data.reset_stats()
 	return char_data
 
+# In ClassFactory.gd
+
 func get_starting_deck(type: CharacterData.ClassType) -> Array[ActionData]:
 	var deck: Array[ActionData] = []
 	
-	# --- ADD BASIC CARDS (Common to all) ---
-	# We use load() to turn the file path into a usable Object
-	deck.append(load("res://Data/Actions/basic_light.tres"))
-	deck.append(load("res://Data/Actions/basic_heavy.tres"))
-	deck.append(load("res://Data/Actions/basic_technical.tres"))
-	deck.append(load("res://Data/Actions/basic_positioning.tres"))
-	deck.append(load("res://Data/Actions/basic_block.tres"))
-	deck.append(load("res://Data/Actions/basic_dodge.tres")) # This fixes line 41
-	deck.append(load("res://Data/Actions/basic_parry.tres"))
-	deck.append(load("res://Data/Actions/basic_reversal.tres"))
+	# 1. AUTO-ADD BASICS (Code handles this)
+	deck.append_array(get_basic_actions()) 
 	
-	# --- ADD CLASS EXCLUSIVES ---
-	match type:
-		CharacterData.ClassType.HEAVY:
-			deck.append(load("res://Data/Actions/haymaker.tres"))
-			deck.append(load("res://Data/Actions/elbow_block.tres"))
-			
-		CharacterData.ClassType.PATIENT:
-			deck.append(load("res://Data/Actions/preparation.tres"))
-			deck.append(load("res://Data/Actions/counter_strike.tres"))
-			
-		CharacterData.ClassType.QUICK:
-			deck.append(load("res://Data/Actions/roll_punch.tres"))
-			deck.append(load("res://Data/Actions/weave.tres"))
-			
-		CharacterData.ClassType.TECHNICAL:
-			deck.append(load("res://Data/Actions/discombobulate.tres"))
-			deck.append(load("res://Data/Actions/hand_catch.tres"))
+	# 2. ADD CLASS SPECIFICS (Resource handles this)
+	if class_registry.has(type):
+		var def = class_registry[type]
+		for card in def.starting_deck:
+			# Duplicate to ensure unique runtime instances
+			if card: deck.append(card.duplicate())
 			
 	return deck
 
@@ -384,37 +367,23 @@ func find_action_resource(action_name: String) -> ActionData:
 	return null
 
 # New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
-func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
+# In ClassFactory.gd
+
+func calculate_stats_for_deck(type: CharacterData.ClassType, _deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
 	if not class_registry.has(type): return {"hp": 5, "sp": 4}
 	
 	var def: ClassDefinition = class_registry[type]
 	var final_hp = def.base_hp
 	var final_sp = def.base_sp
 	
-	# 1. Get Ignore List from the definition
-	var ignore_names = []
-	for c in def.starting_deck:
-		ignore_names.append(c.display_name)
-		
-	# 2. Calculate
-	for card in deck:
-		if card == null: continue
-		if card.display_name in ignore_names or card.is_basic:
-			continue
-			
-		# 3. GENERIC MATH (Reads from Resource)
-		if card.type == ActionData.Type.OFFENCE:
-			final_hp += def.offence_hp_growth
-			final_sp += def.offence_sp_growth
-		elif card.type == ActionData.Type.DEFENCE:
-			final_hp += def.defence_hp_growth
-			final_sp += def.defence_sp_growth
+	# Growth loop deleted here! We just use the Base Stats.
 	
+	# Keep Equipment Logic (This is still useful!)
 	for item in equipment:
 		final_hp += item.max_hp_bonus
 		final_sp += item.max_sp_bonus
 			
-	return {"hp": max(1, final_hp), "sp": max(1, final_sp)} # Clamp to 1 so items can't kill you
+	return {"hp": max(1, final_hp), "sp": max(1, final_sp)}
 
 # NEW HELPER: Reverse lookup for Presets -> Tree Nodes
 func get_id_by_name(card_name: String) -> int:
@@ -446,31 +415,19 @@ func _simulate_draft_ids(class_type, count) -> Array:
 	return results
 
 # --- STARTER DECK GENERATION ---
+# --- STARTER DECK GENERATION ---
 func get_basic_actions() -> Array[ActionData]:
 	var basics: Array[ActionData] = []
 	
-	# Create the Basic Punch
-	var punch = ActionData.new()
-	punch.display_name = "Punch"
-	punch.type = ActionData.Type.OFFENCE
-	punch.cost = 1
-	punch.damage = 3
-	punch.description = "Deal 3 DMG."
-	
-	# Create the Basic Block
-	var block = ActionData.new()
-	block.display_name = "Defend"
-	block.type = ActionData.Type.DEFENCE
-	block.cost = 1
-	block.block_value = 3
-	block.description = "Gain 3 BLOCK."
-	
-	# RETURN A FULL STARTER HAND (e.g., 3 Punches, 2 Blocks)
-	# We use .duplicate() to ensure they are unique instances
-	basics.append(punch.duplicate())
-	basics.append(punch.duplicate())
-	basics.append(punch.duplicate())
-	basics.append(block.duplicate())
-	basics.append(block.duplicate())
+	# Load the actual resource files so they have the correct Icons, IDs, and 'Is Basic' flags
+	# We use .duplicate() to ensure one player's card doesn't affect the other's
+	basics.append(load("res://Data/Actions/basic_light.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_heavy.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_technical.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_positioning.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_block.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_dodge.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_parry.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_reversal.tres").duplicate())
 	
 	return basics

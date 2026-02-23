@@ -3,14 +3,6 @@
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="1_1dmwk"]
 [ext_resource type="Texture2D" uid="uid://c618p3j6o5ylb" path="res://Art/Portraits/Heavy.png" id="1_uqam5"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_7e45r"]
-[ext_resource type="Resource" uid="uid://dtq045to38lur" path="res://Data/Actions/basic_block.tres" id="4_6hi27"]
-[ext_resource type="Resource" uid="uid://dc23tmqsq7iod" path="res://Data/Actions/basic_dodge.tres" id="5_lem5q"]
-[ext_resource type="Resource" uid="uid://bpen1jdisykl" path="res://Data/Actions/basic_parry.tres" id="6_5cusy"]
-[ext_resource type="Resource" uid="uid://b8ai0k486ma37" path="res://Data/Actions/basic_reversal.tres" id="7_x8tml"]
-[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="8_bu5rw"]
-[ext_resource type="Resource" uid="uid://dybsgcdat5xva" path="res://Data/Actions/basic_light.tres" id="9_lktkg"]
-[ext_resource type="Resource" uid="uid://ceqlrpt4vuc04" path="res://Data/Actions/basic_positioning.tres" id="10_puvwn"]
-[ext_resource type="Resource" uid="uid://cis47vu3ete28" path="res://Data/Actions/basic_technical.tres" id="11_07s3j"]
 [ext_resource type="Resource" uid="uid://cfn3an0s113wy" path="res://Data/Actions/elbow_block.tres" id="12_juwg8"]
 [ext_resource type="Resource" uid="uid://b0pfs8yp4d4cl" path="res://Data/Actions/haymaker.tres" id="13_vd8an"]
 
@@ -21,9 +13,14 @@ portrait = ExtResource("1_uqam5")
 passive_description = "RAGE: Pay HP instead of SP if stamina is low."
 tree_description = "[b]Action: Haymaker[/b]\\nOpener, Cost 3, Dmg 2, Mom 3\\n[b]Action: Elbow Block[/b]\\nBlock 1, Cost 2, Dmg 1\\n[b]Passive: Rage[/b]\\nPay HP instead of SP when low.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\\n[b]Speed:[/b] 1"
 playstyle_summary = "Tank with blocks and unleash massive hits."
-offence_sp_growth = 1
-defence_hp_growth = 2
-starting_deck = Array[ExtResource("2_7e45r")]([ExtResource("4_6hi27"), ExtResource("5_lem5q"), ExtResource("6_5cusy"), ExtResource("7_x8tml"), ExtResource("8_bu5rw"), ExtResource("9_lktkg"), ExtResource("10_puvwn"), ExtResource("11_07s3j"), ExtResource("12_juwg8"), ExtResource("13_vd8an")])
+arcade_description = "[center][b][font_size=28]HEAVY[/font_size][/b][/center]
+[center][i][color=light_gray]A powerhouse that uses HP as a resource.[/color][/i][/center]
+
+[b]HP:[/b] 5   [b]SP:[/b] 4
+[b]Speed:[/b] 1
+----------------
+[color=yellow]Rage: Can pay HP instead of SP when low.[/color]"
+starting_deck = Array[ExtResource("2_7e45r")]([ExtResource("12_juwg8"), ExtResource("13_vd8an")])
 skill_tree_root_id = 76
 can_pay_with_hp = true
 tiring_drains_hp = true

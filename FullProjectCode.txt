@@ -771,24 +771,17 @@ func _setup_for_current_player():
 
 func _get_class_display_data(id: int) -> ActionData:
 	var data = ActionData.new()
-	data.cost = 0 
-	match id:
-		76: 
-			data.display_name = "CLASS: HEAVY"
-			data.type = ActionData.Type.OFFENCE 
-			data.description = "[b]Action: Haymaker[/b]\nOpener, Cost 3, Dmg 2, Mom 3\n[b]Action: Elbow Block[/b]\nBlock 1, Cost 2, Dmg 1\n[b]Passive: Rage[/b]\nPay HP instead of SP when low.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\n[b]Speed:[/b] 1"
-		75: 
-			data.display_name = "CLASS: PATIENT"
-			data.type = ActionData.Type.DEFENCE 
-			data.description = "[b]Action: Preparation[/b]\nFall Back 2, Opp 1, Reco 1\n[b]Action: Counter Strike[/b]\nDmg 2, Fall Back 2, Parry\n[b]Passive: Keep-up[/b]\nSpend SP to prevent Fall Back.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +1 HP/SP\n[b]Speed:[/b] 2"
-		73: 
-			data.display_name = "CLASS: QUICK"
-			data.type = ActionData.Type.OFFENCE
-			data.description = "[b]Action: Roll Punch[/b]\nDmg 1, Cost 1, Mom 1, Rep 3\n[b]Action: Weave[/b]\nDodge 1, Fall Back 1\n[b]Passive: Relentless[/b]\nEvery 3rd combo hit gains Reco 1.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +2 SP\n[b]Speed:[/b] 4"
-		74: 
-			data.display_name = "CLASS: TECHNICAL"
-			data.type = ActionData.Type.DEFENCE
-			data.description = "[b]Action: Discombobulate[/b]\nCost 1, Dmg 1, Tiring 1\n[b]Action: Hand Catch[/b]\nBlock 1, Cost 1, Reversal\n[b]Passive: Technique[/b]\nSpend 1 SP to add Opener, Tiring, or Momentum to action.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP/HP, [color=#99ccff]Defence:[/color] +1 SP\n[b]Speed:[/b] 3"
+	data.cost = 0
+	
+	# Use your helper to get the Enum
+	var type = _get_class_enum_from_id(id)
+	
+	# Fetch from Registry
+	if ClassFactory.class_registry.has(type):
+		var def = ClassFactory.class_registry[type]
+		data.display_name = "CLASS: " + def.class_named.to_upper()
+		data.description = def.tree_description # <--- Loaded from Resource!
+		
 	return data
 
 func _is_id_equipped(id: int) -> bool:
@@ -2276,7 +2269,7 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 
 	# Description Logic
 	if action.description and action.description != "":
-		stats_label.text = "[center]" + action.description + "[/center]"
+		stats_label.text = "[center]" + action.description.c_unescape() + "[/center]"
 	else:
 		var parts = []
 		if action.damage > 0: parts.append("[color=#ff9999]" + str(action.damage) + " DMG[/color]")
@@ -2730,37 +2723,20 @@ func create_character(type: CharacterData.ClassType, player_name: String) -> Cha
 	char_data.reset_stats()
 	return char_data
 
+# In ClassFactory.gd
+
 func get_starting_deck(type: CharacterData.ClassType) -> Array[ActionData]:
 	var deck: Array[ActionData] = []
 	
-	# --- ADD BASIC CARDS (Common to all) ---
-	# We use load() to turn the file path into a usable Object
-	deck.append(load("res://Data/Actions/basic_light.tres"))
-	deck.append(load("res://Data/Actions/basic_heavy.tres"))
-	deck.append(load("res://Data/Actions/basic_technical.tres"))
-	deck.append(load("res://Data/Actions/basic_positioning.tres"))
-	deck.append(load("res://Data/Actions/basic_block.tres"))
-	deck.append(load("res://Data/Actions/basic_dodge.tres")) # This fixes line 41
-	deck.append(load("res://Data/Actions/basic_parry.tres"))
-	deck.append(load("res://Data/Actions/basic_reversal.tres"))
+	# 1. AUTO-ADD BASICS (Code handles this)
+	deck.append_array(get_basic_actions()) 
 	
-	# --- ADD CLASS EXCLUSIVES ---
-	match type:
-		CharacterData.ClassType.HEAVY:
-			deck.append(load("res://Data/Actions/haymaker.tres"))
-			deck.append(load("res://Data/Actions/elbow_block.tres"))
-			
-		CharacterData.ClassType.PATIENT:
-			deck.append(load("res://Data/Actions/preparation.tres"))
-			deck.append(load("res://Data/Actions/counter_strike.tres"))
-			
-		CharacterData.ClassType.QUICK:
-			deck.append(load("res://Data/Actions/roll_punch.tres"))
-			deck.append(load("res://Data/Actions/weave.tres"))
-			
-		CharacterData.ClassType.TECHNICAL:
-			deck.append(load("res://Data/Actions/discombobulate.tres"))
-			deck.append(load("res://Data/Actions/hand_catch.tres"))
+	# 2. ADD CLASS SPECIFICS (Resource handles this)
+	if class_registry.has(type):
+		var def = class_registry[type]
+		for card in def.starting_deck:
+			# Duplicate to ensure unique runtime instances
+			if card: deck.append(card.duplicate())
 			
 	return deck
 
@@ -2826,37 +2802,23 @@ func find_action_resource(action_name: String) -> ActionData:
 	return null
 
 # New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
-func calculate_stats_for_deck(type: CharacterData.ClassType, deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
+# In ClassFactory.gd
+
+func calculate_stats_for_deck(type: CharacterData.ClassType, _deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
 	if not class_registry.has(type): return {"hp": 5, "sp": 4}
 	
 	var def: ClassDefinition = class_registry[type]
 	var final_hp = def.base_hp
 	var final_sp = def.base_sp
 	
-	# 1. Get Ignore List from the definition
-	var ignore_names = []
-	for c in def.starting_deck:
-		ignore_names.append(c.display_name)
-		
-	# 2. Calculate
-	for card in deck:
-		if card == null: continue
-		if card.display_name in ignore_names or card.is_basic:
-			continue
-			
-		# 3. GENERIC MATH (Reads from Resource)
-		if card.type == ActionData.Type.OFFENCE:
-			final_hp += def.offence_hp_growth
-			final_sp += def.offence_sp_growth
-		elif card.type == ActionData.Type.DEFENCE:
-			final_hp += def.defence_hp_growth
-			final_sp += def.defence_sp_growth
+	# Growth loop deleted here! We just use the Base Stats.
 	
+	# Keep Equipment Logic (This is still useful!)
 	for item in equipment:
 		final_hp += item.max_hp_bonus
 		final_sp += item.max_sp_bonus
 			
-	return {"hp": max(1, final_hp), "sp": max(1, final_sp)} # Clamp to 1 so items can't kill you
+	return {"hp": max(1, final_hp), "sp": max(1, final_sp)}
 
 # NEW HELPER: Reverse lookup for Presets -> Tree Nodes
 func get_id_by_name(card_name: String) -> int:
@@ -2888,32 +2850,20 @@ func _simulate_draft_ids(class_type, count) -> Array:
 	return results
 
 # --- STARTER DECK GENERATION ---
+# --- STARTER DECK GENERATION ---
 func get_basic_actions() -> Array[ActionData]:
 	var basics: Array[ActionData] = []
 	
-	# Create the Basic Punch
-	var punch = ActionData.new()
-	punch.display_name = "Punch"
-	punch.type = ActionData.Type.OFFENCE
-	punch.cost = 1
-	punch.damage = 3
-	punch.description = "Deal 3 DMG."
-	
-	# Create the Basic Block
-	var block = ActionData.new()
-	block.display_name = "Defend"
-	block.type = ActionData.Type.DEFENCE
-	block.cost = 1
-	block.block_value = 3
-	block.description = "Gain 3 BLOCK."
-	
-	# RETURN A FULL STARTER HAND (e.g., 3 Punches, 2 Blocks)
-	# We use .duplicate() to ensure they are unique instances
-	basics.append(punch.duplicate())
-	basics.append(punch.duplicate())
-	basics.append(punch.duplicate())
-	basics.append(block.duplicate())
-	basics.append(block.duplicate())
+	# Load the actual resource files so they have the correct Icons, IDs, and 'Is Basic' flags
+	# We use .duplicate() to ensure one player's card doesn't affect the other's
+	basics.append(load("res://Data/Actions/basic_light.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_heavy.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_technical.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_positioning.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_block.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_dodge.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_parry.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_reversal.tres").duplicate())
 	
 	return basics
 
@@ -4165,26 +4115,15 @@ func _update_preview_panel(index: int):
 	if index >= base_classes.size(): return
 	var data = base_classes[index]
 	
-	# --- MIDDLE COLUMN: DESCRIPTION ONLY ---
-	# (As requested, this focuses on the description/stats)
+	# --- CHANGED: Pull full text from Resource ---
+	if data.arcade_description != "":
+		# .c_unescape() fixes the Inspector formatting issues
+		info_label.text = data.arcade_description.c_unescape()
+	else:
+		# Fallback if you haven't filled it in yet
+		info_label.text = "Description not set for " + data.class_named
 	
-	var txt = "[center][b][font_size=28]" + data.class_named + "[/font_size][/b][/center]\n"
-	
-	# Playstyle Summary
-	if data.playstyle_summary != "":
-		txt += "[center][i][color=light_gray]" + data.playstyle_summary + "[/color][/i][/center]\n\n"
-	
-	# Stats Block
-	txt += "[b]HP:[/b] " + str(data.base_hp) + "   [b]SP:[/b] " + str(data.base_sp) + "\n"
-	txt += "[b]Speed:[/b] " + str(data.base_speed) + "\n"
-	txt += "----------------\n"
-	
-	# Passive
-	txt += "[color=yellow]" + data.passive_description + "[/color]"
-	
-	info_label.text = txt
-	
-	# Big Portrait (Optional: You can hide this if you ONLY want text in the middle)
+	# Big Portrait (Kept separate as it's an image, not text)
 	if portrait_rect:
 		portrait_rect.texture = data.portrait
 
@@ -4967,20 +4906,14 @@ class_name ClassDefinition
 @export var class_type: CharacterData.ClassType # Keep enum for safety, or switch to String ID
 @export var portrait: Texture2D
 @export_multiline var passive_description: String
-
+@export_multiline var tree_description: String
 @export_multiline var playstyle_summary: String = "A brief description of how this class plays."
+@export_multiline var arcade_description: String
 
 @export_group("Base Stats")
 @export var base_hp: int = 5
 @export var base_sp: int = 4
 @export var base_speed: int = 1
-
-@export_group("Growth Rules")
-# How much stats increase per card type
-@export var offence_hp_growth: int = 0
-@export var offence_sp_growth: int = 0
-@export var defence_hp_growth: int = 0
-@export var defence_sp_growth: int = 0
 
 @export_group("Progression")
 @export var starting_deck: Array[ActionData] = []
@@ -4993,6 +4926,17 @@ class_name ClassDefinition
 @export var has_bide_mechanic: bool = false
 @export var has_keep_up_toggle: bool = false
 @export var has_technique_dropdown: bool = false
+
+@export_group("Dialogue / Barks")
+# Keys: "INTRO", "WIN", "HURT", "SUPER", "LOW_HP"
+# Values: Array of Strings
+@export var barks: Dictionary = {
+	"INTRO": ["Let's fight!", "I'm ready."],
+	"WIN": ["Too easy.", "Victory!"],
+	"HURT": ["Ouch!", "Is that all?"],
+	"SUPER": ["Take this!", "Power up!"],
+	"LOW_HP": ["Not good...", "I can still win."]
+}
 
 
 ========================================

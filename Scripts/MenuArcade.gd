@@ -92,26 +92,15 @@ func _update_preview_panel(index: int):
 	if index >= base_classes.size(): return
 	var data = base_classes[index]
 	
-	# --- MIDDLE COLUMN: DESCRIPTION ONLY ---
-	# (As requested, this focuses on the description/stats)
+	# --- CHANGED: Pull full text from Resource ---
+	if data.arcade_description != "":
+		# .c_unescape() fixes the Inspector formatting issues
+		info_label.text = data.arcade_description.c_unescape()
+	else:
+		# Fallback if you haven't filled it in yet
+		info_label.text = "Description not set for " + data.class_named
 	
-	var txt = "[center][b][font_size=28]" + data.class_named + "[/font_size][/b][/center]\n"
-	
-	# Playstyle Summary
-	if data.playstyle_summary != "":
-		txt += "[center][i][color=light_gray]" + data.playstyle_summary + "[/color][/i][/center]\n\n"
-	
-	# Stats Block
-	txt += "[b]HP:[/b] " + str(data.base_hp) + "   [b]SP:[/b] " + str(data.base_sp) + "\n"
-	txt += "[b]Speed:[/b] " + str(data.base_speed) + "\n"
-	txt += "----------------\n"
-	
-	# Passive
-	txt += "[color=yellow]" + data.passive_description + "[/color]"
-	
-	info_label.text = txt
-	
-	# Big Portrait (Optional: You can hide this if you ONLY want text in the middle)
+	# Big Portrait (Kept separate as it's an image, not text)
 	if portrait_rect:
 		portrait_rect.texture = data.portrait
 

@@ -22,6 +22,13 @@ portrait = ExtResource("1_47x7k")
 passive_description = "Bide: When you use a fall back action, your next action gains +1 damage, and cannot trigger this passive."
 tree_description = "[b]Action: Preparation[/b]\\nFall Back 2, Opp 1, Reco 1\\n[b]Action: Counter Strike[/b]\\nDmg 2, Fall Back 2, Parry\\n[b]Passive: Keep-up[/b]\\nSpend SP to prevent Fall Back.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +1 HP/SP\\n[b]Speed:[/b] 2"
 playstyle_summary = "Wait for your moment and parry heavy strikes to take the offence."
+arcade_description = "[center][b][font_size=28]HEAVY[/font_size][/b][/center]
+[center][i][color=light_gray]Bide your time to force openings.[/color][/i][/center]
+
+[b]HP:[/b] 5   [b]SP:[/b] 4
+[b]Speed:[/b] 2
+----------------
+[color=yellow]Bide: When you use a fall back action, your next action gains +1 damage, and cannot trigger this passive.[/color]"
 base_speed = 2
 offence_hp_growth = 1
 defence_hp_growth = 1

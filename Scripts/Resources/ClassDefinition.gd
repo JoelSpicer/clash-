@@ -8,18 +8,12 @@ class_name ClassDefinition
 @export_multiline var passive_description: String
 @export_multiline var tree_description: String
 @export_multiline var playstyle_summary: String = "A brief description of how this class plays."
+@export_multiline var arcade_description: String
 
 @export_group("Base Stats")
 @export var base_hp: int = 5
 @export var base_sp: int = 4
 @export var base_speed: int = 1
-
-@export_group("Growth Rules")
-# How much stats increase per card type
-@export var offence_hp_growth: int = 0
-@export var offence_sp_growth: int = 0
-@export var defence_hp_growth: int = 0
-@export var defence_sp_growth: int = 0
 
 @export_group("Progression")
 @export var starting_deck: Array[ActionData] = []
@@ -32,3 +26,14 @@ class_name ClassDefinition
 @export var has_bide_mechanic: bool = false
 @export var has_keep_up_toggle: bool = false
 @export var has_technique_dropdown: bool = false
+
+@export_group("Dialogue / Barks")
+# Keys: "INTRO", "WIN", "HURT", "SUPER", "LOW_HP"
+# Values: Array of Strings
+@export var barks: Dictionary = {
+	"INTRO": ["Let's fight!", "I'm ready."],
+	"WIN": ["Too easy.", "Victory!"],
+	"HURT": ["Ouch!", "Is that all?"],
+	"SUPER": ["Take this!", "Power up!"],
+	"LOW_HP": ["Not good...", "I can still win."]
+}

@@ -300,18 +300,15 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	
 	#print("Starting Run: " + p_data.display_name + " (" + str(p_data.class_type) + ")")
 	
-	# 3. LOAD STARTING DECK
-	if source_class.starting_deck.size() > 0:
-		for card_res in source_class.starting_deck:
-			if card_res:
-				p_data.unlocked_actions.append(card_res.duplicate())
-	else:
-		p_data.unlocked_actions.append_array(ClassFactory.get_basic_actions())
+# 3. LOAD STARTING DECK (Fixed)
+	# We ask the Factory for the full deck (Basics + Class Specials)
+	p_data.unlocked_actions = ClassFactory.get_starting_deck(source_class.class_type)
 	
 	# 4. Auto-Unlock Class Starter Node
 	_unlock_class_starters(p_data, source_class)
 	
 	# 5. Fill Initial Hand
+	# Since unlocked_actions is now complete, this will fill the hand correctly
 	for action in p_data.unlocked_actions:
 		if p_data.deck.size() < ClassFactory.HAND_LIMIT:
 			p_data.deck.append(action)

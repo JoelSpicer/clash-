@@ -22,6 +22,13 @@ portrait = ExtResource("1_4nr7a")
 passive_description = "Relentless: Every 3rd action in a combo gains Recover 1"
 tree_description = "[b]Action: Roll Punch[/b]\\nDmg 1, Cost 1, Mom 1, Rep 3\\n[b]Action: Weave[/b]\\nDodge 1, Fall Back 1\\n[b]Passive: Relentless[/b]\\nEvery 3rd combo hit gains Reco 1.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +2 SP\\n[b]Speed:[/b] 4"
 playstyle_summary = "Throw unstoppable strings of light attacks while dodging your opponent's blows."
+arcade_description = "[center][b][font_size=28]QUICK[/font_size][/b][/center]
+[center][i][color=light_gray]Overwhelms opponents with high-speed combos.[/color][/i][/center]
+
+[b]HP:[/b] 5   [b]SP:[/b] 4
+[b]Speed:[/b] 4
+----------------
+[color=yellow]Relentless: Every 3rd hit in a combo restores 1 SP.[/color]"
 base_speed = 4
 offence_hp_growth = 1
 defence_sp_growth = 2
