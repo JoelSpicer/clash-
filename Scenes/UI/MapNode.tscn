@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bnd2quanancme"]
 
 [ext_resource type="Script" uid="uid://bi1kf8edguect" path="res://Scripts/MapNode.gd" id="1_46u72"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_uy357"]
 
 [node name="MapNode" type="PanelContainer" unique_id=1626500079]
 script = ExtResource("1_46u72")
@@ -27,3 +28,4 @@ text = "LOCKED"
 [node name="Button" type="Button" parent="." unique_id=1498829178]
 layout_mode = 2
 flat = true
+script = ExtResource("2_uy357")

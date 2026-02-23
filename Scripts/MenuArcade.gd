@@ -189,7 +189,7 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		var txt = "[center][b][font_size=24]" + data.run_name + "[/font_size][/b][/center]\n"
 		txt += "[center][color=gray]Level " + str(data.current_level) + " - " + _get_difficulty_name(saved_diff) + "[/color][/center]\n\n"
 		
-		txt += "[b]Class:[/b] " + _get_class_name(p_data.class_type) + "\n"
+		txt += "[b]Class:[/b] " + ClassFactory.class_enum_to_string(p_data.class_type) + "\n"
 		txt += "[b]HP:[/b] " + str(p_data.current_hp) + "/" + str(p_data.max_hp) + "   "
 		txt += "[b]SP:[/b] " + str(p_data.current_sp) + "/" + str(p_data.max_sp) + "\n"
 		txt += "[b]Opponents Defeated:[/b] " + str(data.current_level - 1) + "\n"
@@ -250,22 +250,11 @@ func _select_class(index: int):
 
 # --- STRING HELPERS ---
 func _get_difficulty_name(value: int) -> String:
-	match value:
-		0: return "Very Easy"
-		1: return "Easy"
-		2: return "Medium"
-		3: return "Hard"
+	var keys = GameManager.Difficulty.keys()
+	if value >= 0 and value < keys.size():
+		return keys[value].capitalize()
 	return "Unknown"
 
-func _get_class_name(type_enum: int) -> String:
-	# Matches your ClassType Enum in CharacterData
-	match type_enum:
-		0: return "Heavy"
-		1: return "Patient"
-		2: return "Quick"
-		3: return "Technical"
-		4: return "Mage" # If you added this
-	return "Unknown Class"
 
 func _on_delete_pressed():
 	if selected_save_file == "": return

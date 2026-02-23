@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://br3axbwopn7eq"]
 
 [ext_resource type="Script" uid="uid://cj43j163alhob" path="res://Scripts/DeckEditScreen.gd" id="1_wumxm"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_yvx8f"]
 
 [node name="DeckEditScreen" type="Control" unique_id=1993398877]
 layout_mode = 3
@@ -75,3 +76,4 @@ offset_bottom = -10.0
 grow_horizontal = 0
 grow_vertical = 0
 text = "START FIGHT"
+script = ExtResource("2_yvx8f")

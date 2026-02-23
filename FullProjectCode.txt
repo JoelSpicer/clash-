@@ -106,11 +106,6 @@ var action_tree_dict = {}
 var id_to_name = {}
 var name_to_id = {}
 
-const NODE_QUICK = 73
-const NODE_TECHNICAL = 74
-const NODE_PATIENT = 75
-const NODE_HEAVY = 76
-
 # --- SCENE REFS ---
 @onready var nodes_layer = %NodesLayer
 @onready var lines_layer = %LinesLayer
@@ -340,7 +335,7 @@ func _refresh_loadout_manager():
 		
 		# Tree cards
 		for id in owned_ids:
-			if id >= 73: continue
+			if id in ClassFactory.CLASS_ROOT_IDS: continue
 			var c = ClassFactory.find_action_resource(id_to_name.get(id))
 			if c: library.append(c)
 			
@@ -416,7 +411,7 @@ func _on_equip_card(card: ActionData):
 # --- TOOLTIP LOGIC ---
 func _on_node_hovered(id, a_name):
 	# CLASS NODES
-	if id >= 73 and id <= 76:
+	if id in ClassFactory.CLASS_ROOT_IDS:
 		var class_info = _get_class_display_data(id)
 		popup_card.set_card_data(class_info)
 		popup_card.visible = true
@@ -466,7 +461,7 @@ func _on_node_clicked(id: int, _name: String):
 		
 		# A. Clicking Owned Node -> Just Highlight
 		if id in owned_ids:
-			if id >= 73: return
+			if id in ClassFactory.CLASS_ROOT_IDS: return
 			return
 			
 		# B. Drafting (Buying new)
@@ -488,7 +483,7 @@ func _on_node_clicked(id: int, _name: String):
 		return
 	
 	# === CUSTOM DECK LOGIC ===
-	if id >= 73: 
+	if id in ClassFactory.CLASS_ROOT_IDS: 
 		if is_class_locked: return
 		_select_class(id)
 	elif id in owned_ids: 
@@ -540,7 +535,7 @@ func _recalculate_stats():
 		var class_enum = _get_class_enum_from_id(selected_class_id)
 		var temp_deck = ClassFactory.get_starting_deck(class_enum)
 		for id in owned_ids:
-			if id >= 73: continue
+			if id in ClassFactory.CLASS_ROOT_IDS: continue
 			var card = ClassFactory.find_action_resource(id_to_name.get(id))
 			if card: temp_deck.append(card)
 		stats = ClassFactory.calculate_stats_for_deck(class_enum, temp_deck)
@@ -676,7 +671,7 @@ func _on_confirm_button_pressed():
 		final_deck.append_array(base_deck)
 		
 		for id in owned_ids:
-			if id >= 73: continue 
+			if id in ClassFactory.CLASS_ROOT_IDS: continue 
 			var a_name = id_to_name.get(id)
 			var card_resource = ClassFactory.find_action_resource(a_name)
 			if card_resource: final_deck.append(card_resource)
@@ -1399,13 +1394,6 @@ func _ready():
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
 	GameManager.clash_resolved.connect(_on_clash_resolved_log)
 	
-	_attach_sfx(btn_offence)
-	_attach_sfx(btn_defence)
-	_attach_sfx(log_toggle)
-	
-	var menu_btn = get_node_or_null("MenuButton")
-	if menu_btn: _attach_sfx(menu_btn)
-	
 	if not GameManager.state_changed.is_connected(_on_game_state_changed):
 		GameManager.state_changed.connect(_on_game_state_changed)
 	
@@ -1416,23 +1404,18 @@ func _ready():
 	_create_passive_toggles()
 	setup_toggles()
 	
-	if menu_btn:
-		menu_btn.pressed.connect(_on_menu_pressed)
 
 	$MomentumSlider/Label2.text = str(GameManager.momentum)
 
 	if env_button and env_popup:
 		env_button.pressed.connect(_on_env_button_pressed)
 		close_env_button.pressed.connect(func(): env_popup.visible = false)
-		_attach_sfx(env_button)
-		_attach_sfx(close_env_button)
 		env_details.bbcode_enabled = true
 		env_details.fit_content = true
 		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
 	
 	if inspect_btn:
 		inspect_btn.pressed.connect(_on_inspect_pressed)
-		_attach_sfx(inspect_btn)
 	
 	_update_background()
 	
@@ -1650,9 +1633,7 @@ func _refresh_grid():
 		btn.setup(card)
 		btn.update_cost_display(final_cost) 
 		btn.set_available(is_valid)         
-		
-		btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
-		btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+	
 		
 		btn.card_hovered.connect(_on_card_hovered)
 		btn.card_exited.connect(_on_card_exited) 
@@ -1667,10 +1648,7 @@ func _refresh_grid():
 		s_btn.update_cost_display(0)
 		s_btn.set_available(true)
 		s_btn.modulate = Color(0.9, 0.9, 0.9) 
-		
-		s_btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
-		s_btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
-		
+
 		s_btn.card_hovered.connect(_on_card_hovered)
 		s_btn.card_exited.connect(_on_card_exited)
 		s_btn.card_selected.connect(_on_card_selected)
@@ -1684,9 +1662,6 @@ func _refresh_grid():
 		skip_btn.update_cost_display(0)
 		skip_btn.set_available(true)
 		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
-		
-		skip_btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
-		skip_btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 		
 		skip_btn.card_hovered.connect(_on_card_hovered)
 		skip_btn.card_exited.connect(_on_card_exited)
@@ -1983,11 +1958,6 @@ func _snapshot_stats():
 	if GameManager.p2_data:
 		_prev_p2_stats = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
 
-func _attach_sfx(btn: BaseButton):
-	if not btn: return
-	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
-	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
-
 func _on_wall_crush_ui(target_id: int, _dmg: int):
 	apply_camera_impact(0.05, 15.0) 
 	var original_x = momentum_slider.position.x
@@ -2077,7 +2047,7 @@ func _show_bark(player_id: int, text: String):
 ========================================
 FILE PATH: res://Scripts/CardButton.gd
 ========================================
-extends Button
+extends SoundButton
 
 signal card_hovered(action)
 signal card_exited()
@@ -2532,18 +2502,7 @@ func _ready():
 	
 	_setup_difficulty()
 	
-	var all_buttons = [
-		btn_quick, btn_custom, btn_back, 
-		p2_mode_button, find_child("HelpButton"), arcade_button
-	]
-	
-	for btn in all_buttons:
-		if btn: _attach_sfx(btn)
-	
-	_attach_sfx(p1_option)
-	_attach_sfx(p2_option)
-	_attach_sfx(difficulty_option)
-	
+
 	p1_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
 	p2_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
 	difficulty_option.item_selected.connect(func(_i): AudioManager.play_sfx("ui_click"))
@@ -2762,14 +2721,6 @@ func _update_p2_mode_visuals():
 	if p2_controls:
 		p2_controls.modulate.a = 1.0 if GameManager.p2_is_custom else 0.7
 
-func _attach_sfx(node: Control):
-	if not node: return
-	# Most buttons use 'mouse_entered' and 'pressed'
-	if node.has_signal("mouse_entered"):
-		node.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
-	if node.has_signal("pressed"):
-		node.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
-
 func _on_final_arcade_confirm():
 	# 1. Save Modifiers to RunManager
 	RunManager.maintain_hp_enabled = maintain_hp_toggle.button_pressed
@@ -2834,6 +2785,8 @@ const ID_TO_NAME_MAP = {
 	69:"Drop Punch", 70:"Knee Crush", 71:"Drop Kick", 72:"Immovable Stance",
 	73:"Quick", 74:"Technical", 75:"Patient", 76:"Heavy"
 }
+
+const CLASS_ROOT_IDS: Array[int] = [73, 74, 75, 76]
 
 const RANK_TITLES = [
 	"Foolish",      # Level 1
@@ -3657,7 +3610,7 @@ func _populate_card_library():
 	
 	for id in all_ids:
 		# skip class nodes
-		if id >= 73: continue 
+		if id in ClassFactory.CLASS_ROOT_IDS: continue 
 		
 		var card_name = ClassFactory.ID_TO_NAME_MAP[id]
 		var card_data = ClassFactory.find_action_resource(card_name)
@@ -3815,7 +3768,7 @@ func _ready():
 		item_grid.add_child(btn)
 
 func _create_item_button(item: EquipmentData) -> Button:
-	var btn = Button.new()
+	var btn = SoundButton.new()
 	btn.custom_minimum_size = Vector2(250, 350)
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	
@@ -4329,10 +4282,6 @@ func _ready():
 	# Connect buttons dynamically or via editor signals
 	$VBoxContainer/StartButton.pressed.connect(_on_start_pressed)
 	$VBoxContainer/QuitButton.pressed.connect(_on_quit_pressed)
-	
-	_attach_sfx($VBoxContainer/StartButton)
-	_attach_sfx($VBoxContainer/QuitButton)
-	_attach_sfx($VBoxContainer/CompendiumButton)
 	AudioManager.play_music("menu_theme")
 	var btn_compendium = find_child("CompendiumButton") # Or reference it directly if you prefer
 	if btn_compendium:
@@ -4350,11 +4299,6 @@ func _on_quit_pressed():
 
 func _on_compendium_pressed():
 	SceneLoader.change_scene("res://Scenes/compendium.tscn")
-
-func _attach_sfx(btn: BaseButton):
-	if not btn: return
-	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
-	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 
 
 ========================================
@@ -7488,6 +7432,29 @@ func _apply_volume(bus_name: String, linear_val: float):
 	if bus_idx != -1:
 		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear_val))
 		AudioServer.set_bus_mute(bus_idx, linear_val < 0.05)
+
+
+========================================
+FILE PATH: res://Scripts/SoundButton.gd
+========================================
+class_name SoundButton
+extends Button
+
+func _ready():
+	# Connect the standard mouse interactions
+	mouse_entered.connect(_on_hover)
+	pressed.connect(_on_pressed)
+	
+	# Connect focus for controller/keyboard menu navigation!
+	focus_entered.connect(_on_hover)
+
+func _on_hover():
+	# Don't play hover sound if the button is disabled
+	if not disabled:
+		AudioManager.play_sfx("ui_hover", 0.2)
+
+func _on_pressed():
+	AudioManager.play_sfx("ui_click")
 
 
 ========================================

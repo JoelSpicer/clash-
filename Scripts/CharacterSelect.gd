@@ -27,11 +27,19 @@ extends Control
 
 
 var compendium_scene = preload("res://Scenes/compendium.tscn")
-var classes = ["Heavy", "Patient", "Quick", "Technical"]
-var base_classes = ["Heavy", "Patient", "Quick", "Technical"]
+var classes: Array[String] = []
+var base_classes: Array[String] = []
 var presets: Array[PresetCharacter] = []
 
 func _ready():
+	# --- NEW: AUTO-GENERATE CLASS ARRAYS ---
+	for key in CharacterData.ClassType.keys():
+		var formatted_name = key.capitalize()
+		base_classes.append(formatted_name)
+		classes.append(formatted_name)
+	# ---------------------------------------
+	
+	
 	_load_presets()
 	_setup_options(p1_option)
 	_setup_options(p2_option)
@@ -71,8 +79,6 @@ func _ready():
 		
 	btn_cancel_run.pressed.connect(func(): run_settings_popup.visible = false)
 	btn_confirm_run.pressed.connect(_on_final_arcade_confirm)
-	_attach_sfx(btn_cancel_run)
-	_attach_sfx(btn_confirm_run)
 
 func _load_presets():
 	presets.clear()

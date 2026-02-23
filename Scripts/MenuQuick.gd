@@ -10,9 +10,14 @@ extends Control
 @onready var fight_btn = $MarginContainer/HBoxContainer/VS_Column/QuickFightButton
 
 var presets: Array[PresetCharacter] = []
-var base_classes = ["Heavy", "Patient", "Quick", "Technical"]
+var base_classes = []
 
 func _ready():
+	# --- NEW: AUTO-GENERATE CLASS ARRAYS ---
+	for key in CharacterData.ClassType.keys():
+		base_classes.append(key.capitalize())
+	# ---------------------------------------
+	# ... rest of your _ready code
 	_load_presets()
 	_setup_options(p1_option)
 	_setup_options(p2_option)

@@ -6,6 +6,7 @@
 [ext_resource type="Resource" uid="uid://bpk3oy5rf8g3w" path="res://Data/Classes/PatientClass.tres" id="4_s7eqx"]
 [ext_resource type="Resource" uid="uid://c007py27u78qj" path="res://Data/Classes/QuickClass.tres" id="5_e67h7"]
 [ext_resource type="Resource" uid="uid://bg5ik82a2fybg" path="res://Data/Classes/TechnicalClass.tres" id="6_dinlh"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="7_e67h7"]
 
 [node name="MenuArcade" type="Control" unique_id=443753700]
 layout_mode = 3
@@ -107,9 +108,11 @@ alignment = 1
 layout_mode = 2
 theme_override_constants/outline_size = 5
 text = "Start Arcade Run"
+script = ExtResource("7_e67h7")
 
 [node name="DeleteButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=436727636]
 visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.97824043, 0, 0.17609239, 1)
 text = "Delete Save"
+script = ExtResource("7_e67h7")

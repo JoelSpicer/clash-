@@ -244,12 +244,16 @@ func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
 
 # Helper for string names
 func class_enum_to_string(type: int) -> String:
-	match type:
-		CharacterData.ClassType.HEAVY: return "Heavy"
-		CharacterData.ClassType.PATIENT: return "Patient"
-		CharacterData.ClassType.QUICK: return "Quick"
-		CharacterData.ClassType.TECHNICAL: return "Technical"
+	var keys = CharacterData.ClassType.keys()
+	
+	# Safety check to make sure the integer is within the Enum's bounds
+	if type >= 0 and type < keys.size():
+		# .keys() returns an array of strings like ["HEAVY", "PATIENT", "QUICK", "TECHNICAL"]
+		# .capitalize() turns "HEAVY" into "Heavy" and "VERY_EASY" into "Very Easy"
+		return keys[type].capitalize()
+		
 	return "Enemy"
+	
 # Generates a fully playable CharacterData resource based on the chosen class
 func create_character(type: CharacterData.ClassType, player_name: String) -> CharacterData:
 	if not class_registry.has(type): return null

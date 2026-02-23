@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://g8ghju6iqxmv" path="res://Scripts/EventRoom.gd" id="1_6wpk6"]
 [ext_resource type="PackedScene" uid="uid://cewadnjen7l21" path="res://Scenes/RunStatusOverlay.tscn" id="2_fxxab"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_sn8o1"]
 
 [node name="Control" type="Control" unique_id=1909866210]
 layout_mode = 3
@@ -58,13 +59,16 @@ layout_mode = 2
 [node name="OptionA" type="Button" parent="VBoxContainer" unique_id=836324434]
 layout_mode = 2
 text = "A"
+script = ExtResource("2_sn8o1")
 
 [node name="OptionB" type="Button" parent="VBoxContainer" unique_id=696738110]
 layout_mode = 2
 text = "B"
+script = ExtResource("2_sn8o1")
 
 [node name="OptionC" type="Button" parent="VBoxContainer" unique_id=961244133]
 layout_mode = 2
 text = "B"
+script = ExtResource("2_sn8o1")
 
 [node name="RunStatusOverlay" parent="." unique_id=353549742 instance=ExtResource("2_fxxab")]

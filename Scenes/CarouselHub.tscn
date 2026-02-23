@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bxymoimlkb0g2"]
 
 [ext_resource type="Script" uid="uid://b5sk5jjigxxdu" path="res://Scripts/CarouselHub.gd" id="1_ocdqy"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_07bmk"]
 
 [node name="CarouselHub" type="Control" unique_id=1967209312]
 layout_mode = 3
@@ -86,6 +87,7 @@ offset_right = 56.0
 offset_bottom = 15.5
 grow_vertical = 2
 text = "<<<"
+script = ExtResource("2_07bmk")
 
 [node name="RightArrow" type="Button" parent="UI_Layer" unique_id=569323903]
 layout_mode = 1
@@ -101,6 +103,7 @@ offset_bottom = 15.5
 grow_horizontal = 0
 grow_vertical = 2
 text = ">>>"
+script = ExtResource("2_07bmk")
 
 [node name="BackButton" type="Button" parent="UI_Layer" unique_id=1724607185]
 layout_mode = 0
@@ -109,3 +112,4 @@ offset_top = 9.0
 offset_right = 132.0
 offset_bottom = 40.0
 text = "BACK TO TITLE"
+script = ExtResource("2_07bmk")

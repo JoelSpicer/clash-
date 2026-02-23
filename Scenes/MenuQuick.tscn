@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://crugd7hminj5p"]
 
 [ext_resource type="Script" uid="uid://c873im0nw7ebj" path="res://Scripts/MenuQuick.gd" id="1_yp31r"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_t3twd"]
 
 [node name="MenuQuick" type="Control" unique_id=1729773511]
 layout_mode = 3
@@ -62,6 +63,7 @@ custom_minimum_size = Vector2(200, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "Quick CLASH!"
+script = ExtResource("2_t3twd")
 
 [node name="P2_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=1588201652]
 layout_mode = 2
@@ -70,6 +72,7 @@ alignment = 1
 [node name="P2_Mode_Button" type="Button" parent="MarginContainer/HBoxContainer/P2_Column" unique_id=1918727360]
 layout_mode = 2
 text = "OPPONENT: CPU"
+script = ExtResource("2_t3twd")
 
 [node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P2_Column" unique_id=71408849]
 custom_minimum_size = Vector2(200, 200)
