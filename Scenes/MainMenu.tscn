@@ -1,9 +1,10 @@
-[gd_scene load_steps=3 format=3 uid="uid://dfdv27tgvc463"]
+[gd_scene format=3 uid="uid://dfdv27tgvc463"]
 
 [ext_resource type="Script" uid="uid://bvoqym3ha7576" path="res://Scripts/MainMenu.gd" id="1_tt5f1"]
 [ext_resource type="Texture2D" uid="uid://uubvvpgfs52s" path="res://Art/logo-transparent_grey_nosplash.png" id="2_853f1"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="3_8saeu"]
 
-[node name="MainMenu" type="Control"]
+[node name="MainMenu" type="Control" unique_id=2016374189]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +13,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_tt5f1")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=1350418764]
 modulate = Color(1, 0.56, 0.56, 0.43529412)
 layout_mode = 1
 anchors_preset = 15
@@ -24,7 +25,7 @@ texture = ExtResource("2_853f1")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="VBoxContainer" type="VBoxContainer" parent="." unique_id=1712940024]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -38,20 +39,22 @@ offset_bottom = 70.5
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TitleLabel" type="Label" parent="VBoxContainer"]
+[node name="TitleLabel" type="Label" parent="VBoxContainer" unique_id=1315116786]
 layout_mode = 2
 text = "CLASH!"
 horizontal_alignment = 1
 
-[node name="StartButton" type="Button" parent="VBoxContainer"]
+[node name="StartButton" type="Button" parent="VBoxContainer" unique_id=1079198100]
 layout_mode = 2
 text = "Start the CLASH!"
+script = ExtResource("3_8saeu")
 
-[node name="QuitButton" type="Button" parent="VBoxContainer"]
+[node name="QuitButton" type="Button" parent="VBoxContainer" unique_id=336306188]
 layout_mode = 2
 text = "Quit"
+script = ExtResource("3_8saeu")
 
-[node name="CompendiumButton" type="Button" parent="VBoxContainer"]
+[node name="CompendiumButton" type="Button" parent="VBoxContainer" unique_id=1013796748]
 visible = false
 layout_mode = 2
 text = "How to Play"

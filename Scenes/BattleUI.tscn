@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
 [ext_resource type="Texture2D" uid="uid://d0oodbqfjx62d" path="res://Art/Background/1.png" id="2_sbkf8"]
 [ext_resource type="PackedScene" uid="uid://yeraw55rlx1q" path="res://Scenes/PlayerHUD.tscn" id="3_vxmu1"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="4_6eyfp"]
 [ext_resource type="PackedScene" uid="uid://bu7kfrk2ayfm6" path="res://Scenes/CombatLog.tscn" id="4_f6fb8"]
 
 [node name="BattleUI" type="CanvasLayer" unique_id=356558085]
@@ -115,12 +116,14 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 50)
 layout_mode = 2
 text = "Offence"
+script = ExtResource("4_6eyfp")
 
 [node name="Defence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons" unique_id=2021467659]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(100, 50)
 layout_mode = 2
 text = "Defence"
+script = ExtResource("4_6eyfp")
 
 [node name="MarginContainer" type="MarginContainer" parent="MainLayout/BottomBar/ContentSplit" unique_id=911205804]
 layout_mode = 2
@@ -193,6 +196,7 @@ offset_top = 607.0
 offset_right = 1132.0
 offset_bottom = 638.0
 text = "?"
+script = ExtResource("4_6eyfp")
 
 [node name="EnvButton" type="Button" parent="." unique_id=1268670440]
 offset_left = 13.0
@@ -201,6 +205,7 @@ offset_right = 78.0
 offset_bottom = 204.0
 theme_override_font_sizes/font_size = 12
 text = "ENV: Dojo"
+script = ExtResource("4_6eyfp")
 
 [node name="EnvPopup" type="PanelContainer" parent="." unique_id=974018881]
 visible = false
@@ -235,6 +240,7 @@ bbcode_enabled = true
 [node name="CloseEnvButton" type="Button" parent="EnvPopup/VBoxContainer" unique_id=1659386676]
 layout_mode = 2
 text = "Close"
+script = ExtResource("4_6eyfp")
 
 [node name="EquipmentGrid" type="HBoxContainer" parent="." unique_id=1911301329]
 offset_left = 32.0
@@ -249,6 +255,7 @@ offset_top = 148.0
 offset_right = 1141.0
 offset_bottom = 179.0
 text = "INSPECT OPPONENT"
+script = ExtResource("4_6eyfp")
 
 [node name="InspectPopup" type="Panel" parent="." unique_id=303135880]
 visible = false
@@ -296,3 +303,4 @@ offset_right = 949.0
 offset_bottom = 476.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 4
+script = ExtResource("4_6eyfp")

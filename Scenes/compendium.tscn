@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://cm1rql55op5wn"]
 
 [ext_resource type="Script" uid="uid://2rcv6fa6yax" path="res://Scripts/compendium.gd" id="1_sj3ga"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_b5rji"]
 
 [node name="Compendium" type="Control" unique_id=1765162170]
 layout_mode = 3
@@ -133,3 +134,4 @@ offset_top = 5.0
 offset_right = 1102.0
 offset_bottom = 36.0
 text = "Back to Menu"
+script = ExtResource("2_b5rji")

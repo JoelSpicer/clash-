@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://d2ihynvt26fh3"]
 
 [ext_resource type="Script" uid="uid://bwm5gvi2aambr" path="res://Scripts/GymMain.gd" id="1_begwh"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_0xh53"]
 
 [node name="GymMain" type="Control" unique_id=1597010198]
 layout_mode = 3
@@ -48,14 +49,17 @@ alignment = 1
 [node name="BtnHeal" type="Button" parent="Content/ChoicesContainer" unique_id=93195004]
 custom_minimum_size = Vector2(200, 150)
 layout_mode = 2
+script = ExtResource("2_0xh53")
 
 [node name="BtnBlock" type="Button" parent="Content/ChoicesContainer" unique_id=1695695308]
 custom_minimum_size = Vector2(200, 150)
 layout_mode = 2
+script = ExtResource("2_0xh53")
 
 [node name="BtnDebuff" type="Button" parent="Content/ChoicesContainer" unique_id=687453339]
 custom_minimum_size = Vector2(200, 150)
 layout_mode = 2
+script = ExtResource("2_0xh53")
 
 [node name="FlavorText" type="Label" parent="Content" unique_id=756546565]
 layout_mode = 2

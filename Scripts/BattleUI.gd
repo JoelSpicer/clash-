@@ -152,13 +152,6 @@ func _ready():
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
 	GameManager.clash_resolved.connect(_on_clash_resolved_log)
 	
-	_attach_sfx(btn_offence)
-	_attach_sfx(btn_defence)
-	_attach_sfx(log_toggle)
-	
-	var menu_btn = get_node_or_null("MenuButton")
-	if menu_btn: _attach_sfx(menu_btn)
-	
 	if not GameManager.state_changed.is_connected(_on_game_state_changed):
 		GameManager.state_changed.connect(_on_game_state_changed)
 	
@@ -169,23 +162,18 @@ func _ready():
 	_create_passive_toggles()
 	setup_toggles()
 	
-	if menu_btn:
-		menu_btn.pressed.connect(_on_menu_pressed)
 
 	$MomentumSlider/Label2.text = str(GameManager.momentum)
 
 	if env_button and env_popup:
 		env_button.pressed.connect(_on_env_button_pressed)
 		close_env_button.pressed.connect(func(): env_popup.visible = false)
-		_attach_sfx(env_button)
-		_attach_sfx(close_env_button)
 		env_details.bbcode_enabled = true
 		env_details.fit_content = true
 		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
 	
 	if inspect_btn:
 		inspect_btn.pressed.connect(_on_inspect_pressed)
-		_attach_sfx(inspect_btn)
 	
 	_update_background()
 	
@@ -403,9 +391,7 @@ func _refresh_grid():
 		btn.setup(card)
 		btn.update_cost_display(final_cost) 
 		btn.set_available(is_valid)         
-		
-		btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
-		btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
+	
 		
 		btn.card_hovered.connect(_on_card_hovered)
 		btn.card_exited.connect(_on_card_exited) 
@@ -420,10 +406,7 @@ func _refresh_grid():
 		s_btn.update_cost_display(0)
 		s_btn.set_available(true)
 		s_btn.modulate = Color(0.9, 0.9, 0.9) 
-		
-		s_btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
-		s_btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
-		
+
 		s_btn.card_hovered.connect(_on_card_hovered)
 		s_btn.card_exited.connect(_on_card_exited)
 		s_btn.card_selected.connect(_on_card_selected)
@@ -437,9 +420,6 @@ func _refresh_grid():
 		skip_btn.update_cost_display(0)
 		skip_btn.set_available(true)
 		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
-		
-		skip_btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
-		skip_btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 		
 		skip_btn.card_hovered.connect(_on_card_hovered)
 		skip_btn.card_exited.connect(_on_card_exited)
@@ -735,11 +715,6 @@ func _snapshot_stats():
 		_prev_p1_stats = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
 	if GameManager.p2_data:
 		_prev_p2_stats = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
-
-func _attach_sfx(btn: BaseButton):
-	if not btn: return
-	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
-	btn.pressed.connect(func(): AudioManager.play_sfx("ui_click"))
 
 func _on_wall_crush_ui(target_id: int, _dmg: int):
 	apply_camera_impact(0.05, 15.0) 

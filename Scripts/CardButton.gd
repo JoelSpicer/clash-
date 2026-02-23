@@ -1,4 +1,4 @@
-extends Button
+extends SoundButton
 
 signal card_hovered(action)
 signal card_exited()

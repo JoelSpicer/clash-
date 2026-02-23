@@ -18,7 +18,7 @@ func _ready():
 		item_grid.add_child(btn)
 
 func _create_item_button(item: EquipmentData) -> Button:
-	var btn = Button.new()
+	var btn = SoundButton.new()
 	btn.custom_minimum_size = Vector2(250, 350)
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	
