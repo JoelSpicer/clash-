@@ -35,6 +35,7 @@ AudioManager="*res://Scripts/AudioManager.gd"
 SceneLoader="*res://Scenes/SceneLoader.tscn"
 DialogueManager="*uid://bq2klpbljl1qb"
 SettingsManager="*uid://btwusus0fp7xb"
+GlobalVisuals="*uid://n2d3nq6fogy4"
 
 [display]
 
