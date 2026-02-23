@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ClassDefinition" load_steps=6 format=3 uid="uid://c007py27u78qj"]
+[gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://c007py27u78qj"]
 
 [ext_resource type="Texture2D" uid="uid://dg7l2syk1ev8h" path="res://Art/Portraits/Quick.png" id="1_4nr7a"]
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_btx3a"]
@@ -23,12 +23,7 @@ arcade_description = "[center][b][font_size=28]QUICK[/font_size][/b][/center]
 [color=yellow]Relentless: Every 3rd hit in a combo restores 1 SP.[/color]"
 starting_deck = Array[ExtResource("3_0x3nb")]([ExtResource("12_k1hmy"), ExtResource("13_iihhh")])
 skill_tree_root_id = 73
-can_pay_with_hp = false
-tiring_drains_hp = false
 combo_sp_recovery_rate = 3
-has_bide_mechanic = false
-has_keep_up_toggle = false
-has_technique_dropdown = false
 barks = {
 "HURT": ["Hey!", "Too slow!", "Cheap shot!"],
 "INTRO_GENERIC": ["Try to keep up!", "Blink and you'll miss me."],

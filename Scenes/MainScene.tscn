@@ -7,6 +7,16 @@
 [ext_resource type="Resource" uid="uid://p5iapbgi8mrp" path="res://Player2.tres" id="4_qxria"]
 [ext_resource type="PackedScene" uid="uid://dhwx6yjjskbn7" path="res://Scenes/BattleUI.tscn" id="8_f140w"]
 
+[sub_resource type="Environment" id="Environment_y4jh7"]
+background_mode = 3
+glow_enabled = true
+glow_intensity = 0.5
+glow_strength = 0.9
+glow_blend_mode = 2
+adjustment_enabled = true
+adjustment_contrast = 1.1
+adjustment_saturation = 0.0
+
 [node name="Node2D" type="Node2D" unique_id=1182146]
 
 [node name="PauseMenu" parent="." unique_id=1470014668 instance=ExtResource("1_0iob3")]
@@ -20,3 +30,6 @@ p1_resource = ExtResource("3_7rqgy")
 p2_resource = ExtResource("4_qxria")
 
 [node name="BattleUI" parent="TestArena" unique_id=1673586167 instance=ExtResource("8_f140w")]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=2026985990]
+environment = SubResource("Environment_y4jh7")

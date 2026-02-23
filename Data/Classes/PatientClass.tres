@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ClassDefinition" load_steps=6 format=3 uid="uid://bpk3oy5rf8g3w"]
+[gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://bpk3oy5rf8g3w"]
 
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="1_1dmwk"]
 [ext_resource type="Texture2D" uid="uid://ba7852i08m1lw" path="res://Art/Portraits/Patient.png" id="1_47x7k"]
@@ -23,12 +23,8 @@ arcade_description = "[center][b][font_size=28]PATIENT[/font_size][/b][/center]
 [color=yellow]Bide: When you use a fall back action, your next action gains +1 damage, and cannot trigger this passive.[/color]"
 starting_deck = Array[ExtResource("2_7e45r")]([ExtResource("12_aabbj"), ExtResource("13_2vuc8")])
 skill_tree_root_id = 75
-can_pay_with_hp = false
-tiring_drains_hp = false
-combo_sp_recovery_rate = 0
 has_bide_mechanic = true
 has_keep_up_toggle = true
-has_technique_dropdown = false
 barks = {
 "HURT": ["A calculation error...", "Predictable.", "Sloppy..."],
 "INTRO_GENERIC": ["I can wait all day.", "Your mistake will be your last.", "Patience is a weapon."],

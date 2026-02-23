@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="ClassDefinition" load_steps=6 format=3 uid="uid://bg5ik82a2fybg"]
+[gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://bg5ik82a2fybg"]
 
 [ext_resource type="Texture2D" uid="uid://dfmgsi58a4dh1" path="res://Art/Portraits/Technical.png" id="1_ndoru"]
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_aosid"]
@@ -23,11 +23,6 @@ arcade_description = "[center][b][font_size=28]TECHNICAL[/font_size][/b][/center
 [color=yellow]Custom Technique: Spend 1 SP to add Opener, Tiring, or Momentum to any action.[/color]"
 starting_deck = Array[ExtResource("3_uhsbe")]([ExtResource("12_7frj5"), ExtResource("13_67n4n")])
 skill_tree_root_id = 74
-can_pay_with_hp = false
-tiring_drains_hp = false
-combo_sp_recovery_rate = 0
-has_bide_mechanic = false
-has_keep_up_toggle = false
 has_technique_dropdown = true
 barks = {
 "HURT": ["Miscalculation.", "Sloppy form.", "I see how it is."],
