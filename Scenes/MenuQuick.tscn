@@ -65,6 +65,13 @@ theme_override_font_sizes/font_size = 10
 text = "Quick CLASH!"
 script = ExtResource("2_t3twd")
 
+[node name="CustomDeckButton" type="Button" parent="MarginContainer/HBoxContainer/VS_Column" unique_id=3078225]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "CLASH! (Build P1 Deck)"
+script = ExtResource("2_t3twd")
+
 [node name="P2_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=1588201652]
 layout_mode = 2
 alignment = 1

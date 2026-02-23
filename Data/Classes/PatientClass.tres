@@ -20,6 +20,7 @@ class_named = "Patient"
 class_type = 1
 portrait = ExtResource("1_47x7k")
 passive_description = "Bide: When you use a fall back action, your next action gains +1 damage, and cannot trigger this passive."
+tree_description = "[b]Action: Preparation[/b]\\nFall Back 2, Opp 1, Reco 1\\n[b]Action: Counter Strike[/b]\\nDmg 2, Fall Back 2, Parry\\n[b]Passive: Keep-up[/b]\\nSpend SP to prevent Fall Back.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +1 HP/SP\\n[b]Speed:[/b] 2"
 playstyle_summary = "Wait for your moment and parry heavy strikes to take the offence."
 base_speed = 2
 offence_hp_growth = 1

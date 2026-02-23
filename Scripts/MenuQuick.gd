@@ -8,6 +8,7 @@ extends Control
 @onready var p2_portrait = $MarginContainer/HBoxContainer/P2_Column/Portrait # <--- NEW
 @onready var p2_mode_btn = $MarginContainer/HBoxContainer/P2_Column/P2_Mode_Button
 @onready var fight_btn = $MarginContainer/HBoxContainer/VS_Column/QuickFightButton
+@onready var custom_btn = $MarginContainer/HBoxContainer/VS_Column/CustomDeckButton
 
 var presets: Array[PresetCharacter] = []
 var base_classes = []
@@ -33,7 +34,8 @@ func _ready():
 	# Connections
 	fight_btn.pressed.connect(_on_fight_pressed)
 	p2_mode_btn.pressed.connect(_on_p2_mode_toggle)
-	
+	if custom_btn:
+		custom_btn.pressed.connect(_on_custom_deck_pressed)
 	# Sync State
 	if GameManager.p2_is_custom == null: GameManager.p2_is_custom = false
 	_update_p2_btn_visuals()
@@ -108,3 +110,42 @@ func _get_char(idx, pname):
 	var preset_idx = idx - base_classes.size() - 1
 	if preset_idx >= 0: return ClassFactory.create_from_preset(presets[preset_idx])
 	return ClassFactory.create_character(0 as CharacterData.ClassType, "Error")
+
+func _on_custom_deck_pressed():
+	# 1. P1 SETUP
+	var p1_sel = p1_option.selected
+	if p1_sel < base_classes.size():
+		GameManager.temp_p1_class_selection = p1_sel
+		GameManager.temp_p1_name = "Player 1"
+		GameManager.temp_p1_preset = null
+	else:
+		var preset_idx = p1_sel - base_classes.size() - 1
+		if preset_idx >= 0:
+			var p = presets[preset_idx]
+			GameManager.temp_p1_class_selection = p.class_type
+			GameManager.temp_p1_name = p.character_name
+			GameManager.temp_p1_preset = p
+
+	# 2. P2 SETUP
+	var p2_sel = p2_option.selected
+	if p2_sel < base_classes.size():
+		GameManager.temp_p2_class_selection = p2_sel
+		GameManager.temp_p2_name = "Player 2"
+		GameManager.temp_p2_preset = null
+	else:
+		var preset_idx = p2_sel - base_classes.size() - 1
+		if preset_idx >= 0:
+			var p = presets[preset_idx]
+			GameManager.temp_p2_class_selection = p.class_type
+			GameManager.temp_p2_name = p.character_name
+			GameManager.temp_p2_preset = p
+
+	GameManager.editing_player_index = 1 
+	
+	if GameManager.p2_is_custom:
+		GameManager.next_match_p2_data = null 
+	else:
+		var p2 = _get_char(p2_sel, "Player 2")
+		GameManager.next_match_p2_data = p2
+	
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")

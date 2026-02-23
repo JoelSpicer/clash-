@@ -1,34 +1,22 @@
-[gd_scene load_steps=10 format=3 uid="uid://bwfpi53huo887"]
+[gd_scene format=3 uid="uid://bwfpi53huo887"]
 
 [ext_resource type="PackedScene" uid="uid://b2sxki8ci7lvb" path="res://Scenes/Pausemenu.tscn" id="1_0iob3"]
 [ext_resource type="Script" uid="uid://xjbucvoejbts" path="res://Scripts/Resources/GameManager.gd" id="1_hpc76"]
 [ext_resource type="Script" uid="uid://xh1kg301k38w" path="res://Scripts/TestArena.gd" id="2_tr2i4"]
 [ext_resource type="Resource" uid="uid://b0kng2hirhw4q" path="res://Player1.tres" id="3_7rqgy"]
 [ext_resource type="Resource" uid="uid://p5iapbgi8mrp" path="res://Player2.tres" id="4_qxria"]
-[ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="5_y4jh7"]
-[ext_resource type="Script" uid="uid://dv5cmapuaohjy" path="res://Scripts/card_displayTEST.gd" id="6_q68mp"]
-[ext_resource type="Resource" uid="uid://bmiux2ft22xnd" path="res://Data/Actions/basic_heavy.tres" id="7_q68mp"]
 [ext_resource type="PackedScene" uid="uid://dhwx6yjjskbn7" path="res://Scenes/BattleUI.tscn" id="8_f140w"]
 
-[node name="Node2D" type="Node2D"]
+[node name="Node2D" type="Node2D" unique_id=1182146]
 
-[node name="PauseMenu" parent="." instance=ExtResource("1_0iob3")]
+[node name="PauseMenu" parent="." unique_id=1470014668 instance=ExtResource("1_0iob3")]
 
-[node name="GameManager" type="Node" parent="."]
+[node name="GameManager" type="Node" parent="." unique_id=1223966320]
 script = ExtResource("1_hpc76")
 
-[node name="TestArena" type="Node2D" parent="."]
+[node name="TestArena" type="Node2D" parent="." unique_id=2121029644]
 script = ExtResource("2_tr2i4")
 p1_resource = ExtResource("3_7rqgy")
 p2_resource = ExtResource("4_qxria")
 
-[node name="CardDisplay" parent="TestArena" instance=ExtResource("5_y4jh7")]
-visible = false
-offset_left = 500.0
-offset_top = 300.0
-offset_right = 750.0
-offset_bottom = 650.0
-script = ExtResource("6_q68mp")
-test_action = ExtResource("7_q68mp")
-
-[node name="BattleUI" parent="TestArena" instance=ExtResource("8_f140w")]
+[node name="BattleUI" parent="TestArena" unique_id=1673586167 instance=ExtResource("8_f140w")]

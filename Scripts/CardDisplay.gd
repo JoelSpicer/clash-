@@ -88,7 +88,7 @@ func set_card_data(action: ActionData, override_cost: int = -1):
 
 	# Description Logic
 	if action.description and action.description != "":
-		stats_label.text = "[center]" + action.description + "[/center]"
+		stats_label.text = "[center]" + action.description.c_unescape() + "[/center]"
 	else:
 		var parts = []
 		if action.damage > 0: parts.append("[color=#ff9999]" + str(action.damage) + " DMG[/color]")

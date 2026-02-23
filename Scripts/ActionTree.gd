@@ -547,40 +547,31 @@ func _on_confirm_button_pressed():
 	else:
 		# --- CUSTOM DECK LAUNCH ---
 		if selected_class_id == 0: return
-		var final_character = CharacterData.new()
-		match selected_class_id:
-			73: final_character.class_type = CharacterData.ClassType.QUICK
-			74: final_character.class_type = CharacterData.ClassType.TECHNICAL
-			75: final_character.class_type = CharacterData.ClassType.PATIENT
-			76: final_character.class_type = CharacterData.ClassType.HEAVY
-
-		# --- NEW: INJECT PASSIVES FROM REGISTRY ---
-		var def = ClassFactory.class_registry.get(final_character.class_type)
-		if def:
-			final_character.can_pay_with_hp = def.can_pay_with_hp
-			final_character.tiring_drains_hp = def.tiring_drains_hp
-			final_character.combo_sp_recovery_rate = def.combo_sp_recovery_rate
-			final_character.has_bide_mechanic = def.has_bide_mechanic
-			final_character.has_keep_up_toggle = def.has_keep_up_toggle
-			final_character.has_technique_dropdown = def.has_technique_dropdown
-			final_character.passive_desc = def.passive_description
-		# ------------------------------------------
 		
-		var base_deck = ClassFactory.get_starting_deck(final_character.class_type)
+		# 1. USE FACTORY TO BUILD BASE (Handles Passives & Identity automatically!)
+		var class_enum = _get_class_enum_from_id(selected_class_id)
+		var final_character = ClassFactory.create_character(class_enum, "Custom Fighter")
+		
+		# 2. BUILD THE CUSTOM DECK
+		# Start with the base cards for this class
+		var base_deck = ClassFactory.get_starting_deck(class_enum)
 		var final_deck: Array[ActionData] = []
 		final_deck.append_array(base_deck)
 		
+		# Add every card unlocked in the tree
 		for id in owned_ids:
 			if id in ClassFactory.CLASS_ROOT_IDS: continue 
 			var a_name = id_to_name.get(id)
 			var card_resource = ClassFactory.find_action_resource(a_name)
 			if card_resource: final_deck.append(card_resource)
-				
-		final_character.deck = final_deck
-		final_character.max_hp = current_max_hp
-		final_character.max_sp = current_max_sp
-		final_character.reset_stats()
 		
+		# 3. APPLY CUSTOM STATS & DECK
+		final_character.deck = final_deck
+		final_character.max_hp = current_max_hp # Calculated from tree nodes
+		final_character.max_sp = current_max_sp # Calculated from tree nodes
+		final_character.reset_stats() # Apply the new max values to current values
+		
+		# 4. NAME & ASSIGN
 		if GameManager.editing_player_index == 1:
 			var p1_name = GameManager.get("temp_p1_name")
 			final_character.character_name = p1_name if p1_name != "" else "Player 1"
@@ -605,7 +596,7 @@ func _on_back_button_pressed():
 	if RunManager.is_arcade_mode:
 		print("Canceling Arcade Run...")
 		RunManager.handle_loss() # Cleans up the arcade state variables
-		SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
+		SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
 		return
 	# -------------------------------
 	print("Canceling customization...")
@@ -617,7 +608,7 @@ func _on_back_button_pressed():
 	GameManager.temp_p2_preset = null
 	GameManager.temp_p1_name = ""
 	GameManager.temp_p2_name = ""
-	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
+	SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
 
 func _try_deselect_action(id_to_remove: int):
 	var remaining_ids = owned_ids.duplicate()
@@ -680,24 +671,17 @@ func _setup_for_current_player():
 
 func _get_class_display_data(id: int) -> ActionData:
 	var data = ActionData.new()
-	data.cost = 0 
-	match id:
-		76: 
-			data.display_name = "CLASS: HEAVY"
-			data.type = ActionData.Type.OFFENCE 
-			data.description = "[b]Action: Haymaker[/b]\nOpener, Cost 3, Dmg 2, Mom 3\n[b]Action: Elbow Block[/b]\nBlock 1, Cost 2, Dmg 1\n[b]Passive: Rage[/b]\nPay HP instead of SP when low.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\n[b]Speed:[/b] 1"
-		75: 
-			data.display_name = "CLASS: PATIENT"
-			data.type = ActionData.Type.DEFENCE 
-			data.description = "[b]Action: Preparation[/b]\nFall Back 2, Opp 1, Reco 1\n[b]Action: Counter Strike[/b]\nDmg 2, Fall Back 2, Parry\n[b]Passive: Keep-up[/b]\nSpend SP to prevent Fall Back.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +1 HP/SP\n[b]Speed:[/b] 2"
-		73: 
-			data.display_name = "CLASS: QUICK"
-			data.type = ActionData.Type.OFFENCE
-			data.description = "[b]Action: Roll Punch[/b]\nDmg 1, Cost 1, Mom 1, Rep 3\n[b]Action: Weave[/b]\nDodge 1, Fall Back 1\n[b]Passive: Relentless[/b]\nEvery 3rd combo hit gains Reco 1.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 HP, [color=#99ccff]Defence:[/color] +2 SP\n[b]Speed:[/b] 4"
-		74: 
-			data.display_name = "CLASS: TECHNICAL"
-			data.type = ActionData.Type.DEFENCE
-			data.description = "[b]Action: Discombobulate[/b]\nCost 1, Dmg 1, Tiring 1\n[b]Action: Hand Catch[/b]\nBlock 1, Cost 1, Reversal\n[b]Passive: Technique[/b]\nSpend 1 SP to add Opener, Tiring, or Momentum to action.\n[b]Growth:[/b]\n[color=#ff9999]Offence:[/color] +1 SP/HP, [color=#99ccff]Defence:[/color] +1 SP\n[b]Speed:[/b] 3"
+	data.cost = 0
+	
+	# Use your helper to get the Enum
+	var type = _get_class_enum_from_id(id)
+	
+	# Fetch from Registry
+	if ClassFactory.class_registry.has(type):
+		var def = ClassFactory.class_registry[type]
+		data.display_name = "CLASS: " + def.class_named.to_upper()
+		data.description = def.tree_description # <--- Loaded from Resource!
+		
 	return data
 
 func _is_id_equipped(id: int) -> bool:

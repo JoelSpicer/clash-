@@ -19,6 +19,7 @@ script = ExtResource("1_1dmwk")
 class_named = "Heavy"
 portrait = ExtResource("1_uqam5")
 passive_description = "RAGE: Pay HP instead of SP if stamina is low."
+tree_description = "[b]Action: Haymaker[/b]\\nOpener, Cost 3, Dmg 2, Mom 3\\n[b]Action: Elbow Block[/b]\\nBlock 1, Cost 2, Dmg 1\\n[b]Passive: Rage[/b]\\nPay HP instead of SP when low.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\\n[b]Speed:[/b] 1"
 playstyle_summary = "Tank with blocks and unleash massive hits."
 offence_sp_growth = 1
 defence_hp_growth = 2
