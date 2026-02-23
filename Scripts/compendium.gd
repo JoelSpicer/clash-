@@ -68,7 +68,7 @@ func _populate_card_library():
 	
 	for id in all_ids:
 		# skip class nodes
-		if id >= 73: continue 
+		if id in ClassFactory.CLASS_ROOT_IDS: continue 
 		
 		var card_name = ClassFactory.ID_TO_NAME_MAP[id]
 		var card_data = ClassFactory.find_action_resource(card_name)

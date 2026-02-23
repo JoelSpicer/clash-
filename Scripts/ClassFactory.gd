@@ -44,6 +44,8 @@ const ID_TO_NAME_MAP = {
 	73:"Quick", 74:"Technical", 75:"Patient", 76:"Heavy"
 }
 
+const CLASS_ROOT_IDS: Array[int] = [73, 74, 75, 76]
+
 const RANK_TITLES = [
 	"Foolish",      # Level 1
 	"Weak",         # Level 2

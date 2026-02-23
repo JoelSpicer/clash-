@@ -6,11 +6,6 @@ var action_tree_dict = {}
 var id_to_name = {}
 var name_to_id = {}
 
-const NODE_QUICK = 73
-const NODE_TECHNICAL = 74
-const NODE_PATIENT = 75
-const NODE_HEAVY = 76
-
 # --- SCENE REFS ---
 @onready var nodes_layer = %NodesLayer
 @onready var lines_layer = %LinesLayer
@@ -240,7 +235,7 @@ func _refresh_loadout_manager():
 		
 		# Tree cards
 		for id in owned_ids:
-			if id >= 73: continue
+			if id in ClassFactory.CLASS_ROOT_IDS: continue
 			var c = ClassFactory.find_action_resource(id_to_name.get(id))
 			if c: library.append(c)
 			
@@ -316,7 +311,7 @@ func _on_equip_card(card: ActionData):
 # --- TOOLTIP LOGIC ---
 func _on_node_hovered(id, a_name):
 	# CLASS NODES
-	if id >= 73 and id <= 76:
+	if id in ClassFactory.CLASS_ROOT_IDS:
 		var class_info = _get_class_display_data(id)
 		popup_card.set_card_data(class_info)
 		popup_card.visible = true
@@ -366,7 +361,7 @@ func _on_node_clicked(id: int, _name: String):
 		
 		# A. Clicking Owned Node -> Just Highlight
 		if id in owned_ids:
-			if id >= 73: return
+			if id in ClassFactory.CLASS_ROOT_IDS: return
 			return
 			
 		# B. Drafting (Buying new)
@@ -388,7 +383,7 @@ func _on_node_clicked(id: int, _name: String):
 		return
 	
 	# === CUSTOM DECK LOGIC ===
-	if id >= 73: 
+	if id in ClassFactory.CLASS_ROOT_IDS: 
 		if is_class_locked: return
 		_select_class(id)
 	elif id in owned_ids: 
@@ -440,7 +435,7 @@ func _recalculate_stats():
 		var class_enum = _get_class_enum_from_id(selected_class_id)
 		var temp_deck = ClassFactory.get_starting_deck(class_enum)
 		for id in owned_ids:
-			if id >= 73: continue
+			if id in ClassFactory.CLASS_ROOT_IDS: continue
 			var card = ClassFactory.find_action_resource(id_to_name.get(id))
 			if card: temp_deck.append(card)
 		stats = ClassFactory.calculate_stats_for_deck(class_enum, temp_deck)
@@ -576,7 +571,7 @@ func _on_confirm_button_pressed():
 		final_deck.append_array(base_deck)
 		
 		for id in owned_ids:
-			if id >= 73: continue 
+			if id in ClassFactory.CLASS_ROOT_IDS: continue 
 			var a_name = id_to_name.get(id)
 			var card_resource = ClassFactory.find_action_resource(a_name)
 			if card_resource: final_deck.append(card_resource)
