@@ -79,16 +79,29 @@ func _on_main_action():
 		if player_won:
 			RunManager.handle_win()
 		else:
+			# --- FIX START ---
+			# We MUST reset the audio/visuals before leaving!
+			AudioManager.reset_audio_state() 
+			# -----------------
+			
 			get_tree().paused = false 
 			SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 			
 	# 2. QUICK MATCH LOGIC
 	else:
+		# --- FIX START ---
+		AudioManager.reset_audio_state()
+		# -----------------
 		get_tree().paused = false
 		SceneLoader.reload_current_scene()
 
 func _on_menu_pressed():
 	AudioManager.play_sfx("ui_back")
+	
+	# --- FIX START ---
+	AudioManager.reset_audio_state()
+	# -----------------
+	
 	if RunManager.player_run_data:
 		RunManager.player_run_data = null 
 	

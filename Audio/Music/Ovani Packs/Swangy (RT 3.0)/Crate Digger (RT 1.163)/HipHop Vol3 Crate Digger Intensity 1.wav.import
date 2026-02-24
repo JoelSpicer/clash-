@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://din1ga0bnceda"
+path="res://.godot/imported/HipHop Vol3 Crate Digger Intensity 1.wav-dec1b8a94673e49d2208a7bb9d76735f.sample"
+
+[deps]
+
+source_file="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Intensity 1.wav"
+dest_files=["res://.godot/imported/HipHop Vol3 Crate Digger Intensity 1.wav-dec1b8a94673e49d2208a7bb9d76735f.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

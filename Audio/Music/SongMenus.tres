@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="OvaniSong" format=3 uid="uid://brgvi0cfvokl4"]
+
+[ext_resource type="AudioStream" uid="uid://jr0g3cw8g58o" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Intensity 1.wav" id="1_5jc54"]
+[ext_resource type="Script" uid="uid://bkblmr410vlsw" path="res://addons/OvaniPlugin/OvaniSong.gd" id="1_jntbp"]
+[ext_resource type="AudioStream" uid="uid://bqh2w813kvgoh" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Intensity 2.wav" id="2_7hodk"]
+[ext_resource type="AudioStream" uid="uid://chpr7xg2g0fiw" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Main.wav" id="3_j5kgy"]
+[ext_resource type="AudioStream" uid="uid://f6r2xed8luyu" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Cut 30.wav" id="4_30o2o"]
+[ext_resource type="AudioStream" uid="uid://da3rhyukwvl0w" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Cut 60.wav" id="5_7jlyj"]
+
+[resource]
+script = ExtResource("1_jntbp")
+Intensity1 = ExtResource("1_5jc54")
+Intensity2 = ExtResource("2_7hodk")
+Intensity3 = ExtResource("3_j5kgy")
+Loop30 = ExtResource("4_30o2o")
+Loop60 = ExtResource("5_7jlyj")
+ReverbTail = 3.0
+SongMode = 2
+metadata/_custom_type_script = "uid://bkblmr410vlsw"

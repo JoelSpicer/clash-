@@ -219,6 +219,10 @@ func reset_combat():
 		priority_player = randi_range(1, 2)
 		
 	print("\n>>> COMBAT RESET! Starting from Initial Clash (Neutral) <<<")
+	# --- NEW: FADE TO BATTLE INTENSITY (Layer 2) ---
+	if AudioManager:
+		AudioManager.set_music_intensity(1.0, 2.0)
+	# -----------------------------------------------
 	change_state(State.SELECTION)
 
 func get_attacker() -> int:
@@ -564,6 +568,10 @@ func resolve_clash():
 	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
 	_check_reversal_state() 
 	_handle_locks(winner_id)
+	
+	# --- NEW: UPDATE MUSIC INTENSITY ---
+	_update_dynamic_music()
+	# -----------------------------------
 
 	p1_action_queue = null
 	p2_action_queue = null
@@ -1038,3 +1046,31 @@ func _load_backgrounds():
 			file_name = dir.get_next()
 	else:
 		print("ERROR: Could not find 'res://Art/Background/' folder.")
+
+# --- NEW: DYNAMIC MUSIC LOGIC ---
+# Inside GameManager.gd
+
+# Inside GameManager.gd -> _update_dynamic_music()
+
+func _update_dynamic_music():
+	if p1_data.max_hp <= 0: return
+	
+	var hp_percent = float(p1_data.current_hp) / float(p1_data.max_hp)
+	
+	if hp_percent <= 0.33:
+		# --- LAST STAND MODE ---
+		# 1. Audio: Drop intensity to Layer 2
+		AudioManager.set_music_intensity(0.5, 1.5) 
+		
+		# 2. Visual: Increase Vignette (Tunnel Vision)
+		if GlobalCinematics.has_method("set_danger_vignette"):
+			GlobalCinematics.set_danger_vignette(true)
+			
+	else:
+		# --- NORMAL MODE ---
+		# 1. Audio: Full Intensity
+		AudioManager.set_music_intensity(1.0, 2.0)
+		
+		# 2. Visual: Reset Vignette
+		if GlobalCinematics.has_method("set_danger_vignette"):
+			GlobalCinematics.set_danger_vignette(false)

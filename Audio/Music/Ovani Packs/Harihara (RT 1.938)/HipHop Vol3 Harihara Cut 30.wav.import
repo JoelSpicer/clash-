@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://bgfn631y3oaj4"
+path="res://.godot/imported/HipHop Vol3 Harihara Cut 30.wav-fe1f127c04210c2a83839a82a7e3a703.sample"
+
+[deps]
+
+source_file="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Cut 30.wav"
+dest_files=["res://.godot/imported/HipHop Vol3 Harihara Cut 30.wav-fe1f127c04210c2a83839a82a7e3a703.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

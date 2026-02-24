@@ -10,6 +10,7 @@ shader_parameter/glow_strength = 0.400000019
 shader_parameter/blur_size = 0.2000000095
 shader_parameter/vignette_intensity = 0.3
 shader_parameter/glow_threshold = 0.70000003325
+shader_parameter/aberration_amount = 0.0
 shader_parameter/brightness = 0.0
 shader_parameter/contrast = 1.0
 

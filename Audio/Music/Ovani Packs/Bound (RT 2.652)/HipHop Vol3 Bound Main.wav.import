@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://djit04gxwd8ni"
+path="res://.godot/imported/HipHop Vol3 Bound Main.wav-d9963e711c599c2a60b43fc9c8aa4759.sample"
+
+[deps]
+
+source_file="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Main.wav"
+dest_files=["res://.godot/imported/HipHop Vol3 Bound Main.wav-d9963e711c599c2a60b43fc9c8aa4759.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

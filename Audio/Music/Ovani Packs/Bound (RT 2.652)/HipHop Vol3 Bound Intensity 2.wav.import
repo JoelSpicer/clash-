@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://dhp5rf1h1wkix"
+path="res://.godot/imported/HipHop Vol3 Bound Intensity 2.wav-a8098997828db309f26f273a1e028119.sample"
+
+[deps]
+
+source_file="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Intensity 2.wav"
+dest_files=["res://.godot/imported/HipHop Vol3 Bound Intensity 2.wav-a8098997828db309f26f273a1e028119.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

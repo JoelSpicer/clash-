@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="OvaniSong" format=3 uid="uid://dqc36qnrqybfy"]
+
+[ext_resource type="Script" uid="uid://bkblmr410vlsw" path="res://addons/OvaniPlugin/OvaniSong.gd" id="1_fcaeb"]
+[ext_resource type="AudioStream" uid="uid://bdqw8aew82qtu" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Intensity 1.wav" id="1_g2ajn"]
+[ext_resource type="AudioStream" uid="uid://cbrmxkbs1p5lq" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Intensity 2.wav" id="2_6n2wh"]
+[ext_resource type="AudioStream" uid="uid://rvnaf0ud0p3o" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Main.wav" id="3_n8t2t"]
+[ext_resource type="AudioStream" uid="uid://cxxl8eedp0gc3" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Cut 30.wav" id="4_skxhi"]
+[ext_resource type="AudioStream" uid="uid://ddwbno6ejngpn" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Cut 60.wav" id="5_mjy3q"]
+
+[resource]
+script = ExtResource("1_fcaeb")
+Intensity1 = ExtResource("1_g2ajn")
+Intensity2 = ExtResource("2_6n2wh")
+Intensity3 = ExtResource("3_n8t2t")
+Loop30 = ExtResource("4_skxhi")
+Loop60 = ExtResource("5_mjy3q")
+ReverbTail = 1.163
+metadata/_custom_type_script = "uid://bkblmr410vlsw"

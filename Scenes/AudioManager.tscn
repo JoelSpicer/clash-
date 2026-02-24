@@ -1,0 +1,11 @@
+[gd_scene format=3 uid="uid://dy1yr5w0d7bap"]
+
+[ext_resource type="Script" uid="uid://qcvlrpmn3u6n" path="res://Scripts/AudioManager.gd" id="1_i2xd5"]
+[ext_resource type="Script" uid="uid://ilexrjldybro" path="res://addons/OvaniPlugin/OvaniPlayer.gd" id="2_u6owb"]
+
+[node name="AudioManager" type="Node" unique_id=46256654]
+script = ExtResource("1_i2xd5")
+
+[node name="MusicPlayer" type="Node" parent="." unique_id=884473204]
+script = ExtResource("2_u6owb")
+metadata/_custom_type_script = "uid://ilexrjldybro"

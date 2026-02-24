@@ -621,21 +621,29 @@ func exit_deck_editor():
 		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
 
 # Call this from your TournamentMap script when a node is clicked!
+# Inside RunManager.gd
+
+# Inside RunManager.gd
+
 func start_map_fight(node_data: MapNodeData):
-	# 1. Setup Player & Enemy
+	# --- 1. SETUP PLAYER & ENEMY (CRITICAL! DO NOT REMOVE) ---
 	GameManager.next_match_p1_data = player_run_data
 	GameManager.next_match_p2_data = node_data.enemy_data
+	# ---------------------------------------------------------
 	
-	# 2. RANDOMIZE ENVIRONMENT (The missing piece!)
+	# 2. Randomize Environment
 	var envs = ["Ring", "Dojo", "Street"]
 	var selected_env = envs.pick_random()
 	GameManager.apply_environment_rules(selected_env)
 	
-	# 3. TRIGGER MUSIC
+	# 3. Start Music (VS SCREEN MODE)
 	if AudioManager.has_method("play_location_music"):
 		AudioManager.play_location_music(selected_env)
-	else:
-		AudioManager.play_music("battle_theme")
+		
+		# Set to Intensity 1 (Calm/Intro) for the VS Screen
+		AudioManager.set_music_intensity(0.0, 0.0)
 
-	# 4. Launch
+	# 4. Launch VS Screen
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
+
 	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")

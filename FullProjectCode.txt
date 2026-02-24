@@ -817,8 +817,9 @@ FILE PATH: res://Scripts/AudioManager.gd
 extends Node
 
 # --- ASSET LIBRARY ---
+# Note: These now point to your .tres resources, NOT .wav files!
 var sounds = {
-	# SFX (Keep your existing ones)
+	# SFX (Keep these pointing to .wav)
 	"ui_hover": preload("res://Audio/UI/hover.wav"),
 	"ui_click": preload("res://Audio/UI/click.wav"),
 	"hit_light": preload("res://Audio/Combat/hit_light.wav"),
@@ -826,156 +827,149 @@ var sounds = {
 	"block": preload("res://Audio/Combat/block.wav"),
 	"clash": preload("res://Audio/Combat/clash.wav"),
 	
-	# MUSIC (Add your music files here)
-	"menu_theme": preload("res://Audio/Music/MenuTheme.wav"),
-	"battle_theme": preload("res://Audio/Music/BattleTheme.wav"),
+	# MUSIC (Point these to the .tres files you made in Phase 3)
+	"menu_theme": preload("res://Audio/Music/SongMenus.tres"),
+	"music_ring": preload("res://Audio/Music/SongRing.tres"),
+	"music_dojo": preload("res://Audio/Music/SongDojo.tres"),
+	"music_street": preload("res://Audio/Music/SongStreet.tres"),
+	"battle_theme": preload("res://Audio/Music/SongRing.tres"),
 }
 
 var is_danger_mode: bool = false
 var heartbeat_player: AudioStreamPlayer
 
+# --- NODES ---
+# This connects to the OvaniPlayer child node we added in Phase 1
+@onready var music_player = $MusicPlayer 
+
 # --- SFX POOL ---
 var pool_size = 10
 var sfx_players: Array[AudioStreamPlayer] = []
-
-# --- MUSIC SYSTEM ---
-var music_player_1: AudioStreamPlayer
-var music_player_2: AudioStreamPlayer
-var active_music_player: AudioStreamPlayer = null
 var current_music_key: String = ""
 
 func _ready():
-	process_mode = Node.PROCESS_MODE_ALWAYS # Ensure audio keeps playing if game pauses
+	process_mode = Node.PROCESS_MODE_ALWAYS 
 
-	# 1. Setup SFX Pool
+	# 1. Setup SFX Pool (Unchanged)
 	for i in range(pool_size):
 		var p = AudioStreamPlayer.new()
 		p.bus = "SFX"
 		add_child(p)
 		sfx_players.append(p)
-		
-	# 2. Setup Music Players (Dual for crossfading)
-	music_player_1 = AudioStreamPlayer.new()
-	music_player_1.bus = "Music"
-	add_child(music_player_1)
 	
-	music_player_2 = AudioStreamPlayer.new()
-	music_player_2.bus = "Music"
-	add_child(music_player_2)
-	
-	active_music_player = music_player_1
-	
-	# NEW: Setup Heartbeat
+	# 2. Setup Heartbeat (Unchanged)
 	heartbeat_player = AudioStreamPlayer.new()
-	heartbeat_player.stream = preload("res://Audio/SFX/heartbeat.wav") # Make sure file exists!
+	heartbeat_player.stream = preload("res://Audio/SFX/heartbeat.wav")
 	heartbeat_player.bus = "SFX"
-	heartbeat_player.volume_db = 5.0 # Subtle background thump
+	heartbeat_player.volume_db = 5.0 
 	add_child(heartbeat_player)
-	
-# --- PUBLIC FUNCTION: SFX ---
-func play_sfx(key: String, pitch_variance: float = 0.0):
-	if not sounds.has(key):
-		# Optional: Comment out print to avoid spam if files are missing
-		# print_debug("Audio Key not found: " + key)
-		return
-		
-	var stream = sounds[key]
-	if not stream: return 
-	
-	var player = _get_available_player()
-	if player:
-		player.stream = stream
-		if pitch_variance > 0:
-			player.pitch_scale = randf_range(1.0 - pitch_variance, 1.0 + pitch_variance)
-		else:
-			player.pitch_scale = 1.0
-		player.play()
 
 # --- PUBLIC FUNCTION: MUSIC ---
-func play_music(key: String, fade_duration: float = 1.0):
+func play_music(key: String, fade_duration: float = 2.0):
 	if not sounds.has(key):
 		print("Music track not found: " + key)
 		return
 		
-	# Don't restart if it's already playing
 	if current_music_key == key: return
-	
 	current_music_key = key
-	var new_stream = sounds[key]
 	
-	# Identify which player is free
-	var next_player = music_player_2 if active_music_player == music_player_1 else music_player_1
-	var old_player = active_music_player
+	var song_resource = sounds[key]
 	
-	# Setup Next Player
-	next_player.stream = new_stream
-	next_player.volume_db = -80 # Start silent
-	next_player.play()
-	
-	# Fade IN the new track
-	var tween_in = create_tween()
-	tween_in.tween_property(next_player, "volume_db", 0.0, fade_duration)
-	
-	# Fade OUT the old track (if playing)
-	if old_player.playing:
-		var tween_out = create_tween()
-		tween_out.tween_property(old_player, "volume_db", -80.0, fade_duration)
-		tween_out.tween_callback(old_player.stop) # Stop it when fade finishes
-	
-	# Swap reference
-	active_music_player = next_player
+	if music_player:
+		# CORRECT FUNCTION NAME:
+		music_player.PlaySongNow(song_resource, fade_duration)
 
-func stop_music(fade_duration: float = 1.0):
-	if active_music_player.playing:
-		var tween = create_tween()
-		tween.tween_property(active_music_player, "volume_db", -80.0, fade_duration)
-		tween.tween_callback(active_music_player.stop)
+func set_music_intensity(target_val: float, fade_time: float = 2.0):
+	if music_player:
+		# The plugin handles the lerp automatically!
+		music_player.FadeIntensity(clamp(target_val, 0.0, 1.0), fade_time)
+
+func stop_music(fade_duration: float = 2.0):
+	if music_player:
+		music_player.Stop(fade_duration)
 	current_music_key = ""
 
-# --- HELPERS ---
+
+# --- PUBLIC FUNCTION: LOCATION MUSIC ---
+func play_location_music(env_name: String):
+	var target_key = "battle_theme"
+	match env_name.to_lower():
+		"ring": target_key = "music_ring"
+		"dojo": target_key = "music_dojo"
+		"street": target_key = "music_street"
+	
+	play_music(target_key, 2.0)
+
+# --- PUBLIC FUNCTION: SFX (Keep exactly as is) ---
+func play_sfx(key: String, pitch_variance: float = 0.0):
+	if not sounds.has(key): return
+	var stream = sounds[key]
+	var player = _get_available_player()
+	if player:
+		player.stream = stream
+		player.pitch_scale = randf_range(1.0 - pitch_variance, 1.0 + pitch_variance) if pitch_variance > 0 else 1.0
+		player.play()
+
 func _get_available_player() -> AudioStreamPlayer:
 	for p in sfx_players:
 		if not p.playing: return p
-	
 	var p = sfx_players.pop_front()
 	sfx_players.append(p)
 	return p
 
-# --- DANGER STATE LOGIC ---
 func set_danger_mode(active: bool):
-	# Prevent spamming the same state
 	if active == is_danger_mode: return
 	is_danger_mode = active
 	
-	var music_bus_idx = AudioServer.get_bus_index("Music")
-	# We assume LowPassFilter is the FIRST effect (index 0) on the Music bus
-	var filter = AudioServer.get_bus_effect(music_bus_idx, 0) as AudioEffectLowPassFilter
-	
-	if not filter:
-		print("Error: No LowPassFilter found on Music Bus!")
-		return
-		
-	var tween = create_tween()
-	
 	if active:
-		print(">> DANGER STATE: ON")
-		# 1. Muffle Music (Tween Cutoff down to 600Hz)
-		tween.tween_property(filter, "cutoff_hz", 600.0, 1.0)
-		
-		# 2. Start Heartbeat
+		# 1. Start the heartbeat
 		heartbeat_player.play()
-		
+		_pulse_vignette()
+		# 2. Maybe lower the volume slightly to make the scene feel 'quiet' and 'scary'
+		music_player.FadeVolume(-5.0, 1.0) 
 	else:
-		print(">> DANGER STATE: OFF")
-		# 1. Restore Music (Tween Cutoff up to 20500Hz)
-		tween.tween_property(filter, "cutoff_hz", 20500.0, 1.0)
-		
-		# 2. Stop Heartbeat
+		# 1. Stop heartbeat
 		heartbeat_player.stop()
+		# 2. Restore full volume
+		music_player.FadeVolume(0.0, 1.0)
 
-# Helper to ensure music resets when switching scenes/winning
+# This is the function RunManager is looking for!
+# Inside AudioManager.gd
+
 func reset_audio_state():
-	set_danger_mode(false)
+	# 1. Stop the Heartbeat Sound
+	set_danger_mode(false) 
+	
+	# 2. Reset Music Intensity to "Calm" (Layer 1)
+	set_music_intensity(0.0, 0.5)
+	
+	# 3. FORCE RESET VISUALS (This was missing!)
+	# We need to tell the cinematic manager to clear the red/vignette/blur
+	if GlobalCinematics.has_method("set_danger_vignette"):
+		GlobalCinematics.set_danger_vignette(false)
+		
+	# 4. Stop any lingering tweens on the music player
+	# (Optional, but good practice to stop fade-outs from fighting with fade-ins)
+	if music_player: music_player.Stop(0.5)
+
+func _pulse_vignette():
+	if not is_danger_mode: return
+	
+	# Pulse the vignette intensity up and down slightly
+	var tween = create_tween()
+	tween.tween_method(func(v): 
+		# We reach into GlobalCinematics to nudge the boost
+		GlobalCinematics.danger_vignette_boost = v
+		GlobalCinematics._update_vignette_shader()
+	, 0.45, 0.55, 0.4).set_trans(Tween.TRANS_SINE) # Pulse up
+	
+	tween.tween_method(func(v): 
+		GlobalCinematics.danger_vignette_boost = v
+		GlobalCinematics._update_vignette_shader()
+	, 0.55, 0.45, 0.4).set_trans(Tween.TRANS_SINE) # Pulse down
+	
+	# Loop the pulse as long as we are in danger
+	tween.tween_callback(_pulse_vignette)
 
 
 ========================================
@@ -1310,6 +1304,12 @@ var camera: Camera2D
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS 
 	
+	# --- FIX: FORCE RESET AT START OF FIGHT ---
+	# This ensures we don't inherit "Black & White" from the previous match
+	if GlobalCinematics:
+		GlobalCinematics.reset_visuals()
+	# ------------------------------------------
+	
 	# --- NEW: HARDWARE CAMERA SETUP ---
 	camera = Camera2D.new()
 	# Center the camera perfectly based on screen size
@@ -1437,29 +1437,26 @@ func apply_camera_impact(zoom_amount: float, shake_amount: float):
 	zoom_strength = max(zoom_strength, zoom_amount)
 	shake_strength = max(shake_strength, shake_amount)
 
-# --- FINISHER SEQUENCE ---
 func _play_finisher_sequence():
 	if finisher_triggered: return
 	finisher_triggered = true
 	
-	print(">>> FINISHER TRIGGERED <<<")
-	
-	# 1. FREEZE TIME (Longer than normal)
 	HitStopManager.stop_frame(1.5)
 	
-	# 2. EXTREME ZOOM
-	# We set it high. The _process loop above ensures it STAYS high while paused.
+	# Visuals
 	zoom_strength = 0.45
-	shake_strength = 0.0 # Clear shake to focus on the impact
+	shake_strength = 0.0 
 	
-	# 3. BACKGROUND DESATURATION (Using tween_method)
-	if background and background.material:
-		var tween = create_tween()
-		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS) # Run while paused
-		# Fade saturation from 1.0 to 0.0 over 0.1 seconds
-		tween.tween_method(_set_bg_saturation, 1.0, 0.0, 0.1)
+	# --- CALL GLOBAL ---
+	GlobalCinematics.apply_finisher_effect()
 
-# ... (Rest of existing toggles code) ...
+func _on_game_state_changed(new_state):
+	if new_state == GameManager.State.POST_CLASH:
+		_log_stat_changes()
+		finisher_triggered = false
+		
+		# --- CALL GLOBAL ---
+		GlobalCinematics.reset_visuals()
 
 func _create_passive_toggles():
 	var container = HBoxContainer.new()
@@ -1784,11 +1781,20 @@ func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
 	# React to Death?
 	# (Already covered by Low HP lines potentially, or add a specific check here)
 	
-	# --- NEW: CHECK FOR FINISHER ---
-	# We check if the victim is dead, and trigger the cinematic
+# --- NEW: CHECK FOR FINISHER ---
 	var victim_data = GameManager.p1_data if target_id == 1 else GameManager.p2_data
+	
 	if victim_data.current_hp <= 0:
 		_play_finisher_sequence()
+		
+		# --- ADD THIS BLOCK ---
+		# 1. Wait for the freeze-frame/drama to finish (e.g. 2 seconds)
+		# We use create_timer because the game might be in HitStop
+		await get_tree().create_timer(2.0).timeout
+		
+		# 2. Fade the color back in smoothly
+		if GlobalCinematics:
+			GlobalCinematics.reset_visuals()
 	# --------------------------------
 
 func _on_healing_received(target_id: int, amount: int):
@@ -1908,18 +1914,6 @@ func setup_toggles(p1_override = null, p2_override = null):
 	p2_toggle.button_pressed = p2_is_human
 	container.add_child(p2_toggle)
 
-func _on_game_state_changed(new_state):
-	if new_state == GameManager.State.POST_CLASH:
-		_log_stat_changes()
-		
-		# Reset finisher state
-		finisher_triggered = false
-		
-		# Restore Color smoothly
-		if background and background.material:
-			var tween = create_tween()
-			tween.tween_method(_set_bg_saturation, 0.0, 1.0, 0.5)
-
 func _log_stat_changes():
 	if not combat_log or not GameManager.p1_data or not GameManager.p2_data: return
 	
@@ -2026,6 +2020,10 @@ func _show_bark(player_id: int, text: String):
 	# Wait, then fade out
 	tween.chain().tween_interval(1.5)
 	tween.chain().tween_property(lbl, "modulate:a", 0.0, 0.3)
+
+func _exit_tree():
+	if GlobalCinematics:
+		GlobalCinematics.reset_visuals()
 
 
 ========================================
@@ -2715,7 +2713,7 @@ func create_character(type: CharacterData.ClassType, player_name: String) -> Cha
 	char_data.has_technique_dropdown = def.has_technique_dropdown
 	
 	# 2. Library (Duplicate the array so we don't modify the Resource)
-	char_data.unlocked_actions = def.starting_deck.duplicate()
+	char_data.unlocked_actions = get_starting_deck(type)
 	
 	# 3. Select Hand
 	char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
@@ -3754,6 +3752,91 @@ func _build_log_window():
 
 
 ========================================
+FILE PATH: res://Scripts/GlobalCinematics.gd
+========================================
+extends CanvasLayer
+
+@onready var filter = $ScreenFilter
+
+# Default User Settings
+var user_brightness: float = 0.0
+var user_contrast: float = 1.0
+var danger_vignette_boost: float = 0.0
+var vignette_intensity: float = 0.2
+var danger_aberration_boost: float = 0.0
+
+func _ready():
+	filter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reset_visuals()
+
+# --- NEW: SETTINGS FUNCTIONS ---
+func set_brightness(value: float):
+	user_brightness = value
+	if filter.material:
+		filter.material.set_shader_parameter("brightness", user_brightness)
+
+func set_contrast(value: float):
+	user_contrast = value
+	if filter.material:
+		filter.material.set_shader_parameter("contrast", user_contrast)
+
+func reset_visuals():
+	danger_vignette_boost = 0.0
+	if filter.material:
+		# Reset Saturation (Gameplay effect)
+		var tween = create_tween()
+		tween.tween_method(func(val): filter.material.set_shader_parameter("saturation", val), 
+			filter.material.get_shader_parameter("saturation"), 1.0, 0.5)
+			
+		# Ensure User Settings are re-applied (in case they were tweened)
+		filter.material.set_shader_parameter("brightness", user_brightness)
+		filter.material.set_shader_parameter("contrast", user_contrast)
+
+func apply_finisher_effect():
+	if filter.material:
+		var tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+		tween.tween_method(func(val): filter.material.set_shader_parameter("saturation", val), 
+			1.0, 0.0, 0.1)
+
+func set_danger_vignette(active: bool):
+	var target_vignette = 0.45 if active else 0.0
+	var target_aberration = 0.008 if active else 0.0 # Subtle but effective
+	
+	var tween = create_tween()
+	tween.set_parallel(true) # Let both animations happen at once
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	
+	# Animate Vignette
+	tween.tween_method(func(val): 
+		danger_vignette_boost = val
+		_update_vignette_shader(),
+		danger_vignette_boost, target_vignette, 1.5
+	)
+	
+	# NEW: Animate Chromatic Aberration
+	tween.tween_method(func(val):
+		danger_aberration_boost = val
+		if filter.material:
+			filter.material.set_shader_parameter("aberration_amount", val)
+	, danger_aberration_boost, target_aberration, 1.5)
+
+func _update_vignette_shader():
+	if filter and filter.material:
+		# We combine the base menu value with the temporary adrenaline boost
+		var total_vignette = clamp(vignette_intensity + danger_vignette_boost, 0.0, 1.0)
+		
+		# Make sure the shader parameter string "vignette_intensity" 
+		# matches the 'uniform' name inside your .gdshader file!
+		filter.material.set_shader_parameter("vignette_intensity", total_vignette)
+
+# Call this from your Options Menu to change the permanent vignette level
+func change_base_vignette(new_val: float):
+	vignette_intensity = new_val
+	_update_vignette_shader()
+
+
+========================================
 FILE PATH: res://Scripts/GymMain.gd
 ========================================
 extends Control
@@ -4448,41 +4531,71 @@ FILE PATH: res://Scripts/MenuSettings.gd
 ========================================
 extends Control
 
-# References to UI nodes
+# --- AUDIO REFERENCES ---
 @onready var master_slider = $CenterContainer/VBoxContainer/MasterSlider
 @onready var music_slider = $CenterContainer/VBoxContainer/MusicSlider
-# We use get_node_or_null for SFX just in case you haven't added it to the scene yet
 @onready var sfx_slider = $CenterContainer/VBoxContainer/SFXSlider 
 
-func _ready():
-	# Use the Manager to initialize sliders
-	_setup_slider(master_slider, "Master")
-	_setup_slider(music_slider, "Music")
-	
-	if sfx_slider:
-		_setup_slider(sfx_slider, "SFX")
+# --- VISUAL REFERENCES ---
+@onready var brightness_slider = $CenterContainer/VBoxContainer/BrightnessSlider
+@onready var contrast_slider = $CenterContainer/VBoxContainer/ContrastSlider
 
-func _setup_slider(slider: HSlider, bus_name: String):
-	# 1. Visual Configuration
+func _ready():
+	# 1. Setup Audio
+	if master_slider: _setup_audio_slider(master_slider, "Master")
+	if music_slider: _setup_audio_slider(music_slider, "Music")
+	if sfx_slider: _setup_audio_slider(sfx_slider, "SFX")
+
+	# 2. Setup Visuals
+	if brightness_slider:
+		_setup_visual_slider(brightness_slider, "Brightness", -0.5, 0.5, GlobalCinematics.user_brightness)
+	if contrast_slider:
+		_setup_visual_slider(contrast_slider, "Contrast", 0.5, 1.5, GlobalCinematics.user_contrast)
+
+# --- SETUP HELPER: AUDIO ---
+func _setup_audio_slider(slider: HSlider, bus_name: String):
 	slider.min_value = 0.0
 	slider.max_value = 1.0
 	slider.step = 0.05
 	
-	# 2. Get Initial Value from Manager (Correctly synced with save file)
-	slider.value = SettingsManager.get_saved_volume(bus_name)
+	# Get initial value safely
+	if SettingsManager.has_method("get_saved_volume"):
+		slider.value = SettingsManager.get_saved_volume(bus_name)
+	else:
+		var bus_idx = AudioServer.get_bus_index(bus_name)
+		slider.value = db_to_linear(AudioServer.get_bus_volume_db(bus_idx))
 	
-	# 3. Connect Signal
-	# When slider moves -> Tell Manager to Update & Save
-	slider.value_changed.connect(func(val): 
-		SettingsManager.update_volume(bus_name, val)
-	)
+	# Connect signal using .bind() instead of a lambda function
+	# This passes 'bus_name' as an extra argument to the function
+	if not slider.value_changed.is_connected(_on_audio_changed):
+		slider.value_changed.connect(_on_audio_changed.bind(bus_name))
 
-func _on_volume_changed(bus_index: int, value: float):
-	# Convert slider (0-1) back to Decibels
-	AudioServer.set_bus_volume_db(bus_index, linear_to_db(value))
+# --- SETUP HELPER: VISUALS ---
+func _setup_visual_slider(slider: HSlider, type: String, min_v: float, max_v: float, start_val: float):
+	slider.min_value = min_v
+	slider.max_value = max_v
+	slider.step = 0.05
+	slider.value = start_val
 	
-	# Quality of Life: If volume is very low, actually 'Mute' it to save performance
-	AudioServer.set_bus_mute(bus_index, value < 0.05)
+	# Connect signal using .bind()
+	if not slider.value_changed.is_connected(_on_visual_changed):
+		slider.value_changed.connect(_on_visual_changed.bind(type))
+
+# --- EVENT HANDLER: AUDIO ---
+func _on_audio_changed(value: float, bus_name: String):
+	if SettingsManager.has_method("update_volume"):
+		SettingsManager.update_volume(bus_name, value)
+	else:
+		var bus_idx = AudioServer.get_bus_index(bus_name)
+		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(value))
+		AudioServer.set_bus_mute(bus_idx, value < 0.05)
+
+# --- EVENT HANDLER: VISUALS ---
+func _on_visual_changed(value: float, type: String):
+	if type == "Brightness":
+		GlobalCinematics.set_brightness(value)
+	elif type == "Contrast":
+		GlobalCinematics.set_contrast(value)
 
 
 ========================================
@@ -4929,9 +5042,9 @@ class_name ClassDefinition
 
 @export_group("Dialogue / Barks")
 # Keys: "INTRO", "WIN", "HURT", "SUPER", "LOW_HP"
-# Values: Array of Strings
+# PLUS Contexts: "INTRO_VS_QUICK", "INTRO_VS_HEAVY", etc.
 @export var barks: Dictionary = {
-	"INTRO": ["Let's fight!", "I'm ready."],
+	"INTRO_GENERIC": ["Let's fight!", "I'm ready."],
 	"WIN": ["Too easy.", "Victory!"],
 	"HURT": ["Ouch!", "Is that all?"],
 	"SUPER": ["Take this!", "Power up!"],
@@ -4944,74 +5057,43 @@ FILE PATH: res://Scripts/Resources/DialogueManager.gd
 ========================================
 extends Node
 
-# --- DATA STRUCTURE ---
-# Key: ClassType (Who is speaking?)
-# Value: Dictionary of Contexts -> Array of Strings
-var lines = {
-	CharacterData.ClassType.HEAVY: {
-		"INTRO_GENERIC": ["I'm gonna break you in half!", "Don't cry when this is over.", "Hmph. Tiny."],
-		"INTRO_VS_QUICK": ["Stop hopping around and FIGHT!", "I'll swat you like a fly."],
-		"WIN_OFFENCE": ["CRUSHED!", "Too weak!", "Boom!"],
-		"WIN_DEFENCE": ["Is that it?", "Tickles.", "My turn."],
-		"HURT_HEAVY": ["GAAH!", "You'll pay for that...", "Finally, a challenge!"],
-		"USE_SUPER": ["GAME OVER!", "GOODNIGHT!"],
-		"LOW_HP": ["I... am not... done...", "Just... a scratch..."]
-	},
-	CharacterData.ClassType.QUICK: {
-		"INTRO_GENERIC": ["Too slow!", "Catch me if you can!", "This will be over in a second."],
-		"INTRO_VS_HEAVY": ["Big target. Easy target.", "You'll never hit me, big guy!"],
-		"WIN_OFFENCE": ["Too slow!", "Keep up!", "Gotcha!"],
-		"WIN_DEFENCE": ["Missed me!", "Too obvious.", "Nope!"],
-		"HURT_HEAVY": ["Oof! Okay...", "Hey! Watch the face!", "That... actually hurt."],
-		"USE_SUPER": ["MAXIMUM SPEED!", "LIGHTSPEED!"],
-		"LOW_HP": ["Running... on fumes...", "Can't... stop..."]
-	},
-	CharacterData.ClassType.TECHNICAL: {
-		"INTRO_GENERIC": ["I've already calculated your defeat.", "Your stance is full of openings.", "Let's test my theory."],
-		"INTRO_VS_PATIENT": ["Stalling won't save you.", "I know exactly what you're waiting for."],
-		"WIN_OFFENCE": ["Calculated.", "Precision strikes.", "Dissected."],
-		"WIN_DEFENCE": ["Predictable.", "As expected.", "Flawed technique."],
-		"HURT_HEAVY": ["Miscalculation...", "An error in judgment.", "Critical damage taken."],
-		"USE_SUPER": ["CHECKMATE.", "SOLUTION FOUND."],
-		"LOW_HP": ["System... failing...", "Impossible..."]
-	},
-	CharacterData.ClassType.PATIENT: {
-		"INTRO_GENERIC": ["Patience is a weapon.", "I can wait all day.", "Your anger makes you sloppy."],
-		"INTRO_VS_TECHNICAL": ["Analyze all you want. I'm not moving.", "Overthinking creates doubt."],
-		"WIN_OFFENCE": ["An opening.", "Now.", "Exposed."],
-		"WIN_DEFENCE": ["Denied.", "Wasted effort.", "Not yet."],
-		"HURT_HEAVY": ["A solid hit...", "I underestimated you.", "Focus..."],
-		"USE_SUPER": ["THE WAIT IS OVER.", "STRIKE TRUE."],
-		"LOW_HP": ["Breathing... difficult...", "Must... stay... calm..."]
-	}
-}
-
 # --- FUNCTIONS ---
 
 # Returns a dictionary { "p1": "Line", "p2": "Line" }
-func get_intro_banter(p1_type, p2_type) -> Dictionary:
-	var p1_line = _get_line(p1_type, "INTRO_GENERIC")
-	var p2_line = _get_line(p2_type, "INTRO_GENERIC")
+func get_intro_banter(p1_type: CharacterData.ClassType, p2_type: CharacterData.ClassType) -> Dictionary:
+	# 1. Generate the "Context Keys" for specific matchups
+	# Example: If P1 is HEAVY and P2 is QUICK, P1 looks for "INTRO_VS_QUICK"
+	var p1_context = "INTRO_VS_" + ClassFactory.class_enum_to_string(p2_type).to_upper()
+	var p2_context = "INTRO_VS_" + ClassFactory.class_enum_to_string(p1_type).to_upper()
 	
-	# Check for specific match-up lines (P1 vs P2)
-	var p1_specific_key = "INTRO_VS_" + ClassFactory.class_enum_to_string(p2_type).to_upper()
-	if lines.has(p1_type) and lines[p1_type].has(p1_specific_key):
-		p1_line = lines[p1_type][p1_specific_key].pick_random()
-		
-	# Check for specific match-up lines (P2 vs P1)
-	var p2_specific_key = "INTRO_VS_" + ClassFactory.class_enum_to_string(p1_type).to_upper()
-	if lines.has(p2_type) and lines[p2_type].has(p2_specific_key):
-		p2_line = lines[p2_type][p2_specific_key].pick_random()
-		
-	return { "p1":"'" +  p1_line + "'", "p2":"'" +  p2_line + "'" }
+	# 2. Fetch lines (Try specific context first, fallback to generic)
+	var p1_line = _get_line(p1_type, [p1_context, "INTRO_GENERIC"])
+	var p2_line = _get_line(p2_type, [p2_context, "INTRO_GENERIC"])
+	
+	return { "p1": "'" +  p1_line + "'", "p2": "'" +  p2_line + "'" }
 
-func get_reaction(class_type, context: String) -> String:
-	return _get_line(class_type, context)
+# Wrapper for reaction barks (Hurt, Win, etc)
+func get_reaction(class_type: CharacterData.ClassType, context: String) -> String:
+	return _get_line(class_type, [context])
 
-func _get_line(class_type, key: String) -> String:
-	if not lines.has(class_type): return "..."
-	if not lines[class_type].has(key): return "..."
-	return lines[class_type][key].pick_random()
+# --- INTERNAL HELPER ---
+func _get_line(class_type: CharacterData.ClassType, valid_keys: Array) -> String:
+	# 1. Fetch the Resource from the Factory
+	if not ClassFactory.class_registry.has(class_type): 
+		return "..."
+		
+	var def = ClassFactory.class_registry[class_type]
+	
+	# 2. Search for the best matching key
+	# We loop through keys so we can try "INTRO_VS_QUICK" first, then "INTRO_GENERIC"
+	for key in valid_keys:
+		if def.barks.has(key):
+			var lines_array = def.barks[key]
+			if lines_array.size() > 0:
+				return lines_array.pick_random()
+	
+	# 3. Fallback if nothing found
+	return "..."
 
 
 ========================================
@@ -5270,6 +5352,10 @@ func reset_combat():
 		priority_player = randi_range(1, 2)
 		
 	print("\n>>> COMBAT RESET! Starting from Initial Clash (Neutral) <<<")
+	# --- NEW: FADE TO BATTLE INTENSITY (Layer 2) ---
+	if AudioManager:
+		AudioManager.set_music_intensity(1.0, 2.0)
+	# -----------------------------------------------
 	change_state(State.SELECTION)
 
 func get_attacker() -> int:
@@ -5420,15 +5506,24 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	if sec.is_super: new_card.is_super = true
 	if sec.is_opener: new_card.is_opener = true
 	
-	# --- NEW: COMBINE STATUS EFFECTS SAFELY ---
-	# We merge both cards' status arrays so all effects carry over!
-	var combined_statuses = []
-	combined_statuses.append_array(base.statuses_to_apply)
+# --- OLD CODE (Caused Error) ---
+	# var combined_statuses = []
+	# combined_statuses.append_array(base.statuses_to_apply)
+	# for s in sec.statuses_to_apply:
+	# 	combined_statuses.append(s.duplicate(true)) 
+	# new_card.statuses_to_apply = combined_statuses
+	
+	# --- NEW FIXED CODE ---
+	# 1. Clear whatever statuses the base card had (we will rebuild it)
+	new_card.statuses_to_apply.clear()
+	
+	# 2. Add Base Statuses
+	for s in base.statuses_to_apply:
+		new_card.statuses_to_apply.append(s.duplicate(true))
+		
+	# 3. Add Secondary Statuses
 	for s in sec.statuses_to_apply:
-		# duplicate(true) ensures we don't accidentally modify the original card's dictionary
-		combined_statuses.append(s.duplicate(true)) 
-	new_card.statuses_to_apply = combined_statuses
-	# ------------------------------------------
+		new_card.statuses_to_apply.append(s.duplicate(true))
 	
 	new_card.feint = false 
 	return new_card
@@ -5606,6 +5701,10 @@ func resolve_clash():
 	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
 	_check_reversal_state() 
 	_handle_locks(winner_id)
+	
+	# --- NEW: UPDATE MUSIC INTENSITY ---
+	_update_dynamic_music()
+	# -----------------------------------
 
 	p1_action_queue = null
 	p2_action_queue = null
@@ -6081,6 +6180,34 @@ func _load_backgrounds():
 	else:
 		print("ERROR: Could not find 'res://Art/Background/' folder.")
 
+# --- NEW: DYNAMIC MUSIC LOGIC ---
+# Inside GameManager.gd
+
+# Inside GameManager.gd -> _update_dynamic_music()
+
+func _update_dynamic_music():
+	if p1_data.max_hp <= 0: return
+	
+	var hp_percent = float(p1_data.current_hp) / float(p1_data.max_hp)
+	
+	if hp_percent <= 0.33:
+		# --- LAST STAND MODE ---
+		# 1. Audio: Drop intensity to Layer 2
+		AudioManager.set_music_intensity(0.5, 1.5) 
+		
+		# 2. Visual: Increase Vignette (Tunnel Vision)
+		if GlobalCinematics.has_method("set_danger_vignette"):
+			GlobalCinematics.set_danger_vignette(true)
+			
+	else:
+		# --- NORMAL MODE ---
+		# 1. Audio: Full Intensity
+		AudioManager.set_music_intensity(1.0, 2.0)
+		
+		# 2. Visual: Reset Vignette
+		if GlobalCinematics.has_method("set_danger_vignette"):
+			GlobalCinematics.set_danger_vignette(false)
+
 
 ========================================
 FILE PATH: res://Scripts/Resources/MapNodeData.gd
@@ -6396,21 +6523,22 @@ func _init_tree_root(class_type: CharacterData.ClassType):
 
 # --- UPDATED FIGHT GENERATION LOGIC ---
 func start_next_fight():
-	
-	# --- NEW: APPLY EVENT STATUSES ---
-	#for status in next_fight_statuses:
-		#player_run_data.statuses[status] = 1
-	#next_fight_statuses.clear() # Reset for the future
-	# ---------------------------------
-	
-	# 1. Setup Player
+	# 1. Setup Player Data
 	GameManager.next_match_p1_data = player_run_data
-	AudioManager.play_music("battle_theme")
+	
 	# --- NEW: RANDOMIZE ENVIRONMENT ---
 	var envs = ["Ring", "Dojo", "Street"]
 	var selected_env = envs.pick_random()
 	GameManager.apply_environment_rules(selected_env)
-	# ----------------------------------
+	
+	# --- NEW: TRIGGER ENVIRONMENT MUSIC ---
+	# We call this AFTER we pick the environment so the manager knows which one to play
+	if AudioManager.has_method("play_location_music"):
+		AudioManager.play_location_music(selected_env)
+	else:
+		# Fallback if you haven't updated AudioManager yet
+		AudioManager.play_music("battle_theme")
+	# -----------------------------------
 	
 	# 2. CALCULATE TARGET LEVEL
 	var raw_level = current_level
@@ -6608,18 +6736,15 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	
 	#print("Starting Run: " + p_data.display_name + " (" + str(p_data.class_type) + ")")
 	
-	# 3. LOAD STARTING DECK
-	if source_class.starting_deck.size() > 0:
-		for card_res in source_class.starting_deck:
-			if card_res:
-				p_data.unlocked_actions.append(card_res.duplicate())
-	else:
-		p_data.unlocked_actions.append_array(ClassFactory.get_basic_actions())
+# 3. LOAD STARTING DECK (Fixed)
+	# We ask the Factory for the full deck (Basics + Class Specials)
+	p_data.unlocked_actions = ClassFactory.get_starting_deck(source_class.class_type)
 	
 	# 4. Auto-Unlock Class Starter Node
 	_unlock_class_starters(p_data, source_class)
 	
 	# 5. Fill Initial Hand
+	# Since unlocked_actions is now complete, this will fill the hand correctly
 	for action in p_data.unlocked_actions:
 		if p_data.deck.size() < ClassFactory.HAND_LIMIT:
 			p_data.deck.append(action)
@@ -6929,6 +7054,34 @@ func exit_deck_editor():
 		# Case: We just started a run, or loaded a save.
 		# The map is already ready, just go there.
 		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+# Call this from your TournamentMap script when a node is clicked!
+# Inside RunManager.gd
+
+# Inside RunManager.gd
+
+func start_map_fight(node_data: MapNodeData):
+	# --- 1. SETUP PLAYER & ENEMY (CRITICAL! DO NOT REMOVE) ---
+	GameManager.next_match_p1_data = player_run_data
+	GameManager.next_match_p2_data = node_data.enemy_data
+	# ---------------------------------------------------------
+	
+	# 2. Randomize Environment
+	var envs = ["Ring", "Dojo", "Street"]
+	var selected_env = envs.pick_random()
+	GameManager.apply_environment_rules(selected_env)
+	
+	# 3. Start Music (VS SCREEN MODE)
+	if AudioManager.has_method("play_location_music"):
+		AudioManager.play_location_music(selected_env)
+		
+		# Set to Intensity 1 (Calm/Intro) for the VS Screen
+		AudioManager.set_music_intensity(0.0, 0.0)
+
+	# 4. Launch VS Screen
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
+
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 
 ========================================
@@ -7964,6 +8117,86 @@ func _scan_directory(path: String) -> String:
 
 
 ========================================
+FILE PATH: res://Scripts/Tools/ProjectExporter.gd
+========================================
+@tool
+extends EditorScript
+
+# --- CONFIGURATION ---
+# This dictionary maps the Output Filename to the list of scripts you want inside it.
+# You can add or remove paths here as your project grows.
+var chunks = {
+	"Core_Managers.txt": [
+		"res://Scripts/Resources/GameManager.gd",
+		"res://Scripts/RunManager.gd",
+		"res://Scripts/ClassFactory.gd",
+		"res://Scripts/AudioManager.gd",
+		"res://Scripts/Resources/ClassDefinition.gd",
+		"res://Scripts/Resources/CharacterData.gd",
+		"res://Scripts/Resources/ActionData.gd",
+		"res://Scripts/Resources/DialogueManager.gd"
+	],
+	
+	"UI_Systems.txt": [
+		"res://Scripts/BattleUI.gd",
+		"res://Scripts/MenuArcade.gd",
+		"res://Scripts/MenuQuick.gd",
+		"res://Scripts/CardDisplay.gd",
+		"res://Scripts/DeckEditScreen.gd",
+		"res://Scripts/TournamentMap.gd", # If you have this
+		"res://Scripts/RewardScreen.gd"    # If you have this
+	],
+	
+	"Gameplay_Logic.txt": [
+		"res://Scripts/ActionTree.gd",
+		"res://Scripts/ActionNode.gd",
+		"res://Scripts/EventRoom.gd",
+		"res://Scripts/TestArena.gd",
+		"res://Scripts/SoundButton.gd",
+		"res://Scripts/EquipmentDraft.gd"  # If you have this
+	]
+}
+
+func _run():
+	print("--- STARTING PROJECT EXPORT ---")
+	
+	# Loop through each category in the dictionary
+	for output_filename in chunks.keys():
+		var file_list = chunks[output_filename]
+		export_chunk(output_filename, file_list)
+		
+	print("--- EXPORT COMPLETE ---")
+	print("Check your project folder for the .txt files!")
+
+func export_chunk(filename: String, file_paths: Array):
+	# Create/Overwrite the output file in the project root
+	var save_path = "res://" + filename
+	var out_file = FileAccess.open(save_path, FileAccess.WRITE)
+	
+	if not out_file:
+		print("ERROR: Could not create file: " + save_path)
+		return
+
+	print("Writing " + filename + "...")
+	
+	for path in file_paths:
+		if FileAccess.file_exists(path):
+			var content = FileAccess.get_file_as_string(path)
+			
+			# Write a clean header so I (the AI) know which file this is
+			out_file.store_string("\n")
+			out_file.store_string("========================================\n")
+			out_file.store_string("FILE PATH: " + path + "\n")
+			out_file.store_string("========================================\n")
+			out_file.store_string(content)
+			out_file.store_string("\n\n")
+		else:
+			print("   [WARNING] File not found (Skipped): " + path)
+			
+	out_file.close()
+
+
+========================================
 FILE PATH: res://Scripts/Tools/SceneDumper.gd
 ========================================
 @tool
@@ -8043,60 +8276,82 @@ FILE PATH: res://Scripts/TournamentMap.gd
 ========================================
 extends Control
 
+@onready var scroll_container = $ScrollContainer # We need reference to the ScrollView itself
 @onready var container = $ScrollContainer/HBoxContainer
-# Preload the Node scene we just made
+
 var node_scene = preload("res://Scenes/UI/MapNode.tscn")
 
 func _ready():
 	_generate_map_visuals()
 
 func _generate_map_visuals():
-	# Clear previous children (if any)
+	# Clear previous children
 	for child in container.get_children():
 		child.queue_free()
 	
-	# Loop through the data generated by RunManager
+	var target_node_control = null # Variable to hold the node we want to look at
+	
+	# Loop through the data
 	for i in range(RunManager.tournament_map.size()):
 		var data = RunManager.tournament_map[i]
 		
 		var node_instance = node_scene.instantiate()
 		container.add_child(node_instance)
 		
-		# Setup the data
 		node_instance.setup(data, i)
 		node_instance.node_clicked.connect(_on_node_clicked)
+		
+		# --- NEW: Capture the node we are currently on ---
+		if i == RunManager.current_map_index:
+			target_node_control = node_instance
 
-	# --- NEW TIMING FIX ---
-	# Wait exactly two frames for the HBoxContainer to finish organizing the sizes and positions
+	# Wait for layout to calculate sizes
 	await get_tree().process_frame
 	await get_tree().process_frame
 	
 	_draw_connections()
+	
+	# --- NEW: SCROLL TO NODE ---
+	# We do this AFTER drawing connections so the line is behind the nodes
+	if target_node_control:
+		_scroll_to_node(target_node_control)
 
+func _scroll_to_node(target: Control):
+	# 1. Calculate the center of the target node
+	# (Node Position + Half its width)
+	var node_center_x = target.position.x + (target.size.x / 2)
+	
+	# 2. Calculate the center of the screen/scroll view
+	var screen_center_x = scroll_container.size.x / 2
+	
+	# 3. Determine the scroll position
+	# We want the Node Center to be at Screen Center.
+	# So we subtract the screen half-width from the node's position.
+	var final_scroll_x = node_center_x - screen_center_x
+	
+	# 4. Animate it smoothly (The "Juice")
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_OUT)
+	tween.tween_property(scroll_container, "scroll_horizontal", final_scroll_x, 0.8)
 
 # --- VISUAL FLUFF: CONNECTING LINES ---
 func _draw_connections():
 	var line = Line2D.new()
-	line.width = 6 # Made slightly thicker for visibility
-	line.default_color = Color(0.6, 0.6, 0.6) # Sleek gray line
+	line.width = 6 
+	line.default_color = Color(0.6, 0.6, 0.6) 
 	
-	# --- NEW Z-INDEX FIX ---
-	# Add the line to the container, then force it to the VERY TOP of the child list.
-	# In Godot, the top of the list renders "first" (in the back), meaning it will
-	# draw behind the nodes, but safely in front of your background!
 	container.add_child(line)
-	container.move_child(line, 0)
+	container.move_child(line, 0) # This puts the line at index 0
 	
 	for child_node in container.get_children():
-		# Make sure we only draw points for the UI panels, not the line itself
 		if child_node is Control and child_node != line:
-			# Calculate the exact center of the node
 			var center = child_node.position + (child_node.size / 2.0)
 			line.add_point(center)
 
 func _on_node_clicked(index: int):
+	# ... (Keep existing logic) ...
 	var data = RunManager.tournament_map[index]
-	
 	match data.type:
 		MapNodeData.Type.FIGHT, MapNodeData.Type.BOSS:
 			_start_fight(data)
@@ -8104,21 +8359,11 @@ func _on_node_clicked(index: int):
 			_enter_gym(data)
 
 func _start_fight(data: MapNodeData):
-	# 1. Setup Player Data (So P1 shows up on the left)
-	# In Arcade Mode, the active player is stored in RunManager
-	GameManager.next_match_p1_data = RunManager.player_run_data
-	
-	# 2. Setup Enemy Data (So P2 shows up on the right)
-	# We take the enemy we generated for this specific map node
-	GameManager.next_match_p2_data = data.enemy_data
-	
-	# 3. Transition to the VS Screen
-	# This screen will play the animation and then automatically load the Battle
-	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
+	RunManager.start_map_fight(data)
 
 func _enter_gym(_data: MapNodeData):
 	print("Entering Gym...")
-	SceneLoader.change_scene("res://Scenes/Gym.tscn") 
+	SceneLoader.change_scene("res://Scenes/Gym.tscn")
 
 
 ========================================
@@ -8445,7 +8690,7 @@ extends Control
 
 func _ready():
 	_setup_visuals()
-	AudioManager.play_music("battle_theme")
+	#AudioManager.play_music("battle_theme")
 	# Wait a frame to let Godot calculate the new Anchors we set
 	await get_tree().process_frame
 	_play_intro_animation()
