@@ -88,21 +88,22 @@ func _init_tree_root(class_type: CharacterData.ClassType):
 
 # --- UPDATED FIGHT GENERATION LOGIC ---
 func start_next_fight():
-	
-	# --- NEW: APPLY EVENT STATUSES ---
-	#for status in next_fight_statuses:
-		#player_run_data.statuses[status] = 1
-	#next_fight_statuses.clear() # Reset for the future
-	# ---------------------------------
-	
-	# 1. Setup Player
+	# 1. Setup Player Data
 	GameManager.next_match_p1_data = player_run_data
-	AudioManager.play_music("battle_theme")
+	
 	# --- NEW: RANDOMIZE ENVIRONMENT ---
 	var envs = ["Ring", "Dojo", "Street"]
 	var selected_env = envs.pick_random()
 	GameManager.apply_environment_rules(selected_env)
-	# ----------------------------------
+	
+	# --- NEW: TRIGGER ENVIRONMENT MUSIC ---
+	# We call this AFTER we pick the environment so the manager knows which one to play
+	if AudioManager.has_method("play_location_music"):
+		AudioManager.play_location_music(selected_env)
+	else:
+		# Fallback if you haven't updated AudioManager yet
+		AudioManager.play_music("battle_theme")
+	# -----------------------------------
 	
 	# 2. CALCULATE TARGET LEVEL
 	var raw_level = current_level
@@ -618,3 +619,23 @@ func exit_deck_editor():
 		# Case: We just started a run, or loaded a save.
 		# The map is already ready, just go there.
 		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+# Call this from your TournamentMap script when a node is clicked!
+func start_map_fight(node_data: MapNodeData):
+	# 1. Setup Player & Enemy
+	GameManager.next_match_p1_data = player_run_data
+	GameManager.next_match_p2_data = node_data.enemy_data
+	
+	# 2. RANDOMIZE ENVIRONMENT (The missing piece!)
+	var envs = ["Ring", "Dojo", "Street"]
+	var selected_env = envs.pick_random()
+	GameManager.apply_environment_rules(selected_env)
+	
+	# 3. TRIGGER MUSIC
+	if AudioManager.has_method("play_location_music"):
+		AudioManager.play_location_music(selected_env)
+	else:
+		AudioManager.play_music("battle_theme")
+
+	# 4. Launch
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")

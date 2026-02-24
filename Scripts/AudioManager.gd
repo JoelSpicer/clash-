@@ -13,6 +13,10 @@ var sounds = {
 	# MUSIC (Add your music files here)
 	"menu_theme": preload("res://Audio/Music/MenuTheme.wav"),
 	"battle_theme": preload("res://Audio/Music/BattleTheme.wav"),
+	# NEW: Environment Specific Tracks
+	"music_ring": preload("res://Audio/Music/BattleRing.wav"),
+	"music_dojo": preload("res://Audio/Music/BattleTheme.wav"),
+	"music_street": preload("res://Audio/Music/BattleStreet.wav"),
 }
 
 var is_danger_mode: bool = false
@@ -160,3 +164,16 @@ func set_danger_mode(active: bool):
 # Helper to ensure music resets when switching scenes/winning
 func reset_audio_state():
 	set_danger_mode(false)
+
+func play_location_music(env_name: String):
+	var target_key = "battle_theme"
+	
+	match env_name.to_lower():
+		"ring":          # Changed from "the ring" to match your array
+			target_key = "music_ring"
+		"dojo":          # Changed from "underground dojo"
+			target_key = "music_dojo"
+		"street":        # Changed from "city streets"
+			target_key = "music_street"
+			
+	play_music(target_key, 2.0)

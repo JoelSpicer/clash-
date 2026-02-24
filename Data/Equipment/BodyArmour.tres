@@ -5,8 +5,7 @@
 [resource]
 script = ExtResource("1_0ypc4")
 display_name = "Body Armour"
-description = "+1 block, and start fight with 5 temporary HP, -3 Max SP"
+description = "+1 block, -3 Max SP"
 max_sp_bonus = -3
-starting_barrier = 5
 block_modifier = 1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

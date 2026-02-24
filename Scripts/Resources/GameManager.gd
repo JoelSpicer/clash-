@@ -369,15 +369,24 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	if sec.is_super: new_card.is_super = true
 	if sec.is_opener: new_card.is_opener = true
 	
-	# --- NEW: COMBINE STATUS EFFECTS SAFELY ---
-	# We merge both cards' status arrays so all effects carry over!
-	var combined_statuses = []
-	combined_statuses.append_array(base.statuses_to_apply)
+# --- OLD CODE (Caused Error) ---
+	# var combined_statuses = []
+	# combined_statuses.append_array(base.statuses_to_apply)
+	# for s in sec.statuses_to_apply:
+	# 	combined_statuses.append(s.duplicate(true)) 
+	# new_card.statuses_to_apply = combined_statuses
+	
+	# --- NEW FIXED CODE ---
+	# 1. Clear whatever statuses the base card had (we will rebuild it)
+	new_card.statuses_to_apply.clear()
+	
+	# 2. Add Base Statuses
+	for s in base.statuses_to_apply:
+		new_card.statuses_to_apply.append(s.duplicate(true))
+		
+	# 3. Add Secondary Statuses
 	for s in sec.statuses_to_apply:
-		# duplicate(true) ensures we don't accidentally modify the original card's dictionary
-		combined_statuses.append(s.duplicate(true)) 
-	new_card.statuses_to_apply = combined_statuses
-	# ------------------------------------------
+		new_card.statuses_to_apply.append(s.duplicate(true))
 	
 	new_card.feint = false 
 	return new_card
