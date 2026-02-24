@@ -84,6 +84,12 @@ var camera: Camera2D
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS 
 	
+	# --- FIX: FORCE RESET AT START OF FIGHT ---
+	# This ensures we don't inherit "Black & White" from the previous match
+	if GlobalCinematics:
+		GlobalCinematics.reset_visuals()
+	# ------------------------------------------
+	
 	# --- NEW: HARDWARE CAMERA SETUP ---
 	camera = Camera2D.new()
 	# Center the camera perfectly based on screen size
@@ -211,29 +217,26 @@ func apply_camera_impact(zoom_amount: float, shake_amount: float):
 	zoom_strength = max(zoom_strength, zoom_amount)
 	shake_strength = max(shake_strength, shake_amount)
 
-# --- FINISHER SEQUENCE ---
 func _play_finisher_sequence():
 	if finisher_triggered: return
 	finisher_triggered = true
 	
-	print(">>> FINISHER TRIGGERED <<<")
-	
-	# 1. FREEZE TIME (Longer than normal)
 	HitStopManager.stop_frame(1.5)
 	
-	# 2. EXTREME ZOOM
-	# We set it high. The _process loop above ensures it STAYS high while paused.
+	# Visuals
 	zoom_strength = 0.45
-	shake_strength = 0.0 # Clear shake to focus on the impact
+	shake_strength = 0.0 
 	
-	# 3. BACKGROUND DESATURATION (Using tween_method)
-	if background and background.material:
-		var tween = create_tween()
-		tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS) # Run while paused
-		# Fade saturation from 1.0 to 0.0 over 0.1 seconds
-		tween.tween_method(_set_bg_saturation, 1.0, 0.0, 0.1)
+	# --- CALL GLOBAL ---
+	GlobalCinematics.apply_finisher_effect()
 
-# ... (Rest of existing toggles code) ...
+func _on_game_state_changed(new_state):
+	if new_state == GameManager.State.POST_CLASH:
+		_log_stat_changes()
+		finisher_triggered = false
+		
+		# --- CALL GLOBAL ---
+		GlobalCinematics.reset_visuals()
 
 func _create_passive_toggles():
 	var container = HBoxContainer.new()
@@ -558,11 +561,20 @@ func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
 	# React to Death?
 	# (Already covered by Low HP lines potentially, or add a specific check here)
 	
-	# --- NEW: CHECK FOR FINISHER ---
-	# We check if the victim is dead, and trigger the cinematic
+# --- NEW: CHECK FOR FINISHER ---
 	var victim_data = GameManager.p1_data if target_id == 1 else GameManager.p2_data
+	
 	if victim_data.current_hp <= 0:
 		_play_finisher_sequence()
+		
+		# --- ADD THIS BLOCK ---
+		# 1. Wait for the freeze-frame/drama to finish (e.g. 2 seconds)
+		# We use create_timer because the game might be in HitStop
+		await get_tree().create_timer(2.0).timeout
+		
+		# 2. Fade the color back in smoothly
+		if GlobalCinematics:
+			GlobalCinematics.reset_visuals()
 	# --------------------------------
 
 func _on_healing_received(target_id: int, amount: int):
@@ -682,18 +694,6 @@ func setup_toggles(p1_override = null, p2_override = null):
 	p2_toggle.button_pressed = p2_is_human
 	container.add_child(p2_toggle)
 
-func _on_game_state_changed(new_state):
-	if new_state == GameManager.State.POST_CLASH:
-		_log_stat_changes()
-		
-		# Reset finisher state
-		finisher_triggered = false
-		
-		# Restore Color smoothly
-		if background and background.material:
-			var tween = create_tween()
-			tween.tween_method(_set_bg_saturation, 0.0, 1.0, 0.5)
-
 func _log_stat_changes():
 	if not combat_log or not GameManager.p1_data or not GameManager.p2_data: return
 	
@@ -800,3 +800,7 @@ func _show_bark(player_id: int, text: String):
 	# Wait, then fade out
 	tween.chain().tween_interval(1.5)
 	tween.chain().tween_property(lbl, "modulate:a", 0.0, 0.3)
+
+func _exit_tree():
+	if GlobalCinematics:
+		GlobalCinematics.reset_visuals()

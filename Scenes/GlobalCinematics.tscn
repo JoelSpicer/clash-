@@ -1,0 +1,24 @@
+[gd_scene format=3 uid="uid://dtocqu2bhppnv"]
+
+[ext_resource type="Script" uid="uid://bs6fn4tw13fmx" path="res://Scripts/GlobalCinematics.gd" id="1_0jt8r"]
+[ext_resource type="Shader" uid="uid://chxuw6abf6bd0" path="res://ScreenFilter.gdshader" id="1_lcymt"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_0jt8r"]
+shader = ExtResource("1_lcymt")
+shader_parameter/saturation = 1.0
+shader_parameter/glow_strength = 0.5
+shader_parameter/blur_size = 3.0
+shader_parameter/vignette_intensity = 0.3
+
+[node name="GlobalCinematics" type="CanvasLayer" unique_id=1853283437]
+layer = 1000
+script = ExtResource("1_0jt8r")
+
+[node name="ScreenFilter" type="ColorRect" parent="." unique_id=873530876]
+material = SubResource("ShaderMaterial_0jt8r")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
