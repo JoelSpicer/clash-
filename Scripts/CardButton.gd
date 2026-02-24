@@ -19,6 +19,7 @@ const COL_OFFENCE = Color("#ff6666")
 const COL_DEFENCE = Color("#66a3ff")
 
 func _ready():
+	super._ready()
 	pivot_offset = size / 2
 
 func setup(action: ActionData):
@@ -84,6 +85,9 @@ func _on_mouse_exited():
 
 func _pressed():
 	if not disabled:
+		# --- ADD THIS LINE ---
+		AudioManager.play_sfx("ui_click")
+		# ---------------------
 		if current_ghost:
 			var tween = create_tween()
 			tween.tween_property(current_ghost, "scale", Vector2(0.95, 0.95), 0.05)
