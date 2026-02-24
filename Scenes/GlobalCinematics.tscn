@@ -6,9 +6,12 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_0jt8r"]
 shader = ExtResource("1_lcymt")
 shader_parameter/saturation = 1.0
-shader_parameter/glow_strength = 0.5
-shader_parameter/blur_size = 3.0
+shader_parameter/glow_strength = 0.400000019
+shader_parameter/blur_size = 0.2000000095
 shader_parameter/vignette_intensity = 0.3
+shader_parameter/glow_threshold = 0.70000003325
+shader_parameter/brightness = 0.0
+shader_parameter/contrast = 1.0
 
 [node name="GlobalCinematics" type="CanvasLayer" unique_id=1853283437]
 layer = 1000

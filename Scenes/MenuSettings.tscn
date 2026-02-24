@@ -49,3 +49,19 @@ horizontal_alignment = 1
 
 [node name="SFXSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=1459500008]
 layout_mode = 2
+
+[node name="Label5" type="Label" parent="CenterContainer/VBoxContainer" unique_id=145999579]
+layout_mode = 2
+text = "Brightness"
+horizontal_alignment = 1
+
+[node name="BrightnessSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=704119293]
+layout_mode = 2
+
+[node name="Label6" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1743577898]
+layout_mode = 2
+text = "Contrast"
+horizontal_alignment = 1
+
+[node name="ContrastSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=1955370978]
+layout_mode = 2
