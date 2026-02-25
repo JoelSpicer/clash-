@@ -139,20 +139,23 @@ func reset_audio_state():
 		# music_player.Stop(0.5)  <-- WRONG
 		music_player.StopSongsNow(0.5) # <-- CORRECT
 
+# Inside AudioManager.gd
+
 func _pulse_vignette():
 	if not is_danger_mode: return
 	
 	# Pulse the vignette intensity up and down slightly
 	var tween = create_tween()
 	tween.tween_method(func(v): 
-		# We reach into GlobalCinematics to nudge the boost
 		GlobalCinematics.danger_vignette_boost = v
-		GlobalCinematics._update_vignette_shader()
+		# CHANGE THIS: Was _update_vignette_shader()
+		GlobalCinematics._update_visuals() 
 	, 0.45, 0.55, 0.4).set_trans(Tween.TRANS_SINE) # Pulse up
 	
 	tween.tween_method(func(v): 
 		GlobalCinematics.danger_vignette_boost = v
-		GlobalCinematics._update_vignette_shader()
+		# CHANGE THIS: Was _update_vignette_shader()
+		GlobalCinematics._update_visuals()
 	, 0.55, 0.45, 0.4).set_trans(Tween.TRANS_SINE) # Pulse down
 	
 	# Loop the pulse as long as we are in danger

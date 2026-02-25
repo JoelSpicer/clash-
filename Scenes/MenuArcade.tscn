@@ -45,6 +45,7 @@ size_flags_vertical = 3
 alignment = 1
 
 [node name="ClassScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=627875079]
+clip_contents = false
 custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 

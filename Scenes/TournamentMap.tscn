@@ -33,6 +33,7 @@ theme_type_variation = &"TitleLabel"
 text = "League Bracket"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=771221195]
+clip_contents = false
 custom_minimum_size = Vector2(0, 400)
 layout_mode = 1
 anchors_preset = 14

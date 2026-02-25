@@ -269,6 +269,9 @@ func apply_reward(reward):
 # Update this function
 func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	current_run_name = run_name # <--- Set the name!n):
+	# --- ADD THIS LINE ---
+	is_arcade_mode = true 
+	# ---------------------
 	# 1. Reset Run State
 	current_level = 1
 	player_owned_tree_ids.clear()

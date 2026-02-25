@@ -160,18 +160,37 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	# 5. NEW STAT SCALING (LINEAR GROWTH - SKIPPING ZERO)
 	# ---------------------------------------------------------
 	var stat_bonus = 0
-	
-	# If Level is 1 or higher, subtract 1 (Level 1 = 0 Bonus)
+
+# 1. Calculate the total pool of points to distribute
 	if level > 0:
 		stat_bonus = level - 1
-	# If Level is negative, use it directly (Level -1 = -1 Bonus)
 	else:
 		stat_bonus = level 
-	
-	bot_data.max_hp = max(1, bot_data.max_hp + stat_bonus)
-	bot_data.max_sp = max(1, bot_data.max_sp + stat_bonus)
-	
-	# Ensure they start full
+
+	# 2. Distribute the bonus randomly
+	if stat_bonus > 0:
+		# Pick a random number between 0 and the total bonus for HP
+		var hp_gain = randi_range(0, stat_bonus)
+		# Whatever is left over goes to SP
+		var sp_gain = stat_bonus - hp_gain
+		
+		bot_data.max_hp += hp_gain
+		bot_data.max_sp += sp_gain
+		
+	elif stat_bonus < 0:
+		# Logic for negative levels (de-buffing enemies)
+		# We use the same random logic but for reduction
+		var hp_loss = randi_range(stat_bonus, 0) # e.g. randi_range(-2, 0)
+		var sp_loss = stat_bonus - hp_loss
+		
+		bot_data.max_hp = max(1, bot_data.max_hp + hp_loss)
+		bot_data.max_sp = max(1, bot_data.max_sp + sp_loss)
+
+	# Final safety check to ensure stats never drop to/below 0
+	bot_data.max_hp = max(1, bot_data.max_hp)
+	bot_data.max_sp = max(1, bot_data.max_sp)
+
+	# Reset current values to match new max values
 	bot_data.current_hp = bot_data.max_hp
 	bot_data.current_sp = bot_data.max_sp
 	
