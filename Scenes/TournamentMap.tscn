@@ -29,6 +29,7 @@ offset_left = -20.0
 offset_right = 20.0
 offset_bottom = 23.0
 grow_horizontal = 2
+theme_type_variation = &"TitleLabel"
 text = "League Bracket"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=771221195]

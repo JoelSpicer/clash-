@@ -33,7 +33,7 @@ func _setup_visuals():
 	var env_name = GameManager.current_environment_name
 	if GameManager.environment_backgrounds.has(env_name):
 		background.texture = GameManager.environment_backgrounds[env_name]
-	arena_label.text = "Stage:\n" + "- " + env_name.to_upper() + " -"
+	arena_label.text = "- " + env_name.to_upper() + " -"
 
 	# --- FETCH DATA ---
 	var p1 = GameManager.next_match_p1_data
@@ -121,8 +121,8 @@ func _play_intro_animation():
 	
 	await get_tree().create_timer(1.0).timeout
 	p1_bubble.visible = true
-	AudioManager.play_sfx("ui_hover") # Or a "speech" sound
+	#AudioManager.play_sfx("ui_hover") # Or a "speech" sound
 	
 	await get_tree().create_timer(1.5).timeout
 	p2_bubble.visible = true
-	AudioManager.play_sfx("ui_hover")
+	#AudioManager.play_sfx("ui_hover")

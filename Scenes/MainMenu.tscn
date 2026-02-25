@@ -41,6 +41,7 @@ grow_vertical = 2
 
 [node name="TitleLabel" type="Label" parent="VBoxContainer" unique_id=1315116786]
 layout_mode = 2
+theme_type_variation = &"TitleLabel"
 text = "CLASH!"
 horizontal_alignment = 1
 

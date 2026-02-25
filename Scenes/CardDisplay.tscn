@@ -8,6 +8,8 @@ corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
+shadow_size = 10
+shadow_offset = Vector2(4, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_nee6h"]
 bg_color = Color(0.13333334, 0.13333334, 0.13333334, 0)
@@ -15,6 +17,7 @@ corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
+shadow_offset = Vector2(4, 4)
 
 [node name="CardDisplay" type="Control" unique_id=420643410]
 custom_minimum_size = Vector2(200, 280)
@@ -75,13 +78,14 @@ theme_override_font_sizes/font_size = 64
 custom_minimum_size = Vector2(0, 80)
 layout_mode = 2
 mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 16
 bbcode_enabled = true
 fit_content = true
 scroll_active = false
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="CostPanel" type="PanelContainer" parent="InnerMargin/VBox" unique_id=836118486]
+[node name="CostPanel" type="MarginContainer" parent="InnerMargin/VBox" unique_id=646347797]
 layout_mode = 2
 
 [node name="CostLabel" type="Label" parent="InnerMargin/VBox/CostPanel" unique_id=337127209]

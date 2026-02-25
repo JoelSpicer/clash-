@@ -33,6 +33,7 @@ theme_override_constants/separation = 30
 
 [node name="Title" type="Label" parent="Content" unique_id=309230774]
 layout_mode = 2
+theme_type_variation = &"TitleLabel"
 text = "THE GYM"
 horizontal_alignment = 1
 

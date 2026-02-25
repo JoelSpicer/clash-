@@ -30,6 +30,7 @@ offset_left = -20.0
 offset_right = 20.0
 offset_bottom = 23.0
 grow_horizontal = 2
+theme_type_variation = &"TitleLabel"
 text = "CHOOSE YOUR REWARD"
 
 [node name="ItemGrid" type="HBoxContainer" parent="ColorRect" unique_id=1028200695]

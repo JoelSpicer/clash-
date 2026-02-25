@@ -31,6 +31,7 @@ offset_top = 10.0
 offset_right = 81.5
 offset_bottom = 33.0
 grow_horizontal = 2
+theme_type_variation = &"TitleLabel"
 text = "PREPARE YOUR DECK"
 horizontal_alignment = 1
 
@@ -39,10 +40,10 @@ layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -37.5
-offset_top = 32.0
-offset_right = 37.5
-offset_bottom = 55.0
+offset_left = 364.0
+offset_top = 599.0
+offset_right = 439.0
+offset_bottom = 629.0
 grow_horizontal = 2
 text = "Hand: 5/5"
 

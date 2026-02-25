@@ -25,6 +25,8 @@ layout_mode = 2
 [node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1243792487]
 layout_mode = 2
 text = "AUDIO SETTINGS"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Label2" type="Label" parent="CenterContainer/VBoxContainer" unique_id=643262368]
 layout_mode = 2
@@ -49,6 +51,15 @@ horizontal_alignment = 1
 
 [node name="SFXSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=1459500008]
 layout_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/VBoxContainer" unique_id=711243355]
+layout_mode = 2
+
+[node name="Label7" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1983297003]
+layout_mode = 2
+text = "GRAPHICS SETTINGS"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Label5" type="Label" parent="CenterContainer/VBoxContainer" unique_id=145999579]
 layout_mode = 2

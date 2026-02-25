@@ -30,6 +30,7 @@ offset_top = 11.0
 offset_right = 130.0
 offset_bottom = 34.0
 grow_horizontal = 2
+theme_type_variation = &"TitleLabel"
 text = "VICTORY! CHOOSE YOUR REWARD"
 horizontal_alignment = 1
 vertical_alignment = 1

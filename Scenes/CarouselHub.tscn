@@ -72,8 +72,7 @@ offset_left = -48.0
 offset_right = 48.0
 offset_bottom = 23.0
 grow_horizontal = 2
-theme_override_constants/outline_size = 15
-theme_override_font_sizes/font_size = 40
+theme_type_variation = &"TitleLabel"
 text = "THE CIRCUIT"
 
 [node name="LeftArrow" type="Button" parent="UI_Layer" unique_id=832121798]

@@ -28,6 +28,7 @@ layout_mode = 2
 
 [node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=2013240876]
 layout_mode = 2
+theme_type_variation = &"TitleLabel"
 text = "PAUSED"
 horizontal_alignment = 1
 
