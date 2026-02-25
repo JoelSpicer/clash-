@@ -2,6 +2,64 @@
 
 [ext_resource type="FontFile" uid="uid://cy3y3vbrqldop" path="res://Art/Fonts/Oswald-VariableFont_wght.ttf" id="1_jbj0n"]
 
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_jbj0n"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xklhs"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 9.0
+bg_color = Color(0.6222552, 4.4400617e-06, 0.10214009, 1)
+border_width_bottom = 4
+border_color = Color(0.33777672, 0, 0.036825873, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_jbj0n"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 9.0
+bg_color = Color(0.4851327, 0, 0.07107908, 1)
+border_width_bottom = 4
+border_color = Color(0.2474477, 7.505389e-07, 0.01933316, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_unfox"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 6.0
+bg_color = Color(0.4862745, 0, 0.07058824, 1)
+border_width_bottom = 1
+border_color = Color(0.4862745, 0, 0.07058824, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qqk7a"]
+bg_color = Color(0.15127608, 0.15127608, 0.15127605, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 1)
+shadow_color = Color(0, 0, 0, 0.50980395)
+shadow_size = 10
+shadow_offset = Vector2(4, 4)
+
 [resource]
 default_font = ExtResource("1_jbj0n")
 default_font_size = 15
+Button/styles/focus = SubResource("StyleBoxEmpty_jbj0n")
+Button/styles/hover = SubResource("StyleBoxFlat_xklhs")
+Button/styles/normal = SubResource("StyleBoxFlat_jbj0n")
+Button/styles/pressed = SubResource("StyleBoxFlat_unfox")
+Panel/styles/panel = SubResource("StyleBoxFlat_qqk7a")
+PanelContainer/styles/panel = SubResource("StyleBoxFlat_qqk7a")
