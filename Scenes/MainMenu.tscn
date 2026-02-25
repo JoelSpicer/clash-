@@ -1,8 +1,13 @@
 [gd_scene format=3 uid="uid://dfdv27tgvc463"]
 
 [ext_resource type="Script" uid="uid://bvoqym3ha7576" path="res://Scripts/MainMenu.gd" id="1_tt5f1"]
-[ext_resource type="Texture2D" uid="uid://uubvvpgfs52s" path="res://Art/logo-transparent_grey_nosplash.png" id="2_853f1"]
 [ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="3_8saeu"]
+
+[sub_resource type="FontVariation" id="FontVariation_8saeu"]
+variation_opentype = {
+2003265652: 600
+}
+spacing_glyph = 5
 
 [node name="MainMenu" type="Control" unique_id=2016374189]
 layout_mode = 3
@@ -13,17 +18,38 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_tt5f1")
 
-[node name="Background" type="TextureRect" parent="." unique_id=1350418764]
-modulate = Color(1, 0.56, 0.56, 0.43529412)
+[node name="BackgroundContainer" type="Control" parent="." unique_id=1364444204]
+clip_contents = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-texture = ExtResource("2_853f1")
+mouse_filter = 2
+
+[node name="Layer1" type="TextureRect" parent="BackgroundContainer" unique_id=1308464172]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 expand_mode = 1
-stretch_mode = 5
+stretch_mode = 6
+
+[node name="Layer2" type="TextureRect" parent="BackgroundContainer" unique_id=1392742349]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
 
 [node name="TitleLabel" type="Label" parent="." unique_id=1315116786]
 layout_mode = 1
@@ -40,6 +66,7 @@ grow_horizontal = 2
 grow_vertical = 2
 pivot_offset = Vector2(275, 150)
 theme_type_variation = &"TitleLabel"
+theme_override_fonts/font = SubResource("FontVariation_8saeu")
 theme_override_font_sizes/font_size = 200
 text = "CLASH!"
 horizontal_alignment = 1
