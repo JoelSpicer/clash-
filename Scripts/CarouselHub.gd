@@ -19,15 +19,15 @@ func _ready():
 	# Easy to add more later! Just append a new dictionary.
 	slides = [
 		{
-			"title": "THE CIRCUIT (Story)",
+			"title": "THE CIRCUIT",
 			"scene_path": "res://Scenes/MenuArcade.tscn",
 			"bg_path": "res://Art/Background/LockerRoom.png" # You need this art
 		},
-		{
-			"title": "QUICK CLASH (PvP / PvE)",
-			"scene_path": "res://Scenes/MenuQuick.tscn",
-			"bg_path": "res://Art/Background/Street.png"
-		},
+		#{
+			#"title": "QUICK CLASH (PvP / PvE)",
+			#"scene_path": "res://Scenes/MenuQuick.tscn",
+			#"bg_path": "res://Art/Background/Street.png"
+		#},
 		{
 			"title": "GAME SETTINGS",
 			"scene_path": "res://Scenes/MenuSettings.tscn",

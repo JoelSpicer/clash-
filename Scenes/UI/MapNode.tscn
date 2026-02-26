@@ -17,6 +17,13 @@ custom_minimum_size = Vector2(100, 100)
 layout_mode = 2
 size_flags_vertical = 3
 expand_mode = 1
+stretch_mode = 5
+
+[node name="EnemyNameLabel" type="Label" parent="VBoxContainer" unique_id=116309797]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "EnemyName"
+horizontal_alignment = 1
 
 [node name="Label" type="Label" parent="VBoxContainer" unique_id=1201997675]
 layout_mode = 2
