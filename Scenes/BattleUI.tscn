@@ -2,10 +2,34 @@
 
 [ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scripts/BattleUI.gd" id="1_d8qwt"]
 [ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
-[ext_resource type="Texture2D" uid="uid://d0oodbqfjx62d" path="res://Art/Background/1.png" id="2_sbkf8"]
+[ext_resource type="Texture2D" uid="uid://brp5uytsj2uxh" path="res://Art/Background/1.png" id="2_sbkf8"]
 [ext_resource type="PackedScene" uid="uid://yeraw55rlx1q" path="res://Scenes/PlayerHUD.tscn" id="3_vxmu1"]
 [ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="4_6eyfp"]
 [ext_resource type="PackedScene" uid="uid://bu7kfrk2ayfm6" path="res://Scenes/CombatLog.tscn" id="4_f6fb8"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6eyfp"]
+content_margin_left = 25.0
+content_margin_top = 20.0
+content_margin_right = 25.0
+content_margin_bottom = 20.0
+bg_color = Color(0.06666667, 0.06666667, 0.06666667, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.26666668, 0.26666668, 0.26666668, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_size = 10
+shadow_offset = Vector2(4, 4)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_6eyfp"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
 
 [node name="BattleUI" type="CanvasLayer" unique_id=356558085]
 script = ExtResource("1_d8qwt")
@@ -277,6 +301,7 @@ offset_bottom = 300.0
 grow_horizontal = 2
 grow_vertical = 2
 pivot_offset = Vector2(400, 300)
+theme_override_styles/panel = SubResource("StyleBoxFlat_6eyfp")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="InspectPopup" unique_id=1456864686]
 layout_mode = 1
@@ -285,6 +310,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_6eyfp")
 
 [node name="InspectGrid" type="GridContainer" parent="InspectPopup/ScrollContainer" unique_id=254637399]
 layout_mode = 2
