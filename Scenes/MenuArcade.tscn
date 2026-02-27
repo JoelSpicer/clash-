@@ -49,13 +49,11 @@ clip_contents = false
 custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
 
-[node name="ClassList" type="GridContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/ClassScroll" unique_id=756620714]
+[node name="ClassList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/ClassScroll" unique_id=1862420477]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 6
-theme_override_constants/h_separation = 10
-theme_override_constants/v_separation = 10
-columns = 2
+theme_override_constants/separation = 15
 
 [node name="VSeparator" type="VSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1200793424]
 modulate = Color(1, 1, 1, 0)
