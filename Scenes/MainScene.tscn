@@ -4,6 +4,7 @@
 [ext_resource type="Script" uid="uid://xjbucvoejbts" path="res://Scripts/Resources/GameManager.gd" id="1_hpc76"]
 [ext_resource type="Script" uid="uid://xh1kg301k38w" path="res://Scripts/TestArena.gd" id="2_tr2i4"]
 [ext_resource type="Resource" uid="uid://b0kng2hirhw4q" path="res://Player1.tres" id="3_7rqgy"]
+[ext_resource type="PackedScene" uid="uid://bnm0vfddu8cy6" path="res://Scenes/TutorialLayer.tscn" id="3_q68mp"]
 [ext_resource type="Resource" uid="uid://p5iapbgi8mrp" path="res://Player2.tres" id="4_qxria"]
 [ext_resource type="PackedScene" uid="uid://dhwx6yjjskbn7" path="res://Scenes/BattleUI.tscn" id="8_f140w"]
 
@@ -13,6 +14,8 @@
 
 [node name="GameManager" type="Node" parent="." unique_id=1223966320]
 script = ExtResource("1_hpc76")
+
+[node name="TutorialLayer" parent="." unique_id=2134579543 instance=ExtResource("3_q68mp")]
 
 [node name="TestArena" type="Node2D" parent="." unique_id=2121029644]
 script = ExtResource("2_tr2i4")

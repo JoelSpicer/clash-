@@ -886,7 +886,12 @@ func set_music_intensity(target_val: float, fade_time: float = 2.0):
 
 func stop_music(fade_duration: float = 2.0):
 	if music_player:
-		music_player.Stop(fade_duration)
+		# CHANGE THIS:
+		# music_player.Stop(fade_duration)
+		
+		# TO THIS:
+		music_player.StopSongsNow(fade_duration)
+		
 	current_music_key = ""
 
 
@@ -936,21 +941,21 @@ func set_danger_mode(active: bool):
 # This is the function RunManager is looking for!
 # Inside AudioManager.gd
 
+# Inside AudioManager.gd
+
 func reset_audio_state():
-	# 1. Stop the Heartbeat Sound
 	set_danger_mode(false) 
-	
-	# 2. Reset Music Intensity to "Calm" (Layer 1)
 	set_music_intensity(0.0, 0.5)
 	
-	# 3. FORCE RESET VISUALS (This was missing!)
-	# We need to tell the cinematic manager to clear the red/vignette/blur
 	if GlobalCinematics.has_method("set_danger_vignette"):
 		GlobalCinematics.set_danger_vignette(false)
 		
-	# 4. Stop any lingering tweens on the music player
-	# (Optional, but good practice to stop fade-outs from fighting with fade-ins)
-	if music_player: music_player.Stop(0.5)
+	# CHANGE THIS AS WELL:
+	if music_player: 
+		# music_player.Stop(0.5)  <-- WRONG
+		music_player.StopSongsNow(0.5) # <-- CORRECT
+
+# Inside AudioManager.gd
 
 func _pulse_vignette():
 	if not is_danger_mode: return
@@ -958,14 +963,15 @@ func _pulse_vignette():
 	# Pulse the vignette intensity up and down slightly
 	var tween = create_tween()
 	tween.tween_method(func(v): 
-		# We reach into GlobalCinematics to nudge the boost
 		GlobalCinematics.danger_vignette_boost = v
-		GlobalCinematics._update_vignette_shader()
+		# CHANGE THIS: Was _update_vignette_shader()
+		GlobalCinematics._update_visuals() 
 	, 0.45, 0.55, 0.4).set_trans(Tween.TRANS_SINE) # Pulse up
 	
 	tween.tween_method(func(v): 
 		GlobalCinematics.danger_vignette_boost = v
-		GlobalCinematics._update_vignette_shader()
+		# CHANGE THIS: Was _update_vignette_shader()
+		GlobalCinematics._update_visuals()
 	, 0.55, 0.45, 0.4).set_trans(Tween.TRANS_SINE) # Pulse down
 	
 	# Loop the pulse as long as we are in danger
@@ -1679,7 +1685,15 @@ func _check_card_validity(card: ActionData, final_cost: int) -> bool:
 	if card.cost > turn_cost_limit: return false
 	if card.counter_value > 0 and my_opening_value < card.counter_value: return false
 	if card.is_super and not super_allowed: return false
-
+	
+	# --- NEW: TUTORIAL RAILROAD ---
+	if TutorialManager.is_tutorial_active:
+		var required_card = TutorialManager.get_current_data().get("player_card", "")
+		# If this card isn't the exact one the Sensei asked for, disable it!
+		if required_card != "" and card.display_name != required_card:
+			return false
+	# ------------------------------
+	
 	return true
 
 func _on_card_hovered(card: ActionData):
@@ -2050,6 +2064,7 @@ const COL_OFFENCE = Color("#ff6666")
 const COL_DEFENCE = Color("#66a3ff")
 
 func _ready():
+	super._ready()
 	pivot_offset = size / 2
 
 func setup(action: ActionData):
@@ -2115,6 +2130,9 @@ func _on_mouse_exited():
 
 func _pressed():
 	if not disabled:
+		# --- ADD THIS LINE ---
+		AudioManager.play_sfx("ui_click")
+		# ---------------------
 		if current_ghost:
 			var tween = create_tween()
 			tween.tween_property(current_ghost, "scale", Vector2(0.95, 0.95), 0.05)
@@ -2317,15 +2335,15 @@ func _ready():
 	# Easy to add more later! Just append a new dictionary.
 	slides = [
 		{
-			"title": "THE CIRCUIT (Story)",
+			"title": "THE CIRCUIT",
 			"scene_path": "res://Scenes/MenuArcade.tscn",
 			"bg_path": "res://Art/Background/LockerRoom.png" # You need this art
 		},
-		{
-			"title": "QUICK CLASH (PvP / PvE)",
-			"scene_path": "res://Scenes/MenuQuick.tscn",
-			"bg_path": "res://Art/Background/Street.png"
-		},
+		#{
+			#"title": "QUICK CLASH (PvP / PvE)",
+			#"scene_path": "res://Scenes/MenuQuick.tscn",
+			#"bg_path": "res://Art/Background/Street.png"
+		#},
 		{
 			"title": "GAME SETTINGS",
 			"scene_path": "res://Scenes/MenuSettings.tscn",
@@ -2593,18 +2611,37 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	# 5. NEW STAT SCALING (LINEAR GROWTH - SKIPPING ZERO)
 	# ---------------------------------------------------------
 	var stat_bonus = 0
-	
-	# If Level is 1 or higher, subtract 1 (Level 1 = 0 Bonus)
+
+# 1. Calculate the total pool of points to distribute
 	if level > 0:
 		stat_bonus = level - 1
-	# If Level is negative, use it directly (Level -1 = -1 Bonus)
 	else:
 		stat_bonus = level 
-	
-	bot_data.max_hp = max(1, bot_data.max_hp + stat_bonus)
-	bot_data.max_sp = max(1, bot_data.max_sp + stat_bonus)
-	
-	# Ensure they start full
+
+	# 2. Distribute the bonus randomly
+	if stat_bonus > 0:
+		# Pick a random number between 0 and the total bonus for HP
+		var hp_gain = randi_range(0, stat_bonus)
+		# Whatever is left over goes to SP
+		var sp_gain = stat_bonus - hp_gain
+		
+		bot_data.max_hp += hp_gain
+		bot_data.max_sp += sp_gain
+		
+	elif stat_bonus < 0:
+		# Logic for negative levels (de-buffing enemies)
+		# We use the same random logic but for reduction
+		var hp_loss = randi_range(stat_bonus, 0) # e.g. randi_range(-2, 0)
+		var sp_loss = stat_bonus - hp_loss
+		
+		bot_data.max_hp = max(1, bot_data.max_hp + hp_loss)
+		bot_data.max_sp = max(1, bot_data.max_sp + sp_loss)
+
+	# Final safety check to ensure stats never drop to/below 0
+	bot_data.max_hp = max(1, bot_data.max_hp)
+	bot_data.max_sp = max(1, bot_data.max_sp)
+
+	# Reset current values to match new max values
 	bot_data.current_hp = bot_data.max_hp
 	bot_data.current_sp = bot_data.max_sp
 	
@@ -3683,16 +3720,29 @@ func _on_main_action():
 		if player_won:
 			RunManager.handle_win()
 		else:
+			# --- FIX START ---
+			# We MUST reset the audio/visuals before leaving!
+			AudioManager.reset_audio_state() 
+			# -----------------
+			
 			get_tree().paused = false 
 			SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 			
 	# 2. QUICK MATCH LOGIC
 	else:
+		# --- FIX START ---
+		AudioManager.reset_audio_state()
+		# -----------------
 		get_tree().paused = false
 		SceneLoader.reload_current_scene()
 
 func _on_menu_pressed():
 	AudioManager.play_sfx("ui_back")
+	
+	# --- FIX START ---
+	AudioManager.reset_audio_state()
+	# -----------------
+	
 	if RunManager.player_run_data:
 		RunManager.player_run_data = null 
 	
@@ -3758,82 +3808,94 @@ extends CanvasLayer
 
 @onready var filter = $ScreenFilter
 
-# Default User Settings
+# --- SETTINGS ---
 var user_brightness: float = 0.0
 var user_contrast: float = 1.0
+
+# --- VIGNETTE VARS ---
+var base_vignette: float = 0.2        # Standard Menu/Game look
 var danger_vignette_boost: float = 0.0
-var vignette_intensity: float = 0.2
+
+# --- ABERRATION VARS (NEW) ---
+var base_aberration: float = 0.002    # Subtle constant effect (Try 0.002 - 0.004)
 var danger_aberration_boost: float = 0.0
 
 func _ready():
 	filter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	reset_visuals()
 
-# --- NEW: SETTINGS FUNCTIONS ---
+# --- CENTRAL UPDATE FUNCTION ---
+# This ensures Base Settings + Danger Boosts always combine correctly
+func _update_visuals():
+	if not filter or not filter.material: return
+	
+	# 1. Calculate & Apply Vignette
+	var total_vignette = clamp(base_vignette + danger_vignette_boost, 0.0, 1.0)
+	filter.material.set_shader_parameter("vignette_intensity", total_vignette)
+	
+	# 2. Calculate & Apply Aberration
+	var total_aberration = clamp(base_aberration + danger_aberration_boost, 0.0, 0.1)
+	filter.material.set_shader_parameter("aberration_amount", total_aberration)
+
+# --- DANGER LOGIC (UPDATED) ---
+func set_danger_vignette(active: bool):
+	var target_vignette_boost = 0.45 if active else 0.0
+	var target_aberration_boost = 0.008 if active else 0.0 
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	
+	# Animate Vignette Boost
+	tween.tween_method(func(val): 
+		danger_vignette_boost = val
+		_update_visuals() # Call the central update
+	, danger_vignette_boost, target_vignette_boost, 1.5)
+	
+	# Animate Aberration Boost
+	tween.tween_method(func(val):
+		danger_aberration_boost = val
+		_update_visuals() # Call the central update
+	, danger_aberration_boost, target_aberration_boost, 1.5)
+
+# --- RESET LOGIC (UPDATED) ---
+func reset_visuals():
+	# 1. Stop active tweens so they don't overwrite us
+	var tween = create_tween()
+	tween.kill()
+	
+	# 2. Reset Boosts to 0
+	danger_vignette_boost = 0.0
+	danger_aberration_boost = 0.0
+	
+	if filter.material:
+		# 3. Reset Gameplay Effects (Saturation)
+		var t = create_tween()
+		t.tween_method(func(val): filter.material.set_shader_parameter("saturation", val), 
+			filter.material.get_shader_parameter("saturation"), 1.0, 0.5)
+			
+		# 4. Re-apply User Settings
+		filter.material.set_shader_parameter("brightness", user_brightness)
+		filter.material.set_shader_parameter("contrast", user_contrast)
+		
+		# 5. Apply Base Visuals (Vignette + Aberration)
+		_update_visuals()
+
+# --- SETTINGS HELPERS ---
 func set_brightness(value: float):
 	user_brightness = value
-	if filter.material:
-		filter.material.set_shader_parameter("brightness", user_brightness)
+	if filter.material: filter.material.set_shader_parameter("brightness", user_brightness)
 
 func set_contrast(value: float):
 	user_contrast = value
-	if filter.material:
-		filter.material.set_shader_parameter("contrast", user_contrast)
-
-func reset_visuals():
-	danger_vignette_boost = 0.0
-	if filter.material:
-		# Reset Saturation (Gameplay effect)
-		var tween = create_tween()
-		tween.tween_method(func(val): filter.material.set_shader_parameter("saturation", val), 
-			filter.material.get_shader_parameter("saturation"), 1.0, 0.5)
-			
-		# Ensure User Settings are re-applied (in case they were tweened)
-		filter.material.set_shader_parameter("brightness", user_brightness)
-		filter.material.set_shader_parameter("contrast", user_contrast)
+	if filter.material: filter.material.set_shader_parameter("contrast", user_contrast)
 
 func apply_finisher_effect():
 	if filter.material:
 		var tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 		tween.tween_method(func(val): filter.material.set_shader_parameter("saturation", val), 
 			1.0, 0.0, 0.1)
-
-func set_danger_vignette(active: bool):
-	var target_vignette = 0.45 if active else 0.0
-	var target_aberration = 0.008 if active else 0.0 # Subtle but effective
-	
-	var tween = create_tween()
-	tween.set_parallel(true) # Let both animations happen at once
-	tween.set_ease(Tween.EASE_OUT)
-	tween.set_trans(Tween.TRANS_CUBIC)
-	
-	# Animate Vignette
-	tween.tween_method(func(val): 
-		danger_vignette_boost = val
-		_update_vignette_shader(),
-		danger_vignette_boost, target_vignette, 1.5
-	)
-	
-	# NEW: Animate Chromatic Aberration
-	tween.tween_method(func(val):
-		danger_aberration_boost = val
-		if filter.material:
-			filter.material.set_shader_parameter("aberration_amount", val)
-	, danger_aberration_boost, target_aberration, 1.5)
-
-func _update_vignette_shader():
-	if filter and filter.material:
-		# We combine the base menu value with the temporary adrenaline boost
-		var total_vignette = clamp(vignette_intensity + danger_vignette_boost, 0.0, 1.0)
-		
-		# Make sure the shader parameter string "vignette_intensity" 
-		# matches the 'uniform' name inside your .gdshader file!
-		filter.material.set_shader_parameter("vignette_intensity", total_vignette)
-
-# Call this from your Options Menu to change the permanent vignette level
-func change_base_vignette(new_val: float):
-	vignette_intensity = new_val
-	_update_vignette_shader()
 
 
 ========================================
@@ -4015,20 +4077,161 @@ FILE PATH: res://Scripts/MainMenu.gd
 ========================================
 extends Control
 
+@onready var title_label = $TitleLabel # Make sure this path is correct now that you moved it!
+@onready var start_button = $VBoxContainer/StartButton
+@onready var quit_button = $VBoxContainer/QuitButton
+
+
+# --- BACKGROUND VARS ---
+@onready var layers = [$BackgroundContainer/Layer1, $BackgroundContainer/Layer2]
+var bg_list: Array[Texture2D] = []
+var current_layer_idx = 0
+var active_bg_index = 0
+
 func _ready():
-	# Connect buttons dynamically or via editor signals
-	$VBoxContainer/StartButton.pressed.connect(_on_start_pressed)
-	$VBoxContainer/QuitButton.pressed.connect(_on_quit_pressed)
-	AudioManager.play_music("menu_theme")
-	var btn_compendium = find_child("CompendiumButton") # Or reference it directly if you prefer
-	if btn_compendium:
-		btn_compendium.pressed.connect(_on_compendium_pressed)
+	# 1. SETUP UI
+	start_button.pressed.connect(_on_start_pressed)
+	quit_button.pressed.connect(_on_quit_pressed)
+	var btn_compendium = find_child("CompendiumButton")
+	if btn_compendium: btn_compendium.pressed.connect(_on_compendium_pressed)
 	
+	AudioManager.play_music("menu_theme")
+	
+	# 2. RUN TITLE ANIMATION
+	_play_crash_intro()
+	
+	# 3. START BACKGROUND SLIDESHOW
+	_init_slideshow()
+
+func _init_slideshow():
+	if GameManager.environment_backgrounds.size() > 0:
+		# CHANGE THIS LINE:
+		# bg_list = GameManager.environment_backgrounds.values()
+		
+		# TO THIS:
+		bg_list.assign(GameManager.environment_backgrounds.values())
+		
+		bg_list.shuffle() # Random order
+		
+		# Set initial image
+		layers[0].texture = bg_list[0]
+		_animate_pan_zoom(layers[0])
+		
+		# Start the loop
+		get_tree().create_timer(7.0).timeout.connect(_cycle_background)
+
+func _cycle_background():
+	# Pick the next image
+	active_bg_index = (active_bg_index + 1) % bg_list.size()
+	var next_texture = bg_list[active_bg_index]
+	
+	# Identify Front (fading in) and Back (fading out) layers
+	var front_layer = layers[1 - current_layer_idx] # The one currently hidden
+	var back_layer = layers[current_layer_idx]      # The one currently visible
+	
+	# 1. Setup the Front Layer
+	front_layer.texture = next_texture
+	front_layer.modulate.a = 0.0
+	front_layer.show()
+	
+	# 2. Start the "Ken Burns" movement on the new layer immediately
+	_animate_pan_zoom(front_layer)
+	
+	# 3. Crossfade Tween
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(front_layer, "modulate:a", 1.0, 1.5) # Fade In
+	tween.tween_property(back_layer, "modulate:a", 0.0, 1.5)  # Fade Out
+	
+	# 4. Flip the index for next time
+	current_layer_idx = 1 - current_layer_idx
+	
+	# 5. Schedule next cycle
+	tween.chain().tween_callback(func():
+		get_tree().create_timer(5.0).timeout.connect(_cycle_background)
+	)
+
+func _animate_pan_zoom(layer: TextureRect):
+	# RESET the layer's transform so it starts fresh
+	layer.pivot_offset = layer.size / 2
+	layer.scale = Vector2(1.05, 1.05) # Start slightly zoomed in
+	layer.rotation_degrees = 0
+	
+	# Randomize movement direction
+	var target_scale = Vector2(1.15, 1.15) # Zoom in more
+	var target_rot = randf_range(-2.0, 2.0) # Slight tilt
+	
+	# Subtle Pan (Moving the pivot effectively moves the image opposite)
+	# We use a random offset for the pan
+	var pan_x = randf_range(-20.0, 20.0)
+	var pan_y = randf_range(-20.0, 20.0)
+	var start_pos = layer.position
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_SINE)
+	
+	# Move slowly over 7 seconds (longer than the swap time so it never stops moving)
+	tween.tween_property(layer, "scale", target_scale, 9.0)
+	tween.tween_property(layer, "rotation_degrees", target_rot, 9.0)
+	tween.tween_property(layer, "position", start_pos + Vector2(pan_x, pan_y), 90)
+
+func _play_crash_intro():
+	# 1. SETUP STATE
+	var final_pos = title_label.position
+	var start_pos = final_pos - Vector2(0, 800) # Start 800px higher
+	
+	title_label.position = start_pos
+	title_label.modulate.a = 0.0 # Start invisible
+	title_label.scale = Vector2(2.0, 2.0) # Start giant
+	
+	# Hide buttons initially so they can pop in later
+	var buttons_container = $VBoxContainer
+	buttons_container.modulate.a = 0.0
+	
+	# 2. THE TWEEN
+	var tween = create_tween()
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS) # Run even if paused
+	
+	# A. FALLING (Fast and Heavy)
+	tween.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	tween.set_parallel(true)
+	tween.tween_property(title_label, "position", final_pos, 0.4) # Fall duration
+	tween.tween_property(title_label, "modulate:a", 1.0, 0.2) # Fade in quickly
+	tween.tween_property(title_label, "scale", Vector2(1.0, 1.0), 0.4) # Shrink to normal
+	
+	# B. IMPACT (Sequence: Wait for fall to finish -> Shake)
+	tween.set_parallel(false) # Switch back to sequential
+	tween.tween_callback(func(): 
+		# Play heavy impact sound
+		AudioManager.play_sfx("hit_heavy") 
+		_shake_screen(10.0, 0.4) # Shake the whole menu
+	)
+	
+	# C. SQUASH & STRETCH (The "Jelly" impact)
+	tween.set_parallel(true)
+	# Flatten it (squash)
+	tween.tween_property(title_label, "scale", Vector2(1.2, 0.8), 0.1).set_trans(Tween.TRANS_BOUNCE)
+	# Return to normal
+	tween.chain().tween_property(title_label, "scale", Vector2(1.0, 1.0), 0.5).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	
+	# D. REVEAL BUTTONS
+	tween.parallel().tween_property(buttons_container, "modulate:a", 1.0, 0.5)
+
+# A generic shaker for the UI
+func _shake_screen(intensity: float, duration: float):
+	var original_pos = self.position # Assumes this Control is usually at (0,0)
+	var shake_tween = create_tween()
+	
+	# Shake heavily at first, then dampen
+	shake_tween.tween_method(func(val):
+		var offset = Vector2(randf_range(-val, val), randf_range(-val, val))
+		self.position = original_pos + offset
+	, intensity, 0.0, duration) # Tween from intensity down to 0
+
 func _on_start_pressed():
-	# Assumes your main arena scene is saved here
-	#SceneLoader.change_scene("res://Scenes/MainScene.tscn")
-	#SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
-	#SceneLoader.change_scene("res://Scenes/CharacterSelect.tscn")
+	AudioManager.play_sfx("ui_click") # Added SFX
 	SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
 	
 func _on_quit_pressed():
@@ -4047,7 +4250,8 @@ extends PanelContainer
 signal node_clicked(index: int)
 
 @onready var icon = $VBoxContainer/Icon
-@onready var label = $VBoxContainer/Label
+@onready var label = $VBoxContainer/Label # "Round 1"
+@onready var enemy_name_label = $VBoxContainer/EnemyNameLabel # NEW!
 @onready var status = $VBoxContainer/Status
 @onready var button = $Button
 
@@ -4058,23 +4262,36 @@ func setup(node_data: MapNodeData, index: int):
 	my_index = index
 	data = node_data
 	
-	# 1. Set Title
+	# 1. Set Node Title (e.g., "Round 1", "FINALS")
 	label.text = node_data.title
 	
-	# 2. Set Icon based on Type
-	match node_data.type:
-		MapNodeData.Type.BOSS:
-			icon.texture = preload("res://Art/Icons/icon_Opening.png") # Placeholder
-			modulate = Color(1.5, 1.0, 1.0) # Red tint for danger
-		MapNodeData.Type.GYM:
-			icon.texture = preload("res://Art/Icons/icon_Bide.png") # Placeholder
+	# 2. POPULATE ENEMY DATA OR FALLBACKS
+	if node_data.enemy_data != null:
+		# It's a Fight or Boss!
+		enemy_name_label.show()
+		enemy_name_label.text = node_data.enemy_data.character_name
+		
+		if node_data.enemy_data.portrait:
+			icon.texture = node_data.enemy_data.portrait
+		else:
+			# Safety fallback if you forgot to assign a portrait
+			icon.texture = preload("res://Art/Icons/icon_Opportunity.png")
+			
+		# Tint red if it's a boss
+		if node_data.type == MapNodeData.Type.BOSS:
+			modulate = Color(1.5, 1.0, 1.0) 
+		else:
+			modulate = Color(1.0, 1.0, 1.0)
+			
+	else:
+		# It's a Gym, Shop, or Event (No enemy)
+		enemy_name_label.hide() # Hide the name label completely
+		
+		if node_data.type == MapNodeData.Type.GYM:
+			icon.texture = preload("res://Art/Icons/icon_Bide.png")
 			modulate = Color(1.0, 1.0, 1.5) # Blue tint
-		_:
-			# Standard Fight
-			# If we generated an enemy, try to show their class icon
-			icon.texture = preload("res://Art/Icons/icon_Opportunity.png") # Placeholder
 	
-	# 3. Handle Status (Locked/Completed)
+	# 3. Handle Status (Locked/Completed/Ready)
 	if node_data.is_completed:
 		status.text = "VICTORY"
 		status.modulate = Color.GREEN
@@ -4084,6 +4301,10 @@ func setup(node_data: MapNodeData, index: int):
 		status.text = "LOCKED"
 		status.modulate = Color.GRAY
 		button.disabled = true
+		
+		# Optional juice: Hide the enemy portrait if locked to keep it a "mystery"
+		icon.modulate = Color(0, 0, 0) # Silhouette
+		enemy_name_label.text = "???"
 	else:
 		status.text = "READY"
 		status.modulate = Color.YELLOW
@@ -4099,6 +4320,8 @@ func _on_button_pressed():
 
 func _ready():
 	button.pressed.connect(_on_button_pressed)
+	# Set pivot so the pulse animation scales from the center
+	pivot_offset = size / 2
 
 
 ========================================
@@ -4107,16 +4330,16 @@ FILE PATH: res://Scripts/MenuArcade.gd
 extends Control
 
 # --- UI REFERENCES ---
-@onready var class_grid = $MarginContainer/VBoxContainer/HBoxContainer/ClassScroll/ClassList
+@onready var class_list_root = $MarginContainer/VBoxContainer/HBoxContainer/ClassScroll/ClassList # Changed to VBoxContainer!
 @onready var info_label = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/InfoLabel
 @onready var portrait_rect = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
-
+@onready var tutorial_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/TutorialButton
 # Settings
 @onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
 @onready var maintain_hp_toggle = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/MaintainHPToggle
 @onready var start_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/StartButton
 @onready var delete_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DeleteButton
-@onready var name_input = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/NameInput # <--- New Ref
+@onready var name_input = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/NameInput
 
 # --- DATA ---
 @export var base_classes: Array[ClassDefinition]
@@ -4124,91 +4347,136 @@ extends Control
 # --- STATE ---
 var selected_index: int = 0
 var buttons: Array[Button] = []
-var selected_save_file: String = "" # Empty means "New Run Mode"
-
+var selected_save_file: String = "" 
+var preview_tween: Tween # NEW: Keeps track of our animation
 
 func _ready():
 	_setup_difficulty()
-	_generate_grid() # Renamed from _generate_class_grid for clarity
+	_generate_lists() 
 	
 	start_btn.pressed.connect(_on_start_pressed)
 	
-	# Default Name
-	#name_input.text = "Fighter No. " + str(randi() % 1000)
-	
-	_select_class(0)
+	if tutorial_btn:
+		tutorial_btn.pressed.connect(_on_tutorial_pressed)
 	
 	if delete_btn:
 		delete_btn.pressed.connect(_on_delete_pressed)
-		delete_btn.hide() # Ensure hidden at start
+		delete_btn.hide() 
 	
-# --- NEW: GRID GENERATION ---
-func _generate_grid():
-	# Clear children...
-	for child in class_grid.get_children(): child.queue_free()
+	_select_class(0)
+
+# --- NEW: DYNAMIC SECTION GENERATION ---
+func _generate_lists():
+	# Clear the root
+	for child in class_list_root.get_children(): child.queue_free()
 	buttons.clear()
 	
-	# 1. NEW RUN BUTTONS (Base Classes)
+	# 1. CREATE NEW GAME GRID
+	var class_grid = GridContainer.new()
+	class_grid.columns = 2
+	class_grid.add_theme_constant_override("h_separation", 10)
+	class_grid.add_theme_constant_override("v_separation", 10)
+	class_list_root.add_child(class_grid)
+	
 	for i in range(base_classes.size()):
 		var def = base_classes[i]
-		_create_grid_button(i, def.class_named, def.portrait, false)
+		_create_button(class_grid, i, def.class_named, def.portrait, false)
 
-	# 2. LOAD RUN BUTTONS (Save Files)
+	# 2. CREATE SAVE FILES SECTION
 	var saves = RunManager.get_save_files()
 	if saves.size() > 0:
-		# Divider
-		# (Optional: Add a label or separator here if using a VBox, but GridContainer handles flow)
-		pass
+		# Add a stylised Header
+		var header = Label.new()
+		header.text = "- SAVED RUNS -"
+		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		header.add_theme_color_override("font_color", Color.YELLOW)
+		class_list_root.add_child(header)
 		
-	for i in range(saves.size()):
-		var filename = saves[i]
-		# Pass a generic "Floppy Disk" icon or reuse a portrait if you want
-		# Using a higher index range to distinguish saves
-		var save_index = 100 + i 
-		_create_grid_button(save_index, filename.replace(".tres", ""), null, true)
+		# Add a VBox for Save Files (Wide horizontal bars)
+		var save_vbox = VBoxContainer.new()
+		save_vbox.add_theme_constant_override("separation", 10)
+		class_list_root.add_child(save_vbox)
+		
+		for i in range(saves.size()):
+			var filename = saves[i]
+			var save_index = 100 + i 
+			_create_button(save_vbox, save_index, filename.replace(".tres", ""), null, true)
 
-func _create_grid_button(index: int, text: String, icon: Texture2D, is_save: bool):
+func _create_button(parent_container: Control, index: int, text: String, icon: Texture2D, is_save: bool):
 	var btn = Button.new()
 	btn.text = text
-	btn.icon = icon
+	
 	if is_save:
-		# Use a default icon or color for saves
+		btn.custom_minimum_size = Vector2(290, 60) # Wide Bar for saves
 		btn.modulate = Color(0.6, 0.8, 1.0) # Blue tint
 	else:
+		btn.icon = icon
 		btn.expand_icon = true
-	
-	# ... (Standard Layout Code) ...
-	btn.custom_minimum_size = Vector2(140, 160)
-	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		btn.custom_minimum_size = Vector2(140, 160) # Tall Rectangle for characters
+		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+		
 	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	btn.clip_text = true
 	
+	# --- NEW: HOVER CONNECTION ---
+	btn.mouse_entered.connect(func(): _on_class_hover(index, is_save, text))
+	btn.mouse_exited.connect(_on_class_unhover)
 	btn.pressed.connect(func(): _on_item_selected(index, text, is_save))
-	class_grid.add_child(btn)
+	
+	parent_container.add_child(btn)
 	buttons.append(btn)
 
 # --- INTERACTION ---
-func _on_class_hover(index: int):
+func _on_class_hover(index: int, is_save: bool, text: String = ""):
 	AudioManager.play_sfx("ui_hover", 0.1)
-	_update_preview_panel(index)
+	
+	if is_save:
+		# If hovering a save, preview the save file!
+		_show_save_preview(text + ".tres")
+	else:
+		# If hovering a base class, preview the base class!
+		_update_preview_panel(index)
 
+func _on_class_unhover():
+	# Revert the preview panel to whatever is actually locked in
+	if selected_save_file != "":
+		_show_save_preview(selected_save_file)
+	else:
+		_update_preview_panel(selected_index)
 
+# --- THE "SLAM" AND "TYPEWRITER" ANIMATION ---
 func _update_preview_panel(index: int):
 	if index >= base_classes.size(): return
 	var data = base_classes[index]
 	
-	# --- CHANGED: Pull full text from Resource ---
-	if data.arcade_description != "":
-		# .c_unescape() fixes the Inspector formatting issues
-		info_label.text = data.arcade_description.c_unescape()
-	else:
-		# Fallback if you haven't filled it in yet
-		info_label.text = "Description not set for " + data.class_named
+	# 1. Kill any currently running animation (so it doesn't glitch if moving mouse fast)
+	if preview_tween and preview_tween.is_valid():
+		preview_tween.kill()
+		
+	preview_tween = create_tween().set_parallel(true)
 	
-	# Big Portrait (Kept separate as it's an image, not text)
+	# 2. ANIMATE PORTRAIT (The Slam)
 	if portrait_rect:
 		portrait_rect.texture = data.portrait
+		# Start high, invisible, and slightly scaled up
+		portrait_rect.position.y = -50 
+		portrait_rect.modulate.a = 0.0
+		portrait_rect.scale = Vector2(1.1, 1.1)
+		
+		# Tween it back to normal with a "Bounce/Back" ease
+		preview_tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		preview_tween.tween_property(portrait_rect, "position:y", 0.0, 0.3)
+		preview_tween.tween_property(portrait_rect, "modulate:a", 1.0, 0.2)
+		preview_tween.tween_property(portrait_rect, "scale", Vector2.ONE, 0.3)
+	
+	# 3. TYPEWRITER EFFECT FOR INFO
+	info_label.text = data.arcade_description.c_unescape() if data.arcade_description != "" else "Info missing."
+	info_label.visible_ratio = 0.0 # Hide text completely
+	
+	# Calculate typing time (longer text takes slightly longer, max 0.5s)
+	var type_time = min(info_label.text.length() * 0.005, 0.5) 
+	preview_tween.tween_property(info_label, "visible_ratio", 1.0, type_time).set_trans(Tween.TRANS_LINEAR)
 
 # --- START RUN ---
 func _on_start_pressed():
@@ -4216,158 +4484,172 @@ func _on_start_pressed():
 	RunManager.maintain_hp_enabled = maintain_hp_toggle.button_pressed
 	
 	if selected_save_file != "":
-		# LOAD MODE
 		RunManager.load_run(selected_save_file)
 	else:
-		# NEW RUN MODE
 		if selected_index < base_classes.size():
 			var run_name = name_input.text
 			if run_name.strip_edges() == "": run_name = "Unnamed"
-			
 			RunManager.start_new_run(base_classes[selected_index], run_name)
 
 # --- SETTINGS HELPERS ---
-func _setup_difficulty():
-	difficulty_option.clear()
-	difficulty_option.add_item("Very Easy")
-	difficulty_option.add_item("Easy")
-	difficulty_option.add_item("Medium")
-	difficulty_option.add_item("Hard")
-	difficulty_option.selected = 2 # Medium
-	
-	if not difficulty_option.item_selected.is_connected(_on_difficulty_changed):
-		difficulty_option.item_selected.connect(_on_difficulty_changed)
 
 func _on_difficulty_changed(index: int):
 	GameManager.ai_difficulty = index as GameManager.Difficulty
 
 # --- UPDATED INTERACTION LOGIC ---
 
-func _on_item_selected(index: int, text: String, is_save: bool):
+func _select_class(index: int):
 	AudioManager.play_sfx("ui_click")
+	selected_index = index
+	selected_save_file = "" 
 	
-	# 1. Visual Highlight (Reset others, highlight this)
+	name_input.editable = true
+	start_btn.text = "START RUN"
+	
+	# 1. Re-enable the UI
+	difficulty_option.disabled = false 
+	maintain_hp_toggle.disabled = false 
+
+	# 2. INSERT THE FIX HERE:
+	# This ensures GameManager knows the difficulty immediately upon selection
+	GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty
+	
+	# 3. Handle button highlights
 	for i in range(buttons.size()):
 		var btn = buttons[i]
 		if i == index:
 			btn.modulate = Color(1.2, 1.2, 1.2)
 			btn.add_theme_color_override("font_color", Color.GREEN)
 		else:
-			btn.modulate = Color(1, 1, 1)
+			# Reset to white (or blue-ish if it's a save file button)
+			btn.modulate = Color(1, 1, 1) if not (btn.custom_minimum_size.x > 200) else Color(0.6, 0.8, 1.0)
+			btn.remove_theme_color_override("font_color")
+			
+	_update_preview_panel(index)
+
+func _get_difficulty_name(value: int) -> String:
+	var keys = GameManager.Difficulty.keys()
+	if value >= 0 and value < keys.size(): return keys[value].capitalize()
+	return "Unknown"
+
+func _on_delete_pressed():
+	if selected_save_file == "": return
+	AudioManager.play_sfx("ui_click")
+	RunManager.delete_save_file(selected_save_file)
+	selected_save_file = ""
+	delete_btn.hide()
+	_generate_lists()
+	_select_class(0)
+
+func _show_save_preview(filename: String):
+	var data: RunSaveData = RunManager.peek_save_file(filename)
+	if data == null:
+		info_label.text = "[color=red]Error reading save.[/color]"
+		return
+		
+	# 1. Kill any currently running animation
+	if preview_tween and preview_tween.is_valid():
+		preview_tween.kill()
+		
+	preview_tween = create_tween().set_parallel(true)
+	var p_data = data.player_data
+	
+	# 2. ANIMATE PORTRAIT (The Slam)
+	if portrait_rect and p_data.portrait:
+		portrait_rect.texture = p_data.portrait
+		portrait_rect.position.y = -50 
+		portrait_rect.modulate.a = 0.0
+		portrait_rect.scale = Vector2(1.1, 1.1)
+		
+		preview_tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		preview_tween.tween_property(portrait_rect, "position:y", 0.0, 0.3)
+		preview_tween.tween_property(portrait_rect, "modulate:a", 1.0, 0.2)
+		preview_tween.tween_property(portrait_rect, "scale", Vector2.ONE, 0.3)
+	elif portrait_rect:
+		portrait_rect.texture = null
+	
+	# 3. BUILD TEXT
+	var txt = "[center][b][font_size=24]" + data.run_name + "[/font_size][/b][/center]\n"
+	txt += "[center][color=gray]Level " + str(data.current_level) + " - " + _get_difficulty_name(data.difficulty) + "[/color][/center]\n\n"
+	txt += "[b]Class:[/b] " + ClassFactory.class_enum_to_string(p_data.class_type) + "\n"
+	txt += "[b]HP:[/b] " + str(p_data.current_hp) + "/" + str(p_data.max_hp) + "   "
+	txt += "[b]SP:[/b] " + str(p_data.current_sp) + "/" + str(p_data.max_sp) + "\n"
+	
+	# 4. TYPEWRITER EFFECT
+	info_label.text = txt
+	info_label.visible_ratio = 0.0 
+	
+	var type_time = min(info_label.text.length() * 0.005, 0.5) 
+	preview_tween.tween_property(info_label, "visible_ratio", 1.0, type_time).set_trans(Tween.TRANS_LINEAR)
+
+func _setup_difficulty():
+	difficulty_option.clear()
+	difficulty_option.add_item("Very Easy")
+	difficulty_option.add_item("Easy")
+	difficulty_option.add_item("Medium")
+	difficulty_option.add_item("Hard")
+	
+	difficulty_option.selected = 2 # Medium
+	# FIX: Explicitly tell GameManager the starting difficulty!
+	GameManager.ai_difficulty = 2 as GameManager.Difficulty
+	
+	if not difficulty_option.item_selected.is_connected(_on_difficulty_changed):
+		difficulty_option.item_selected.connect(_on_difficulty_changed)
+
+func _on_item_selected(index: int, text: String, is_save: bool):
+	AudioManager.play_sfx("ui_click")
+	
+	# 1. Visual Highlight
+	for i in range(buttons.size()):
+		var btn = buttons[i]
+		if i == index:
+			btn.modulate = Color(1.2, 1.2, 1.2)
+			btn.add_theme_color_override("font_color", Color.GREEN)
+		else:
+			btn.modulate = Color(1, 1, 1) if not (btn.custom_minimum_size.x > 200) else Color(0.6, 0.8, 1.0)
 			btn.remove_theme_color_override("font_color")
 
 	if is_save:
-		# --- SAVE FILE SELECTED ---
-		selected_save_file = text + ".tres" # Changed to .tres
+		selected_save_file = text + ".tres"
 		start_btn.text = "LOAD RUN"
 		name_input.editable = false
 		name_input.text = text
 		
-		# A. NATIVE LOAD FOR PREVIEW
 		var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
-		
-		if data == null:
-			info_label.text = "[color=red]Error: Could not read save file.[/color]"
-			return
+		if data == null: return
 
-		# B. LOCK DIFFICULTY
-		var saved_diff = data.difficulty
-		difficulty_option.selected = saved_diff
+		# Lock the settings to match the save file
+		difficulty_option.selected = data.difficulty
 		difficulty_option.disabled = true 
-		
 		maintain_hp_toggle.button_pressed = data.maintain_hp
 		maintain_hp_toggle.disabled = true
 		
-		# C. BUILD STATS STRING
-		var p_data = data.player_data
-		
-		var txt = "[center][b][font_size=24]" + data.run_name + "[/font_size][/b][/center]\n"
-		txt += "[center][color=gray]Level " + str(data.current_level) + " - " + _get_difficulty_name(saved_diff) + "[/color][/center]\n\n"
-		
-		txt += "[b]Class:[/b] " + ClassFactory.class_enum_to_string(p_data.class_type) + "\n"
-		txt += "[b]HP:[/b] " + str(p_data.current_hp) + "/" + str(p_data.max_hp) + "   "
-		txt += "[b]SP:[/b] " + str(p_data.current_sp) + "/" + str(p_data.max_sp) + "\n"
-		txt += "[b]Opponents Defeated:[/b] " + str(data.current_level - 1) + "\n"
-		
-		txt += "\n[b]Equipment:[/b]\n"
-		if p_data.equipment.size() > 0:
-			for item in p_data.equipment:
-				txt += "• " + item.display_name + "\n"
-		else:
-			txt += "[i]None[/i]\n"
-
-		info_label.text = txt
-		
-		if p_data.portrait:
-			portrait_rect.texture = p_data.portrait
-		else:
-			portrait_rect.texture = null
-			
+		# Call our new helper function!
+		_show_save_preview(selected_save_file)
 		delete_btn.show()
 
 	else:
-		# --- NEW RUN SELECTED ---
 		selected_save_file = "" 
 		selected_index = index
 		start_btn.text = "START RUN"
 		name_input.editable = true
 		
-		# UNLOCK DIFFICULTY (Allow player to choose)
+		# FIX: If we clicked a save file previously, reset dropdown to Medium
+		if difficulty_option.disabled == true:
+			difficulty_option.selected = 2
+			
 		difficulty_option.disabled = false 
 		maintain_hp_toggle.disabled = false
-		# Show standard Class Preview
+		
+		# FIX: Sync GameManager to whatever the dropdown currently says
+		GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty
+		
 		_update_preview_panel(index)
 		delete_btn.hide()
 
-# --- HELPER: Reset UI when picking a Base Class ---
-func _select_class(index: int):
-	# ... (Existing audio/highlight logic) ...
-	AudioManager.play_sfx("ui_click")
-	selected_index = index
-	selected_save_file = "" # Clear save selection
-	
-	# Reset UI for New Run
-	name_input.editable = true
-	start_btn.text = "START RUN"
-	difficulty_option.disabled = false # <--- RE-ENABLE
-	maintain_hp_toggle.disabled = false # <--- RE-ENABLE
-	# Highlight buttons...
-	for i in range(buttons.size()):
-		var btn = buttons[i]
-		if i == index:
-			btn.modulate = Color(1.2, 1.2, 1.2)
-			btn.add_theme_color_override("font_color", Color.GREEN)
-		else:
-			btn.modulate = Color(1, 1, 1)
-			btn.remove_theme_color_override("font_color")
-			
-	_update_preview_panel(index)
-
-# --- STRING HELPERS ---
-func _get_difficulty_name(value: int) -> String:
-	var keys = GameManager.Difficulty.keys()
-	if value >= 0 and value < keys.size():
-		return keys[value].capitalize()
-	return "Unknown"
-
-
-func _on_delete_pressed():
-	if selected_save_file == "": return
-	
-	AudioManager.play_sfx("ui_click")
-	
-	# 1. Delete the file
-	RunManager.delete_save_file(selected_save_file)
-	
-	# 2. Refresh the UI
-	selected_save_file = ""
-	delete_btn.hide()
-	
-	# Regenerate grid to remove the old button
-	_generate_grid()
-	
-	# Reset to the first class so we aren't selecting nothing
-	_select_class(0)
+func _on_tutorial_pressed():
+	AudioManager.play_sfx("ui_confirm")
+	TutorialManager.setup_and_start_tutorial()
 
 
 ========================================
@@ -6704,6 +6986,9 @@ func apply_reward(reward):
 # Update this function
 func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	current_run_name = run_name # <--- Set the name!n):
+	# --- ADD THIS LINE ---
+	is_arcade_mode = true 
+	# ---------------------
 	# 1. Reset Run State
 	current_level = 1
 	player_owned_tree_ids.clear()
@@ -7294,6 +7579,59 @@ func _on_pressed():
 
 
 ========================================
+FILE PATH: res://Scripts/SplashScreen.gd
+========================================
+extends Control
+
+# --- TESTING TOGGLE ---
+# Check this box in the Inspector to instantly skip the splash screen!
+@export var skip_splash: bool = false
+@export var next_scene: String = "res://Scenes/MainMenu.tscn"
+
+@onready var logo = $Logo
+
+func _ready():
+	# 1. THE BYPASS
+	# If we are testing, or if the skip toggle is on, go straight to menu.
+	if skip_splash:
+		SceneLoader.change_scene(next_scene)
+		return
+		
+	# 2. INITIAL SETUP
+	logo.modulate.a = 0.0 # Start completely transparent
+	
+	# Optional: Play a subtle sound effect for your studio logo
+	# AudioManager.play_sfx("ui_hover") 
+	
+	# 3. THE ANIMATION SEQUENCE
+	var tween = create_tween()
+	
+	# Fade In (Takes 1.5 seconds)
+	tween.tween_property(logo, "modulate:a", 1.0, 1.5).set_trans(Tween.TRANS_SINE)
+	
+	# Hold on screen (Wait 2 seconds)
+	tween.tween_interval(1.0)
+	
+	# Fade Out (Takes 1.5 seconds)
+	tween.tween_property(logo, "modulate:a", 0.0, 1.5).set_trans(Tween.TRANS_SINE)
+	
+	# When the animation finishes, change the scene!
+	tween.tween_callback(_go_to_menu)
+
+func _go_to_menu():
+	SceneLoader.change_scene(next_scene)
+
+# Allow the player to skip it manually by pressing any key/clicking
+func _input(event):
+	if skip_splash: return # Don't do anything if we already skipped
+	
+	if event is InputEventKey or event is InputEventMouseButton:
+		if event.is_pressed():
+			# Instantly jump to menu if they click
+			_go_to_menu()
+
+
+========================================
 FILE PATH: res://Scripts/TestArena.gd
 ========================================
 extends Node2D
@@ -7320,6 +7658,7 @@ var game_over_screen
 @onready var battle_ui = $BattleUI
 var _simulation_active: bool = true
 var _current_input_player: int = 1 
+@onready var tutorial_layer = $"../TutorialLayer" # Grabs it from the MainScene
 
 func _ready():
 # --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
@@ -7459,6 +7798,10 @@ func _on_state_changed(new_state):
 			_start_feint_input()
 
 		GameManager.State.POST_CLASH:
+			# --- NEW: ADVANCE TUTORIAL ---
+			if TutorialManager.is_tutorial_active:
+				TutorialManager.advance_step()
+			# -----------------------------
 			_print_status_report()
 
 func _start_turn_sequence():
@@ -7535,6 +7878,15 @@ func _prepare_human_turn(player_id: int):
 	_current_input_player = player_id
 	var character = p1_resource if player_id == 1 else p2_resource
 	
+	# --- NEW: TUTORIAL PAUSE & POPUP ---
+	if TutorialManager.is_tutorial_active and player_id == 1:
+		var tut_data = TutorialManager.get_current_data()
+		if tut_data.has("sensei_text"):
+			tutorial_layer.show_message(tut_data["sensei_text"], tut_data.get("highlight", ""))
+			# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
+			await tutorial_layer.tutorial_message_closed
+	# -----------------------------------
+	
 	# --- NEW: SETUP UI TOGGLES ---
 	battle_ui.setup_passive_toggles(character)
 	# -----------------------------
@@ -7585,23 +7937,28 @@ func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # 
 		_start_feint_input() 
 
 func _run_bot_turn(player_id: int):
-	_current_input_player = player_id # Ensure tracker is correct for mid-turn switches
+	_current_input_player = player_id 
 	var character = p1_resource if player_id == 1 else p2_resource
 	
-	if player_id == 2 and p2_debug_force_card != null and GameManager.current_state == GameManager.State.SELECTION:
-		print(">>> DEBUG FORCE P2: " + p2_debug_force_card.display_name)
-		GameManager.player_select_action(2, p2_debug_force_card)
-		return
-
-	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
-	if locked_card and GameManager.current_state == GameManager.State.SELECTION:
-		print(">>> BOT P" + str(player_id) + " LOCKED into: " + locked_card.display_name)
-		_handle_bot_completion(player_id)
-		return
+	# ... (Keep your debug force and locked card checks here) ...
 
 	var c = _get_player_constraints(player_id)
+	var card: ActionData
 	
-	var card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
+	# --- NEW: TUTORIAL BOT HIJACK ---
+	if TutorialManager.is_tutorial_active and player_id == 2:
+		var target_card_name = TutorialManager.get_current_data().get("bot_card", "")
+		card = _find_card_by_name(character, target_card_name)
+		
+		# Fallback just in case the Sensei doesn't have the card
+		if card == null: 
+			printerr("TUTORIAL ERROR: Bot missing card " + target_card_name)
+			card = GameManager.get_struggle_action(ActionData.Type.OFFENCE)
+	else:
+		# NORMAL AI BEHAVIOR
+		card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
+	# --------------------------------
+
 	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
 	GameManager.player_select_action(player_id, card)
 	
@@ -7899,6 +8256,12 @@ func _print_status_report():
 	visual += "]"
 	print("\n[STATUS] P1: " + str(p1.current_hp) + "HP/" + str(p1.current_sp) + "SP  vs  P2: " + str(p2.current_hp) + "HP/" + str(p2.current_sp) + "SP")
 	print("[MOMENTUM] " + visual)
+
+func _find_card_by_name(character: CharacterData, card_name: String) -> ActionData:
+	for card in character.deck:
+		if card.display_name == card_name:
+			return card
+	return null
 
 
 ========================================
@@ -8367,6 +8730,150 @@ func _enter_gym(_data: MapNodeData):
 
 
 ========================================
+FILE PATH: res://Scripts/TutorialLayer.gd
+========================================
+extends CanvasLayer
+
+@onready var darkener = $Darkener
+@onready var message_box = $MessageBox
+@onready var sensei_text = $MessageBox/MarginContainer/SenseiText
+@onready var continue_btn = $MessageBox/MarginContainer/ContinueButton
+
+signal tutorial_message_closed
+
+func _ready():
+	visible = false
+	continue_btn.pressed.connect(_on_continue_pressed)
+
+func show_message(text: String, highlight_target: String = ""):
+	visible = true
+	sensei_text.text = "[center]" + text + "[/center]"
+	
+	# Pause the background action so the player can read
+	get_tree().paused = true 
+	
+	# TODO: Later we will add logic here to move a "Spotlight" hole 
+	# over the highlight_target (like the hand or momentum bar).
+
+func _on_continue_pressed():
+	visible = false
+	get_tree().paused = false
+	emit_signal("tutorial_message_closed")
+
+
+========================================
+FILE PATH: res://Scripts/TutorialManager.gd
+========================================
+extends Node
+
+var is_tutorial_active: bool = false
+var current_step: int = 0
+
+# --- THE SYLLABUS ---
+var tutorial_script = [
+	{
+		# TURN 1: The Opening Clash
+		"sensei_text": "Welcome to the Dojo. Every fight starts with a Clash. The fighter who plays the card with the [color=yellow]Lowest Cost[/color] strikes first.\n\nPlay your [color=cyan]Quick Strike (1 SP)[/color] to beat my heavy attack.",
+		"bot_card": "Heavy Strike", 
+		"player_card": "Quick Strike",
+		"highlight": "hand"
+	},
+	{
+		# TURN 2: Offence
+		"sensei_text": "Good! You won priority and took the [color=red]Offence[/color]. You can now chain attacks together. Play an [color=yellow]Opener[/color] to start a combo.",
+		"bot_card": "Basic Block",
+		"player_card": "Quick Strike",
+		"highlight": "hand"
+	},
+	{
+		# TURN 3: The Reversal
+		"sensei_text": "I am on the ropes, but watch closely! I am playing a card with the [color=yellow]Reversal[/color] trait. If my block pushes the momentum back to your side, I steal the Offence!",
+		"bot_card": "Reversal Stance", 
+		"player_card": "Heavy Strike",
+		"highlight": "momentum"
+	},
+	{
+		# TURN 4: Defence & Wall Crush
+		"sensei_text": "I have the Offence, and you are backed into a corner. If Momentum reaches your wall and you use [color=yellow]Fall Back[/color], you will take Wall Crush damage! Brace yourself!",
+		"bot_card": "Heavy Strike",
+		"player_card": "Tactical Retreat",
+		"highlight": "wall"
+	}
+]
+
+# --- NEW: THE SETUP MASTER FUNCTION ---
+func setup_and_start_tutorial():
+	# 1. Create the Student (Player)
+	var p1 = CharacterData.new()
+	p1.character_name = "Student"
+	p1.max_hp = 30; p1.current_hp = 30
+	p1.max_sp = 20; p1.current_sp = 20
+	p1.speed = 5
+	p1.deck = _generate_basic_deck()
+
+	# 2. Create the Sensei (Bot)
+	var p2 = CharacterData.new()
+	p2.character_name = "Sensei"
+	p2.max_hp = 30; p2.current_hp = 30
+	p2.max_sp = 20; p2.current_sp = 20
+	p2.speed = 5
+	p2.deck = _generate_basic_deck()
+
+	# 3. Inject into GameManager
+	GameManager.next_match_p1_data = p1
+	GameManager.next_match_p2_data = p2
+
+	# 4. Force strict settings (Disable Arcade mechanics, Force AI)
+	RunManager.is_arcade_mode = false
+	GameManager.p2_is_custom = false # Forces the Arena to treat P2 as a Bot
+	GameManager.ai_difficulty = GameManager.Difficulty.MEDIUM
+
+	# 5. Start the engine!
+	is_tutorial_active = true
+	current_step = 0
+	print("--- TUTORIAL STARTED ---")
+	
+	# Assumes you have SceneLoader autoloaded
+	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+
+# --- NEW: DECK GENERATOR ---
+# This builds a perfectly balanced basic deck in memory for the tutorial.
+func _generate_basic_deck() -> Array[ActionData]:
+	var d: Array[ActionData] = []
+	var a: ActionData
+	
+	# OFFENCE
+	a = ActionData.new(); a.display_name = "Quick Strike"; a.type = ActionData.Type.OFFENCE; a.cost = 1; a.damage = 2; a.is_opener = true; d.append(a)
+	a = ActionData.new(); a.display_name = "Heavy Strike"; a.type = ActionData.Type.OFFENCE; a.cost = 3; a.damage = 5; d.append(a)
+	a = ActionData.new(); a.display_name = "Technical Strike"; a.type = ActionData.Type.OFFENCE; a.cost = 2; a.damage = 2; a.create_opening = 2; d.append(a)
+	a = ActionData.new(); a.display_name = "Positioning"; a.type = ActionData.Type.OFFENCE; a.cost = 1; a.damage = 1; a.opportunity = 1; d.append(a)
+
+	# DEFENCE
+	a = ActionData.new(); a.display_name = "Basic Block"; a.type = ActionData.Type.DEFENCE; a.cost = 1; a.block_value = 3; d.append(a)
+	a = ActionData.new(); a.display_name = "Parry"; a.type = ActionData.Type.DEFENCE; a.cost = 2; a.block_value = 1; a.is_parry = true; d.append(a)
+	a = ActionData.new(); a.display_name = "Reversal Stance"; a.type = ActionData.Type.DEFENCE; a.cost = 3; a.block_value = 2; a.reversal = true; d.append(a)
+	a = ActionData.new(); a.display_name = "Dodge"; a.type = ActionData.Type.DEFENCE; a.cost = 2; a.dodge_value = 3; d.append(a)
+	a = ActionData.new(); a.display_name = "Tactical Retreat"; a.type = ActionData.Type.DEFENCE; a.cost = 1; a.fall_back_value = 2; d.append(a)
+
+	return d
+
+# --- HELPERS ---
+func end_tutorial():
+	is_tutorial_active = false
+	current_step = 0
+
+func get_current_data() -> Dictionary:
+	if current_step < tutorial_script.size():
+		return tutorial_script[current_step]
+	return {}
+
+func advance_step():
+	current_step += 1
+	if current_step >= tutorial_script.size():
+		end_tutorial()
+
+
+========================================
 FILE PATH: res://Scripts/VFXManager.gd
 ========================================
 extends CanvasLayer
@@ -8672,128 +9179,165 @@ FILE PATH: res://Scripts/VsScreen.gd
 extends Control
 
 @onready var background = $Background
+@onready var content = $Content
+
+# --- NEW CINEMATIC NODES ---
+@onready var flash_overlay = $FlashOverlay
+@onready var top_bar = $TopLetterbox
+@onready var bottom_bar = $BottomLetterbox
+
+# --- PLAYER 1 NODES ---
 @onready var p1_container = $Content/P1_Container
 @onready var p1_portrait = $Content/P1_Container/Portrait
-@onready var p1_name = $Content/P1_Container/NameLabel
-@onready var p1_class = $Content/P1_Container/ClassLabel
+@onready var p1_name = $Content/P1_Container/InfoBox/VBoxContainer/NameLabel
+@onready var p1_class = $Content/P1_Container/InfoBox/VBoxContainer/ClassLabel
+@onready var p1_hp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
+@onready var p1_sp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
+@onready var p1_bubble = $Content/P1_Container/PanelContainer/SpeechBubble
 
+# --- PLAYER 2 NODES ---
 @onready var p2_container = $Content/P2_Container
 @onready var p2_portrait = $Content/P2_Container/Portrait
-@onready var p2_name = $Content/P2_Container/NameLabel
-@onready var p2_class = $Content/P2_Container/ClassLabel
-
-@onready var vs_label = $Content/VsLabel
-@onready var arena_label = $ArenaLabel
-
-@onready var p1_bubble = $Content/P1_Container/PanelContainer/SpeechBubble # Adjust path if needed
+@onready var p2_name = $Content/P2_Container/InfoBox/VBoxContainer/NameLabel
+@onready var p2_class = $Content/P2_Container/InfoBox/VBoxContainer/ClassLabel
+@onready var p2_hp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
+@onready var p2_sp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
 @onready var p2_bubble = $Content/P2_Container/PanelContainer/SpeechBubble
 
+@onready var vs_label = $Content/VsLabel
+@onready var arena_label = $BottomLetterbox/ArenaLabel
+
 func _ready():
+	# 1. Hide things before setup
+	p1_bubble.visible_ratio = 0.0 # Typewriter reset
+	p2_bubble.visible_ratio = 0.0
+	p1_bubble.get_parent().modulate.a = 0.0 # Reserve space, but make invisible
+	p2_bubble.get_parent().modulate.a = 0.0
+	flash_overlay.modulate.a = 0.0
+	
 	_setup_visuals()
-	#AudioManager.play_music("battle_theme")
-	# Wait a frame to let Godot calculate the new Anchors we set
+	
+	# Wait a frame to let Godot calculate the new Anchors
 	await get_tree().process_frame
 	_play_intro_animation()
 	
-	# Wait 3.5 seconds, then load the fight
-	await get_tree().create_timer(5.0).timeout
+	# The intro takes about 4 seconds total, load fight after 5
+	await get_tree().create_timer(7.0).timeout
 	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 func _setup_visuals():
-	# -- Background --
 	var env_name = GameManager.current_environment_name
 	if GameManager.environment_backgrounds.has(env_name):
 		background.texture = GameManager.environment_backgrounds[env_name]
-	arena_label.text = "Stage:\n" + "- " + env_name.to_upper() + " -"
+	arena_label.text = "- " + env_name.to_upper() + " -"
 
-	# --- FETCH DATA ---
 	var p1 = GameManager.next_match_p1_data
 	var p2 = GameManager.next_match_p2_data
 	
-	# ARCADE MODE SAFETY CHECK:
-	# Sometimes GameManager might not be synced perfectly, so we grab P1 directly from the RunManager.
 	if RunManager.is_arcade_mode and RunManager.player_run_data:
 		p1 = RunManager.player_run_data
-		# Note: P2 (The Enemy) is still fetched from GameManager (set by RunManager.start_next_fight)
 
-	# -- Player 1 --
+	# -- Player 1 Data --
 	if p1:
-		# Portrait Check
-		if p1.portrait:
-			p1_portrait.texture = p1.portrait
-		else:
-			print("VsScreen: P1 Portrait is missing!")
-			
-		# Name Check
+		if p1.portrait: p1_portrait.texture = p1.portrait
 		p1_name.text = p1.character_name
-		
-		# Class Label
-		if p1.class_type >= 0 and p1.class_type < CharacterData.ClassType.size():
-			p1_class.text = CharacterData.ClassType.keys()[p1.class_type]
-		else:
-			p1_class.text = "UNKNOWN"
+		p1_class.text = CharacterData.ClassType.keys()[p1.class_type] if p1.class_type >= 0 else "UNKNOWN"
+		p1_hp.text = "HP: " + str(p1.max_hp)
+		p1_sp.text = "SP: " + str(p1.max_sp)
 
-	# -- Player 2 --
+	# -- Player 2 Data --
 	if p2:
 		if p2.portrait:
 			p2_portrait.texture = p2.portrait
 			p2_portrait.flip_h = true 
-			
 		p2_name.text = p2.character_name
 		
 		if p2.character_name == "THE JUGGERNAUT": 
 			p2_class.text = "BOSS"
 			p2_class.modulate = Color.RED
 		else:
-			if p2.class_type >= 0 and p2.class_type < CharacterData.ClassType.size():
-				p2_class.text = CharacterData.ClassType.keys()[p2.class_type]
+			p2_class.text = CharacterData.ClassType.keys()[p2.class_type] if p2.class_type >= 0 else "UNKNOWN"
+		
+		p2_hp.text = "HP: " + str(p2.max_hp)
+		p2_sp.text = "SP: " + str(p2.max_sp)
 
 func _play_intro_animation():
-	vs_label.scale = Vector2.ZERO
-	
-	# Get exact screen width
 	var screen_w = get_viewport_rect().size.x
 	
-	# 1. DEFINE TARGETS (Where they should end up)
-	# P1 is anchored to Left (0)
-	var p1_target_x = 0
-	# P2 is anchored to Center (Width / 2)
-	var p2_target_x = screen_w / 2
-	
-	# 2. DEFINE START POSITIONS (Where they start)
-	# Start P1 way off the left side
+	# Reset states
+	vs_label.scale = Vector2.ZERO
 	p1_container.position.x = -p1_container.size.x
-	# Start P2 way off the right side
 	p2_container.position.x = screen_w
 	
-	# 3. ANIMATE
+	# Push letterboxes offscreen initially
+	top_bar.position.y = -100
+	bottom_bar.position.y = get_viewport_rect().size.y
+	
+	# --- PHASE 1: THE CRASH ---
 	var tween = create_tween().set_parallel(true)
-	tween.set_trans(Tween.TRANS_EXPO)
-	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
 	
-	tween.tween_property(p1_container, "position:x", p1_target_x, 0.8)
-	tween.tween_property(p2_container, "position:x", p2_target_x, 0.8)
+	# Characters slide in
+	tween.tween_property(p1_container, "position:x", 0, 0.8)
+	tween.tween_property(p2_container, "position:x", screen_w / 2, 0.8)
 	
-	# Pop the VS Label
-	tween.tween_property(vs_label, "scale", Vector2.ONE, 0.5).set_delay(0.6).set_trans(Tween.TRANS_ELASTIC)
+	# Cinematic bars slide in
+	tween.tween_property(top_bar, "position:y", 0, 0.8)
+	tween.tween_property(bottom_bar, "position:y", get_viewport_rect().size.y - 100, 0.8)
 	
-	# --- NEW: TRIGGER DIALOGUE ---
-	var p1_type = GameManager.next_match_p1_data.class_type
-	var p2_type = GameManager.next_match_p2_data.class_type
+	# --- PHASE 2: IMPACT & FLASH (At 0.8s) ---
+	tween.set_parallel(false) # Sequence mode
+	tween.tween_interval(0.8)
 	
-	var banter = DialogueManager.get_intro_banter(p1_type, p2_type)
+	tween.tween_callback(func():
+		AudioManager.play_sfx("hit_heavy")
+		_shake_content(15.0, 0.5)
+		
+		# Flash White
+		var flash_tween = create_tween()
+		flash_overlay.modulate.a = 1.0
+		flash_tween.tween_property(flash_overlay, "modulate:a", 0.0, 0.5)
+	)
 	
-	# Set text
-	p1_bubble.text = banter["p1"] # Assuming Bubble is a Panel with a Label child
+	# Pop the VS Label immediately after impact
+	tween.tween_property(vs_label, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_ELASTIC)
+	
+	# --- PHASE 3: DIALOGUE FETCH ---
+	var banter = DialogueManager.get_intro_banter(GameManager.next_match_p1_data.class_type, GameManager.next_match_p2_data.class_type)
+	p1_bubble.text = banter["p1"]
 	p2_bubble.text = banter["p2"]
 	
-	# Sequence: 
-	# 1. Slide In (0.8s) -> 2. Show P1 Text (1.5s) -> 3. Show P2 Text (1.5s) -> 4. Fight
+	# --- PHASE 4: TYPEWRITER SEQUENCE ---
 	
-	await get_tree().create_timer(1.0).timeout
-	p1_bubble.visible = true
-	AudioManager.play_sfx("ui_hover") # Or a "speech" sound
+	# Player 1 Speaks
+	tween.tween_interval(0.2)
+	# Fade in the background panel smoothly
+	tween.tween_property(p1_bubble.get_parent(), "modulate:a", 1.0, 0.2) 
+	tween.tween_callback(func():
+		AudioManager.play_sfx("ui_click") # Typewriter sound
+	)
+	tween.tween_property(p1_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
 	
-	await get_tree().create_timer(1.5).timeout
-	p2_bubble.visible = true
-	AudioManager.play_sfx("ui_hover")
+	# Player 2 Speaks
+	tween.tween_interval(0.5)
+	# Fade in the background panel smoothly
+	tween.tween_property(p2_bubble.get_parent(), "modulate:a", 1.0, 0.2)
+	tween.tween_callback(func():
+		AudioManager.play_sfx("ui_click")
+	)
+	tween.tween_property(p2_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
+	
+	
+	
+	
+# Camera Shake effect for the Content layer
+func _shake_content(intensity: float, duration: float):
+	var original_pos = content.position
+	var shake_tween = create_tween()
+	
+	shake_tween.tween_method(func(val):
+		var offset = Vector2(randf_range(-val, val), randf_range(-val, val))
+		content.position = original_pos + offset
+	, intensity, 0.0, duration)
+	
+	shake_tween.tween_callback(func(): content.position = original_pos)

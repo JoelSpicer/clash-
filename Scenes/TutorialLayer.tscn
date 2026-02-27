@@ -1,0 +1,60 @@
+[gd_scene format=3 uid="uid://bnm0vfddu8cy6"]
+
+[ext_resource type="Script" uid="uid://ci7dmsehdl6rm" path="res://Scripts/TutorialLayer.gd" id="1_tw0yy"]
+[ext_resource type="Shader" uid="uid://5rbskf3hlvtp" path="res://Scenes/TutorialLayer.gdshader" id="2_s2ukq"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ynnrn"]
+shader = ExtResource("2_s2ukq")
+shader_parameter/center = Vector2(0.5, 0.5)
+shader_parameter/radius_px = 150.0
+shader_parameter/screen_size = Vector2(1920, 1080)
+shader_parameter/base_alpha = 0.7
+
+[node name="TutorialLayer" type="CanvasLayer" unique_id=2134579543]
+layer = 150
+script = ExtResource("1_tw0yy")
+
+[node name="Darkener" type="ColorRect" parent="." unique_id=202254433]
+material = SubResource("ShaderMaterial_ynnrn")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6862745)
+
+[node name="MessageBox" type="PanelContainer" parent="." unique_id=293789276]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -193.0
+offset_top = -92.0
+offset_right = 193.0
+offset_bottom = 92.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="MessageBox" unique_id=1123666073]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MessageBox/MarginContainer" unique_id=1307217377]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="SenseiText" type="RichTextLabel" parent="MessageBox/MarginContainer/VBoxContainer" unique_id=1348195135]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 13
+theme_override_font_sizes/bold_font_size = 13
+theme_override_font_sizes/bold_italics_font_size = 13
+theme_override_font_sizes/italics_font_size = 13
+theme_override_font_sizes/mono_font_size = 13
+bbcode_enabled = true
+text = "test"
+fit_content = true
+
+[node name="ContinueButton" type="Button" parent="MessageBox/MarginContainer/VBoxContainer" unique_id=447211172]
+layout_mode = 2
+text = "Continue"

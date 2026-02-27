@@ -4,7 +4,7 @@ extends Control
 @onready var class_list_root = $MarginContainer/VBoxContainer/HBoxContainer/ClassScroll/ClassList # Changed to VBoxContainer!
 @onready var info_label = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/InfoLabel
 @onready var portrait_rect = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
-
+@onready var tutorial_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/TutorialButton
 # Settings
 @onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
 @onready var maintain_hp_toggle = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/MaintainHPToggle
@@ -26,6 +26,10 @@ func _ready():
 	_generate_lists() 
 	
 	start_btn.pressed.connect(_on_start_pressed)
+	
+	if tutorial_btn:
+		tutorial_btn.pressed.connect(_on_tutorial_pressed)
+	
 	if delete_btn:
 		delete_btn.pressed.connect(_on_delete_pressed)
 		delete_btn.hide() 
@@ -313,3 +317,7 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		
 		_update_preview_panel(index)
 		delete_btn.hide()
+
+func _on_tutorial_pressed():
+	AudioManager.play_sfx("ui_confirm")
+	TutorialManager.setup_and_start_tutorial("basic")

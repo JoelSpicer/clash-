@@ -381,6 +381,7 @@ func _refresh_grid():
 	for child in button_grid.get_children():
 		child.queue_free()
 		
+	# 1. Standard Deck Cards
 	for card in current_deck:
 		if card == null: continue
 		if card.type != current_tab: continue 
@@ -393,14 +394,28 @@ func _refresh_grid():
 		
 		btn.setup(card)
 		btn.update_cost_display(final_cost) 
-		btn.set_available(is_valid)         
+		btn.set_available(is_valid)          
 	
-		
 		btn.card_hovered.connect(_on_card_hovered)
 		btn.card_exited.connect(_on_card_exited) 
 		btn.card_selected.connect(_on_card_selected)
+	
+	# 2. Tutorial Struggle Logic
+	var hide_struggle = false
+	if TutorialManager.is_tutorial_active:
+		var required_card_name = TutorialManager.get_current_data().get("player_card", "")
 		
-	if not feint_mode:
+		# If the tutorial wants you to play Struggle, we only show it on the correct tab
+		if required_card_name == "Struggle":
+			# If the current tab (Offence/Defence) doesn't match the card's required type, hide it
+			# This prevents Struggle (Offence) from showing up on the Defence tab
+			pass 
+		else:
+			# If the tutorial wants any other specific card, hide Struggle everywhere
+			hide_struggle = true
+	
+	# 3. Struggle Button instantiation
+	if not feint_mode and not hide_struggle:
 		var struggle = GameManager.get_struggle_action(current_tab)
 		var s_btn = card_button_scene.instantiate()
 		button_grid.add_child(s_btn)
@@ -414,6 +429,7 @@ func _refresh_grid():
 		s_btn.card_exited.connect(_on_card_exited)
 		s_btn.card_selected.connect(_on_card_selected)
 	
+	# 4. Skip Feint logic
 	if feint_mode:
 		skip_action.type = current_tab 
 		var skip_btn = card_button_scene.instantiate()
@@ -459,7 +475,15 @@ func _check_card_validity(card: ActionData, final_cost: int) -> bool:
 	if card.cost > turn_cost_limit: return false
 	if card.counter_value > 0 and my_opening_value < card.counter_value: return false
 	if card.is_super and not super_allowed: return false
-
+	
+	# --- NEW: TUTORIAL RAILROAD ---
+	if TutorialManager.is_tutorial_active:
+		var required_card = TutorialManager.get_current_data().get("player_card", "")
+		# If this card isn't the exact one the Sensei asked for, disable it!
+		if required_card != "" and card.display_name != required_card:
+			return false
+	# ------------------------------
+	
 	return true
 
 func _on_card_hovered(card: ActionData):

@@ -22,6 +22,7 @@ var game_over_screen
 @onready var battle_ui = $BattleUI
 var _simulation_active: bool = true
 var _current_input_player: int = 1 
+@onready var tutorial_layer = $"../TutorialLayer" # Grabs it from the MainScene
 
 func _ready():
 # --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
@@ -161,6 +162,10 @@ func _on_state_changed(new_state):
 			_start_feint_input()
 
 		GameManager.State.POST_CLASH:
+			# --- NEW: ADVANCE TUTORIAL ---
+			if TutorialManager.is_tutorial_active:
+				TutorialManager.advance_step()
+			# -----------------------------
 			_print_status_report()
 
 func _start_turn_sequence():
@@ -237,9 +242,8 @@ func _prepare_human_turn(player_id: int):
 	_current_input_player = player_id
 	var character = p1_resource if player_id == 1 else p2_resource
 	
-	# --- NEW: SETUP UI TOGGLES ---
+	# 1. BUILD THE UI FIRST (So the spotlight has something to look at!)
 	battle_ui.setup_passive_toggles(character)
-	# -----------------------------
 	battle_ui.load_deck(character.deck)
 	
 	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
@@ -261,10 +265,55 @@ func _prepare_human_turn(player_id: int):
 	_update_visuals() 
 	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
 	
+	# 2. MAKE THE GRID VISIBLE
 	battle_ui.unlock_for_input(
 		c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
 		c.can_use_super, c.opportunity_stat, is_feinting
 	)
+	
+	# --- THE FIX: WAIT FOR THE UI TO DRAW ---
+	# We wait two frames so Godot can calculate the exact pixel sizes 
+	# and positions of the cards before the spotlight tries to find them!
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# ----------------------------------------
+	
+	# --- 3. TUTORIAL PAUSE & POPUP ---
+	if TutorialManager.is_tutorial_active and player_id == 1:
+		battle_ui.is_locked = true # Prevent clicking while reading!
+		
+		# THE FIX: If this is the very first message, wait 1 second for 
+		# the SceneLoader to finish fading the screen in before we pause!
+		if TutorialManager.current_step == 0:
+			await get_tree().create_timer(1.0).timeout
+			# We also need these two frames again just in case
+			await get_tree().process_frame
+			await get_tree().process_frame
+		
+		var tut_data = TutorialManager.get_current_data()
+		if tut_data.has("sensei_text"):
+			var highlight_str = tut_data.get("highlight", "")
+			var highlight_node: Control = null
+			
+			# Map the string to the ACTUAL node here in the Arena!
+			# --- UPGRADED TRANSLATOR ---
+			if highlight_str == "hand": 
+				highlight_node = battle_ui.button_grid
+			elif highlight_str == "momentum" or highlight_str == "wall": 
+				highlight_node = battle_ui.momentum_slider
+			
+			# NEW: Support "card:Name"
+			elif highlight_str.begins_with("card:"):
+				var target_card_name = highlight_str.replace("card:", "")
+				highlight_node = _get_button_for_card(target_card_name)
+			# ---------------------------
+			
+			tutorial_layer.show_message(tut_data["sensei_text"], highlight_node)
+			# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
+			await tutorial_layer.tutorial_message_closed
+			
+		battle_ui.is_locked = false # Re-enable clicking so they can play the card
+	# -----------------------------------
 
 func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # Updated Signature
 	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
@@ -287,23 +336,28 @@ func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # 
 		_start_feint_input() 
 
 func _run_bot_turn(player_id: int):
-	_current_input_player = player_id # Ensure tracker is correct for mid-turn switches
+	_current_input_player = player_id 
 	var character = p1_resource if player_id == 1 else p2_resource
 	
-	if player_id == 2 and p2_debug_force_card != null and GameManager.current_state == GameManager.State.SELECTION:
-		print(">>> DEBUG FORCE P2: " + p2_debug_force_card.display_name)
-		GameManager.player_select_action(2, p2_debug_force_card)
-		return
-
-	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
-	if locked_card and GameManager.current_state == GameManager.State.SELECTION:
-		print(">>> BOT P" + str(player_id) + " LOCKED into: " + locked_card.display_name)
-		_handle_bot_completion(player_id)
-		return
+	# ... (Keep your debug force and locked card checks here) ...
 
 	var c = _get_player_constraints(player_id)
+	var card: ActionData
 	
-	var card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
+	# --- NEW: TUTORIAL BOT HIJACK ---
+	if TutorialManager.is_tutorial_active and player_id == 2:
+		var target_card_name = TutorialManager.get_current_data().get("bot_card", "")
+		card = _find_card_by_name(character, target_card_name)
+		
+		# Fallback just in case the Sensei doesn't have the card
+		if card == null: 
+			printerr("TUTORIAL ERROR: Bot missing card " + target_card_name)
+			card = GameManager.get_struggle_action(ActionData.Type.OFFENCE)
+	else:
+		# NORMAL AI BEHAVIOR
+		card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
+	# --------------------------------
+
 	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
 	GameManager.player_select_action(player_id, card)
 	
@@ -601,3 +655,17 @@ func _print_status_report():
 	visual += "]"
 	print("\n[STATUS] P1: " + str(p1.current_hp) + "HP/" + str(p1.current_sp) + "SP  vs  P2: " + str(p2.current_hp) + "HP/" + str(p2.current_sp) + "SP")
 	print("[MOMENTUM] " + visual)
+
+func _find_card_by_name(character: CharacterData, card_name: String) -> ActionData:
+	for card in character.deck:
+		if card.display_name == card_name:
+			return card
+	return null
+
+func _get_button_for_card(card_name: String) -> Control:
+	# Look through all buttons currently in the hand
+	for btn in battle_ui.button_grid.get_children():
+		# Your CardButton.gd has a 'my_action' variable or you can check btn.text
+		if btn.get("my_action") and btn.my_action.display_name == card_name:
+			return btn
+	return null

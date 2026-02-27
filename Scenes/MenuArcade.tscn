@@ -117,3 +117,7 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.97824043, 0, 0.17609239, 1)
 text = "Delete Save"
 script = ExtResource("7_e67h7")
+
+[node name="TutorialButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1756516446]
+layout_mode = 2
+text = "PLAY TUTORIAL"
