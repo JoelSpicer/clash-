@@ -76,9 +76,10 @@ size_flags_vertical = 3
 
 [node name="TypeIcon" type="Label" parent="InnerMargin/VBox/IconContainer" unique_id=2084336206]
 layout_mode = 2
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 20
 
 [node name="CostPanel" type="PanelContainer" parent="InnerMargin/VBox" unique_id=438844957]
+self_modulate = Color(1, 1, 1, 0)
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 4

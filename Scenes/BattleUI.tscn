@@ -194,37 +194,20 @@ layout_mode = 2
 size_flags_horizontal = 3
 columns = 7
 
-[node name="MomentumSlider" type="HSlider" parent="." unique_id=1893970328]
-offset_left = 414.0
-offset_top = 9.0
-offset_right = 663.0
-offset_bottom = 25.0
-max_value = 8.0
-editable = false
-
-[node name="Label" type="Label" parent="MomentumSlider" unique_id=709846243]
-layout_mode = 0
-offset_left = 92.0
-offset_top = 20.0
-offset_right = 132.0
-offset_bottom = 43.0
-
-[node name="Label2" type="Label" parent="MomentumSlider" unique_id=924501552]
-layout_mode = 0
-offset_left = 89.0
-offset_top = 37.0
-offset_right = 129.0
-offset_bottom = 60.0
-text = "TEST"
-
 [node name="P1_HUD" parent="." unique_id=2037083698 instance=ExtResource("3_vxmu1")]
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 45.0
+offset_bottom = 45.0
 
 [node name="P2_HUD" parent="." unique_id=1426370563 instance=ExtResource("3_vxmu1")]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -40.0
-offset_right = 0.0
+offset_left = -45.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = 45.0
 grow_horizontal = 0
 
 [node name="CombatLog" parent="." unique_id=1264011144 instance=ExtResource("4_f6fb8")]
@@ -250,6 +233,7 @@ text = "?"
 script = ExtResource("4_6eyfp")
 
 [node name="EnvButton" type="Button" parent="." unique_id=1268670440]
+visible = false
 offset_left = 337.0
 offset_top = 3.0
 offset_right = 402.0
@@ -308,6 +292,42 @@ offset_bottom = 179.0
 text = "INSPECT OPPONENT"
 script = ExtResource("4_6eyfp")
 
+[node name="MomentumTracker" type="VBoxContainer" parent="." unique_id=1650371928]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 40.0
+grow_horizontal = 2
+
+[node name="StatusLabel" type="Label" parent="MomentumTracker" unique_id=1355910030]
+layout_mode = 2
+horizontal_alignment = 1
+
+[node name="SlotGrid" type="HBoxContainer" parent="MomentumTracker" unique_id=1896047700]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="P1_Bark" type="Label" parent="." unique_id=1974256669]
+modulate = Color(1, 1, 1, 0)
+offset_left = 276.0
+offset_top = 434.0
+offset_right = 501.0
+offset_bottom = 470.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+
+[node name="P2_Bark" type="Label" parent="." unique_id=364228376]
+modulate = Color(1, 1, 1, 0)
+offset_left = 724.0
+offset_top = 440.0
+offset_right = 949.0
+offset_bottom = 476.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+
 [node name="InspectPopup" type="Panel" parent="." unique_id=303135880]
 visible = false
 anchors_preset = 8
@@ -338,23 +358,5 @@ layout_mode = 2
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 20
 columns = 4
-
-[node name="P1_Bark" type="Label" parent="." unique_id=1974256669]
-modulate = Color(1, 1, 1, 0)
-offset_left = 276.0
-offset_top = 434.0
-offset_right = 501.0
-offset_bottom = 470.0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-
-[node name="P2_Bark" type="Label" parent="." unique_id=364228376]
-modulate = Color(1, 1, 1, 0)
-offset_left = 724.0
-offset_top = 440.0
-offset_right = 949.0
-offset_bottom = 476.0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
 
 [connection signal="pressed" from="MenuButton" to="." method="_on_menu_pressed"]

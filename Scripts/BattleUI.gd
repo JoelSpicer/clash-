@@ -8,8 +8,10 @@ signal p2_mode_toggled(is_human)
 # --- REFERENCES ---
 @onready var p1_hud = $P1_HUD 
 @onready var p2_hud = $P2_HUD
-@onready var momentum_slider = $MomentumSlider
-@onready var momentum_label = $MomentumSlider/Label 
+@onready var momentum_tracker = $MomentumTracker
+@onready var status_label = $MomentumTracker/StatusLabel
+@onready var slot_grid = $MomentumTracker/SlotGrid
+var momentum_slots: Array[Panel] = [] 
 @onready var combat_log = $CombatLog
 
 @onready var button_grid = %ButtonGrid
@@ -17,6 +19,8 @@ signal p2_mode_toggled(is_human)
 @onready var tooltip_panel = $MainLayout/PreviewAnchor/TooltipPanel
 @onready var tooltip_label = $MainLayout/PreviewAnchor/TooltipPanel/ToolTipLabel # Or whatever the exact path is now!
 var tooltip_tween: Tween # Keeps track of the animation so we don't spam it
+var preview_tween: Tween
+var preview_base_pos: Vector2
 @onready var btn_offence = %Offence        
 @onready var btn_defence = %Defence      
 @onready var equipment_grid = $EquipmentGrid
@@ -128,9 +132,7 @@ func _ready():
 
 	GameManager.wall_crush_occurred.connect(_on_wall_crush_ui)
 	
-	momentum_slider.max_value = GameManager.TOTAL_MOMENTUM_SLOTS
-	momentum_slider.min_value = 1
-	
+
 	GameManager.combat_log_updated.emit("Location: " + GameManager.current_environment_name + " (" + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots)")
 	
 	if clash_layer: clash_layer.visible = false
@@ -151,6 +153,9 @@ func _ready():
 	skip_action.cost = 0
 	
 	button_grid.visible = false
+	
+	preview_base_pos = preview_card.position
+	
 	preview_card.visible = false
 	if tooltip_label: tooltip_label.visible = false
 	
@@ -170,9 +175,6 @@ func _ready():
 	_create_passive_toggles()
 	setup_toggles()
 	
-
-	$MomentumSlider/Label2.text = str(GameManager.momentum)
-
 	if env_button and env_popup:
 		env_button.pressed.connect(_on_env_button_pressed)
 		close_env_button.pressed.connect(func(): env_popup.visible = false)
@@ -315,21 +317,49 @@ func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
 	p2_hud.update_stats(p2, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat, p2.patient_buff_active)
 	
 	update_momentum(momentum)
-	$MomentumSlider/Label2.text = str(GameManager.momentum)
 
 func update_momentum(val: int):
-	var visual_val = val
-	var text = "NEUTRAL: " + GameManager.current_environment_name
-	if val == 0: 
-		visual_val = float(GameManager.TOTAL_MOMENTUM_SLOTS) / 2.0 + 0.5
-	elif val <= GameManager.MOMENTUM_P1_MAX: 
-		text = "P1 MOMENTUM"
-	else: 
-		text = "P2 MOMENTUM"
+	if momentum_slots.is_empty():
+		_build_momentum_track() # Ensure it's built the first time
 		
-	var tween = create_tween()
-	tween.tween_property(momentum_slider, "value", visual_val, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	if momentum_label: momentum_label.text = text
+	# 1. Update the Text
+	var text = "NEUTRAL: " + GameManager.current_environment_name.to_upper()
+	if val > 0 and val <= GameManager.MOMENTUM_P1_MAX:
+		text = "P1 ADVANTAGE"
+	elif val > GameManager.MOMENTUM_P1_MAX:
+		text = "P2 ADVANTAGE"
+	if status_label: status_label.text = text
+
+	# 2. Update the Slots (The Juice)
+	for i in range(momentum_slots.size()):
+		var slot = momentum_slots[i]
+		var style = slot.get_theme_stylebox("panel").duplicate()
+		var slot_num = i + 1
+		
+		# Neutral State (Dim everything)
+		if val == 0:
+			style.bg_color.a = 0.3
+			slot.scale = Vector2(1.0, 1.0)
+			
+		# Active State
+		else:
+			if slot_num == val:
+				# Highlight the active slot brightly
+				style.bg_color = Color.CYAN if slot_num <= GameManager.MOMENTUM_P1_MAX else Color.RED
+				style.bg_color.a = 1.0
+				
+				# JUICE: Make the active slot "pop"
+				var tween = create_tween()
+				slot.pivot_offset = slot.size / 2
+				slot.scale = Vector2(1.3, 1.3)
+				tween.tween_property(slot, "scale", Vector2(1.0, 1.0), 0.3).set_trans(Tween.TRANS_BOUNCE)
+			else:
+				# Dim the inactive slots
+				style.bg_color = Color(0.1, 0.4, 0.5) if slot_num <= GameManager.MOMENTUM_P1_MAX else Color(0.5, 0.1, 0.1)
+				style.bg_color.a = 0.4
+				slot.scale = Vector2(1.0, 1.0) # Reset scale just in case
+
+		slot.add_theme_stylebox_override("panel", style)
 
 func load_deck(deck: Array[ActionData]):
 	current_deck = deck
@@ -491,13 +521,30 @@ func _check_card_validity(card: ActionData, final_cost: int) -> bool:
 func _on_card_hovered(card: ActionData):
 	var effective_cost = max(0, card.cost - my_opportunity_val)
 	preview_card.set_card_data(card, effective_cost)
+	
+	# --- 1. KILL OLD ANIMATIONS ---
+	if preview_tween and preview_tween.is_valid():
+		preview_tween.kill()
+		
+	# --- 2. SETUP FOR SLIDE ---
 	preview_card.visible = true
+	preview_card.modulate.a = 0.0 
+	preview_card.position.y = preview_base_pos.y + 20 # Start 20px lower
+	
+	# --- 3. ANIMATE CARD ---
+	preview_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	preview_tween.tween_property(preview_card, "modulate:a", 1.0, 0.15)
+	preview_tween.tween_property(preview_card, "position:y", preview_base_pos.y, 0.2)
+	
 	_update_tooltip_text(card)
 
 func _on_card_exited():
+	# Kill the card animation and hide it
+	if preview_tween and preview_tween.is_valid():
+		preview_tween.kill()
 	preview_card.visible = false
 	
-	# smoothly cancel the animation and hide the panel
+	# Kill the tooltip animation and hide it
 	if tooltip_tween and tooltip_tween.is_valid():
 		tooltip_tween.kill()
 	if tooltip_panel:
@@ -568,7 +615,7 @@ func _update_tooltip_text(card: ActionData):
 	tooltip_panel.modulate.a = 0.0 
 	
 	var padding = 20
-	var preview_bottom = preview_card.position.y + preview_card.size.y
+	var preview_bottom = preview_base_pos.y + preview_card.size.y
 	
 	# Use 'target_size' instead of 'size' for the math!
 	var final_y = preview_bottom - target_size.y - padding
@@ -774,11 +821,14 @@ func _snapshot_stats():
 
 func _on_wall_crush_ui(target_id: int, _dmg: int):
 	apply_camera_impact(0.05, 15.0) 
-	var original_x = momentum_slider.position.x
+	
+	# Shake the new MomentumTracker instead!
+	var original_x = momentum_tracker.position.x
 	var tween = create_tween()
 	var shake_dir = -10 if target_id == 1 else 10
-	tween.tween_property(momentum_slider, "position:x", original_x + shake_dir, 0.05)
-	tween.tween_property(momentum_slider, "position:x", original_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	
+	tween.tween_property(momentum_tracker, "position:x", original_x + shake_dir, 0.05)
+	tween.tween_property(momentum_tracker, "position:x", original_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 func _on_env_button_pressed():
 	env_popup.visible = not env_popup.visible
@@ -860,3 +910,41 @@ func _show_bark(player_id: int, text: String):
 func _exit_tree():
 	if GlobalCinematics:
 		GlobalCinematics.reset_visuals()
+
+func _build_momentum_track():
+	# Clear out anything currently in the grid
+	for child in slot_grid.get_children():
+		child.queue_free()
+	momentum_slots.clear()
+	
+	for i in range(1, GameManager.TOTAL_MOMENTUM_SLOTS + 1):
+		var slot = Panel.new()
+		slot.custom_minimum_size = Vector2(30, 15) # Width/Height of each pip
+		
+		# Give it a custom stylebox
+		var style = StyleBoxFlat.new()
+		style.corner_radius_top_left = 2
+		style.corner_radius_top_right = 2
+		style.corner_radius_bottom_right = 2
+		style.corner_radius_bottom_left = 2
+		
+		# Set base colors and highlight the "Walls"
+		if i <= GameManager.MOMENTUM_P1_MAX:
+			style.bg_color = Color(0.1, 0.4, 0.5, 0.5) # Dim Cyan
+			if i == 1: 
+				style.border_width_left = 4 # Emphasize P1's Wall
+				style.border_color = Color.CYAN
+		else:
+			style.bg_color = Color(0.5, 0.1, 0.1, 0.5) # Dim Red
+			if i == GameManager.TOTAL_MOMENTUM_SLOTS: 
+				style.border_width_right = 4 # Emphasize P2's Wall
+				style.border_color = Color.RED
+				
+		slot.add_theme_stylebox_override("panel", style)
+		slot_grid.add_child(slot)
+		momentum_slots.append(slot)
+		
+		# Add a visual divider exactly in the middle
+		if i == GameManager.TOTAL_MOMENTUM_SLOTS / 2:
+			var div = VSeparator.new()
+			slot_grid.add_child(div)
