@@ -2,18 +2,34 @@ extends Node
 
 # --- FUNCTIONS ---
 
-# Returns a dictionary { "p1": "Line", "p2": "Line" }
-func get_intro_banter(p1_type: CharacterData.ClassType, p2_type: CharacterData.ClassType) -> Dictionary:
+# CHANGED: Now accepts CharacterData objects instead of just the ClassType enums
+func get_intro_banter(p1_data: CharacterData, p2_data: CharacterData) -> Dictionary:
+	# Extract the class types for the lookup logic
+	var p1_type = p1_data.class_type
+	var p2_type = p2_data.class_type
+	
 	# 1. Generate the "Context Keys" for specific matchups
-	# Example: If P1 is HEAVY and P2 is QUICK, P1 looks for "INTRO_VS_QUICK"
 	var p1_context = "INTRO_VS_" + ClassFactory.class_enum_to_string(p2_type).to_upper()
 	var p2_context = "INTRO_VS_" + ClassFactory.class_enum_to_string(p1_type).to_upper()
 	
-	# 2. Fetch lines (Try specific context first, fallback to generic)
-	var p1_line = _get_line(p1_type, [p1_context, "INTRO_GENERIC"])
-	var p2_line = _get_line(p2_type, [p2_context, "INTRO_GENERIC"])
+	# 2. Fetch raw lines (Try specific context first, fallback to generic)
+	var raw_p1_line = _get_line(p1_type, [p1_context, "INTRO_GENERIC"])
+	var raw_p2_line = _get_line(p2_type, [p2_context, "INTRO_GENERIC"])
 	
-	return { "p1": "'" +  p1_line + "'", "p2": "'" +  p2_line + "'" }
+	# --- 3. THE MAGIC TRICK (FORMATTING) ---
+	# Replace {me} and {enemy} with the actual custom run names
+	var final_p1_line = raw_p1_line.format({
+		"me": p1_data.character_name,
+		"enemy": p2_data.character_name
+	})
+	
+	var final_p2_line = raw_p2_line.format({
+		"me": p2_data.character_name,
+		"enemy": p1_data.character_name
+	})
+	
+	# Return with your single quotes wrapped around them
+	return { "p1": "'" + final_p1_line + "'", "p2": "'" + final_p2_line + "'" }
 
 # Wrapper for reaction barks (Hurt, Win, etc)
 func get_reaction(class_type: CharacterData.ClassType, context: String) -> String:

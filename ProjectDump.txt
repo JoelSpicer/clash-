@@ -2,367 +2,577 @@
 
 
 ============================================================
-FILE: .\Scripts\PlayerHud.gd
+FILE: .\Scripts\ClassFactory.gd
 ============================================================
-extends Control
+extends Node
 
-# UPDATED PATHS: We now go through Background/MarginContainer
-@onready var background = $Background
-@onready var vbox = $Background/MarginContainer/VBoxContainer
+# Map Enum -> Resource Path
+var class_registry = {
+	CharacterData.ClassType.HEAVY: preload("res://Data/Classes/HeavyClass.tres"),
+	CharacterData.ClassType.PATIENT: preload("res://Data/Classes/PatientClass.tres"),
+	CharacterData.ClassType.QUICK: preload("res://Data/Classes/QuickClass.tres"),
+	CharacterData.ClassType.TECHNICAL: preload("res://Data/Classes/TechnicalClass.tres")
+}
+# --- SHARED DATA: THE SKILL TREE MAP ---
+# (Moved here so both the UI and the Enemy Generator can read it)
+const TREE_CONNECTIONS = {
+	1:[12,5], 2:[6,7], 3:[8,15], 4:[11,12], 5:[1,6], 6:[2,5,13,73], 7:[2,14,8,73], 8:[7,3],
+	9:[15,16], 10:[11,19], 11:[4,10,20], 12:[4,1,13,20], 13:[12,6,21], 14:[7,15,21],
+	15:[3,14,9,22], 16:[9,22,17], 17:[16,23], 18:[19,25], 19:[10,18,20,28], 20:[19,11,12,29],
+	21:[13,14,29,31,30], 22:[15,16,23,31], 23:[22,17,24,32], 24:[23,26], 25:[18,27], 26:[24,33],
+	27:[34,28,25,74], 28:[27,19,35], 29:[20,21,35], 30:[21], 31:[21,22,38], 32:[23,38,33],
+	33:[32,26,39,75], 34:[27,40], 35:[28,41,29,42,36], 36:[35], 37:[38], 38:[31,32,44,45,37],
+	39:[33,46], 40:[34,41,47,74], 41:[40,50,35], 42:[35,51,52], 43:[52], 44:[52,38,53],
+	45:[38,46,54], 46:[45,48,75], 47:[40,49], 48:[46,55], 49:[47,50], 50:[49,41,51,56],
+	51:[50,42,58,57], 52:[42,43,44,59,60], 53:[44,54,61,62], 54:[53,45,55,63], 55:[48,54],
+	56:[50,57], 57:[56,51,64], 58:[51,64,59,70], 59:[52,66,58], 60:[52,67,61], 61:[53,72,69],
+	62:[53,63,69], 63:[54,62], 64:[57,58], 65:[70,66], 66:[59,65,71,76], 67:[68,60,71,76],
+	68:[67,72], 69:[61,62], 70:[58,65], 71:[66,67], 72:[68,61], 73:[2,6,7], 74:[34,27,40], 75:[39,33,46], 76:[71,66,67]
+}
 
-@onready var name_label = $Background/MarginContainer/VBoxContainer/NameLabel
+# Also need the ID-to-Name mapping for the generator to find files
+const ID_TO_NAME_MAP = {
+	1:"Toppling Kick", 2:"Pummel", 3:"One Two", 4:"Evading Dance", 5:"Slip Behind",
+	6:"Adept Dodge", 7:"Adept Light", 8:"Hundred Hand Slap", 9:"Precise Strike", 10:"Breakout",
+	11:"Read Offence", 12:"Quick Dodge", 13:"Master Dodge", 14:"Master Light", 15:"Flying Kick",
+	16:"Vital Strike", 17:"Unassailable Stance", 18:"Strike Back", 19:"Leg Sweep", 20:"Catch",
+	21:"Drop Prone", 22:"Perfect Strike", 23:"Step Up", 24:"Go with the Flow", 25:"Prime",
+	26:"Inner Peace", 27:"Adept Reversal", 28:"Master Reversal", 29:"Untouchable Dodge",
+	30:"Ultimate Barrage", 31:"Advancing Parry", 32:"Master Positioning", 33:"Adept Positioning",
+	34:"Grab", 35:"Wind Up", 36:"Vital Point Assault", 37:"Overwhelming Aura", 38:"Parry FollowUp",
+	39:"Adjust Stance", 40:"Adept Tech", 41:"Master Tech", 42:"Crushing Block", 43:"Final Strike",
+	44:"Redirect", 45:"Master Parry", 46:"Adept Parry", 47:"Throw", 48:"Resounding Parry",
+	49:"Push", 50:"Twist Arm", 51:"Suplex", 52:"Perfect Block", 53:"Active Block",
+	54:"Retreating Defence", 55:"Resounding Counter", 56:"Read Defence", 57:"Headbutt", 58:"Lariat",
+	59:"Master Heavy", 60:"Master Block", 61:"Draining Defence", 62:"Slapping Parry", 63:"Tiring Parry",
+	64:"Roundhouse Kick", 65:"Uppercut", 66:"Adept Heavy", 67:"Adept Block", 68:"Push Kick",
+	69:"Drop Punch", 70:"Knee Crush", 71:"Drop Kick", 72:"Immovable Stance",
+	73:"Quick", 74:"Technical", 75:"Patient", 76:"Heavy"
+}
 
-# HP References
-@onready var hp_bar = $Background/MarginContainer/VBoxContainer/HPBarHolder/HPBar
-@onready var hp_ghost = $Background/MarginContainer/VBoxContainer/HPBarHolder/HPGhost
-@onready var hp_text = $Background/MarginContainer/VBoxContainer/HPBarHolder/HPBar/HPLabel
+const CLASS_ROOT_IDS: Array[int] = [73, 74, 75, 76]
 
-# SP References
-@onready var sp_bar = $Background/MarginContainer/VBoxContainer/SPBarHolder/SPBar
-@onready var sp_ghost = $Background/MarginContainer/VBoxContainer/SPBarHolder/SPGhost
-@onready var sp_text = $Background/MarginContainer/VBoxContainer/SPBarHolder/SPBar/SPLabel
+const RANK_TITLES = [
+	"Foolish",      # Level 1
+	"Weak",         # Level 2
+	"Clumsy",       # Level 3
+	"Novice",       # Level 4
+	"Beginner",     # Level 5
+	"Rookie",       # Level 6
+	"Apprentice",   # Level 7
+	"Capable",      # Level 8
+	"Competent",    # Level 9
+	"Adept",        # Level 10
+	"Seasoned",     # Level 11
+	"Expert",       # Level 12
+	"Veteran",      # Level 13
+	"Elite",        # Level 14
+	"Master",       # Level 15
+	"Grandmaster",  # Level 16
+	"Legendary",    # Level 17
+	"Mythic",       # Level 18
+	"Transcendent", # Level 19
+	"Godly"         # Level 20+
+]
 
-@onready var status_container = $Background/MarginContainer/VBoxContainer/StatusContainer
-@onready var portrait = get_node_or_null("Portrait")
+var art_heavy = preload("res://Art/Portraits/Heavy.png") 
+var art_patient = preload("res://Art/Portraits/Patient.png")
+var art_quick = preload("res://Art/Portraits/Quick.png")
+var art_technical = preload("res://Art/Portraits/Technical.png")
 
-var original_pos: Vector2 = Vector2.ZERO
+const HAND_LIMIT = 8
 
-func _ready():
-	if portrait: original_pos = portrait.position
+# --- NEW: ENEMY GENERATOR ---
+# --- NEW: ENEMY GENERATOR ---
+func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
+	# 1. Pick a Random Class
+	var types = [
+		CharacterData.ClassType.HEAVY, 
+		CharacterData.ClassType.QUICK, 
+		CharacterData.ClassType.TECHNICAL, 
+		CharacterData.ClassType.PATIENT
+	]
+	var selected_class = types.pick_random()
 	
-	if hp_ghost:
-		hp_ghost.max_value = hp_bar.max_value
-		hp_ghost.value = hp_bar.value
-	if sp_ghost:
-		sp_ghost.max_value = sp_bar.max_value
-		sp_ghost.value = sp_bar.value
+	# 2. Create the Base Character
+	# This sets the BASE stats (e.g. 5 HP / 4 SP) from the Class Definition
+	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
+	
+	# --- ASSIGN RANDOM PERSONALITY ---
+	var personalities = CharacterData.AIArchetype.values()
+	bot_data.ai_archetype = personalities.pick_random()
+	
+	# Flavor: Rank Title
+	# If level is 1 or negative, default to 0 ("Foolish")
+	var title_index = 0
+	if level > 0:
+		title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
 
-func setup(character: CharacterData):
-	name_label.text = character.character_name
+	var rank_title = RANK_TITLES[title_index]
 	
-	hp_bar.max_value = character.max_hp
-	hp_bar.value = character.current_hp
-	if hp_ghost:
-		hp_ghost.max_value = character.max_hp
-		hp_ghost.value = character.current_hp
-	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
+	# Flavor: Prefix
+	var prefix = ""
+	match bot_data.ai_archetype:
+		CharacterData.AIArchetype.AGGRESSIVE: prefix = "Furious "
+		CharacterData.AIArchetype.DEFENSIVE: prefix = "Guarded "
+		CharacterData.AIArchetype.TRICKSTER: prefix = "Tricky "
+		CharacterData.AIArchetype.BALANCED: prefix = "Steady "
 	
-	sp_bar.max_value = character.max_sp
-	sp_bar.value = character.current_sp
-	if sp_ghost:
-		sp_ghost.max_value = character.max_sp
-		sp_ghost.value = character.current_sp
-	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
+	bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
 	
-	if portrait and character.portrait:
-		portrait.texture = character.portrait
-
-func configure_visuals(is_player_2: bool):
-	scale = Vector2(1, 1)
-	var hud_width = 300 
-	var screen_margin = 20
-	var gap = 15
-	var offset = 150
+	# 3. DRAFT CARDS (Kept for gameplay variety, but ignored for stats now)
+	var cards_to_draft = level + 1
+	var owned_ids = []
+	var unlockable_options = []
 	
-	# We size the Content Wrapper (Background), not the VBox directly
-	# The VBox will conform to this size minus margins
-	background.custom_minimum_size.x = hud_width
-	background.size.x = hud_width 
+	# Identify the starting Root Node
+	var root_id = 0
+	match selected_class:
+		CharacterData.ClassType.QUICK: root_id = 73
+		CharacterData.ClassType.TECHNICAL: root_id = 74
+		CharacterData.ClassType.PATIENT: root_id = 75
+		CharacterData.ClassType.HEAVY: root_id = 76
 	
-	if is_player_2:
-		# Anchor the BACKGROUND, not the VBox
-		background.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		background.position.x = + screen_margin - hud_width
-		background.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	# Init Shop
+	owned_ids.append(root_id)
+	if root_id in TREE_CONNECTIONS:
+		for neighbor in TREE_CONNECTIONS[root_id]:
+			unlockable_options.append(neighbor)
+			
+	# Draft Loop
+	for i in range(cards_to_draft):
+		if unlockable_options.is_empty(): break 
 		
-		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		status_container.alignment = BoxContainer.ALIGNMENT_END
+		var picked_id = unlockable_options.pick_random()
+		var card_name = ID_TO_NAME_MAP.get(picked_id)
 		
-		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
-		if hp_ghost: hp_ghost.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
-		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
-		if sp_ghost: sp_ghost.fill_mode = TextureProgressBar.FILL_RIGHT_TO_LEFT
+		if card_name:
+			var new_card = find_action_resource(card_name)
+			if new_card and not _has_card(bot_data.unlocked_actions, new_card):
+				bot_data.unlocked_actions.append(new_card)
 		
-		if portrait:
-			portrait.scale.x = -1
-			portrait.pivot_offset = portrait.size / 2
-			# Calculate portrait pos relative to the BACKGROUND
-			portrait.position.x = background.position.x - portrait.size.x - gap + offset
+		owned_ids.append(picked_id)
+		unlockable_options.erase(picked_id)
+		
+		if picked_id in TREE_CONNECTIONS:
+			for neighbor in TREE_CONNECTIONS[picked_id]:
+				if neighbor not in owned_ids and neighbor not in unlockable_options:
+					unlockable_options.append(neighbor)
+	
+	# 4. SELECT SMART HAND
+	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions, bot_data.ai_archetype)
+	
+	# ---------------------------------------------------------
+	# 5. NEW STAT SCALING (LINEAR GROWTH - SKIPPING ZERO)
+	# ---------------------------------------------------------
+	var stat_bonus = 0
+
+# 1. Calculate the total pool of points to distribute
+	if level > 0:
+		stat_bonus = level - 1
 	else:
-		background.set_anchors_preset(Control.PRESET_TOP_LEFT)
-		background.position.x = screen_margin
-		background.grow_horizontal = Control.GROW_DIRECTION_END
-		
-		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		status_container.alignment = BoxContainer.ALIGNMENT_BEGIN
-		
-		if hp_bar: hp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
-		if hp_ghost: hp_ghost.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
-		if sp_bar: sp_bar.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
-		if sp_ghost: sp_ghost.fill_mode = TextureProgressBar.FILL_LEFT_TO_RIGHT
-		
-		if portrait:
-			portrait.scale.x = 1
-			portrait.pivot_offset = portrait.size / 2
-			portrait.position.x = background.position.x + hud_width + gap - offset
+		stat_bonus = level 
 
-	if portrait: original_pos = portrait.position
+	# 2. Distribute the bonus randomly
+	if stat_bonus > 0:
+		# Pick a random number between 0 and the total bonus for HP
+		var hp_gain = randi_range(0, stat_bonus)
+		# Whatever is left over goes to SP
+		var sp_gain = stat_bonus - hp_gain
+		
+		bot_data.max_hp += hp_gain
+		bot_data.max_sp += sp_gain
+		
+	elif stat_bonus < 0:
+		# Logic for negative levels (de-buffing enemies)
+		# We use the same random logic but for reduction
+		var hp_loss = randi_range(stat_bonus, 0) # e.g. randi_range(-2, 0)
+		var sp_loss = stat_bonus - hp_loss
+		
+		bot_data.max_hp = max(1, bot_data.max_hp + hp_loss)
+		bot_data.max_sp = max(1, bot_data.max_sp + sp_loss)
 
-# ... (Keep update_stats, _update_status_icons, animations as they were) ...
-func update_stats(character: CharacterData, opportunity: int, opening: int, bide_active: bool):
-	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
-	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
+	# Final safety check to ensure stats never drop to/below 0
+	bot_data.max_hp = max(1, bot_data.max_hp)
+	bot_data.max_sp = max(1, bot_data.max_sp)
+
+	# Reset current values to match new max values
+	bot_data.current_hp = bot_data.max_hp
+	bot_data.current_sp = bot_data.max_sp
 	
-	var tween = create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(hp_bar, "value", character.current_hp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
+	# Debug Print
+	print("\n=== ENEMY GENERATED (" + str(selected_class) + ") ===")
+	print("Level: " + str(level) + " | Title: " + rank_title)
+	print("HP: " + str(bot_data.max_hp) + " | SP: " + str(bot_data.max_sp))
+	print("==============================\n")
 	
-	if hp_ghost:
-		if character.current_hp < hp_ghost.value:
-			var t = create_tween()
-			t.tween_interval(0.4)
-			t.tween_property(hp_ghost, "value", character.current_hp, 0.6).set_trans(Tween.TRANS_SINE)
+	return bot_data
+
+# -------------------------------------------------------------------------
+# NEW HELPERS (Needed for the above code)
+# -------------------------------------------------------------------------
+
+func _has_card(list: Array, card: ActionData) -> bool:
+	for c in list:
+		if c.display_name == card.display_name: return true
+	return false
+
+func _select_smart_hand(pool: Array[ActionData], _archetype: CharacterData.AIArchetype) -> Array[ActionData]:
+	# If we have 8 or fewer, just take them all
+	if pool.size() <= HAND_LIMIT:
+		return pool.duplicate()
+		
+	var chosen: Array[ActionData] = []
+	var remaining = pool.duplicate()
+	
+	# 1. PRIORITY: Always take Class Signatures (Non-Basic)
+	# We prioritize "cool" cards over "Basic" ones
+	for i in range(remaining.size() - 1, -1, -1):
+		var c = remaining[i]
+		if not c.is_basic:
+			chosen.append(c)
+			remaining.remove_at(i)
+			
+	# 2. PRIORITY: Fill remaining slots with Basics
+	remaining.shuffle()
+	
+	while chosen.size() < HAND_LIMIT and remaining.size() > 0:
+		chosen.append(remaining.pop_back())
+		
+	# 3. SAFETY: Ensure at least 1 Opener
+	# If we drafted a hand full of "Finishers" or "Cost 3" cards, the bot will break.
+	var has_opener = false
+	for c in chosen:
+		if c.is_opener or c.cost == 0: has_opener = true
+	
+	if not has_opener:
+		# Search the remaining pile for an opener
+		for c in remaining:
+			if c.is_opener or c.cost == 0:
+				# Swap a random card out for this opener
+				if chosen.size() > 0:
+					chosen.pop_back() 
+				chosen.append(c)
+				break
+
+	# 4. Trim if we somehow exceeded (though logic prevents it)
+	if chosen.size() > HAND_LIMIT:
+		chosen.resize(HAND_LIMIT)
+		
+	return chosen
+
+func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
+	if node_id in TREE_CONNECTIONS:
+		for neighbor in TREE_CONNECTIONS[node_id]:
+			if neighbor not in owned and neighbor not in available:
+				available.append(neighbor)
+
+# Helper for string names
+func class_enum_to_string(type: int) -> String:
+	var keys = CharacterData.ClassType.keys()
+	
+	# Safety check to make sure the integer is within the Enum's bounds
+	if type >= 0 and type < keys.size():
+		# .keys() returns an array of strings like ["HEAVY", "PATIENT", "QUICK", "TECHNICAL"]
+		# .capitalize() turns "HEAVY" into "Heavy" and "VERY_EASY" into "Very Easy"
+		return keys[type].capitalize()
+		
+	return "Enemy"
+	
+# Generates a fully playable CharacterData resource based on the chosen class
+func create_character(type: CharacterData.ClassType, player_name: String) -> CharacterData:
+	if not class_registry.has(type): return null
+	
+	var def: ClassDefinition = class_registry[type]
+	var char_data = CharacterData.new()
+	
+	char_data.character_name = player_name
+	char_data.class_type = type
+	
+	# 1. Base Stats from Resource
+	char_data.max_hp = def.base_hp
+	char_data.max_sp = def.base_sp
+	char_data.speed = def.base_speed
+	char_data.passive_desc = def.passive_description
+	char_data.portrait = def.portrait
+	
+	# --- NEW: COPY PASSIVES ---
+	char_data.can_pay_with_hp = def.can_pay_with_hp
+	char_data.tiring_drains_hp = def.tiring_drains_hp
+	char_data.combo_sp_recovery_rate = def.combo_sp_recovery_rate
+	char_data.has_bide_mechanic = def.has_bide_mechanic
+	char_data.has_keep_up_toggle = def.has_keep_up_toggle
+	char_data.has_technique_dropdown = def.has_technique_dropdown
+	
+	# 2. Library (Duplicate the array so we don't modify the Resource)
+	char_data.unlocked_actions = get_starting_deck(type)
+	
+	# 3. Select Hand
+	char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
+	
+	char_data.reset_stats()
+	return char_data
+
+# In ClassFactory.gd
+
+func get_starting_deck(type: CharacterData.ClassType) -> Array[ActionData]:
+	var deck: Array[ActionData] = []
+	
+	# 1. AUTO-ADD BASICS (Code handles this)
+	deck.append_array(get_basic_actions()) 
+	
+	# 2. ADD CLASS SPECIFICS (Resource handles this)
+	if class_registry.has(type):
+		var def = class_registry[type]
+		for card in def.starting_deck:
+			# Duplicate to ensure unique runtime instances
+			if card: deck.append(card.duplicate())
+			
+	return deck
+
+func create_from_preset(preset: PresetCharacter) -> CharacterData:
+	# 1. Start with the Base Class (Starters + Basic Actions)
+	var char_data = create_character(preset.class_type, preset.character_name)
+	
+	# 2. Add the Extra Skills defined in the preset
+	for skill_name in preset.extra_skills:
+		var card = find_action_resource(skill_name)
+		if card:
+			# Avoid duplicates if necessary, or allow multiples if that's your game design
+			char_data.deck.append(card)
+			char_data.unlocked_actions.append(card)
 		else:
-			hp_ghost.value = character.current_hp
+			printerr("Warning: Preset '" + preset.character_name + "' could not find skill: " + skill_name)
 
-	tween.tween_property(sp_bar, "value", character.current_sp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
+	# 3. Auto-Calculate Stats based on Class Rules
+	_recalculate_stats(char_data)
 	
-	if sp_ghost:
-		if character.current_sp < sp_ghost.value:
-			var t = create_tween()
-			t.tween_interval(0.4)
-			t.tween_property(sp_ghost, "value", character.current_sp, 0.6).set_trans(Tween.TRANS_SINE)
-		else:
-			sp_ghost.value = character.current_sp
+	return char_data
 
-	_update_status_icons(character, opportunity, opening, bide_active)
+# --- HELPER: Stat Calculation Logic (Same rules as ActionTree) ---
+# ClassFactory.gd
 
-func _update_status_icons(character, opportunity, opening, bide_active):
-	for child in status_container.get_children():
-		child.queue_free()
-		
-	if bide_active: 
-		_add_icon("Bide", "Bide: +1 Damage on next hit", Color(0.3, 1.0, 1.0))
-	if opportunity > 0:
-		_add_icon("Opportunity", "Opportunity: Next attack costs " + str(opportunity) + " less SP", Color.YELLOW)
-	if opening > 0:
-		_add_icon("Opening", "Opening Lvl " + str(opening) + ": Vulnerable to Counters", Color.ORANGE)
-
-	for s_name in character.statuses:
-		_add_icon(s_name, s_name, Color.WHITE)
-
-func _add_icon(icon_name: String, tooltip: String, tint: Color):
-	var icon = TextureRect.new()
-	var path = "res://Art/Icons/icon_" + icon_name + ".png"
-	if ResourceLoader.exists(path):
-		icon.texture = load(path)
+func _recalculate_stats(char_data: CharacterData):
+	# 1. Snapshot old stats before we change them
+	var old_max_hp = char_data.max_hp
+	
+	# 2. Calculate new stats
+	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions, char_data.equipment)
+	
+	char_data.max_hp = result["hp"]
+	char_data.max_sp = result["sp"]
+	
+	# --- 3. ROGUELIKE HP LOGIC ---
+	if RunManager.is_arcade_mode and RunManager.maintain_hp_enabled:
+		# Only heal them by the AMOUNT they grew (e.g., Max HP 5 -> 6 means heal 1 HP)
+		var hp_growth = char_data.max_hp - old_max_hp
+		char_data.current_hp += hp_growth
+		char_data.current_sp = char_data.max_sp # SP always resets per fight
 	else:
-		var placeholder = GradientTexture2D.new()
-		placeholder.width = 24
-		placeholder.height = 24
-		placeholder.fill_from = Vector2(0,0)
-		placeholder.fill_to = Vector2(1,1)
-		icon.texture = placeholder
-		icon.modulate = tint
-	
-	icon.custom_minimum_size = Vector2(24, 24)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.tooltip_text = tooltip
-	status_container.add_child(icon)
+		# Standard Mode: Full Heal
+		char_data.current_hp = char_data.max_hp
+		char_data.current_sp = char_data.max_sp
 
-func play_attack_animation(direction: Vector2):
-	if not portrait: return
-	var tween = create_tween()
-	tween.tween_property(portrait, "position", original_pos - (direction * 0.2), 0.1)
-	tween.tween_property(portrait, "position", original_pos + direction, 0.1).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(portrait, "position", original_pos, 0.2).set_delay(0.1)
 
-func play_hit_animation():
-	if not portrait: return
-	var tween = create_tween()
-	tween.tween_property(portrait, "modulate", Color(3, 0.5, 0.5), 0.05)
-	tween.tween_property(portrait, "modulate", Color.WHITE, 0.3)
+# --- HELPER: Find Resource (Moved from ActionTree) ---
+func find_action_resource(action_name: String) -> ActionData:
+	var clean_name = action_name.to_lower().replace(" ", "_")
+	var filename = clean_name + ".tres"
 	
-	var shake_offset = Vector2(randf_range(-10, 10), randf_range(-10, 10))
-	var t_shake = create_tween()
-	t_shake.tween_property(portrait, "position", original_pos + shake_offset, 0.05)
-	t_shake.tween_property(portrait, "position", original_pos - shake_offset, 0.05)
-	t_shake.tween_property(portrait, "position", original_pos, 0.05)
+	# Check Common folder
+	var common_path = "res://Data/Actions/" + filename
+	if ResourceLoader.exists(common_path): return load(common_path)
+		
+	# Check Class folders
+	var class_folders = ["Heavy", "Patient", "Quick", "Technical"]
+	for folder in class_folders:
+		var class_path = "res://Data/Actions/Class/" + folder + "/" + filename
+		if ResourceLoader.exists(class_path): return load(class_path)
+			
+	return null
+
+# New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
+# In ClassFactory.gd
+
+func calculate_stats_for_deck(type: CharacterData.ClassType, _deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
+	if not class_registry.has(type): return {"hp": 5, "sp": 4}
+	
+	var def: ClassDefinition = class_registry[type]
+	var final_hp = def.base_hp
+	var final_sp = def.base_sp
+	
+	# Growth loop deleted here! We just use the Base Stats.
+	
+	# Keep Equipment Logic (This is still useful!)
+	for item in equipment:
+		final_hp += item.max_hp_bonus
+		final_sp += item.max_sp_bonus
+			
+	return {"hp": max(1, final_hp), "sp": max(1, final_sp)}
+
+# NEW HELPER: Reverse lookup for Presets -> Tree Nodes
+func get_id_by_name(card_name: String) -> int:
+	for id in ID_TO_NAME_MAP:
+		if ID_TO_NAME_MAP[id] == card_name:
+			return id
+	return 0 # Not found
+
+func _simulate_draft_ids(class_type, count) -> Array:
+	var root_id = 76 # Heavy
+	match class_type:
+		CharacterData.ClassType.QUICK: root_id = 73
+		CharacterData.ClassType.TECHNICAL: root_id = 74
+		CharacterData.ClassType.PATIENT: root_id = 75
+	
+	var owned = [root_id]
+	var available = []
+	_add_neighbors_to_list(root_id, owned, available)
+	
+	var results = []
+	for i in range(count):
+		if available.is_empty(): break
+		var pick = available.pick_random()
+		results.append(pick)
+		owned.append(pick)
+		available.erase(pick)
+		_add_neighbors_to_list(pick, owned, available)
+		
+	return results
+
+# --- STARTER DECK GENERATION ---
+# --- STARTER DECK GENERATION ---
+func get_basic_actions() -> Array[ActionData]:
+	var basics: Array[ActionData] = []
+	
+	# Load the actual resource files so they have the correct Icons, IDs, and 'Is Basic' flags
+	# We use .duplicate() to ensure one player's card doesn't affect the other's
+	basics.append(load("res://Data/Actions/basic_light.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_heavy.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_technical.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_positioning.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_block.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_dodge.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_parry.tres").duplicate())
+	basics.append(load("res://Data/Actions/basic_reversal.tres").duplicate())
+	
+	return basics
 
 
 ============================================================
-FILE: .\Scripts\VsScreen.gd
+FILE: .\Scripts\Resources\CharacterData.gd
 ============================================================
-extends Control
+class_name CharacterData
+extends Resource
 
-@onready var background = $Background
-@onready var content = $Content
+#region vars
 
-# --- NEW CINEMATIC NODES ---
-@onready var flash_overlay = $FlashOverlay
-@onready var top_bar = $TopLetterbox
-@onready var bottom_bar = $BottomLetterbox
+#To add a completely new class identity, you still need to do two small code updates:
+#
+#Add MAGE to the ClassType Enum.
+#
+#Add the if class == MAGE: logic in GameManager for their specific mechanic.
 
-# --- PLAYER 1 NODES ---
-@onready var p1_container = $Content/P1_Container
-@onready var p1_portrait = $Content/P1_Container/Portrait
-@onready var p1_name = $Content/P1_Container/InfoBox/VBoxContainer/NameLabel
-@onready var p1_class = $Content/P1_Container/InfoBox/VBoxContainer/ClassLabel
-@onready var p1_hp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
-@onready var p1_sp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
-@onready var p1_bubble = $Content/P1_Container/PanelContainer/SpeechBubble
+enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL }
 
-# --- PLAYER 2 NODES ---
-@onready var p2_container = $Content/P2_Container
-@onready var p2_portrait = $Content/P2_Container/Portrait
-@onready var p2_name = $Content/P2_Container/InfoBox/VBoxContainer/NameLabel
-@onready var p2_class = $Content/P2_Container/InfoBox/VBoxContainer/ClassLabel
-@onready var p2_hp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
-@onready var p2_sp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
-@onready var p2_bubble = $Content/P2_Container/PanelContainer/SpeechBubble
+# --- NEW: AI PERSONALITY TYPES ---
+enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
+@export var ai_archetype: AIArchetype = AIArchetype.BALANCED 
+# ---------------------------------
 
-@onready var vs_label = $Content/VsLabel
-@onready var arena_label = $BottomLetterbox/ArenaLabel
+# --- STATIC DATA ---
+@export_group("Identity")
+@export var character_name: String
+@export var portrait: Texture2D
+@export var class_type: ClassType
 
-func _ready():
-	# 1. Hide things before setup
-	p1_bubble.visible_ratio = 0.0 # Typewriter reset
-	p2_bubble.visible_ratio = 0.0
-	p1_bubble.get_parent().modulate.a = 0.0 # Reserve space, but make invisible
-	p2_bubble.get_parent().modulate.a = 0.0
-	flash_overlay.modulate.a = 0.0
-	
-	_setup_visuals()
-	
-	if has_node("P1_Name_Label"):
-		$P1_Name_Label.text = GameManager.next_match_p1_data.character_name
+@export_group("Stats")
+@export var max_hp: int = 5     
+@export var max_sp: int = 4      
+@export var speed: int = 1       
+
+@export_group("Progression")
+@export var deck: Array[ActionData]  # The Active 8 Cards
+@export var unlocked_actions: Array[ActionData] = [] # The Full Library
+@export var equipment: Array[EquipmentData] = [] # <--- NEW: The items you carry
+
+@export_group("Passive")
+@export_multiline var passive_desc: String 
+
+# --- RUNTIME STATE ---
+@export_group("Runtime State")
+@export var current_hp: int
+@export var current_sp: int
+@export var has_used_super: bool = false 
+@export var combo_action_count: int = 0
+@export var patient_buff_active: bool = false
+@export var can_pay_with_hp: bool = false
+@export var tiring_drains_hp: bool = false
+@export var combo_sp_recovery_rate: int = 0
+@export var has_bide_mechanic: bool = false
+@export var has_keep_up_toggle: bool = false
+@export var has_technique_dropdown: bool = false
+@export var statuses: Dictionary = {}
+
+
+#endregion
+
+# --- LOGIC ---
+
+func reset_stats(maintain_hp: bool = false):
+	# Only reset HP to max if we are NOT maintaining it
+	if not maintain_hp:
+		current_hp = max_hp
 		
-	if has_node("P2_Name_Label"):
-		$P2_Name_Label.text = GameManager.next_match_p2_data.character_name
+	# SP and Statuses always reset per fight
+	current_sp = max_sp
+	has_used_super = false
+	combo_action_count = 0
+	patient_buff_active = false
+	statuses.clear()
+# Call this when the player "Learns" a new card to apply Class Stat Growth
+func unlock_action(new_action: ActionData):
+	if new_action in deck: return
 	
-	# Wait a frame to let Godot calculate the new Anchors
-	await get_tree().process_frame
-	_play_intro_animation()
-	
-	# The intro takes about 4 seconds total, load fight after 5
-	await get_tree().create_timer(7.0).timeout
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	deck.append(new_action)
+	_apply_level_up_stats(new_action.type)
 
-func _setup_visuals():
-	var env_name = GameManager.current_environment_name
-	if GameManager.environment_backgrounds.has(env_name):
-		background.texture = GameManager.environment_backgrounds[env_name]
-	arena_label.text = "- " + env_name.to_upper() + " -"
+func _apply_level_up_stats(card_type):
+	# Rules derived from PDF v0.2 Class Section
+	match class_type:
+		ClassType.HEAVY:
+			if card_type == ActionData.Type.OFFENCE: max_sp += 1
+			elif card_type == ActionData.Type.DEFENCE: max_hp += 2
+			
+		ClassType.PATIENT:
+			if card_type == ActionData.Type.OFFENCE: max_hp += 1
+			elif card_type == ActionData.Type.DEFENCE: 
+				max_hp += 1
+				max_sp += 1
+				
+		ClassType.QUICK:
+			if card_type == ActionData.Type.OFFENCE: max_hp += 1
+			elif card_type == ActionData.Type.DEFENCE: max_sp += 2
+			
+		ClassType.TECHNICAL:
+			if card_type == ActionData.Type.OFFENCE: 
+				max_hp += 1
+				max_sp += 1
+			elif card_type == ActionData.Type.DEFENCE: max_sp += 1
+			
+	# Heal to full on level up? Optional, but usually good.
+	current_hp = max_hp
+	current_sp = max_sp
+	print("Level Up! New Stats - HP: " + str(max_hp) + " | SP: " + str(max_sp))
 
-	var p1 = GameManager.next_match_p1_data
-	var p2 = GameManager.next_match_p2_data
-	
-	if RunManager.is_arcade_mode and RunManager.player_run_data:
-		p1 = RunManager.player_run_data
+# --- DECK HELPERS ---
+func has_card_in_deck(card_name: String) -> bool:
+	for c in deck:
+		if c.display_name == card_name: return true
+	return false
 
-	# -- Player 1 Data --
-	if p1:
-		if p1.portrait: p1_portrait.texture = p1.portrait
-		p1_name.text = p1.character_name
-		p1_class.text = CharacterData.ClassType.keys()[p1.class_type] if p1.class_type >= 0 else "UNKNOWN"
-		p1_hp.text = "HP: " + str(p1.max_hp)
-		p1_sp.text = "SP: " + str(p1.max_sp)
-
-	# -- Player 2 Data --
-	if p2:
-		if p2.portrait:
-			p2_portrait.texture = p2.portrait
-			p2_portrait.flip_h = true 
-		p2_name.text = p2.character_name
-		
-		if p2.character_name == "THE JUGGERNAUT": 
-			p2_class.text = "BOSS"
-			p2_class.modulate = Color.RED
-		else:
-			p2_class.text = CharacterData.ClassType.keys()[p2.class_type] if p2.class_type >= 0 else "UNKNOWN"
-		
-		p2_hp.text = "HP: " + str(p2.max_hp)
-		p2_sp.text = "SP: " + str(p2.max_sp)
-
-func _play_intro_animation():
-	var screen_w = get_viewport_rect().size.x
-	
-	# Reset states
-	vs_label.scale = Vector2.ZERO
-	p1_container.position.x = -p1_container.size.x
-	p2_container.position.x = screen_w
-	
-	# Push letterboxes offscreen initially
-	top_bar.position.y = -100
-	bottom_bar.position.y = get_viewport_rect().size.y
-	
-	# --- PHASE 1: THE CRASH ---
-	var tween = create_tween().set_parallel(true)
-	tween.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	
-	# Characters slide in
-	tween.tween_property(p1_container, "position:x", 0, 0.8)
-	tween.tween_property(p2_container, "position:x", screen_w / 2, 0.8)
-	
-	# Cinematic bars slide in
-	tween.tween_property(top_bar, "position:y", 0, 0.8)
-	tween.tween_property(bottom_bar, "position:y", get_viewport_rect().size.y - 100, 0.8)
-	
-	# --- PHASE 2: IMPACT & FLASH (At 0.8s) ---
-	tween.set_parallel(false) # Sequence mode
-	tween.tween_interval(0.8)
-	
-	tween.tween_callback(func():
-		AudioManager.play_sfx("hit_heavy")
-		_shake_content(15.0, 0.5)
-		
-		# Flash White
-		var flash_tween = create_tween()
-		flash_overlay.modulate.a = 1.0
-		flash_tween.tween_property(flash_overlay, "modulate:a", 0.0, 0.5)
-	)
-	
-	# Pop the VS Label immediately after impact
-	tween.tween_property(vs_label, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_ELASTIC)
-	
-	# --- PHASE 3: DIALOGUE FETCH ---
-	var banter = DialogueManager.get_intro_banter(GameManager.next_match_p1_data.class_type, GameManager.next_match_p2_data.class_type)
-	p1_bubble.text = banter["p1"]
-	p2_bubble.text = banter["p2"]
-	
-	# --- PHASE 4: TYPEWRITER SEQUENCE ---
-	
-	# Player 1 Speaks
-	tween.tween_interval(0.2)
-	# Fade in the background panel smoothly
-	tween.tween_property(p1_bubble.get_parent(), "modulate:a", 1.0, 0.2) 
-	tween.tween_callback(func():
-		AudioManager.play_sfx("ui_click") # Typewriter sound
-	)
-	tween.tween_property(p1_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
-	
-	# Player 2 Speaks
-	tween.tween_interval(0.5)
-	# Fade in the background panel smoothly
-	tween.tween_property(p2_bubble.get_parent(), "modulate:a", 1.0, 0.2)
-	tween.tween_callback(func():
-		AudioManager.play_sfx("ui_click")
-	)
-	tween.tween_property(p2_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
-	
-	
-	
-	
-# Camera Shake effect for the Content layer
-func _shake_content(intensity: float, duration: float):
-	var original_pos = content.position
-	var shake_tween = create_tween()
-	
-	shake_tween.tween_method(func(val):
-		var offset = Vector2(randf_range(-val, val), randf_range(-val, val))
-		content.position = original_pos + offset
-	, intensity, 0.0, duration)
-	
-	shake_tween.tween_callback(func(): content.position = original_pos)
+func remove_card_from_deck(card_name: String):
+	for i in range(deck.size()):
+		if deck[i].display_name == card_name:
+			deck.remove_at(i)
+			return
 

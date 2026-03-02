@@ -131,7 +131,9 @@ func _play_intro_animation():
 	tween.tween_property(vs_label, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_ELASTIC)
 	
 	# --- PHASE 3: DIALOGUE FETCH ---
-	var banter = DialogueManager.get_intro_banter(GameManager.next_match_p1_data.class_type, GameManager.next_match_p2_data.class_type)
+	var p1_data = GameManager.next_match_p1_data
+	var p2_data = GameManager.next_match_p2_data
+	var banter = DialogueManager.get_intro_banter(p1_data, p2_data)
 	p1_bubble.text = banter["p1"]
 	p2_bubble.text = banter["p2"]
 	

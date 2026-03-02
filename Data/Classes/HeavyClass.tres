@@ -27,7 +27,7 @@ tiring_drains_hp = true
 barks = {
 "HURT": ["Ouch!", "Is that all?"],
 "INTRO_GENERIC": ["I'm gonna break you in half!", "Don't cry when this is over."],
-"INTRO_VS_HEAVY": ["There's only room for one tank here.", "Let's see who breaks first!"],
+"INTRO_VS_HEAVY": ["There's only room for one tank here, {enemy}", "Let's see who breaks first, {enemy}!"],
 "INTRO_VS_PATIENT": ["Stop blocking and fight me!", "I'll smash right through that shield."],
 "INTRO_VS_QUICK": ["Stop hopping around, you little pest!", "You can't run forever!"],
 "INTRO_VS_TECHNICAL": ["Too many tricks, not enough muscle.", "I don't need a strategy to crush you."],

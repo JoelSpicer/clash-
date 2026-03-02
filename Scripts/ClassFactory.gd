@@ -76,6 +76,24 @@ var art_technical = preload("res://Art/Portraits/Technical.png")
 
 const HAND_LIMIT = 8
 
+var bot_names: Array[String] = []
+
+func _ready():
+	_load_bot_names()
+
+func _load_bot_names():
+	var file_path = "res://Data/enemy_names.txt"
+	if FileAccess.file_exists(file_path):
+		var file = FileAccess.open(file_path, FileAccess.READ)
+		while not file.eof_reached():
+			var line = file.get_line().strip_edges() # Remove extra spaces/newlines
+			if line != "":
+				bot_names.append(line)
+		file.close()
+	else:
+		push_warning("Could not find enemy_names.txt! Using fallbacks.")
+		bot_names = ["Fighter A", "Fighter B", "Challenger"]
+
 # --- NEW: ENEMY GENERATOR ---
 # --- NEW: ENEMY GENERATOR ---
 func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
@@ -104,15 +122,27 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 
 	var rank_title = RANK_TITLES[title_index]
 	
-	# Flavor: Prefix
-	var prefix = ""
-	match bot_data.ai_archetype:
-		CharacterData.AIArchetype.AGGRESSIVE: prefix = "Furious "
-		CharacterData.AIArchetype.DEFENSIVE: prefix = "Guarded "
-		CharacterData.AIArchetype.TRICKSTER: prefix = "Tricky "
-		CharacterData.AIArchetype.BALANCED: prefix = "Steady "
+	## Flavor: Prefix
+	#var prefix = ""
+	#match bot_data.ai_archetype:
+		#CharacterData.AIArchetype.AGGRESSIVE: prefix = "Furious "
+		#CharacterData.AIArchetype.DEFENSIVE: prefix = "Guarded "
+		#CharacterData.AIArchetype.TRICKSTER: prefix = "Tricky "
+		#CharacterData.AIArchetype.BALANCED: prefix = "Steady "
+	#
+	#bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
 	
-	bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
+	
+	# --- NEW: ASSIGN RANDOM NAME FROM FILE ---
+	var random_name = "Unknown"
+	if bot_names.size() > 0:
+		random_name = bot_names.pick_random()
+		
+	# Option A: Just use the name (e.g., "Spike")
+	bot_data.character_name = random_name
+	
+	# Option B: (Optional) Keep the rank title from your previous logic (e.g., "Novice Spike")
+	#bot_data.character_name = rank_title + " " + random_name
 	
 	# 3. DRAFT CARDS (Kept for gameplay variety, but ignored for stats now)
 	var cards_to_draft = level + 1
