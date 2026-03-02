@@ -184,6 +184,10 @@ func _ready():
 	
 	if inspect_btn:
 		inspect_btn.pressed.connect(_on_inspect_pressed)
+	# SETUP LOG DRAWER: Start it off-screen to the left, but make it visible
+	combat_log.position.x = -400
+	combat_log.visible = true 
+	log_toggle.button_pressed = false
 	
 	_update_background()
 	
@@ -723,8 +727,12 @@ func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
 		_show_bark(winner_id, line)
 	
 func _on_log_toggled(toggled_on: bool):
-	combat_log.visible = toggled_on
-
+	# If true, slide to X: 12. If false, slide back off-screen to X: -400
+	var target_x = 12 if toggled_on else -400
+	
+	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(combat_log, "position:x", target_x, 0.4)
+	
 func play_clash_animation(p1_card: ActionData, p2_card: ActionData):
 	clash_layer.visible = true
 	left_card_display.set_card_data(p1_card)
@@ -732,31 +740,44 @@ func play_clash_animation(p1_card: ActionData, p2_card: ActionData):
 	
 	var card_size = Vector2(250, 350) 
 	left_card_display.custom_minimum_size = card_size
-	left_card_display.size = card_size
 	right_card_display.custom_minimum_size = card_size
-	right_card_display.size = card_size
 	
+	# Center pivots for scaling
 	left_card_display.pivot_offset = card_size / 2
 	right_card_display.pivot_offset = card_size / 2
-	left_card_display.scale = Vector2(1.0, 1.0)
-	right_card_display.scale = Vector2(1.0, 1.0)
 	
 	var center = get_viewport().get_visible_rect().size / 2
-	left_card_display.position.x = -400
-	right_card_display.position.x = get_viewport().get_visible_rect().size.x + 400
-	left_card_display.position.y = center.y - (card_size.y / 2)
-	right_card_display.position.y = center.y - (card_size.y / 2)
+	left_card_display.position = Vector2(-400, center.y - (card_size.y / 2))
+	right_card_display.position = Vector2(center.x * 2 + 400, center.y - (card_size.y / 2))
 	
-	var tween = create_tween()
-	tween.set_parallel(true)
-	tween.set_trans(Tween.TRANS_QUART)
-	tween.set_ease(Tween.EASE_OUT)
-	
-	tween.tween_property(left_card_display, "position:x", center.x - card_size.x - 40, 0.4)
-	tween.tween_property(right_card_display, "position:x", center.x + 20, 0.4)
+	# 1. THE SMASH (Accelerate inward)
+	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	# Target the exact middle of the screen
+	tween.tween_property(left_card_display, "position:x", center.x - (card_size.x / 2), 0.25)
+	tween.tween_property(right_card_display, "position:x", center.x - (card_size.x / 2), 0.25)
 	
 	await tween.finished
-	HitStopManager.stop_frame(0.15) 
+	
+	# 2. THE IMPACT (Shake + Sound)
+	apply_camera_impact(0.1, 30.0)
+	AudioManager.play_sfx("hit_heavy", 0.1)
+	
+	# 3. THE FLASH (Create a white screen dynamically and fade it)
+	var flash = ColorRect.new()
+	flash.color = Color.WHITE
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	clash_layer.add_child(flash)
+	
+	var f_tween = create_tween()
+	f_tween.tween_property(flash, "modulate:a", 0.0, 0.4)
+	f_tween.tween_callback(flash.queue_free)
+	
+	# 4. THE RECOIL (Bounce back)
+	var bounce_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	bounce_tween.tween_property(left_card_display, "position:x", center.x - card_size.x - 20, 0.3)
+	bounce_tween.tween_property(right_card_display, "position:x", center.x + 20, 0.3)
+	
+	HitStopManager.stop_frame(0.2) 
 	await get_tree().create_timer(1.2).timeout
 	
 	clash_layer.visible = false
@@ -854,7 +875,8 @@ func _populate_equipment(p1_data: CharacterData):
 		if item.max_sp_bonus != 0: tip += "Max SP: " + ("+" if item.max_sp_bonus > 0 else "") + str(item.max_sp_bonus) + "\n"
 		if item.starting_sp_bonus != 0: tip += "Start SP: +" + str(item.starting_sp_bonus) + "\n"
 		if item.wall_crush_damage_bonus != 0: tip += "Wall Crush Dmg: +" + str(item.wall_crush_damage_bonus)
-		icon.tooltip_text = tip 
+		icon.mouse_entered.connect(func(): _show_equip_tooltip(tip, icon))
+		icon.mouse_exited.connect(_on_card_exited) # We can reuse the hide function!
 		equipment_grid.add_child(icon)
 
 func _on_inspect_pressed():
@@ -891,21 +913,30 @@ func _update_background():
 		print("Warning: No art found for '" + env_name + "'. Using default.")
 
 func _show_bark(player_id: int, text: String):
-	var lbl = p1_bark_label if player_id == 1 else p2_bark_label
-	lbl.text = text
+	# Grab the PanelContainer
+	var bubble = p1_bark_label if player_id == 1 else p2_bark_label
+	# Grab the Label inside it and set the text
+	var text_label = bubble.get_child(0) 
+	text_label.text = text
 	
-	# Simple Pop-in Animation
-	lbl.modulate.a = 0
-	lbl.scale = Vector2(0.5, 0.5)
+	bubble.modulate.a = 0
+	
+	# Set pivot to the bottom-center so it scales upwards!
+	bubble.pivot_offset = Vector2(bubble.size.x / 2, bubble.size.y)
+	bubble.scale = Vector2(0.5, 0.5)
 	
 	var tween = create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(lbl, "modulate:a", 1.0, 0.2)
-	tween.tween_property(lbl, "scale", Vector2(1.2, 1.2), 0.2).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(bubble, "modulate:a", 1.0, 0.2)
+	# Overshoot slightly for a bouncy pop
+	tween.tween_property(bubble, "scale", Vector2(1.1, 1.1), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	
+	# Settle back to normal size
+	tween.chain().tween_property(bubble, "scale", Vector2(1.0, 1.0), 0.1)
 	
 	# Wait, then fade out
 	tween.chain().tween_interval(1.5)
-	tween.chain().tween_property(lbl, "modulate:a", 0.0, 0.3)
+	tween.chain().tween_property(bubble, "modulate:a", 0.0, 0.3)
 
 func _exit_tree():
 	if GlobalCinematics:
@@ -945,6 +976,34 @@ func _build_momentum_track():
 		momentum_slots.append(slot)
 		
 		# Add a visual divider exactly in the middle
+		@warning_ignore("integer_division")
 		if i == GameManager.TOTAL_MOMENTUM_SLOTS / 2:
 			var div = VSeparator.new()
 			slot_grid.add_child(div)
+
+func _show_equip_tooltip(text: String, icon_node: Control):
+	if tooltip_tween and tooltip_tween.is_valid(): tooltip_tween.kill()
+	
+	tooltip_label.text = text
+	tooltip_label.visible = true
+	var target_size = tooltip_panel.get_minimum_size()
+	tooltip_panel.size = target_size 
+	
+	tooltip_panel.visible = true
+	tooltip_panel.modulate.a = 0.0 
+	
+	# --- THE FIX: POSITION BELOW THE ICON ---
+	# Calculate the bottom edge of the icon
+	var icon_bottom = icon_node.global_position.y + icon_node.size.y
+	
+	# Place the tooltip 15 pixels below the icon
+	var final_y = icon_bottom + 15
+	
+	# Start it 15 pixels HIGHER so it slides DOWN into place (like a dropdown)
+	var start_y = final_y - 15
+	
+	tooltip_panel.global_position = Vector2(icon_node.global_position.x, start_y)
+	
+	tooltip_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tooltip_tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
+	tooltip_tween.tween_property(tooltip_panel, "global_position:y", final_y, 0.2)

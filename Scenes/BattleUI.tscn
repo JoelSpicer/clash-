@@ -23,6 +23,22 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p2s8i"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0, 0, 0, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6eyfp"]
 content_margin_left = 25.0
 content_margin_top = 20.0
@@ -116,6 +132,7 @@ offset_right = 559.0
 offset_bottom = 240.0
 
 [node name="TooltipPanel" type="PanelContainer" parent="MainLayout/PreviewAnchor" unique_id=1465288981]
+z_index = 100
 layout_mode = 0
 offset_right = 30.0
 offset_bottom = 20.0
@@ -278,10 +295,10 @@ text = "Close"
 script = ExtResource("4_6eyfp")
 
 [node name="EquipmentGrid" type="HBoxContainer" parent="." unique_id=1911301329]
-offset_left = 32.0
-offset_top = 128.0
-offset_right = 72.0
-offset_bottom = 168.0
+offset_left = 35.0
+offset_top = 149.0
+offset_right = 75.0
+offset_bottom = 189.0
 theme_override_constants/separation = 10
 
 [node name="InspectButton" type="Button" parent="." unique_id=810640903]
@@ -310,23 +327,27 @@ layout_mode = 2
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="P1_Bark" type="Label" parent="." unique_id=1974256669]
+[node name="P1_Bark" type="PanelContainer" parent="." unique_id=1540414754]
 modulate = Color(1, 1, 1, 0)
 offset_left = 276.0
 offset_top = 434.0
 offset_right = 501.0
 offset_bottom = 470.0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_p2s8i")
 
-[node name="P2_Bark" type="Label" parent="." unique_id=364228376]
+[node name="Label" type="Label" parent="P1_Bark" unique_id=1546628747]
+layout_mode = 2
+
+[node name="P2_Bark" type="PanelContainer" parent="." unique_id=469420965]
 modulate = Color(1, 1, 1, 0)
 offset_left = 724.0
 offset_top = 440.0
 offset_right = 949.0
 offset_bottom = 476.0
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
+theme_override_styles/panel = SubResource("StyleBoxFlat_p2s8i")
+
+[node name="Label" type="Label" parent="P2_Bark" unique_id=872211862]
+layout_mode = 2
 
 [node name="InspectPopup" type="Panel" parent="." unique_id=303135880]
 visible = false
