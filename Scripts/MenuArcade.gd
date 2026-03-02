@@ -288,6 +288,8 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		
 		var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
 		if data == null: return
+		# Ensure the fighter's internal name matches the Run Name for the VS Screen/UI
+		data.player_data.character_name = data.run_name
 
 		# Lock the settings to match the save file
 		difficulty_option.selected = data.difficulty

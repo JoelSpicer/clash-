@@ -283,6 +283,7 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
 	# --- FIX START: COPY IDENTITY FROM RESOURCE ---
 	p_data.class_type = source_class.class_type # Crucial: Sets the Enum (Heavy/Quick/etc)
 	p_data.character_name = source_class.class_named
+	p_data.character_name = run_name
 	p_data.portrait = source_class.portrait
 	p_data.passive_desc = source_class.passive_description
 	
@@ -412,13 +413,11 @@ func load_run(filename: String):
 	var path = SAVE_DIR + filename
 	if not FileAccess.file_exists(path): return
 
-	# 1. Native Load!
 	var save_data = ResourceLoader.load(path) as RunSaveData
 	if not save_data:
 		print("Error loading save file.")
 		return
 	
-	# 2. Restore State
 	current_run_name = save_data.run_name
 	current_level = save_data.current_level
 	current_map_index = save_data.current_map_index
@@ -427,12 +426,16 @@ func load_run(filename: String):
 	player_owned_tree_ids.assign(save_data.tree_ids)
 	
 	player_run_data = save_data.player_data
-	tournament_map.assign(save_data.map_data)
 	
+	# --- ADD THIS LINE ---
+	# Force the character name to match the Run Name (fixes old saves)
+	player_run_data.character_name = current_run_name
+	# ---------------------
+	
+	tournament_map.assign(save_data.map_data)
 	is_arcade_mode = true
 	pending_advancement = false 
 	
-	print("Run Loaded: " + current_run_name)
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 func get_save_files() -> Array:

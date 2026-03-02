@@ -39,6 +39,12 @@ func _ready():
 	
 	_setup_visuals()
 	
+	if has_node("P1_Name_Label"):
+		$P1_Name_Label.text = GameManager.next_match_p1_data.character_name
+		
+	if has_node("P2_Name_Label"):
+		$P2_Name_Label.text = GameManager.next_match_p2_data.character_name
+	
 	# Wait a frame to let Godot calculate the new Anchors
 	await get_tree().process_frame
 	_play_intro_animation()

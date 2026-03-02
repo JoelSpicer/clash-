@@ -1607,6 +1607,7 @@ func _refresh_grid():
 	for child in button_grid.get_children():
 		child.queue_free()
 		
+	# 1. Standard Deck Cards
 	for card in current_deck:
 		if card == null: continue
 		if card.type != current_tab: continue 
@@ -1619,14 +1620,28 @@ func _refresh_grid():
 		
 		btn.setup(card)
 		btn.update_cost_display(final_cost) 
-		btn.set_available(is_valid)         
+		btn.set_available(is_valid)          
 	
-		
 		btn.card_hovered.connect(_on_card_hovered)
 		btn.card_exited.connect(_on_card_exited) 
 		btn.card_selected.connect(_on_card_selected)
+	
+	# 2. Tutorial Struggle Logic
+	var hide_struggle = false
+	if TutorialManager.is_tutorial_active:
+		var required_card_name = TutorialManager.get_current_data().get("player_card", "")
 		
-	if not feint_mode:
+		# If the tutorial wants you to play Struggle, we only show it on the correct tab
+		if required_card_name == "Struggle":
+			# If the current tab (Offence/Defence) doesn't match the card's required type, hide it
+			# This prevents Struggle (Offence) from showing up on the Defence tab
+			pass 
+		else:
+			# If the tutorial wants any other specific card, hide Struggle everywhere
+			hide_struggle = true
+	
+	# 3. Struggle Button instantiation
+	if not feint_mode and not hide_struggle:
 		var struggle = GameManager.get_struggle_action(current_tab)
 		var s_btn = card_button_scene.instantiate()
 		button_grid.add_child(s_btn)
@@ -1640,6 +1655,7 @@ func _refresh_grid():
 		s_btn.card_exited.connect(_on_card_exited)
 		s_btn.card_selected.connect(_on_card_selected)
 	
+	# 4. Skip Feint logic
 	if feint_mode:
 		skip_action.type = current_tab 
 		var skip_btn = card_button_scene.instantiate()
@@ -4649,7 +4665,7 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 
 func _on_tutorial_pressed():
 	AudioManager.play_sfx("ui_confirm")
-	TutorialManager.setup_and_start_tutorial()
+	TutorialManager.setup_and_start_tutorial("basic")
 
 
 ========================================
@@ -7878,18 +7894,8 @@ func _prepare_human_turn(player_id: int):
 	_current_input_player = player_id
 	var character = p1_resource if player_id == 1 else p2_resource
 	
-	# --- NEW: TUTORIAL PAUSE & POPUP ---
-	if TutorialManager.is_tutorial_active and player_id == 1:
-		var tut_data = TutorialManager.get_current_data()
-		if tut_data.has("sensei_text"):
-			tutorial_layer.show_message(tut_data["sensei_text"], tut_data.get("highlight", ""))
-			# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
-			await tutorial_layer.tutorial_message_closed
-	# -----------------------------------
-	
-	# --- NEW: SETUP UI TOGGLES ---
+	# 1. BUILD THE UI FIRST (So the spotlight has something to look at!)
 	battle_ui.setup_passive_toggles(character)
-	# -----------------------------
 	battle_ui.load_deck(character.deck)
 	
 	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
@@ -7911,10 +7917,55 @@ func _prepare_human_turn(player_id: int):
 	_update_visuals() 
 	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
 	
+	# 2. MAKE THE GRID VISIBLE
 	battle_ui.unlock_for_input(
 		c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
 		c.can_use_super, c.opportunity_stat, is_feinting
 	)
+	
+	# --- THE FIX: WAIT FOR THE UI TO DRAW ---
+	# We wait two frames so Godot can calculate the exact pixel sizes 
+	# and positions of the cards before the spotlight tries to find them!
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# ----------------------------------------
+	
+	# --- 3. TUTORIAL PAUSE & POPUP ---
+	if TutorialManager.is_tutorial_active and player_id == 1:
+		battle_ui.is_locked = true # Prevent clicking while reading!
+		
+		# THE FIX: If this is the very first message, wait 1 second for 
+		# the SceneLoader to finish fading the screen in before we pause!
+		if TutorialManager.current_step == 0:
+			await get_tree().create_timer(1.0).timeout
+			# We also need these two frames again just in case
+			await get_tree().process_frame
+			await get_tree().process_frame
+		
+		var tut_data = TutorialManager.get_current_data()
+		if tut_data.has("sensei_text"):
+			var highlight_str = tut_data.get("highlight", "")
+			var highlight_node: Control = null
+			
+			# Map the string to the ACTUAL node here in the Arena!
+			# --- UPGRADED TRANSLATOR ---
+			if highlight_str == "hand": 
+				highlight_node = battle_ui.button_grid
+			elif highlight_str == "momentum" or highlight_str == "wall": 
+				highlight_node = battle_ui.momentum_slider
+			
+			# NEW: Support "card:Name"
+			elif highlight_str.begins_with("card:"):
+				var target_card_name = highlight_str.replace("card:", "")
+				highlight_node = _get_button_for_card(target_card_name)
+			# ---------------------------
+			
+			tutorial_layer.show_message(tut_data["sensei_text"], highlight_node)
+			# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
+			await tutorial_layer.tutorial_message_closed
+			
+		battle_ui.is_locked = false # Re-enable clicking so they can play the card
+	# -----------------------------------
 
 func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # Updated Signature
 	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
@@ -8261,6 +8312,14 @@ func _find_card_by_name(character: CharacterData, card_name: String) -> ActionDa
 	for card in character.deck:
 		if card.display_name == card_name:
 			return card
+	return null
+
+func _get_button_for_card(card_name: String) -> Control:
+	# Look through all buttons currently in the hand
+	for btn in battle_ui.button_grid.get_children():
+		# Your CardButton.gd has a 'my_action' variable or you can check btn.text
+		if btn.get("my_action") and btn.my_action.display_name == card_name:
+			return btn
 	return null
 
 
@@ -8735,29 +8794,78 @@ FILE PATH: res://Scripts/TutorialLayer.gd
 extends CanvasLayer
 
 @onready var darkener = $Darkener
-@onready var message_box = $MessageBox
-@onready var sensei_text = $MessageBox/MarginContainer/SenseiText
-@onready var continue_btn = $MessageBox/MarginContainer/ContinueButton
+@onready var sensei_text = $MessageBox/MarginContainer/VBoxContainer/SenseiText
+@onready var continue_btn = $MessageBox/MarginContainer/VBoxContainer/ContinueButton
+
+# We fetch the BattleUI dynamically so we can locate the UI elements
+@onready var battle_ui = $"../TestArena/BattleUI"
 
 signal tutorial_message_closed
 
 func _ready():
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	continue_btn.pressed.connect(_on_continue_pressed)
+	
+	# Initialize Shader default values
+	if darkener.material:
+		darkener.material.set_shader_parameter("center", Vector2(0.5, 0.5))
+		darkener.material.set_shader_parameter("radius_px", 0.0) # Start closed
 
-func show_message(text: String, highlight_target: String = ""):
+func show_message(text: String, target_node: Control = null):
 	visible = true
 	sensei_text.text = "[center]" + text + "[/center]"
 	
 	# Pause the background action so the player can read
 	get_tree().paused = true 
 	
-	# TODO: Later we will add logic here to move a "Spotlight" hole 
-	# over the highlight_target (like the hand or momentum bar).
+	if darkener.material:
+		var screen_size = get_viewport().get_visible_rect().size
+		darkener.material.set_shader_parameter("screen_size", screen_size)
+		
+		if target_node != null:
+			_move_spotlight(target_node)
+		else:
+			var tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			tween.tween_method(_set_spotlight_radius, darkener.material.get_shader_parameter("radius_px"), 0.0, 0.5)
+
+func _move_spotlight(target_node: Control):
+	var target_radius: float = 200.0 
+	
+	# If it's a wide container like the hand, make the hole bigger!
+	if target_node.name == "ButtonGrid":
+		target_radius = 280.0
+		
+	# Find the global center of the UI element
+	var center_pos = target_node.global_position + (target_node.size / 2.0)
+	var screen_size = get_viewport().get_visible_rect().size
+	
+	# Convert pixel position to UV coordinates (0.0 to 1.0 format)
+	var target_uv = center_pos / screen_size
+	
+	var start_uv = darkener.material.get_shader_parameter("center")
+	var start_rad = darkener.material.get_shader_parameter("radius_px")
+	
+	var tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_method(_set_spotlight_center, start_uv, target_uv, 0.6)
+	tween.tween_method(_set_spotlight_radius, start_rad, target_radius, 0.6)
+
+# --- Tween Helper Functions ---
+func _set_spotlight_center(uv: Vector2):
+	darkener.material.set_shader_parameter("center", uv)
+
+func _set_spotlight_radius(r: float):
+	darkener.material.set_shader_parameter("radius_px", r)
 
 func _on_continue_pressed():
 	visible = false
 	get_tree().paused = false
+	
+	# Optional: Reset the spotlight so it sweeps in from the center next time
+	if darkener.material:
+		darkener.material.set_shader_parameter("radius_px", 0.0) 
+		
 	emit_signal("tutorial_message_closed")
 
 
@@ -8768,109 +8876,116 @@ extends Node
 
 var is_tutorial_active: bool = false
 var current_step: int = 0
+var active_script: Array = []
 
 # --- THE SYLLABUS ---
-var tutorial_script = [
-	{
+const SCRIPTS = {
+	"basic":[{
 		# TURN 1: The Opening Clash
-		"sensei_text": "Welcome to the Dojo. Every fight starts with a Clash. The fighter who plays the card with the [color=yellow]Lowest Cost[/color] strikes first.\n\nPlay your [color=cyan]Quick Strike (1 SP)[/color] to beat my heavy attack.",
-		"bot_card": "Heavy Strike", 
-		"player_card": "Quick Strike",
-		"highlight": "hand"
+		"sensei_text": "Welcome to the Dojo. Every combat starts with an Initial Clash. As no one has a momentum advantage yet, both combatants can choose Offence actions with the Opener Trait, or Defence actions. The combatants then reveal their actions, and the momentum advantage is awarded to whoever chooses an offence action, or to the action with the lowest cost if both actions are the same type. If the stamina is also the same, the player with the priority token goes first, and the priority token switches to the other player.\n\nPlay your [color=cyan]Basic Light (1 SP)[/color] to beat my Basic Heavy.",
+		"bot_card": "Basic Heavy", 
+		"player_card": "Basic Light",
+		"highlight": "card:Basic Light"
 	},
 	{
 		# TURN 2: Offence
-		"sensei_text": "Good! You won priority and took the [color=red]Offence[/color]. You can now chain attacks together. Play an [color=yellow]Opener[/color] to start a combo.",
+		"sensei_text": "Good! Although you took some damage, you won priority and took the [color=red]Offence[/color]. You have now started a combo. Try using another Basic Light, and I will defend!",
 		"bot_card": "Basic Block",
-		"player_card": "Quick Strike",
-		"highlight": "hand"
+		"player_card": "Basic Light",
+		"highlight": "card:Basic Light"
 	},
 	{
 		# TURN 3: The Reversal
-		"sensei_text": "I am on the ropes, but watch closely! I am playing a card with the [color=yellow]Reversal[/color] trait. If my block pushes the momentum back to your side, I steal the Offence!",
-		"bot_card": "Reversal Stance", 
-		"player_card": "Heavy Strike",
-		"highlight": "momentum"
+		"sensei_text": "I blocked that attack and took no damage, but you pushed me back still, gaining momentun! I am on the ropes, but watch closely! I am playing a card with the [color=yellow]Reversal[/color] trait. If my Reversal pushes the momentum back to your side (such as you using a card with the Fall Back trait), I steal the Offence!",
+		"bot_card": "Basic Reversal", 
+		"player_card": "Basic Positioning",
+		"highlight": "card:Basic Positioning"
 	},
 	{
 		# TURN 4: Defence & Wall Crush
-		"sensei_text": "I have the Offence, and you are backed into a corner. If Momentum reaches your wall and you use [color=yellow]Fall Back[/color], you will take Wall Crush damage! Brace yourself!",
-		"bot_card": "Heavy Strike",
-		"player_card": "Tactical Retreat",
-		"highlight": "wall"
-	}
-]
+		"sensei_text": "I have stolen the offence, and you now can only use defence actions. I'm going to use a technical action, which can have unusual effects, so it may be safer to dodge the action entirely",
+		"bot_card": "Basic Technical",
+		"player_card": "Basic Dodge",
+		"highlight": "card:Basic Dodge"
+	}],
+	
+	#NEXT TUTORIAL
+	"advanced": [{
+		# TURN 4: Defence & Wall Crush
+		"sensei_text": "This is the advanced tutorial which doesn't exist yet",
+		"bot_card": "Basic Technical",
+		"player_card": "Basic Dodge",
+		"highlight": "card:Basic Dodge"
+	}]
+}
 
 # --- NEW: THE SETUP MASTER FUNCTION ---
-func setup_and_start_tutorial():
-	# 1. Create the Student (Player)
+func setup_and_start_tutorial(tutorial_id: String):
+	if not SCRIPTS.has(tutorial_id):
+		printerr("Tutorial ID not found: ", tutorial_id)
+		return
+
+	# 1. Set the Active Script
+	active_script = SCRIPTS[tutorial_id]
+	is_tutorial_active = true
+	current_step = 0
+
+	# 2. Create Fighters (You can customize these based on tutorial_id if needed)
 	var p1 = CharacterData.new()
 	p1.character_name = "Student"
-	p1.max_hp = 30; p1.current_hp = 30
-	p1.max_sp = 20; p1.current_sp = 20
-	p1.speed = 5
 	p1.deck = _generate_basic_deck()
+	p1.reset_stats(false)
 
-	# 2. Create the Sensei (Bot)
 	var p2 = CharacterData.new()
 	p2.character_name = "Sensei"
-	p2.max_hp = 30; p2.current_hp = 30
-	p2.max_sp = 20; p2.current_sp = 20
-	p2.speed = 5
 	p2.deck = _generate_basic_deck()
+	p2.reset_stats(false)
 
-	# 3. Inject into GameManager
 	GameManager.next_match_p1_data = p1
 	GameManager.next_match_p2_data = p2
 
-	# 4. Force strict settings (Disable Arcade mechanics, Force AI)
+	# 3. Settings
 	RunManager.is_arcade_mode = false
-	GameManager.p2_is_custom = false # Forces the Arena to treat P2 as a Bot
+	GameManager.p2_is_custom = false
 	GameManager.ai_difficulty = GameManager.Difficulty.MEDIUM
 
-	# 5. Start the engine!
-	is_tutorial_active = true
-	current_step = 0
-	print("--- TUTORIAL STARTED ---")
-	
-	# Assumes you have SceneLoader autoloaded
+	print("--- TUTORIAL STARTED: ", tutorial_id, " ---")
 	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
 
 # --- NEW: DECK GENERATOR ---
 # This builds a perfectly balanced basic deck in memory for the tutorial.
 func _generate_basic_deck() -> Array[ActionData]:
 	var d: Array[ActionData] = []
-	var a: ActionData
 	
 	# OFFENCE
-	a = ActionData.new(); a.display_name = "Quick Strike"; a.type = ActionData.Type.OFFENCE; a.cost = 1; a.damage = 2; a.is_opener = true; d.append(a)
-	a = ActionData.new(); a.display_name = "Heavy Strike"; a.type = ActionData.Type.OFFENCE; a.cost = 3; a.damage = 5; d.append(a)
-	a = ActionData.new(); a.display_name = "Technical Strike"; a.type = ActionData.Type.OFFENCE; a.cost = 2; a.damage = 2; a.create_opening = 2; d.append(a)
-	a = ActionData.new(); a.display_name = "Positioning"; a.type = ActionData.Type.OFFENCE; a.cost = 1; a.damage = 1; a.opportunity = 1; d.append(a)
+	d.append(load("res://Data/Actions/basic_light.tres").duplicate(true))
+	d.append(load("res://Data/Actions/basic_technical.tres").duplicate(true))
+	d.append(load("res://Data/Actions/basic_heavy.tres").duplicate(true))
+	d.append(load("res://Data/Actions/basic_positioning.tres").duplicate(true))
 
 	# DEFENCE
-	a = ActionData.new(); a.display_name = "Basic Block"; a.type = ActionData.Type.DEFENCE; a.cost = 1; a.block_value = 3; d.append(a)
-	a = ActionData.new(); a.display_name = "Parry"; a.type = ActionData.Type.DEFENCE; a.cost = 2; a.block_value = 1; a.is_parry = true; d.append(a)
-	a = ActionData.new(); a.display_name = "Reversal Stance"; a.type = ActionData.Type.DEFENCE; a.cost = 3; a.block_value = 2; a.reversal = true; d.append(a)
-	a = ActionData.new(); a.display_name = "Dodge"; a.type = ActionData.Type.DEFENCE; a.cost = 2; a.dodge_value = 3; d.append(a)
-	a = ActionData.new(); a.display_name = "Tactical Retreat"; a.type = ActionData.Type.DEFENCE; a.cost = 1; a.fall_back_value = 2; d.append(a)
+	d.append(load("res://Data/Actions/basic_block.tres").duplicate(true))
+	d.append(load("res://Data/Actions/basic_dodge.tres").duplicate(true))
+	d.append(load("res://Data/Actions/basic_parry.tres").duplicate(true))
+	d.append(load("res://Data/Actions/basic_reversal.tres").duplicate(true))
 
 	return d
 
-# --- HELPERS ---
-func end_tutorial():
-	is_tutorial_active = false
-	current_step = 0
-
+# --- UPDATED HELPERS ---
 func get_current_data() -> Dictionary:
-	if current_step < tutorial_script.size():
-		return tutorial_script[current_step]
+	if current_step < active_script.size():
+		return active_script[current_step]
 	return {}
 
 func advance_step():
 	current_step += 1
-	if current_step >= tutorial_script.size():
+	if current_step >= active_script.size():
 		end_tutorial()
+
+func end_tutorial():
+	is_tutorial_active = false
+	current_step = 0
+	active_script = []
 
 
 ========================================
