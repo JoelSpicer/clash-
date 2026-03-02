@@ -469,21 +469,32 @@ func _show_save_notification():
 	var panel = PanelContainer.new()
 	layer.add_child(panel)
 	
-	# 1. FIX: Set Grow Directions BEFORE setting position
-	# This tells Godot: "When calculating size, expand Up and Left"
-	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	# 1. Anchor to Top-Left
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	
-	# 2. Anchor to Bottom Right
-	panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	# 2. Set Grow Directions (Expand Right and Down from the corner)
+	panel.grow_horizontal = Control.GROW_DIRECTION_END
+	panel.grow_vertical = Control.GROW_DIRECTION_END
 	
-	# 3. Add Margin (Offsets)
-	# "offset_right = -20" means the right edge is 20px from the right screen edge
-	# "offset_bottom = -20" means the bottom edge is 20px from the bottom screen edge
-	panel.offset_right = -20
-	panel.offset_bottom = -20
+	# 3. Position offsets (20 pixels from the top and left edges)
+	panel.offset_left = 20
+	panel.offset_top = 20
 	
-	# Styling
+	# --- CUSTOM THEME OVERRIDE ---
+	var custom_style = StyleBoxFlat.new()
+	custom_style.bg_color = Color(0, 0, 0, 0.8) 
+	custom_style.corner_radius_top_left = 6
+	custom_style.corner_radius_top_right = 6
+	custom_style.corner_radius_bottom_right = 6
+	custom_style.corner_radius_bottom_left = 6
+	custom_style.content_margin_left = 15
+	custom_style.content_margin_right = 15
+	custom_style.content_margin_top = 8
+	custom_style.content_margin_bottom = 8
+	
+	panel.add_theme_stylebox_override("panel", custom_style)
+	
+	# --- STYLING & TEXT ---
 	panel.modulate.a = 0.0
 	
 	var label = Label.new()
@@ -492,7 +503,7 @@ func _show_save_notification():
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	panel.add_child(label)
 	
-	# Animation
+	# --- ANIMATION ---
 	var tween = create_tween()
 	tween.tween_property(panel, "modulate:a", 1.0, 0.5)
 	tween.tween_interval(1.5)

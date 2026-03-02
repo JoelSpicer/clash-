@@ -9,7 +9,7 @@ extends Resource
 #
 #Add the if class == MAGE: logic in GameManager for their specific mechanic.
 
-enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL }
+enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL, NONE }
 
 # --- NEW: AI PERSONALITY TYPES ---
 enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }

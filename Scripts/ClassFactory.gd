@@ -293,12 +293,17 @@ func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
 
 # Helper for string names
 func class_enum_to_string(type: int) -> String:
+	# --- NEW: MANUAL OVERRIDE FOR THE TUTORIAL CLASS ---
+	if type == CharacterData.ClassType.NONE:
+		return "Trainee"
+	# ---------------------------------------------------
+
 	var keys = CharacterData.ClassType.keys()
 	
 	# Safety check to make sure the integer is within the Enum's bounds
 	if type >= 0 and type < keys.size():
 		# .keys() returns an array of strings like ["HEAVY", "PATIENT", "QUICK", "TECHNICAL"]
-		# .capitalize() turns "HEAVY" into "Heavy" and "VERY_EASY" into "Very Easy"
+		# .capitalize() turns "HEAVY" into "Heavy"
 		return keys[type].capitalize()
 		
 	return "Enemy"
