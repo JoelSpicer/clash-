@@ -387,17 +387,22 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		if card.counter_value > 0 and my_opening < card.counter_value: continue
 		if card.is_super and not allow_super: continue
 		
-		var effective_cost = max(0, card.cost - my_opportunity)
-		var can_pay = (effective_cost <= character.current_sp)
+		# --- FIX: ACCOUNT FOR REPEAT COUNT COST ---
+		var effective_single_cost = max(0, card.cost - my_opportunity)
+		var total_reps = max(1, card.repeat_count)
+		var total_effective_cost = effective_single_cost * total_reps
+		
+		var can_pay = (total_effective_cost <= character.current_sp)
 		
 		if character.can_pay_with_hp:
-			if (character.current_sp + character.current_hp) > effective_cost:
+			if (character.current_sp + character.current_hp) > total_effective_cost:
 				can_pay = true
 				
 		if can_pay:
 			valid_options.append(card)
-		elif effective_cost == 0:
+		elif total_effective_cost == 0:
 			affordable_backups.append(card)
+		# ------------------------------------------
 	
 	# --- FIX: ADD STRUGGLE OPTION ---
 	# If the bot is filtering for a specific type (e.g. Defence), give it the Struggle option for that type.

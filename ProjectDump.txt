@@ -2,577 +2,1082 @@
 
 
 ============================================================
-FILE: .\Scripts\ClassFactory.gd
+FILE: .\Scripts\Resources\GameManager.gd
 ============================================================
 extends Node
 
-# Map Enum -> Resource Path
-var class_registry = {
-	CharacterData.ClassType.HEAVY: preload("res://Data/Classes/HeavyClass.tres"),
-	CharacterData.ClassType.PATIENT: preload("res://Data/Classes/PatientClass.tres"),
-	CharacterData.ClassType.QUICK: preload("res://Data/Classes/QuickClass.tres"),
-	CharacterData.ClassType.TECHNICAL: preload("res://Data/Classes/TechnicalClass.tres")
-}
-# --- SHARED DATA: THE SKILL TREE MAP ---
-# (Moved here so both the UI and the Enemy Generator can read it)
-const TREE_CONNECTIONS = {
-	1:[12,5], 2:[6,7], 3:[8,15], 4:[11,12], 5:[1,6], 6:[2,5,13,73], 7:[2,14,8,73], 8:[7,3],
-	9:[15,16], 10:[11,19], 11:[4,10,20], 12:[4,1,13,20], 13:[12,6,21], 14:[7,15,21],
-	15:[3,14,9,22], 16:[9,22,17], 17:[16,23], 18:[19,25], 19:[10,18,20,28], 20:[19,11,12,29],
-	21:[13,14,29,31,30], 22:[15,16,23,31], 23:[22,17,24,32], 24:[23,26], 25:[18,27], 26:[24,33],
-	27:[34,28,25,74], 28:[27,19,35], 29:[20,21,35], 30:[21], 31:[21,22,38], 32:[23,38,33],
-	33:[32,26,39,75], 34:[27,40], 35:[28,41,29,42,36], 36:[35], 37:[38], 38:[31,32,44,45,37],
-	39:[33,46], 40:[34,41,47,74], 41:[40,50,35], 42:[35,51,52], 43:[52], 44:[52,38,53],
-	45:[38,46,54], 46:[45,48,75], 47:[40,49], 48:[46,55], 49:[47,50], 50:[49,41,51,56],
-	51:[50,42,58,57], 52:[42,43,44,59,60], 53:[44,54,61,62], 54:[53,45,55,63], 55:[48,54],
-	56:[50,57], 57:[56,51,64], 58:[51,64,59,70], 59:[52,66,58], 60:[52,67,61], 61:[53,72,69],
-	62:[53,63,69], 63:[54,62], 64:[57,58], 65:[70,66], 66:[59,65,71,76], 67:[68,60,71,76],
-	68:[67,72], 69:[61,62], 70:[58,65], 71:[66,67], 72:[68,61], 73:[2,6,7], 74:[34,27,40], 75:[39,33,46], 76:[71,66,67]
-}
-
-# Also need the ID-to-Name mapping for the generator to find files
-const ID_TO_NAME_MAP = {
-	1:"Toppling Kick", 2:"Pummel", 3:"One Two", 4:"Evading Dance", 5:"Slip Behind",
-	6:"Adept Dodge", 7:"Adept Light", 8:"Hundred Hand Slap", 9:"Precise Strike", 10:"Breakout",
-	11:"Read Offence", 12:"Quick Dodge", 13:"Master Dodge", 14:"Master Light", 15:"Flying Kick",
-	16:"Vital Strike", 17:"Unassailable Stance", 18:"Strike Back", 19:"Leg Sweep", 20:"Catch",
-	21:"Drop Prone", 22:"Perfect Strike", 23:"Step Up", 24:"Go with the Flow", 25:"Prime",
-	26:"Inner Peace", 27:"Adept Reversal", 28:"Master Reversal", 29:"Untouchable Dodge",
-	30:"Ultimate Barrage", 31:"Advancing Parry", 32:"Master Positioning", 33:"Adept Positioning",
-	34:"Grab", 35:"Wind Up", 36:"Vital Point Assault", 37:"Overwhelming Aura", 38:"Parry FollowUp",
-	39:"Adjust Stance", 40:"Adept Tech", 41:"Master Tech", 42:"Crushing Block", 43:"Final Strike",
-	44:"Redirect", 45:"Master Parry", 46:"Adept Parry", 47:"Throw", 48:"Resounding Parry",
-	49:"Push", 50:"Twist Arm", 51:"Suplex", 52:"Perfect Block", 53:"Active Block",
-	54:"Retreating Defence", 55:"Resounding Counter", 56:"Read Defence", 57:"Headbutt", 58:"Lariat",
-	59:"Master Heavy", 60:"Master Block", 61:"Draining Defence", 62:"Slapping Parry", 63:"Tiring Parry",
-	64:"Roundhouse Kick", 65:"Uppercut", 66:"Adept Heavy", 67:"Adept Block", 68:"Push Kick",
-	69:"Drop Punch", 70:"Knee Crush", 71:"Drop Kick", 72:"Immovable Stance",
-	73:"Quick", 74:"Technical", 75:"Patient", 76:"Heavy"
-}
-
-const CLASS_ROOT_IDS: Array[int] = [73, 74, 75, 76]
-
-const RANK_TITLES = [
-	"Foolish",      # Level 1
-	"Weak",         # Level 2
-	"Clumsy",       # Level 3
-	"Novice",       # Level 4
-	"Beginner",     # Level 5
-	"Rookie",       # Level 6
-	"Apprentice",   # Level 7
-	"Capable",      # Level 8
-	"Competent",    # Level 9
-	"Adept",        # Level 10
-	"Seasoned",     # Level 11
-	"Expert",       # Level 12
-	"Veteran",      # Level 13
-	"Elite",        # Level 14
-	"Master",       # Level 15
-	"Grandmaster",  # Level 16
-	"Legendary",    # Level 17
-	"Mythic",       # Level 18
-	"Transcendent", # Level 19
-	"Godly"         # Level 20+
-]
-
-var art_heavy = preload("res://Art/Portraits/Heavy.png") 
-var art_patient = preload("res://Art/Portraits/Patient.png")
-var art_quick = preload("res://Art/Portraits/Quick.png")
-var art_technical = preload("res://Art/Portraits/Technical.png")
-
-const HAND_LIMIT = 8
-
-# --- NEW: ENEMY GENERATOR ---
-# --- NEW: ENEMY GENERATOR ---
-func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
-	# 1. Pick a Random Class
-	var types = [
-		CharacterData.ClassType.HEAVY, 
-		CharacterData.ClassType.QUICK, 
-		CharacterData.ClassType.TECHNICAL, 
-		CharacterData.ClassType.PATIENT
-	]
-	var selected_class = types.pick_random()
-	
-	# 2. Create the Base Character
-	# This sets the BASE stats (e.g. 5 HP / 4 SP) from the Class Definition
-	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
-	
-	# --- ASSIGN RANDOM PERSONALITY ---
-	var personalities = CharacterData.AIArchetype.values()
-	bot_data.ai_archetype = personalities.pick_random()
-	
-	# Flavor: Rank Title
-	# If level is 1 or negative, default to 0 ("Foolish")
-	var title_index = 0
-	if level > 0:
-		title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
-
-	var rank_title = RANK_TITLES[title_index]
-	
-	# Flavor: Prefix
-	var prefix = ""
-	match bot_data.ai_archetype:
-		CharacterData.AIArchetype.AGGRESSIVE: prefix = "Furious "
-		CharacterData.AIArchetype.DEFENSIVE: prefix = "Guarded "
-		CharacterData.AIArchetype.TRICKSTER: prefix = "Tricky "
-		CharacterData.AIArchetype.BALANCED: prefix = "Steady "
-	
-	bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
-	
-	# 3. DRAFT CARDS (Kept for gameplay variety, but ignored for stats now)
-	var cards_to_draft = level + 1
-	var owned_ids = []
-	var unlockable_options = []
-	
-	# Identify the starting Root Node
-	var root_id = 0
-	match selected_class:
-		CharacterData.ClassType.QUICK: root_id = 73
-		CharacterData.ClassType.TECHNICAL: root_id = 74
-		CharacterData.ClassType.PATIENT: root_id = 75
-		CharacterData.ClassType.HEAVY: root_id = 76
-	
-	# Init Shop
-	owned_ids.append(root_id)
-	if root_id in TREE_CONNECTIONS:
-		for neighbor in TREE_CONNECTIONS[root_id]:
-			unlockable_options.append(neighbor)
-			
-	# Draft Loop
-	for i in range(cards_to_draft):
-		if unlockable_options.is_empty(): break 
-		
-		var picked_id = unlockable_options.pick_random()
-		var card_name = ID_TO_NAME_MAP.get(picked_id)
-		
-		if card_name:
-			var new_card = find_action_resource(card_name)
-			if new_card and not _has_card(bot_data.unlocked_actions, new_card):
-				bot_data.unlocked_actions.append(new_card)
-		
-		owned_ids.append(picked_id)
-		unlockable_options.erase(picked_id)
-		
-		if picked_id in TREE_CONNECTIONS:
-			for neighbor in TREE_CONNECTIONS[picked_id]:
-				if neighbor not in owned_ids and neighbor not in unlockable_options:
-					unlockable_options.append(neighbor)
-	
-	# 4. SELECT SMART HAND
-	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions, bot_data.ai_archetype)
-	
-	# ---------------------------------------------------------
-	# 5. NEW STAT SCALING (LINEAR GROWTH - SKIPPING ZERO)
-	# ---------------------------------------------------------
-	var stat_bonus = 0
-
-# 1. Calculate the total pool of points to distribute
-	if level > 0:
-		stat_bonus = level - 1
-	else:
-		stat_bonus = level 
-
-	# 2. Distribute the bonus randomly
-	if stat_bonus > 0:
-		# Pick a random number between 0 and the total bonus for HP
-		var hp_gain = randi_range(0, stat_bonus)
-		# Whatever is left over goes to SP
-		var sp_gain = stat_bonus - hp_gain
-		
-		bot_data.max_hp += hp_gain
-		bot_data.max_sp += sp_gain
-		
-	elif stat_bonus < 0:
-		# Logic for negative levels (de-buffing enemies)
-		# We use the same random logic but for reduction
-		var hp_loss = randi_range(stat_bonus, 0) # e.g. randi_range(-2, 0)
-		var sp_loss = stat_bonus - hp_loss
-		
-		bot_data.max_hp = max(1, bot_data.max_hp + hp_loss)
-		bot_data.max_sp = max(1, bot_data.max_sp + sp_loss)
-
-	# Final safety check to ensure stats never drop to/below 0
-	bot_data.max_hp = max(1, bot_data.max_hp)
-	bot_data.max_sp = max(1, bot_data.max_sp)
-
-	# Reset current values to match new max values
-	bot_data.current_hp = bot_data.max_hp
-	bot_data.current_sp = bot_data.max_sp
-	
-	# Debug Print
-	print("\n=== ENEMY GENERATED (" + str(selected_class) + ") ===")
-	print("Level: " + str(level) + " | Title: " + rank_title)
-	print("HP: " + str(bot_data.max_hp) + " | SP: " + str(bot_data.max_sp))
-	print("==============================\n")
-	
-	return bot_data
-
-# -------------------------------------------------------------------------
-# NEW HELPERS (Needed for the above code)
-# -------------------------------------------------------------------------
-
-func _has_card(list: Array, card: ActionData) -> bool:
-	for c in list:
-		if c.display_name == card.display_name: return true
-	return false
-
-func _select_smart_hand(pool: Array[ActionData], _archetype: CharacterData.AIArchetype) -> Array[ActionData]:
-	# If we have 8 or fewer, just take them all
-	if pool.size() <= HAND_LIMIT:
-		return pool.duplicate()
-		
-	var chosen: Array[ActionData] = []
-	var remaining = pool.duplicate()
-	
-	# 1. PRIORITY: Always take Class Signatures (Non-Basic)
-	# We prioritize "cool" cards over "Basic" ones
-	for i in range(remaining.size() - 1, -1, -1):
-		var c = remaining[i]
-		if not c.is_basic:
-			chosen.append(c)
-			remaining.remove_at(i)
-			
-	# 2. PRIORITY: Fill remaining slots with Basics
-	remaining.shuffle()
-	
-	while chosen.size() < HAND_LIMIT and remaining.size() > 0:
-		chosen.append(remaining.pop_back())
-		
-	# 3. SAFETY: Ensure at least 1 Opener
-	# If we drafted a hand full of "Finishers" or "Cost 3" cards, the bot will break.
-	var has_opener = false
-	for c in chosen:
-		if c.is_opener or c.cost == 0: has_opener = true
-	
-	if not has_opener:
-		# Search the remaining pile for an opener
-		for c in remaining:
-			if c.is_opener or c.cost == 0:
-				# Swap a random card out for this opener
-				if chosen.size() > 0:
-					chosen.pop_back() 
-				chosen.append(c)
-				break
-
-	# 4. Trim if we somehow exceeded (though logic prevents it)
-	if chosen.size() > HAND_LIMIT:
-		chosen.resize(HAND_LIMIT)
-		
-	return chosen
-
-func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
-	if node_id in TREE_CONNECTIONS:
-		for neighbor in TREE_CONNECTIONS[node_id]:
-			if neighbor not in owned and neighbor not in available:
-				available.append(neighbor)
-
-# Helper for string names
-func class_enum_to_string(type: int) -> String:
-	var keys = CharacterData.ClassType.keys()
-	
-	# Safety check to make sure the integer is within the Enum's bounds
-	if type >= 0 and type < keys.size():
-		# .keys() returns an array of strings like ["HEAVY", "PATIENT", "QUICK", "TECHNICAL"]
-		# .capitalize() turns "HEAVY" into "Heavy" and "VERY_EASY" into "Very Easy"
-		return keys[type].capitalize()
-		
-	return "Enemy"
-	
-# Generates a fully playable CharacterData resource based on the chosen class
-func create_character(type: CharacterData.ClassType, player_name: String) -> CharacterData:
-	if not class_registry.has(type): return null
-	
-	var def: ClassDefinition = class_registry[type]
-	var char_data = CharacterData.new()
-	
-	char_data.character_name = player_name
-	char_data.class_type = type
-	
-	# 1. Base Stats from Resource
-	char_data.max_hp = def.base_hp
-	char_data.max_sp = def.base_sp
-	char_data.speed = def.base_speed
-	char_data.passive_desc = def.passive_description
-	char_data.portrait = def.portrait
-	
-	# --- NEW: COPY PASSIVES ---
-	char_data.can_pay_with_hp = def.can_pay_with_hp
-	char_data.tiring_drains_hp = def.tiring_drains_hp
-	char_data.combo_sp_recovery_rate = def.combo_sp_recovery_rate
-	char_data.has_bide_mechanic = def.has_bide_mechanic
-	char_data.has_keep_up_toggle = def.has_keep_up_toggle
-	char_data.has_technique_dropdown = def.has_technique_dropdown
-	
-	# 2. Library (Duplicate the array so we don't modify the Resource)
-	char_data.unlocked_actions = get_starting_deck(type)
-	
-	# 3. Select Hand
-	char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
-	
-	char_data.reset_stats()
-	return char_data
-
-# In ClassFactory.gd
-
-func get_starting_deck(type: CharacterData.ClassType) -> Array[ActionData]:
-	var deck: Array[ActionData] = []
-	
-	# 1. AUTO-ADD BASICS (Code handles this)
-	deck.append_array(get_basic_actions()) 
-	
-	# 2. ADD CLASS SPECIFICS (Resource handles this)
-	if class_registry.has(type):
-		var def = class_registry[type]
-		for card in def.starting_deck:
-			# Duplicate to ensure unique runtime instances
-			if card: deck.append(card.duplicate())
-			
-	return deck
-
-func create_from_preset(preset: PresetCharacter) -> CharacterData:
-	# 1. Start with the Base Class (Starters + Basic Actions)
-	var char_data = create_character(preset.class_type, preset.character_name)
-	
-	# 2. Add the Extra Skills defined in the preset
-	for skill_name in preset.extra_skills:
-		var card = find_action_resource(skill_name)
-		if card:
-			# Avoid duplicates if necessary, or allow multiples if that's your game design
-			char_data.deck.append(card)
-			char_data.unlocked_actions.append(card)
-		else:
-			printerr("Warning: Preset '" + preset.character_name + "' could not find skill: " + skill_name)
-
-	# 3. Auto-Calculate Stats based on Class Rules
-	_recalculate_stats(char_data)
-	
-	return char_data
-
-# --- HELPER: Stat Calculation Logic (Same rules as ActionTree) ---
-# ClassFactory.gd
-
-func _recalculate_stats(char_data: CharacterData):
-	# 1. Snapshot old stats before we change them
-	var old_max_hp = char_data.max_hp
-	
-	# 2. Calculate new stats
-	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions, char_data.equipment)
-	
-	char_data.max_hp = result["hp"]
-	char_data.max_sp = result["sp"]
-	
-	# --- 3. ROGUELIKE HP LOGIC ---
-	if RunManager.is_arcade_mode and RunManager.maintain_hp_enabled:
-		# Only heal them by the AMOUNT they grew (e.g., Max HP 5 -> 6 means heal 1 HP)
-		var hp_growth = char_data.max_hp - old_max_hp
-		char_data.current_hp += hp_growth
-		char_data.current_sp = char_data.max_sp # SP always resets per fight
-	else:
-		# Standard Mode: Full Heal
-		char_data.current_hp = char_data.max_hp
-		char_data.current_sp = char_data.max_sp
-
-
-# --- HELPER: Find Resource (Moved from ActionTree) ---
-func find_action_resource(action_name: String) -> ActionData:
-	var clean_name = action_name.to_lower().replace(" ", "_")
-	var filename = clean_name + ".tres"
-	
-	# Check Common folder
-	var common_path = "res://Data/Actions/" + filename
-	if ResourceLoader.exists(common_path): return load(common_path)
-		
-	# Check Class folders
-	var class_folders = ["Heavy", "Patient", "Quick", "Technical"]
-	for folder in class_folders:
-		var class_path = "res://Data/Actions/Class/" + folder + "/" + filename
-		if ResourceLoader.exists(class_path): return load(class_path)
-			
-	return null
-
-# New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
-# In ClassFactory.gd
-
-func calculate_stats_for_deck(type: CharacterData.ClassType, _deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
-	if not class_registry.has(type): return {"hp": 5, "sp": 4}
-	
-	var def: ClassDefinition = class_registry[type]
-	var final_hp = def.base_hp
-	var final_sp = def.base_sp
-	
-	# Growth loop deleted here! We just use the Base Stats.
-	
-	# Keep Equipment Logic (This is still useful!)
-	for item in equipment:
-		final_hp += item.max_hp_bonus
-		final_sp += item.max_sp_bonus
-			
-	return {"hp": max(1, final_hp), "sp": max(1, final_sp)}
-
-# NEW HELPER: Reverse lookup for Presets -> Tree Nodes
-func get_id_by_name(card_name: String) -> int:
-	for id in ID_TO_NAME_MAP:
-		if ID_TO_NAME_MAP[id] == card_name:
-			return id
-	return 0 # Not found
-
-func _simulate_draft_ids(class_type, count) -> Array:
-	var root_id = 76 # Heavy
-	match class_type:
-		CharacterData.ClassType.QUICK: root_id = 73
-		CharacterData.ClassType.TECHNICAL: root_id = 74
-		CharacterData.ClassType.PATIENT: root_id = 75
-	
-	var owned = [root_id]
-	var available = []
-	_add_neighbors_to_list(root_id, owned, available)
-	
-	var results = []
-	for i in range(count):
-		if available.is_empty(): break
-		var pick = available.pick_random()
-		results.append(pick)
-		owned.append(pick)
-		available.erase(pick)
-		_add_neighbors_to_list(pick, owned, available)
-		
-	return results
-
-# --- STARTER DECK GENERATION ---
-# --- STARTER DECK GENERATION ---
-func get_basic_actions() -> Array[ActionData]:
-	var basics: Array[ActionData] = []
-	
-	# Load the actual resource files so they have the correct Icons, IDs, and 'Is Basic' flags
-	# We use .duplicate() to ensure one player's card doesn't affect the other's
-	basics.append(load("res://Data/Actions/basic_light.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_heavy.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_technical.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_positioning.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_block.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_dodge.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_parry.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_reversal.tres").duplicate())
-	
-	return basics
-
-
-============================================================
-FILE: .\Scripts\Resources\CharacterData.gd
-============================================================
-class_name CharacterData
-extends Resource
-
 #region vars
+const KEYWORD_DEFS = {
+	"Block": "Reduce incoming damage by X",
+	"Cost": "lose X stamina",
+	"Counter": "You must have used an action with Create Opening X or higher in the previous clash",
+	"Create Opening": "Your opponent’s next action cannot have a Cost trait higher than X",
+	"Damage": "Reduce your opponent’s health by X",
+	"Defence": "Can only be used on the defensive. This action gains the Recover 1 trait.",
+	"Feint": "In addition to the action’s listed traits, it gains all the traits of another action that you can use. That action can be chosen after actions are revealed",
+	"Dodge": "You ignore the effects of your opponent’s action if its total stamina cost is X or below",
+	"Fall Back": "Lose X momentum",
+	"Guard Break": "Ignore the ‘Block X’ trait of your opponent’s action",
+	"Heal": "Gain X HP",
+	"Injure": "Your opponent must lose 1 HP every clash after this until you use an action with the Recover X, Heal X or Fall Back X traits, or the combat ends",
+	"Momentum": "Gain X momentum",
+	"Multi": "After this action, you may use any other action that has a Cost trait of X or below, and that does not have the multi X trait. This action interacts with your opponent’s previous action. If your opponent’s action would end your combo, you do not get to use this trait. In addition, moves with this trait can be used to start a combo",
+	"Offence": "Can only be used on the offensive. If you are reduced to 0SP, your combo ends",
+	"Opener": "Only actions with this trait can be used to start a combo",
+	"Opportunity": "Increase your next actions momentum by X, and reduce its stamina cost by X",
+	"Parry": "Your action steals the Momentum X trait of your opponent’s action. If this causes the momentum tracker to move in your direction, your opponent’s action has no affect on you, and your opponent’s next action must have the Opener trait",
+	"Recover": "Gain X stamina",
+	"Repeat": "After this action, use the same action again, ignoring the Repeat X trait. This must continue X times. This action interacts with your opponent’s chosen action as normal",
+	"Retaliate": "Your opponent takes the same damage as they dealt to you in the previous clash",
+	"Reversal": "If the momentum tracker moves closer to your side from this clash, the current combo ends and you take the offence, even if you do not have the momentum advantage. This applies even in the inital clash",
+	"Super": "This action can only be used when the momentum tracker has reached the end of your side. You can only use an action with this trait once per combat",
+	"Sweep": "This action affects all opponents you are in combat with",
+	"Tiring": "Cause the opponent to lose X Stamina"
+}
 
-#To add a completely new class identity, you still need to do two small code updates:
-#
-#Add MAGE to the ClassType Enum.
-#
-#Add the if class == MAGE: logic in GameManager for their specific mechanic.
-
-enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL }
-
-# --- NEW: AI PERSONALITY TYPES ---
-enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
-@export var ai_archetype: AIArchetype = AIArchetype.BALANCED 
-# ---------------------------------
-
-# --- STATIC DATA ---
-@export_group("Identity")
-@export var character_name: String
-@export var portrait: Texture2D
-@export var class_type: ClassType
-
-@export_group("Stats")
-@export var max_hp: int = 5     
-@export var max_sp: int = 4      
-@export var speed: int = 1       
-
-@export_group("Progression")
-@export var deck: Array[ActionData]  # The Active 8 Cards
-@export var unlocked_actions: Array[ActionData] = [] # The Full Library
-@export var equipment: Array[EquipmentData] = [] # <--- NEW: The items you carry
-
-@export_group("Passive")
-@export_multiline var passive_desc: String 
-
-# --- RUNTIME STATE ---
-@export_group("Runtime State")
-@export var current_hp: int
-@export var current_sp: int
-@export var has_used_super: bool = false 
-@export var combo_action_count: int = 0
-@export var patient_buff_active: bool = false
-@export var can_pay_with_hp: bool = false
-@export var tiring_drains_hp: bool = false
-@export var combo_sp_recovery_rate: int = 0
-@export var has_bide_mechanic: bool = false
-@export var has_keep_up_toggle: bool = false
-@export var has_technique_dropdown: bool = false
-@export var statuses: Dictionary = {}
+# --- SIGNALS ---
+signal state_changed(new_state)
+signal clash_resolved(winner_id, log_text)
+signal combat_log_updated(text)
+signal game_over(winner_id)
+signal damage_dealt(target_id: int, amount: int, is_blocked: bool)
+signal healing_received(target_id: int, amount: int)
+signal status_applied(target_id: int, status_name: String)
+signal request_clash_animation(p1_card, p2_card)
+signal clash_animation_finished
+signal wall_crush_occurred(player_id, damage_amount)
 
 
+# --- CONFIGURATION ---
+var TOTAL_MOMENTUM_SLOTS: int = 8 
+var current_environment_name: String = "Dojo"
+var environment_backgrounds: Dictionary = {}
+# --- DYNAMIC CALCULATIONS ---
+var MOMENTUM_P1_MAX: int = 4
+var MOMENTUM_P2_START: int = 5
+
+# --- STATE MACHINE ---
+enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
+var current_state = State.SETUP
+var temp_p1_class_selection: int = 0
+var temp_p2_class_selection: int = 0 
+var editing_player_index: int = 1    
+var p2_is_custom: bool = false       
+enum Difficulty { VERY_EASY, EASY, MEDIUM, HARD }
+var ai_difficulty: Difficulty = Difficulty.MEDIUM 
+var attacker_override: int = 0 
+
+# --- PERSISTENT GAME SETUP ---
+var next_match_p1_data: CharacterData
+var next_match_p2_data: CharacterData
+
+# --- CORE DATA ---
+var p1_data: CharacterData
+var p2_data: CharacterData
+var priority_player: int = 1 
+var momentum: int = 0 
+var current_combo_attacker: int = 0
+
+# --- TURN CONSTRAINTS ---
+var p1_cost_limit: int = 99; var p2_cost_limit: int = 99
+var p1_opening_stat: int = 0; var p2_opening_stat: int = 0
+var p1_opportunity_stat: int = 0; var p2_opportunity_stat: int = 0
+var p1_must_opener: bool = false; var p2_must_opener: bool = false
+
+## --- STATUS EFFECTS ---
+#var p1_is_injured: bool = false
+#var p2_is_injured: bool = false
+
+# --- TURN STATE ---
+var p1_action_queue: ActionData
+var p2_action_queue: ActionData
+var p1_locked_card: ActionData = null
+var p2_locked_card: ActionData = null
+
+# --- FEINT HELPERS ---
+var p1_pending_feint: bool = false
+var p2_pending_feint: bool = false
+
+# --- PASSIVES ---
+var p1_rage_active: bool = false
+var p2_rage_active: bool = false
+var p1_keep_up_active: bool = false
+var p2_keep_up_active: bool = false
+
+var temp_p1_name: String = ""
+var temp_p2_name: String = ""
+var temp_p1_preset: Resource = null
+var temp_p2_preset: Resource = null
 #endregion
 
-# --- LOGIC ---
+# ==============================================================================
+# INITIALIZATION
+# ==============================================================================
 
-func reset_stats(maintain_hp: bool = false):
-	# Only reset HP to max if we are NOT maintaining it
-	if not maintain_hp:
-		current_hp = max_hp
-		
-	# SP and Statuses always reset per fight
-	current_sp = max_sp
-	has_used_super = false
-	combo_action_count = 0
-	patient_buff_active = false
-	statuses.clear()
-# Call this when the player "Learns" a new card to apply Class Stat Growth
-func unlock_action(new_action: ActionData):
-	if new_action in deck: return
+func _ready():
 	
-	deck.append(new_action)
-	_apply_level_up_stats(new_action.type)
+	_load_backgrounds()
+	
+	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
+	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
+	
+	print("--- GAME MANAGER READY ---")
+	print("Momentum Config: Total=", TOTAL_MOMENTUM_SLOTS, " | P1_Max=", MOMENTUM_P1_MAX, " | P2_Start=", MOMENTUM_P2_START)
+	
+	priority_player = 1
+	momentum = 0
 
-func _apply_level_up_stats(card_type):
-	# Rules derived from PDF v0.2 Class Section
-	match class_type:
-		ClassType.HEAVY:
-			if card_type == ActionData.Type.OFFENCE: max_sp += 1
-			elif card_type == ActionData.Type.DEFENCE: max_hp += 2
+func start_combat(p1: CharacterData, p2: CharacterData):
+	p1_data = p1
+	p2_data = p2
+	reset_combat()
+
+func reset_combat():
+	# --- 1. RESET STATS ---
+	# Check if P1 should maintain HP (for runs/tournaments)
+	var p1_maintain = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
+	p1_data.reset_stats(p1_maintain) 
+	
+	# P2 (The Enemy) always resets to full
+	p2_data.reset_stats(false)
+	
+	# --- 2. INJECT EVENT STATUSES ---
+	if RunManager.is_arcade_mode:
+		for s in RunManager.next_fight_statuses:
+			p1_data.statuses[s] = 1
+		RunManager.next_fight_statuses.clear() # Clear so it doesn't happen next fight
+	
+	# --- 3. RESET COMBAT VARIABLES ---
+	momentum = 0 
+	current_combo_attacker = 0
+	p1_locked_card = null; p2_locked_card = null
+	
+	p1_cost_limit = 99; p2_cost_limit = 99
+	p1_opening_stat = 0; p2_opening_stat = 0
+	p1_opportunity_stat = 0; p2_opportunity_stat = 0
+	p1_must_opener = false; p2_must_opener = false
+	p1_pending_feint = false; p2_pending_feint = false
+	
+	p1_rage_active = false; p2_rage_active = false
+	p1_keep_up_active = false; p2_keep_up_active = false
+	
+	# --- 4. APPLY PLAYER EQUIPMENT BONUSES ---
+	var total_momentum_bonus = 0
+	var p1_speed_bonus = 0
+	
+	if RunManager.player_run_data:
+		for equip in RunManager.player_run_data.equipment:
 			
-		ClassType.PATIENT:
-			if card_type == ActionData.Type.OFFENCE: max_hp += 1
-			elif card_type == ActionData.Type.DEFENCE: 
-				max_hp += 1
-				max_sp += 1
+			# A. SP Bonus
+			p1_data.current_sp += equip.starting_sp_bonus
+			
+			# B. Barrier (Temporary HP)
+			if equip.starting_barrier > 0:
+				p1_data.current_hp += equip.starting_barrier
+				print("Equipment Barrier Applied: +%d HP" % equip.starting_barrier)
+
+			# C. Collect Momentum Bonus
+			total_momentum_bonus += equip.starting_momentum
+			
+			# D. Collect Speed Bonus
+			p1_speed_bonus += equip.speed_bonus
+
+	# --- 5. APPLY MOMENTUM STARTING POSITION ---
+	# If we have a bonus, we skip the "0" (Neutral) state and start on our side.
+	# MOMENTUM_P1_MAX is the "front line". Subscripting moves it closer to the enemy wall (1).
+	if total_momentum_bonus > 0:
+		momentum = MOMENTUM_P1_MAX - (total_momentum_bonus - 1)
+		# Clamp so we don't accidentally glitch past the wall (1)
+		momentum = clampi(momentum, 1, MOMENTUM_P1_MAX)
+		print(">> Head Start! Momentum set to: " + str(momentum))
+		
+	# --- 6. APPLY ENEMY EQUIPMENT BONUSES ---
+	for item in p2_data.equipment:
+		p2_data.current_sp += item.starting_sp_bonus
+	
+	# --- 7. APPLY GYM BUFFS ---
+	if RunManager.active_gym_buff != "":
+		print("Applying Gym Buff: " + RunManager.active_gym_buff)
+		
+		if RunManager.active_gym_buff == "iron_stance":
+			# Simulate a 'Start with 10 Block' by adding 10 Temporary HP.
+			p1_data.current_hp += 10
+			print(">> Iron Stance: +10 Temp HP")
+			
+		elif RunManager.active_gym_buff == "exploit_weakness":
+			# Reduce enemy starting HP by 20%
+			var damage = max(1, roundi(p2_data.max_hp * 0.2))
+			p2_data.current_hp -= damage
+			print(">> Exploit Weakness: Enemy took " + str(damage) + " dmg")
+			
+		# IMPORTANT: Clear the buff so it doesn't apply to the NEXT fight too
+		RunManager.active_gym_buff = ""
+	
+	# --- 8. CALCULATE PRIORITY (SPEED TIES) ---
+	var p1_final_speed = p1_data.speed + p1_speed_bonus
+	var p2_final_speed = p2_data.speed
+	
+	if p1_final_speed > p2_final_speed: 
+		priority_player = 1
+	elif p2_final_speed > p1_final_speed: 
+		priority_player = 2
+	else: 
+		priority_player = randi_range(1, 2)
+		
+	print("\n>>> COMBAT RESET! Starting from Initial Clash (Neutral) <<<")
+	# --- NEW: FADE TO BATTLE INTENSITY (Layer 2) ---
+	if AudioManager:
+		AudioManager.set_music_intensity(1.0, 2.0)
+	# -----------------------------------------------
+	change_state(State.SELECTION)
+
+func get_attacker() -> int:
+	if current_combo_attacker != 0: return current_combo_attacker
+	if attacker_override != 0: return attacker_override
+	if momentum == 0: return 0 
+	return 1 if momentum <= MOMENTUM_P1_MAX else 2
+
+# ==============================================================================
+# STATE MACHINE
+# ==============================================================================
+
+func change_state(new_state: State):
+	current_state = new_state
+	emit_signal("state_changed", current_state)
+	
+	match current_state:
+		State.SELECTION:
+			if p1_locked_card: player_select_action(1, p1_locked_card)
+			if p2_locked_card: player_select_action(2, p2_locked_card)
+		State.REVEAL:
+			_enter_reveal_phase()
+		State.FEINT_CHECK:
+			pass 
+		State.RESOLUTION:
+			resolve_clash()
+
+func player_select_action(player_id: int, action: ActionData, extra_data: Dictionary = {}):
+	# 1. Process the Action based on Technique
+	var final_action = action
+	var tech_idx = extra_data.get("technique", 0)
+	
+	# Only modify if a technique was actually selected AND action is not null (Skip)
+	if action != null and tech_idx > 0:
+		final_action = action.duplicate() 
+		final_action.cost += 1 
+		
+		match tech_idx:
+			1: # Opener
+				if final_action.type == ActionData.Type.OFFENCE:
+					final_action.is_opener = true
+					final_action.display_name += "+" 
+			2: # Tiring
+				final_action.tiring += 1
+				final_action.display_name += "+"
+			3: # Momentum
+				final_action.momentum_gain += 1
+				final_action.display_name += "+"
+	
+	# 2. Standard Logic
+	if player_id == 1:
+		p1_action_queue = final_action
+		p1_rage_active = extra_data.get("rage", false)
+		p1_keep_up_active = extra_data.get("keep_up", false)
+	else:
+		p2_action_queue = final_action
+		p2_rage_active = extra_data.get("rage", false)
+		p2_keep_up_active = extra_data.get("keep_up", false)
+		
+	if current_state == State.SELECTION:
+		if p1_action_queue and p2_action_queue:
+			change_state(State.REVEAL)
+	elif current_state == State.FEINT_CHECK:
+		_handle_feint_selection(player_id, final_action)
+
+# ==============================================================================
+# FEINT MECHANICS
+# ==============================================================================
+
+func _enter_reveal_phase():
+	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
+	emit_signal("request_clash_animation", p1_action_queue, p2_action_queue)
+	await self.clash_animation_finished
+	
+	p1_pending_feint = p1_action_queue.feint
+	p2_pending_feint = p2_action_queue.feint
+
+	if p1_pending_feint or p2_pending_feint:
+		change_state(State.FEINT_CHECK)
+	else:
+		change_state(State.RESOLUTION)
+
+func _handle_feint_selection(player_id: int, secondary_action: ActionData):
+	if secondary_action == null:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " skips Feint combination.")
+		_clear_feint_flag(player_id)
+		_check_feint_completion()
+		return
+
+	var base_card = p1_action_queue if player_id == 1 else p2_action_queue
+	var character = p1_data if player_id == 1 else p2_data
+	
+	var total_cost = base_card.cost + secondary_action.cost
+	var opp_val = _get_opportunity_value(player_id)
+	var effective_total = max(0, total_cost - opp_val)
+	
+	var combined_card = _combine_actions(base_card, secondary_action)
+	var total_reps = max(1, combined_card.repeat_count)
+	var total_required = effective_total * total_reps
+	
+	var can_afford = false
+	if character.current_sp >= total_required:
+		can_afford = true
+	elif character.class_type == CharacterData.ClassType.HEAVY and (character.current_sp + character.current_hp) > total_required:
+		can_afford = true 
+		
+	if can_afford:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined_card.display_name)
+		if player_id == 1: p1_action_queue = combined_card
+		else: p2_action_queue = combined_card
+	else:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint. Action applies normally.")
+	
+	_clear_feint_flag(player_id)
+	_check_feint_completion()
+
+func _clear_feint_flag(player_id):
+	if player_id == 1: p1_pending_feint = false
+	else: p2_pending_feint = false
+
+func _check_feint_completion():
+	if not p1_pending_feint and not p2_pending_feint:
+		change_state(State.RESOLUTION)
+
+func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
+	var new_card = base.duplicate()
+	new_card.display_name = base.display_name + " + " + sec.display_name
+	
+	new_card.cost += sec.cost
+	new_card.damage += sec.damage
+	new_card.block_value += sec.block_value
+	new_card.dodge_value += sec.dodge_value
+	new_card.momentum_gain += sec.momentum_gain
+	new_card.heal_value += sec.heal_value
+	new_card.recover_value += sec.recover_value
+	new_card.fall_back_value += sec.fall_back_value
+	new_card.tiring += sec.tiring
+	new_card.create_opening += sec.create_opening
+	new_card.multi_limit += sec.multi_limit
+	new_card.opportunity += sec.opportunity
+	
+	new_card.counter_value = max(new_card.counter_value, sec.counter_value) 
+	new_card.repeat_count = max(new_card.repeat_count, sec.repeat_count)
+	
+	if sec.guard_break: new_card.guard_break = true
+	if sec.retaliate: new_card.retaliate = true
+	if sec.is_parry: new_card.is_parry = true
+	if sec.is_super: new_card.is_super = true
+	if sec.is_opener: new_card.is_opener = true
+	
+# --- OLD CODE (Caused Error) ---
+	# var combined_statuses = []
+	# combined_statuses.append_array(base.statuses_to_apply)
+	# for s in sec.statuses_to_apply:
+	# 	combined_statuses.append(s.duplicate(true)) 
+	# new_card.statuses_to_apply = combined_statuses
+	
+	# --- NEW FIXED CODE ---
+	# 1. Clear whatever statuses the base card had (we will rebuild it)
+	new_card.statuses_to_apply.clear()
+	
+	# 2. Add Base Statuses
+	for s in base.statuses_to_apply:
+		new_card.statuses_to_apply.append(s.duplicate(true))
+		
+	# 3. Add Secondary Statuses
+	for s in sec.statuses_to_apply:
+		new_card.statuses_to_apply.append(s.duplicate(true))
+	
+	new_card.feint = false 
+	return new_card
+
+# ==============================================================================
+# RESOLUTION LOGIC
+# ==============================================================================
+
+func resolve_clash():
+	attacker_override = 0
+	
+	# Duplicate to ensure we don't modify the original resource
+	p1_action_queue = p1_action_queue.duplicate()
+	p2_action_queue = p2_action_queue.duplicate()
+	
+	_handle_patient_passive(1, p1_action_queue)
+	_handle_patient_passive(2, p2_action_queue)
+	
+	var winner_id = 0
+	
+	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
+	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
+	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
+	elif p2_action_queue.cost < p1_action_queue.cost: winner_id = 2
+	else:
+		emit_signal("combat_log_updated", "Tie! Priority Token Used.")
+		winner_id = priority_player
+		swap_priority()
+
+	emit_signal("clash_resolved", winner_id, p1_action_queue, p2_action_queue, "Clash Winner: P" + str(winner_id))
+	
+	var is_initial_clash = (momentum == 0)
+	
+	# --- SMART COMBO RESET ---
+	# If P1 wins with Offence...
+	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE:
+		# Check if they were ALREADY comboing. If not (e.g., previous turn was neutral or 0 SP break), start at 1.
+		if current_combo_attacker != 1: p1_data.combo_action_count = 1
+		else: p1_data.combo_action_count += 1
+	else:
+		p1_data.combo_action_count = 0
+
+	# Same for P2
+	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE:
+		if current_combo_attacker != 2: p2_data.combo_action_count = 1
+		else: p2_data.combo_action_count += 1
+	else:
+		p2_data.combo_action_count = 0
+	# ------------------------------
+	
+	# --- PHASE 0: PAY COSTS ---
+	var p1_started_injured = has_status(1, "Injured")
+	var p2_started_injured = has_status(2, "Injured")
+	
+	var p1_active = _pay_cost(1, p1_action_queue)
+	var p2_active = _pay_cost(2, p2_action_queue)
+
+	if p1_active and p1_action_queue.is_super:
+		p1_data.has_used_super = true
+		emit_signal("combat_log_updated", ">> P1 unleashes their Ultimate Art!")
+	if p2_active and p2_action_queue.is_super:
+		p2_data.has_used_super = true
+		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
+
+	# --- PHASE 1: SELF EFFECTS ---
+	if p1_active: _apply_phase_1_self_effects(1, p1_action_queue)
+	if p2_active: _apply_phase_1_self_effects(2, p2_action_queue)
+
+	# --- MOMENTUM CALCULATION ---
+	
+	# A. Dodge Checks
+	var p1_is_dodged = false; var p2_is_dodged = false
+	var p1_total_cost = p1_action_queue.cost * max(1, p1_action_queue.repeat_count)
+	var p2_total_cost = p2_action_queue.cost * max(1, p2_action_queue.repeat_count)
+	
+	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_total_cost: p1_is_dodged = true
+	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_total_cost: p2_is_dodged = true
+	
+	# B. Push/Pull Base Values
+	var p1_parries = (p1_active and p1_action_queue.is_parry)
+	var p2_parries = (p2_active and p2_action_queue.is_parry)
+	
+	var p1_single_gain = p1_action_queue.momentum_gain + _get_opportunity_value(1)
+	var p2_single_gain = p2_action_queue.momentum_gain + _get_opportunity_value(2)
+	
+	var p1_total_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
+	var p2_total_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
+	
+	var p1_stolen = p2_single_gain if p1_parries else 0
+	var p2_stolen = p1_single_gain if p2_parries else 0
+	
+	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
+	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
+	
+	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
+	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
+	
+	# --- STRICT PARRY SUCCESS CHECK ---
+	# Parry only triggers if (My Gain + Stolen Gain) is strictly greater than My Fall Back.
+	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
+	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
+	
+	var p1_parry_success = (p1_parries and p1_net_gain > 0)
+	var p2_parry_success = (p2_parries and p2_net_gain > 0)
+	# ---------------------------------------	
+	
+	# --- WALL CRUSH CHECK ---
+	if p1_fb > 0 and momentum >= TOTAL_MOMENTUM_SLOTS:
+		_apply_wall_crush(1, p1_fb)
+		p1_fb = 0 
+		
+	if p2_fb > 0 and momentum <= 1:
+		_apply_wall_crush(2, p2_fb)
+		p2_fb = 0 
+	# ------------------------------
+	
+
+
+	# Calculate the final combined movement for the UI tracker
+	var p1_contribution = p1_total_gain
+	if p2_parries: p1_contribution -= p1_single_gain
+	if p1_is_dodged: p1_contribution = 0
+	
+	var p2_contribution = p2_total_gain
+	if p1_parries: p2_contribution -= p2_single_gain
+	if p2_is_dodged: p2_contribution = 0
+	
+	var p1_final_push = p1_contribution + p1_stolen
+	var p2_final_push = p2_contribution + p2_stolen
+	
+	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
+	
+	# --- PHASE 2: COMBAT EFFECTS ---
+	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
+	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
+	
+	var p2_immune_or_dodged = p2_parry_success or p1_is_dodged
+	var p1_immune_or_dodged = p1_parry_success or p2_is_dodged
+	
+	if p1_active: p1_results = _apply_phase_2_combat_effects(1, 2, p1_action_queue, p2_action_queue, p2_immune_or_dodged)
+	if p2_active: p2_results = _apply_phase_2_combat_effects(2, 1, p2_action_queue, p1_action_queue, p1_immune_or_dodged)
+	
+	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue, p1_parry_success, p2_parry_success)
+	
+	if p1_results["fatal"] or p2_results["fatal"]:
+		_handle_death(winner_id)
+		return 
+	
+	# --- PHASE 3: APPLY MOMENTUM & REVERSAL ---
+	var p1_reversed = (p1_active and p1_action_queue.reversal and delta < 0)
+	var p2_reversed = (p2_active and p2_action_queue.reversal and delta > 0)
+
+	if is_initial_clash:
+		momentum = MOMENTUM_P1_MAX if winner_id == 1 else MOMENTUM_P2_START
+		print("DEBUG: Initial Clash Winner: P", winner_id, " | Set Mom: ", momentum)
+		
+		if p1_reversed:
+			attacker_override = 1
+			emit_signal("combat_log_updated", ">> P1 Reverses! Seizing Offence.")
+		elif p2_reversed:
+			attacker_override = 2
+			emit_signal("combat_log_updated", ">> P2 Reverses! Seizing Offence.")
+			
+	else:
+		momentum = clamp_momentum(momentum + delta)
+		
+		if p1_reversed:
+			attacker_override = 1
+			emit_signal("combat_log_updated", ">> P1 REVERSAL SUCCESSFUL!")
+		elif p2_reversed:
+			attacker_override = 2
+			emit_signal("combat_log_updated", ">> P2 REVERSAL SUCCESSFUL!")
+
+	# --- CLEANUP ---
+	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
+	_check_reversal_state() 
+	_handle_locks(winner_id)
+	
+	# --- NEW: UPDATE MUSIC INTENSITY ---
+	_update_dynamic_music()
+	# -----------------------------------
+
+	p1_action_queue = null
+	p2_action_queue = null
+	
+	if p1_data.current_hp <= 0 or p2_data.current_hp <= 0:
+		_handle_death(winner_id)
+		return
+	
+	
+	change_state(State.POST_CLASH)
+	change_state(State.SELECTION)
+
+# ==============================================================================
+# PHASE IMPLEMENTATIONS
+# ==============================================================================
+
+func _apply_wall_crush(player_id: int, amount: int):
+	var character = p1_data if player_id == 1 else p2_data
+	
+	# --- NEW: CHECK IF ATTACKER HAS SPIKED CLEATS ---
+	var attacker_data = p2_data if player_id == 1 else p1_data
+	var final_amount = amount
+	for item in attacker_data.equipment:
+		final_amount += item.wall_crush_damage_bonus
+	# ------------------------------------------------
+	
+	# --- NEW: EMIT SIGNAL ---
+	emit_signal("wall_crush_occurred", player_id, final_amount)
+	# ------------------------
+	
+	emit_signal("combat_log_updated", ">> P" + str(player_id) + " CRUSHED against the wall!")
+	
+	if character.current_sp >= final_amount:
+		character.current_sp -= final_amount
+		emit_signal("combat_log_updated", "   Lost " + str(final_amount) + " SP to hold ground.")
+	else:
+		var sp_paid = character.current_sp
+		var hp_damage = final_amount - sp_paid
+		
+		character.current_sp = 0
+		character.current_hp -= hp_damage
+		
+		emit_signal("combat_log_updated", "   Lost " + str(sp_paid) + " SP and took " + str(hp_damage) + " HP DAMAGE!")
+		emit_signal("damage_dealt", player_id, hp_damage, false)
+
+func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
+	var character = p1_data if owner_id == 1 else p2_data
+	var total_hits = max(1, my_card.repeat_count)
+	
+	if character.combo_sp_recovery_rate > 0:
+		if character.combo_action_count > 0 and (character.combo_action_count % character.combo_sp_recovery_rate == 0):
+			character.current_sp = min(character.current_sp + 1, character.max_sp)
+			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
+	
+	for i in range(total_hits):
+		var actual_recover = my_card.recover_value
+		if my_card.type == ActionData.Type.DEFENCE: actual_recover += 1
+		
+		if actual_recover > 0: 
+			character.current_sp = min(character.current_sp + actual_recover, character.max_sp)
+			
+		if my_card.heal_value > 0: 
+			character.current_hp = min(character.current_hp + my_card.heal_value, character.max_hp)
+			emit_signal("healing_received", owner_id, my_card.heal_value)
+
+		if my_card.heal_value > 0 or my_card.fall_back_value > 0:
+			if has_status(owner_id, "Injured"):
+				remove_status(owner_id, "Injured")
+				emit_signal("combat_log_updated", ">> P" + str(owner_id) + " cures Injury!")
+
+func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool) -> Dictionary:
+	var character = p1_data if owner_id == 1 else p2_data
+	var target = p2_data if owner_id == 1 else p1_data
+	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
+	
+	if target_is_immune:
+		emit_signal("combat_log_updated", "P" + str(owner_id) + " attack NULLIFIED (Dodge/Parry)!")
+		emit_signal("status_applied", owner_id, "MISS")
+		emit_signal("status_applied", target_id, "DODGED")
+		return result
+
+	# --- 1. CALCULATE EQUIPMENT PASSIVES ---
+	var dmg_mod = 0
+	var attacker_block_mod = 0 # In case they get hit by Thorns/Retaliate
+	
+	var defender_block_mod = 0
+	var thorns_dmg = 0
+	
+	# Attacker's bonuses
+	for eq in character.equipment:
+		dmg_mod += eq.damage_modifier
+		attacker_block_mod += eq.block_modifier
+		
+	# Defender's bonuses
+	for eq in target.equipment:
+		defender_block_mod += eq.block_modifier
+		thorns_dmg += eq.thorns
+	# -----------------------------------------
+
+	var total_hits = max(1, my_card.repeat_count)
+	for i in range(total_hits):
+		
+		# --- 2. APPLY OFFENSIVE / DEFENSIVE MODIFIERS ---
+		var total_damage = max(0, my_card.damage + dmg_mod)
+		var enemy_block = enemy_card.block_value + defender_block_mod
+		
+		if my_card.guard_break: 
+			enemy_block = 0
+			
+		var net_damage = max(0, total_damage - enemy_block)
+		
+		# --- 3. TIRING (SP DRAIN) ---
+		if my_card.tiring > 0:
+			if target.tiring_drains_hp and target.current_sp < my_card.tiring:
+				var drain_amount = my_card.tiring
+				var sp_avail = target.current_sp
+				var hp_cost = drain_amount - sp_avail
+				target.current_sp = 0
+				target.current_hp -= hp_cost
+				emit_signal("combat_log_updated", ">> Rage! P" + str(target_id) + " takes " + str(hp_cost) + " HP dmg instead of SP.")
+				emit_signal("damage_dealt", target_id, hp_cost, false)
+			else:
+				target.current_sp = max(0, target.current_sp - my_card.tiring)
+				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
+		
+		# --- 4. STATUSES ---
+		for effect in my_card.statuses_to_apply:
+			var s_name = effect.get("name", "Unknown")
+			var s_val = effect.get("amount", 1)
+			var is_self = effect.get("self", false)
+			var dest_id = owner_id if is_self else target_id
+			
+			if not has_status(dest_id, s_name):
+				apply_status(dest_id, s_name, s_val)
+
+		# --- 5. OPENINGS / OPPORTUNITY ---
+		if my_card.create_opening > 0:
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
+			result["opening"] = my_card.create_opening
+		
+		if my_card.opportunity > 0:
+			result["opportunity"] = my_card.opportunity
+
+		# --- 6. APPLY DAMAGE AND THORNS ---
+		if net_damage > 0:
+			target.current_hp -= net_damage
+			emit_signal("damage_dealt", target_id, net_damage, false)
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
+			
+			# Trigger Thorns if the attack connects
+			if thorns_dmg > 0:
+				character.current_hp -= thorns_dmg
+				emit_signal("damage_dealt", owner_id, thorns_dmg, false)
+				emit_signal("combat_log_updated", ">> Spikes! P" + str(owner_id) + " took " + str(thorns_dmg) + " Thorns damage!")
 				
-		ClassType.QUICK:
-			if card_type == ActionData.Type.OFFENCE: max_hp += 1
-			elif card_type == ActionData.Type.DEFENCE: max_sp += 2
-			
-		ClassType.TECHNICAL:
-			if card_type == ActionData.Type.OFFENCE: 
-				max_hp += 1
-				max_sp += 1
-			elif card_type == ActionData.Type.DEFENCE: max_sp += 1
-			
-	# Heal to full on level up? Optional, but usually good.
-	current_hp = max_hp
-	current_sp = max_sp
-	print("Level Up! New Stats - HP: " + str(max_hp) + " | SP: " + str(max_sp))
+				# Check if attacker died from Thorns
+				if character.current_hp <= 0:
+					result["fatal"] = true
+					return result
+					
+		elif total_damage > 0:
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
+			emit_signal("damage_dealt", target_id, 0, true)
 
-# --- DECK HELPERS ---
-func has_card_in_deck(card_name: String) -> bool:
-	for c in deck:
-		if c.display_name == card_name: return true
-	return false
+		# --- 7. RETALIATE (REFLECT DAMAGE) ---
+		if total_damage > 0 and enemy_card.retaliate:
+			var raw_recoil = total_damage
+			# Notice the attacker's equipment block modifier applies to incoming reflect damage!
+			var self_block = my_card.block_value + my_card.dodge_value + attacker_block_mod 
+			var net_recoil = max(0, raw_recoil - self_block)
+			
+			if net_recoil > 0:
+				character.current_hp -= net_recoil
+				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
+				
+				# Check if attacker died from Retaliate
+				if character.current_hp <= 0:
+					result["fatal"] = true
+					return result
+			else:
+				emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
 
-func remove_card_from_deck(card_name: String):
-	for i in range(deck.size()):
-		if deck[i].display_name == card_name:
-			deck.remove_at(i)
+		# --- 8. FATALITY CHECK ---
+		if target.current_hp <= 0:
+			result["fatal"] = true
+			return result
+			
+	RunManager.check_danger_state()		
+	return result
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+func _calculate_projected_momentum(player_id: int, card: ActionData, is_active: bool) -> int:
+	if not is_active: return 0
+	var opp_val = _get_opportunity_value(player_id)
+	var single_gain = card.momentum_gain + opp_val
+	var total_gain = single_gain * max(1, card.repeat_count)
+	return total_gain
+
+func _get_opportunity_value(player_id: int) -> int:
+	return p1_opportunity_stat if player_id == 1 else p2_opportunity_stat
+
+func _pay_cost(player_id: int, card: ActionData) -> bool:
+	var character = p1_data if player_id == 1 else p2_data
+	var is_free = (p1_locked_card != null if player_id == 1 else p2_locked_card != null)
+	var rage_is_on = (p1_rage_active if player_id == 1 else p2_rage_active)
+	
+	var raw_cost = card.cost
+	var opp_val = _get_opportunity_value(player_id)
+	var effective_single_cost = max(0, raw_cost - opp_val)
+	var total_reps = max(1, card.repeat_count)
+	var total_cost = effective_single_cost * total_reps
+	
+	if is_free: total_cost = 0
+	
+	if rage_is_on and character.can_pay_with_hp:
+		if character.current_hp > total_cost:
+			character.current_hp -= total_cost
+			emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
+			emit_signal("damage_dealt", player_id, total_cost, false)
+			return true
+		else:
+			emit_signal("combat_log_updated", ">> RAGE failed! Not enough HP.")
+			return false
+	
+	if character.current_sp >= total_cost:
+		character.current_sp -= total_cost
+		return true
+	else:
+		if character.can_pay_with_hp:
+			if (character.current_sp + character.current_hp) > total_cost:
+				var sp_avail = character.current_sp
+				var hp_cost = total_cost - sp_avail
+				character.current_sp = 0
+				character.current_hp -= hp_cost
+				emit_signal("combat_log_updated", ">> Rage! P" + str(player_id) + " pays " + str(hp_cost) + " HP for action.")
+				emit_signal("damage_dealt", player_id, hp_cost, false)
+				return true
+		
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
+		return false
+
+# Change arguments from '_p1_started_injured' to 'p1_started_injured' (remove underscores)
+func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
+	# We iterate through players to apply End-of-Turn effects
+	for id in [1, 2]:
+		var player = p1_data if id == 1 else p2_data
+		var started_injured = p1_started_injured if id == 1 else p2_started_injured
+		
+		# Check every status this player has
+		for s_name in player.statuses.keys():
+			match s_name:
+				"Injured":
+					if started_injured:
+						player.current_hp -= 1
+						emit_signal("combat_log_updated", ">> P" + str(id) + " suffers Injury damage!")
+						emit_signal("damage_dealt", id, 1, false)
+				"Poison":
+					# EXAMPLE: Future proofing!
+					var stacks = player.statuses["Poison"]
+					player.current_hp -= stacks
+					emit_signal("combat_log_updated", ">> P" + str(id) + " takes Poison dmg!")
+					# Decay poison?
+					# player.statuses["Poison"] -= 1
+					
+		if player.current_hp <= 0:
+			_handle_death(winner_id)
 			return
+
+func _handle_death(winner_id):
+	var game_winner = 0
+	if p1_data.current_hp > 0: game_winner = 1
+	elif p2_data.current_hp > 0: game_winner = 2
+	else: game_winner = winner_id 
+	
+	# --- NEW: HEAL ON WIN (EQUIPMENT) ---
+	if game_winner == 1 and RunManager.player_run_data:
+		var heal_amt = 0
+		for eq in RunManager.player_run_data.equipment:
+			heal_amt += eq.heal_on_win
+		
+		if heal_amt > 0:
+			# Apply healing, making sure not to exceed Max HP
+			p1_data.current_hp = min(p1_data.current_hp + heal_amt, p1_data.max_hp)
+			
+			emit_signal("combat_log_updated", ">> Victory Sustain! Recovered " + str(heal_amt) + " HP.")
+			print("Victory Heal: +%d HP" % heal_amt)
+	# ------------------------------------
+	
+	emit_signal("game_over", game_winner)
+	
+	# REMOVED: reset_combat() 
+	# We want the stats to stay at 0 so the player can see the final board state.
+
+func _check_reversal_state():
+	var active_attacker = get_attacker()
+	
+	if attacker_override != 0:
+		current_combo_attacker = attacker_override 
+		if attacker_override == 1: p2_must_opener = true
+		else: p1_must_opener = true
+		return
+
+	if active_attacker != 0:
+		var att_data = p1_data if active_attacker == 1 else p2_data
+		if att_data.current_sp <= 0:
+			emit_signal("combat_log_updated", ">> Attacker Out of SP. Combo Ends.")
+			current_combo_attacker = 0 
+		else:
+			current_combo_attacker = active_attacker
+	else:
+		current_combo_attacker = 0
+
+func _handle_locks(winner_id):
+	p1_locked_card = null; p2_locked_card = null
+	var winner_card = p1_action_queue if winner_id == 1 else p2_action_queue
+	var loser_card_obj = p2_action_queue if winner_id == 1 else p1_action_queue 
+	if winner_card.multi_limit > 0:
+		emit_signal("combat_log_updated", "Multi Triggered! Loser Locked.")
+		if winner_id == 1: p2_locked_card = loser_card_obj
+		else: p1_locked_card = loser_card_obj
+
+func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bool, p2_parry_win: bool):
+	var next_p1_limit = 99; var next_p2_limit = 99
+	var next_p1_opening = 0; var next_p2_opening = 0
+	p1_must_opener = false; p2_must_opener = false
+	
+	if p1_res["opening"] > 0:
+		next_p2_limit = min(next_p2_limit, p1_res["opening"]) 
+		next_p1_opening = p1_res["opening"] 
+	if p2_res["opening"] > 0:
+		next_p1_limit = min(next_p1_limit, p2_res["opening"])
+		next_p2_opening = p2_res["opening"]
+	
+	if p1_card.multi_limit > 0: next_p1_limit = min(next_p1_limit, p1_card.multi_limit)
+	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
+		
+	if p1_parry_win:
+		p2_must_opener = true
+		emit_signal("combat_log_updated", ">> P2 is unbalanced! Must use Opener next turn.")
+	if p2_parry_win:
+		p1_must_opener = true
+		emit_signal("combat_log_updated", ">> P1 is unbalanced! Must use Opener next turn.")
+
+	p1_cost_limit = next_p1_limit
+	p2_cost_limit = next_p2_limit
+	p1_opening_stat = next_p1_opening
+	p2_opening_stat = next_p2_opening
+
+	p1_opportunity_stat = p1_res["opportunity"]
+	p2_opportunity_stat = p2_res["opportunity"]
+	
+	if p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity.")
+	if p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity.")
+
+func swap_priority():
+	priority_player = 3 - priority_player
+
+func get_player(id: int) -> CharacterData:
+	return p1_data if id == 1 else p2_data
+
+func get_opponent(id: int) -> CharacterData:
+	return p2_data if id == 1 else p1_data
+
+func is_p1_attacker() -> bool:
+	if attacker_override == 1: return true
+	if attacker_override == 2: return false
+	if momentum == 0: return true
+	return momentum <= MOMENTUM_P1_MAX
+
+func clamp_momentum(val: int) -> int:
+	return clampi(val, 1, TOTAL_MOMENTUM_SLOTS)
+
+func get_advantage_momentum(player_id: int) -> int:
+	if player_id == 1:
+		return max(1, MOMENTUM_P1_MAX - 1)
+	else:
+		return min(TOTAL_MOMENTUM_SLOTS, MOMENTUM_P2_START + 1)
+
+func get_wall_momentum(player_id: int) -> int:
+	if player_id == 1: return 1
+	else: return TOTAL_MOMENTUM_SLOTS
+
+func apply_environment_rules(env_type: String):
+	current_environment_name = env_type
+	match env_type:
+		"Ring": TOTAL_MOMENTUM_SLOTS = 6
+		"Dojo": TOTAL_MOMENTUM_SLOTS = 8
+		"Street": TOTAL_MOMENTUM_SLOTS = 10
+		_: TOTAL_MOMENTUM_SLOTS = 8 
+			
+	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
+	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
+	
+	print(">>> ENVIRONMENT SET: " + env_type + " (Momentum: " + str(TOTAL_MOMENTUM_SLOTS) + ")")
+
+func _handle_patient_passive(player_id: int, card: ActionData):
+	var character = p1_data if player_id == 1 else p2_data
+	if not character.has_bide_mechanic: return
+	var consumed_buff = false
+	
+	if character.patient_buff_active:
+		card.damage += 1
+		character.patient_buff_active = false 
+		consumed_buff = true
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " BIDE Unleashed! (+1 Dmg)")
+		
+	var total_fb = card.fall_back_value
+	if total_fb > 0 and not consumed_buff:
+		character.patient_buff_active = true
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Bides their time... (Next Action Buffed)")
+
+func get_struggle_action(force_type: ActionData.Type) -> ActionData:
+	var action = ActionData.new()
+	action.display_name = "Struggle"
+	action.is_struggle = true
+	action.description = "Offence, Defence, Recover 1, Fall Back 2"
+	action.type = force_type
+	action.cost = 0
+	
+	# Stats: Recover 1, Fall Back 1
+	# Note: Defence actions naturally get +1 Recover in the rules, 
+	# so Struggle (Def) will actually recover 2 SP, which makes sense (catching breath).
+	action.recover_value = 1 
+	action.fall_back_value = 2
+	
+	return action
+
+func apply_status(target_id: int, status_name: String, value: int = 1):
+	var target = p1_data if target_id == 1 else p2_data
+	
+	# Logic: If already exists, you might want to stack it or refresh it.
+	# For "Injured", it's just a binary state (1), so overwriting is fine.
+	target.statuses[status_name] = value
+	
+	emit_signal("status_applied", target_id, status_name)
+	emit_signal("combat_log_updated", ">> P" + str(target_id) + " gained status: " + status_name)
+
+func has_status(target_id: int, status_name: String) -> bool:
+	var target = p1_data if target_id == 1 else p2_data
+	return target.statuses.has(status_name)
+
+func remove_status(target_id: int, status_name: String):
+	var target = p1_data if target_id == 1 else p2_data
+	if target.statuses.has(status_name):
+		target.statuses.erase(status_name)
+		emit_signal("status_applied", target_id, "CURED") # Generic cure msg
+
+func _load_backgrounds():
+	var path = "res://Art/Background/"
+	var dir = DirAccess.open(path)
+	
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		
+		while file_name != "":
+			# Skip hidden files and imports
+			if !dir.current_is_dir() and !file_name.ends_with(".import"):
+				# Support PNG and JPG
+				if file_name.ends_with(".png") or file_name.ends_with(".jpg"):
+					
+					# Key = "Dojo" (stripped of .png)
+					var key = file_name.get_basename()
+					
+					# Load the image and store it
+					environment_backgrounds[key] = load(path + file_name)
+					print(">> Loaded Environment Art: " + key)
+			
+			file_name = dir.get_next()
+	else:
+		print("ERROR: Could not find 'res://Art/Background/' folder.")
+
+# --- NEW: DYNAMIC MUSIC LOGIC ---
+# Inside GameManager.gd
+
+# Inside GameManager.gd -> _update_dynamic_music()
+
+func _update_dynamic_music():
+	if p1_data.max_hp <= 0: return
+	
+	var hp_percent = float(p1_data.current_hp) / float(p1_data.max_hp)
+	
+	if hp_percent <= 0.33:
+		# --- LAST STAND MODE ---
+		# 1. Audio: Drop intensity to Layer 2
+		AudioManager.set_music_intensity(0.5, 1.5) 
+		
+		# 2. Visual: Increase Vignette (Tunnel Vision)
+		if GlobalCinematics.has_method("set_danger_vignette"):
+			GlobalCinematics.set_danger_vignette(true)
+			
+	else:
+		# --- NORMAL MODE ---
+		# 1. Audio: Full Intensity
+		AudioManager.set_music_intensity(1.0, 2.0)
+		
+		# 2. Visual: Reset Vignette
+		if GlobalCinematics.has_method("set_danger_vignette"):
+			GlobalCinematics.set_danger_vignette(false)
 

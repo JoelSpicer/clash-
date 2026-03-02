@@ -32,7 +32,11 @@ func _ready():
 		sp_ghost.value = sp_bar.value
 
 func setup(character: CharacterData):
-	name_label.text = character.character_name
+	# 1. Fetch the Class Name as a readable string
+	var class_string = ClassFactory.class_enum_to_string(character.class_type)
+	
+	# 2. Append it to the name label
+	name_label.text = character.character_name + " (" + class_string + ")"
 	
 	hp_bar.max_value = character.max_hp
 	hp_bar.value = character.current_hp
