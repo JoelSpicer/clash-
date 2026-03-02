@@ -2,1082 +2,1185 @@
 
 
 ============================================================
-FILE: .\Scripts\Resources\GameManager.gd
+FILE: .\Scenes\BattleUI.tscn
 ============================================================
-extends Node
+[gd_scene format=3 uid="uid://dhwx6yjjskbn7"]
+
+[ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scripts/BattleUI.gd" id="1_d8qwt"]
+[ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
+[ext_resource type="Texture2D" uid="uid://brp5uytsj2uxh" path="res://Art/Background/1.png" id="2_sbkf8"]
+[ext_resource type="PackedScene" uid="uid://yeraw55rlx1q" path="res://Scenes/PlayerHUD.tscn" id="3_vxmu1"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="4_6eyfp"]
+[ext_resource type="PackedScene" uid="uid://bu7kfrk2ayfm6" path="res://Scenes/CombatLog.tscn" id="4_f6fb8"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6eyfp"]
+content_margin_left = 25.0
+content_margin_top = 20.0
+content_margin_right = 25.0
+content_margin_bottom = 20.0
+bg_color = Color(0.06666667, 0.06666667, 0.06666667, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.26666668, 0.26666668, 0.26666668, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_size = 10
+shadow_offset = Vector2(4, 4)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_6eyfp"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[node name="BattleUI" type="CanvasLayer" unique_id=356558085]
+script = ExtResource("1_d8qwt")
+
+[node name="Background" type="TextureRect" parent="." unique_id=241149758]
+show_behind_parent = true
+z_index = -200
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_sbkf8")
+expand_mode = 1
+
+[node name="ClashLayer" type="Control" parent="." unique_id=1577141681]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ClashIcon" type="Label" parent="ClashLayer" unique_id=1589396229]
+layout_mode = 0
+offset_left = 554.0
+offset_top = 286.0
+offset_right = 594.0
+offset_bottom = 309.0
+text = "VS"
+
+[node name="LeftCard" parent="ClashLayer" unique_id=1871729934 instance=ExtResource("1_gl3jw")]
+z_index = 300
+layout_mode = 1
+
+[node name="RightCard" parent="ClashLayer" unique_id=723946398 instance=ExtResource("1_gl3jw")]
+z_index = 300
+layout_mode = 1
+
+[node name="MainLayout" type="Control" parent="." unique_id=462573134]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 15.0
+offset_right = 8.0
+offset_bottom = 15.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PreviewAnchor" type="Control" parent="MainLayout" unique_id=399922894]
+anchors_preset = 0
+offset_left = 509.0
+offset_top = 219.0
+offset_right = 549.0
+offset_bottom = 259.0
+
+[node name="PreviewCard" parent="MainLayout/PreviewAnchor" unique_id=408799389 instance=ExtResource("1_gl3jw")]
+unique_name_in_owner = true
+z_index = 1
+layout_mode = 1
+offset_left = 349.0
+offset_top = -70.0
+offset_right = 559.0
+offset_bottom = 240.0
+
+[node name="ToolTipLabel" type="RichTextLabel" parent="MainLayout/PreviewAnchor" unique_id=1974356343]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 0
+offset_right = 300.0
+offset_bottom = 40.0
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_outline_size = 3
+theme_override_constants/shadow_offset_x = 2
+theme_override_constants/shadow_offset_y = 2
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/normal_font_size = 15
+theme_override_font_sizes/bold_font_size = 15
+bbcode_enabled = true
+text = "testing"
+fit_content = true
+
+[node name="BottomBar" type="Panel" parent="MainLayout" unique_id=2064661816]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -165.0
+offset_right = -8.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ContentSplit" type="HBoxContainer" parent="MainLayout/BottomBar" unique_id=214545184]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 5
+
+[node name="VSeparator" type="VSeparator" parent="MainLayout/BottomBar/ContentSplit" unique_id=726109551]
+layout_mode = 2
+
+[node name="TabButtons" type="VBoxContainer" parent="MainLayout/BottomBar/ContentSplit" unique_id=129264920]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Offence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons" unique_id=1252430173]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Offence"
+script = ExtResource("4_6eyfp")
+
+[node name="Defence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons" unique_id=2021467659]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Defence"
+script = ExtResource("4_6eyfp")
+
+[node name="MarginContainer" type="MarginContainer" parent="MainLayout/BottomBar/ContentSplit" unique_id=911205804]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainLayout/BottomBar/ContentSplit/MarginContainer" unique_id=668411547]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonGrid" type="GridContainer" parent="MainLayout/BottomBar/ContentSplit/MarginContainer/ScrollContainer" unique_id=69683943]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 7
+
+[node name="MomentumSlider" type="HSlider" parent="." unique_id=1893970328]
+offset_left = 414.0
+offset_top = 9.0
+offset_right = 663.0
+offset_bottom = 25.0
+max_value = 8.0
+editable = false
+
+[node name="Label" type="Label" parent="MomentumSlider" unique_id=709846243]
+layout_mode = 0
+offset_left = 92.0
+offset_top = 20.0
+offset_right = 132.0
+offset_bottom = 43.0
+
+[node name="Label2" type="Label" parent="MomentumSlider" unique_id=924501552]
+layout_mode = 0
+offset_left = 89.0
+offset_top = 37.0
+offset_right = 129.0
+offset_bottom = 60.0
+text = "TEST"
+
+[node name="P1_HUD" parent="." unique_id=2037083698 instance=ExtResource("3_vxmu1")]
+
+[node name="P2_HUD" parent="." unique_id=1426370563 instance=ExtResource("3_vxmu1")]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
+offset_right = 0.0
+grow_horizontal = 0
+
+[node name="CombatLog" parent="." unique_id=1264011144 instance=ExtResource("4_f6fb8")]
+offset_left = 12.0
+offset_top = 232.0
+offset_right = 312.0
+offset_bottom = 432.0
+
+[node name="LogToggle" type="CheckButton" parent="." unique_id=477266312]
+offset_left = 12.0
+offset_top = 201.0
+offset_right = 134.0
+offset_bottom = 238.0
+focus_mode = 0
+text = "Show Log"
+
+[node name="MenuButton" type="Button" parent="." unique_id=2121817063]
+offset_left = 1086.0
+offset_top = 599.0
+offset_right = 1138.0
+offset_bottom = 636.0
+text = "?"
+script = ExtResource("4_6eyfp")
+
+[node name="EnvButton" type="Button" parent="." unique_id=1268670440]
+offset_left = 337.0
+offset_top = 3.0
+offset_right = 402.0
+offset_bottom = 36.0
+theme_override_font_sizes/font_size = 12
+text = "ENV: Dojo"
+script = ExtResource("4_6eyfp")
+
+[node name="EnvPopup" type="PanelContainer" parent="." unique_id=974018881]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -35.0
+offset_right = 25.0
+offset_bottom = 35.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="VBoxContainer" type="VBoxContainer" parent="EnvPopup" unique_id=641808400]
+layout_mode = 2
+
+[node name="EnvTitle" type="Label" parent="EnvPopup/VBoxContainer" unique_id=345411818]
+layout_mode = 2
+text = "Dojo"
+
+[node name="HSeparator" type="HSeparator" parent="EnvPopup/VBoxContainer" unique_id=1640873590]
+layout_mode = 2
+
+[node name="EnvDetails" type="RichTextLabel" parent="EnvPopup/VBoxContainer" unique_id=520589283]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="CloseEnvButton" type="Button" parent="EnvPopup/VBoxContainer" unique_id=1659386676]
+layout_mode = 2
+text = "Close"
+script = ExtResource("4_6eyfp")
+
+[node name="EquipmentGrid" type="HBoxContainer" parent="." unique_id=1911301329]
+offset_left = 32.0
+offset_top = 128.0
+offset_right = 72.0
+offset_bottom = 168.0
+theme_override_constants/separation = 10
+
+[node name="InspectButton" type="Button" parent="." unique_id=810640903]
+offset_left = 976.0
+offset_top = 148.0
+offset_right = 1141.0
+offset_bottom = 179.0
+text = "INSPECT OPPONENT"
+script = ExtResource("4_6eyfp")
+
+[node name="InspectPopup" type="Panel" parent="." unique_id=303135880]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(400, 300)
+theme_override_styles/panel = SubResource("StyleBoxFlat_6eyfp")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="InspectPopup" unique_id=1456864686]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_6eyfp")
+
+[node name="InspectGrid" type="GridContainer" parent="InspectPopup/ScrollContainer" unique_id=254637399]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 4
+
+[node name="P1_Bark" type="Label" parent="." unique_id=1974256669]
+modulate = Color(1, 1, 1, 0)
+offset_left = 276.0
+offset_top = 434.0
+offset_right = 501.0
+offset_bottom = 470.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+
+[node name="P2_Bark" type="Label" parent="." unique_id=364228376]
+modulate = Color(1, 1, 1, 0)
+offset_left = 724.0
+offset_top = 440.0
+offset_right = 949.0
+offset_bottom = 476.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+
+[connection signal="pressed" from="MenuButton" to="." method="_on_menu_pressed"]
+
+
+============================================================
+FILE: .\Scripts\BattleUI.gd
+============================================================
+extends CanvasLayer
 
 #region vars
-const KEYWORD_DEFS = {
-	"Block": "Reduce incoming damage by X",
-	"Cost": "lose X stamina",
-	"Counter": "You must have used an action with Create Opening X or higher in the previous clash",
-	"Create Opening": "Your opponent’s next action cannot have a Cost trait higher than X",
-	"Damage": "Reduce your opponent’s health by X",
-	"Defence": "Can only be used on the defensive. This action gains the Recover 1 trait.",
-	"Feint": "In addition to the action’s listed traits, it gains all the traits of another action that you can use. That action can be chosen after actions are revealed",
-	"Dodge": "You ignore the effects of your opponent’s action if its total stamina cost is X or below",
-	"Fall Back": "Lose X momentum",
-	"Guard Break": "Ignore the ‘Block X’ trait of your opponent’s action",
-	"Heal": "Gain X HP",
-	"Injure": "Your opponent must lose 1 HP every clash after this until you use an action with the Recover X, Heal X or Fall Back X traits, or the combat ends",
-	"Momentum": "Gain X momentum",
-	"Multi": "After this action, you may use any other action that has a Cost trait of X or below, and that does not have the multi X trait. This action interacts with your opponent’s previous action. If your opponent’s action would end your combo, you do not get to use this trait. In addition, moves with this trait can be used to start a combo",
-	"Offence": "Can only be used on the offensive. If you are reduced to 0SP, your combo ends",
-	"Opener": "Only actions with this trait can be used to start a combo",
-	"Opportunity": "Increase your next actions momentum by X, and reduce its stamina cost by X",
-	"Parry": "Your action steals the Momentum X trait of your opponent’s action. If this causes the momentum tracker to move in your direction, your opponent’s action has no affect on you, and your opponent’s next action must have the Opener trait",
-	"Recover": "Gain X stamina",
-	"Repeat": "After this action, use the same action again, ignoring the Repeat X trait. This must continue X times. This action interacts with your opponent’s chosen action as normal",
-	"Retaliate": "Your opponent takes the same damage as they dealt to you in the previous clash",
-	"Reversal": "If the momentum tracker moves closer to your side from this clash, the current combo ends and you take the offence, even if you do not have the momentum advantage. This applies even in the inital clash",
-	"Super": "This action can only be used when the momentum tracker has reached the end of your side. You can only use an action with this trait once per combat",
-	"Sweep": "This action affects all opponents you are in combat with",
-	"Tiring": "Cause the opponent to lose X Stamina"
-}
+signal human_selected_card(action_card, extra_data)
+signal p1_mode_toggled(is_human)
+signal p2_mode_toggled(is_human)
 
-# --- SIGNALS ---
-signal state_changed(new_state)
-signal clash_resolved(winner_id, log_text)
-signal combat_log_updated(text)
-signal game_over(winner_id)
-signal damage_dealt(target_id: int, amount: int, is_blocked: bool)
-signal healing_received(target_id: int, amount: int)
-signal status_applied(target_id: int, status_name: String)
-signal request_clash_animation(p1_card, p2_card)
-signal clash_animation_finished
-signal wall_crush_occurred(player_id, damage_amount)
+# --- REFERENCES ---
+@onready var p1_hud = $P1_HUD 
+@onready var p2_hud = $P2_HUD
+@onready var momentum_slider = $MomentumSlider
+@onready var momentum_label = $MomentumSlider/Label 
+@onready var combat_log = $CombatLog
 
+@onready var button_grid = %ButtonGrid
+@onready var preview_card = %PreviewCard
+@onready var tooltip_label = $MainLayout/PreviewAnchor/ToolTipLabel
+@onready var btn_offence = %Offence        
+@onready var btn_defence = %Defence      
+@onready var equipment_grid = $EquipmentGrid
 
-# --- CONFIGURATION ---
-var TOTAL_MOMENTUM_SLOTS: int = 8 
-var current_environment_name: String = "Dojo"
-var environment_backgrounds: Dictionary = {}
-# --- DYNAMIC CALCULATIONS ---
-var MOMENTUM_P1_MAX: int = 4
-var MOMENTUM_P2_START: int = 5
+@onready var log_toggle = $LogToggle 
 
-# --- STATE MACHINE ---
-enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
-var current_state = State.SETUP
-var temp_p1_class_selection: int = 0
-var temp_p2_class_selection: int = 0 
-var editing_player_index: int = 1    
-var p2_is_custom: bool = false       
-enum Difficulty { VERY_EASY, EASY, MEDIUM, HARD }
-var ai_difficulty: Difficulty = Difficulty.MEDIUM 
-var attacker_override: int = 0 
+@onready var clash_layer = $ClashLayer
+@onready var left_card_display = $ClashLayer/LeftCard
+@onready var right_card_display = $ClashLayer/RightCard
+@onready var background = $Background
 
-# --- PERSISTENT GAME SETUP ---
-var next_match_p1_data: CharacterData
-var next_match_p2_data: CharacterData
+@onready var env_button = $EnvButton
+@onready var env_popup = $EnvPopup
+@onready var env_title = $EnvPopup/VBoxContainer/EnvTitle
+@onready var env_details = $EnvPopup/VBoxContainer/EnvDetails
+@onready var close_env_button = $EnvPopup/VBoxContainer/CloseEnvButton
+@onready var inspect_btn = $InspectButton
+@onready var inspect_popup = $InspectPopup
+@onready var inspect_grid = $InspectPopup/ScrollContainer/InspectGrid
 
-# --- CORE DATA ---
-var p1_data: CharacterData
-var p2_data: CharacterData
-var priority_player: int = 1 
-var momentum: int = 0 
-var current_combo_attacker: int = 0
+@onready var p1_bark_label = $P1_Bark # Adjust path
+@onready var p2_bark_label = $P2_Bark
 
-# --- TURN CONSTRAINTS ---
-var p1_cost_limit: int = 99; var p2_cost_limit: int = 99
-var p1_opening_stat: int = 0; var p2_opening_stat: int = 0
-var p1_opportunity_stat: int = 0; var p2_opportunity_stat: int = 0
-var p1_must_opener: bool = false; var p2_must_opener: bool = false
+var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
 
-## --- STATUS EFFECTS ---
-#var p1_is_injured: bool = false
-#var p2_is_injured: bool = false
+# --- DATA ---
+var card_button_scene = preload("res://Scenes/CardButton.tscn")
+var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
+var compendium_scene = preload("res://Scenes/compendium.tscn")
+var current_deck: Array[ActionData] = []
+var current_tab = ActionData.Type.OFFENCE
 
-# --- TURN STATE ---
-var p1_action_queue: ActionData
-var p2_action_queue: ActionData
-var p1_locked_card: ActionData = null
-var p2_locked_card: ActionData = null
+var _prev_p1_stats = { "hp": 0, "sp": 0 }
+var _prev_p2_stats = { "hp": 0, "sp": 0 }
 
-# --- FEINT HELPERS ---
-var p1_pending_feint: bool = false
-var p2_pending_feint: bool = false
+# State Constraints
+var current_sp_limit: int = 0 
+var current_hp_limit: int = 0
+var my_opportunity_val: int = 0
+var my_opening_value: int = 0
+var turn_cost_limit: int = 99 
+var opener_restriction: bool = false
+var super_allowed: bool = false 
+var feint_mode: bool = false 
 
-# --- PASSIVES ---
-var p1_rage_active: bool = false
-var p2_rage_active: bool = false
-var p1_keep_up_active: bool = false
-var p2_keep_up_active: bool = false
+var skip_action: ActionData
+var is_locked = false
+var finisher_triggered: bool = false # PREVENTS DOUBLE TRIGGERS
 
-var temp_p1_name: String = ""
-var temp_p2_name: String = ""
-var temp_p1_preset: Resource = null
-var temp_p2_preset: Resource = null
+# Toggle Buttons
+var p1_toggle: CheckButton
+var p2_toggle: CheckButton
+
+# --- VISUALS (Passives & Juice) ---
+var rage_toggle: CheckButton
+var keep_up_toggle: CheckButton
+var tech_dropdown: OptionButton
+
+# DYNAMIC CAMERA VARIABLES
+var shake_strength: float = 0.0
+var shake_decay: float = 5.0
+var zoom_strength: float = 0.0 
+var zoom_decay: float = 5.0    
+var camera: Camera2D
 #endregion
 
-# ==============================================================================
-# INITIALIZATION
-# ==============================================================================
-
 func _ready():
+	process_mode = Node.PROCESS_MODE_ALWAYS 
 	
-	_load_backgrounds()
+	# --- FIX: FORCE RESET AT START OF FIGHT ---
+	# This ensures we don't inherit "Black & White" from the previous match
+	if GlobalCinematics:
+		GlobalCinematics.reset_visuals()
+	# ------------------------------------------
 	
-	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
-	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
+	# --- NEW: HARDWARE CAMERA SETUP ---
+	camera = Camera2D.new()
+	# Center the camera perfectly based on screen size
+	camera.position = get_viewport().get_visible_rect().size / 2.0
+	add_child(camera)
 	
-	print("--- GAME MANAGER READY ---")
-	print("Momentum Config: Total=", TOTAL_MOMENTUM_SLOTS, " | P1_Max=", MOMENTUM_P1_MAX, " | P2_Start=", MOMENTUM_P2_START)
+	# This magical checkbox tells Godot to apply the Camera's zoom and shake
+	# directly to the CanvasLayer using hardware acceleration!
+	self.follow_viewport_enabled = true
+	# ----------------------------------
 	
-	priority_player = 1
-	momentum = 0
-
-func start_combat(p1: CharacterData, p2: CharacterData):
-	p1_data = p1
-	p2_data = p2
-	reset_combat()
-
-func reset_combat():
-	# --- 1. RESET STATS ---
-	# Check if P1 should maintain HP (for runs/tournaments)
-	var p1_maintain = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
-	p1_data.reset_stats(p1_maintain) 
-	
-	# P2 (The Enemy) always resets to full
-	p2_data.reset_stats(false)
-	
-	# --- 2. INJECT EVENT STATUSES ---
-	if RunManager.is_arcade_mode:
-		for s in RunManager.next_fight_statuses:
-			p1_data.statuses[s] = 1
-		RunManager.next_fight_statuses.clear() # Clear so it doesn't happen next fight
-	
-	# --- 3. RESET COMBAT VARIABLES ---
-	momentum = 0 
-	current_combo_attacker = 0
-	p1_locked_card = null; p2_locked_card = null
-	
-	p1_cost_limit = 99; p2_cost_limit = 99
-	p1_opening_stat = 0; p2_opening_stat = 0
-	p1_opportunity_stat = 0; p2_opportunity_stat = 0
-	p1_must_opener = false; p2_must_opener = false
-	p1_pending_feint = false; p2_pending_feint = false
-	
-	p1_rage_active = false; p2_rage_active = false
-	p1_keep_up_active = false; p2_keep_up_active = false
-	
-	# --- 4. APPLY PLAYER EQUIPMENT BONUSES ---
-	var total_momentum_bonus = 0
-	var p1_speed_bonus = 0
-	
-	if RunManager.player_run_data:
-		for equip in RunManager.player_run_data.equipment:
-			
-			# A. SP Bonus
-			p1_data.current_sp += equip.starting_sp_bonus
-			
-			# B. Barrier (Temporary HP)
-			if equip.starting_barrier > 0:
-				p1_data.current_hp += equip.starting_barrier
-				print("Equipment Barrier Applied: +%d HP" % equip.starting_barrier)
-
-			# C. Collect Momentum Bonus
-			total_momentum_bonus += equip.starting_momentum
-			
-			# D. Collect Speed Bonus
-			p1_speed_bonus += equip.speed_bonus
-
-	# --- 5. APPLY MOMENTUM STARTING POSITION ---
-	# If we have a bonus, we skip the "0" (Neutral) state and start on our side.
-	# MOMENTUM_P1_MAX is the "front line". Subscripting moves it closer to the enemy wall (1).
-	if total_momentum_bonus > 0:
-		momentum = MOMENTUM_P1_MAX - (total_momentum_bonus - 1)
-		# Clamp so we don't accidentally glitch past the wall (1)
-		momentum = clampi(momentum, 1, MOMENTUM_P1_MAX)
-		print(">> Head Start! Momentum set to: " + str(momentum))
-		
-	# --- 6. APPLY ENEMY EQUIPMENT BONUSES ---
-	for item in p2_data.equipment:
-		p2_data.current_sp += item.starting_sp_bonus
-	
-	# --- 7. APPLY GYM BUFFS ---
-	if RunManager.active_gym_buff != "":
-		print("Applying Gym Buff: " + RunManager.active_gym_buff)
-		
-		if RunManager.active_gym_buff == "iron_stance":
-			# Simulate a 'Start with 10 Block' by adding 10 Temporary HP.
-			p1_data.current_hp += 10
-			print(">> Iron Stance: +10 Temp HP")
-			
-		elif RunManager.active_gym_buff == "exploit_weakness":
-			# Reduce enemy starting HP by 20%
-			var damage = max(1, roundi(p2_data.max_hp * 0.2))
-			p2_data.current_hp -= damage
-			print(">> Exploit Weakness: Enemy took " + str(damage) + " dmg")
-			
-		# IMPORTANT: Clear the buff so it doesn't apply to the NEXT fight too
-		RunManager.active_gym_buff = ""
-	
-	# --- 8. CALCULATE PRIORITY (SPEED TIES) ---
-	var p1_final_speed = p1_data.speed + p1_speed_bonus
-	var p2_final_speed = p2_data.speed
-	
-	if p1_final_speed > p2_final_speed: 
-		priority_player = 1
-	elif p2_final_speed > p1_final_speed: 
-		priority_player = 2
-	else: 
-		priority_player = randi_range(1, 2)
-		
-	print("\n>>> COMBAT RESET! Starting from Initial Clash (Neutral) <<<")
-	# --- NEW: FADE TO BATTLE INTENSITY (Layer 2) ---
-	if AudioManager:
-		AudioManager.set_music_intensity(1.0, 2.0)
-	# -----------------------------------------------
-	change_state(State.SELECTION)
-
-func get_attacker() -> int:
-	if current_combo_attacker != 0: return current_combo_attacker
-	if attacker_override != 0: return attacker_override
-	if momentum == 0: return 0 
-	return 1 if momentum <= MOMENTUM_P1_MAX else 2
-
-# ==============================================================================
-# STATE MACHINE
-# ==============================================================================
-
-func change_state(new_state: State):
-	current_state = new_state
-	emit_signal("state_changed", current_state)
-	
-	match current_state:
-		State.SELECTION:
-			if p1_locked_card: player_select_action(1, p1_locked_card)
-			if p2_locked_card: player_select_action(2, p2_locked_card)
-		State.REVEAL:
-			_enter_reveal_phase()
-		State.FEINT_CHECK:
-			pass 
-		State.RESOLUTION:
-			resolve_clash()
-
-func player_select_action(player_id: int, action: ActionData, extra_data: Dictionary = {}):
-	# 1. Process the Action based on Technique
-	var final_action = action
-	var tech_idx = extra_data.get("technique", 0)
-	
-	# Only modify if a technique was actually selected AND action is not null (Skip)
-	if action != null and tech_idx > 0:
-		final_action = action.duplicate() 
-		final_action.cost += 1 
-		
-		match tech_idx:
-			1: # Opener
-				if final_action.type == ActionData.Type.OFFENCE:
-					final_action.is_opener = true
-					final_action.display_name += "+" 
-			2: # Tiring
-				final_action.tiring += 1
-				final_action.display_name += "+"
-			3: # Momentum
-				final_action.momentum_gain += 1
-				final_action.display_name += "+"
-	
-	# 2. Standard Logic
-	if player_id == 1:
-		p1_action_queue = final_action
-		p1_rage_active = extra_data.get("rage", false)
-		p1_keep_up_active = extra_data.get("keep_up", false)
-	else:
-		p2_action_queue = final_action
-		p2_rage_active = extra_data.get("rage", false)
-		p2_keep_up_active = extra_data.get("keep_up", false)
-		
-	if current_state == State.SELECTION:
-		if p1_action_queue and p2_action_queue:
-			change_state(State.REVEAL)
-	elif current_state == State.FEINT_CHECK:
-		_handle_feint_selection(player_id, final_action)
-
-# ==============================================================================
-# FEINT MECHANICS
-# ==============================================================================
-
-func _enter_reveal_phase():
-	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
-	emit_signal("request_clash_animation", p1_action_queue, p2_action_queue)
-	await self.clash_animation_finished
-	
-	p1_pending_feint = p1_action_queue.feint
-	p2_pending_feint = p2_action_queue.feint
-
-	if p1_pending_feint or p2_pending_feint:
-		change_state(State.FEINT_CHECK)
-	else:
-		change_state(State.RESOLUTION)
-
-func _handle_feint_selection(player_id: int, secondary_action: ActionData):
-	if secondary_action == null:
-		emit_signal("combat_log_updated", "P" + str(player_id) + " skips Feint combination.")
-		_clear_feint_flag(player_id)
-		_check_feint_completion()
-		return
-
-	var base_card = p1_action_queue if player_id == 1 else p2_action_queue
-	var character = p1_data if player_id == 1 else p2_data
-	
-	var total_cost = base_card.cost + secondary_action.cost
-	var opp_val = _get_opportunity_value(player_id)
-	var effective_total = max(0, total_cost - opp_val)
-	
-	var combined_card = _combine_actions(base_card, secondary_action)
-	var total_reps = max(1, combined_card.repeat_count)
-	var total_required = effective_total * total_reps
-	
-	var can_afford = false
-	if character.current_sp >= total_required:
-		can_afford = true
-	elif character.class_type == CharacterData.ClassType.HEAVY and (character.current_sp + character.current_hp) > total_required:
-		can_afford = true 
-		
-	if can_afford:
-		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined_card.display_name)
-		if player_id == 1: p1_action_queue = combined_card
-		else: p2_action_queue = combined_card
-	else:
-		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint. Action applies normally.")
-	
-	_clear_feint_flag(player_id)
-	_check_feint_completion()
-
-func _clear_feint_flag(player_id):
-	if player_id == 1: p1_pending_feint = false
-	else: p2_pending_feint = false
-
-func _check_feint_completion():
-	if not p1_pending_feint and not p2_pending_feint:
-		change_state(State.RESOLUTION)
-
-func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
-	var new_card = base.duplicate()
-	new_card.display_name = base.display_name + " + " + sec.display_name
-	
-	new_card.cost += sec.cost
-	new_card.damage += sec.damage
-	new_card.block_value += sec.block_value
-	new_card.dodge_value += sec.dodge_value
-	new_card.momentum_gain += sec.momentum_gain
-	new_card.heal_value += sec.heal_value
-	new_card.recover_value += sec.recover_value
-	new_card.fall_back_value += sec.fall_back_value
-	new_card.tiring += sec.tiring
-	new_card.create_opening += sec.create_opening
-	new_card.multi_limit += sec.multi_limit
-	new_card.opportunity += sec.opportunity
-	
-	new_card.counter_value = max(new_card.counter_value, sec.counter_value) 
-	new_card.repeat_count = max(new_card.repeat_count, sec.repeat_count)
-	
-	if sec.guard_break: new_card.guard_break = true
-	if sec.retaliate: new_card.retaliate = true
-	if sec.is_parry: new_card.is_parry = true
-	if sec.is_super: new_card.is_super = true
-	if sec.is_opener: new_card.is_opener = true
-	
-# --- OLD CODE (Caused Error) ---
-	# var combined_statuses = []
-	# combined_statuses.append_array(base.statuses_to_apply)
-	# for s in sec.statuses_to_apply:
-	# 	combined_statuses.append(s.duplicate(true)) 
-	# new_card.statuses_to_apply = combined_statuses
-	
-	# --- NEW FIXED CODE ---
-	# 1. Clear whatever statuses the base card had (we will rebuild it)
-	new_card.statuses_to_apply.clear()
-	
-	# 2. Add Base Statuses
-	for s in base.statuses_to_apply:
-		new_card.statuses_to_apply.append(s.duplicate(true))
-		
-	# 3. Add Secondary Statuses
-	for s in sec.statuses_to_apply:
-		new_card.statuses_to_apply.append(s.duplicate(true))
-	
-	new_card.feint = false 
-	return new_card
-
-# ==============================================================================
-# RESOLUTION LOGIC
-# ==============================================================================
-
-func resolve_clash():
-	attacker_override = 0
-	
-	# Duplicate to ensure we don't modify the original resource
-	p1_action_queue = p1_action_queue.duplicate()
-	p2_action_queue = p2_action_queue.duplicate()
-	
-	_handle_patient_passive(1, p1_action_queue)
-	_handle_patient_passive(2, p2_action_queue)
-	
-	var winner_id = 0
-	
-	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
-	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
-	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
-	elif p2_action_queue.cost < p1_action_queue.cost: winner_id = 2
-	else:
-		emit_signal("combat_log_updated", "Tie! Priority Token Used.")
-		winner_id = priority_player
-		swap_priority()
-
-	emit_signal("clash_resolved", winner_id, p1_action_queue, p2_action_queue, "Clash Winner: P" + str(winner_id))
-	
-	var is_initial_clash = (momentum == 0)
-	
-	# --- SMART COMBO RESET ---
-	# If P1 wins with Offence...
-	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE:
-		# Check if they were ALREADY comboing. If not (e.g., previous turn was neutral or 0 SP break), start at 1.
-		if current_combo_attacker != 1: p1_data.combo_action_count = 1
-		else: p1_data.combo_action_count += 1
-	else:
-		p1_data.combo_action_count = 0
-
-	# Same for P2
-	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE:
-		if current_combo_attacker != 2: p2_data.combo_action_count = 1
-		else: p2_data.combo_action_count += 1
-	else:
-		p2_data.combo_action_count = 0
-	# ------------------------------
-	
-	# --- PHASE 0: PAY COSTS ---
-	var p1_started_injured = has_status(1, "Injured")
-	var p2_started_injured = has_status(2, "Injured")
-	
-	var p1_active = _pay_cost(1, p1_action_queue)
-	var p2_active = _pay_cost(2, p2_action_queue)
-
-	if p1_active and p1_action_queue.is_super:
-		p1_data.has_used_super = true
-		emit_signal("combat_log_updated", ">> P1 unleashes their Ultimate Art!")
-	if p2_active and p2_action_queue.is_super:
-		p2_data.has_used_super = true
-		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
-
-	# --- PHASE 1: SELF EFFECTS ---
-	if p1_active: _apply_phase_1_self_effects(1, p1_action_queue)
-	if p2_active: _apply_phase_1_self_effects(2, p2_action_queue)
-
-	# --- MOMENTUM CALCULATION ---
-	
-	# A. Dodge Checks
-	var p1_is_dodged = false; var p2_is_dodged = false
-	var p1_total_cost = p1_action_queue.cost * max(1, p1_action_queue.repeat_count)
-	var p2_total_cost = p2_action_queue.cost * max(1, p2_action_queue.repeat_count)
-	
-	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_total_cost: p1_is_dodged = true
-	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_total_cost: p2_is_dodged = true
-	
-	# B. Push/Pull Base Values
-	var p1_parries = (p1_active and p1_action_queue.is_parry)
-	var p2_parries = (p2_active and p2_action_queue.is_parry)
-	
-	var p1_single_gain = p1_action_queue.momentum_gain + _get_opportunity_value(1)
-	var p2_single_gain = p2_action_queue.momentum_gain + _get_opportunity_value(2)
-	
-	var p1_total_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
-	var p2_total_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
-	
-	var p1_stolen = p2_single_gain if p1_parries else 0
-	var p2_stolen = p1_single_gain if p2_parries else 0
-	
-	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
-	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
-	
-	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
-	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
-	
-	# --- STRICT PARRY SUCCESS CHECK ---
-	# Parry only triggers if (My Gain + Stolen Gain) is strictly greater than My Fall Back.
-	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
-	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
-	
-	var p1_parry_success = (p1_parries and p1_net_gain > 0)
-	var p2_parry_success = (p2_parries and p2_net_gain > 0)
-	# ---------------------------------------	
-	
-	# --- WALL CRUSH CHECK ---
-	if p1_fb > 0 and momentum >= TOTAL_MOMENTUM_SLOTS:
-		_apply_wall_crush(1, p1_fb)
-		p1_fb = 0 
-		
-	if p2_fb > 0 and momentum <= 1:
-		_apply_wall_crush(2, p2_fb)
-		p2_fb = 0 
-	# ------------------------------
-	
-
-
-	# Calculate the final combined movement for the UI tracker
-	var p1_contribution = p1_total_gain
-	if p2_parries: p1_contribution -= p1_single_gain
-	if p1_is_dodged: p1_contribution = 0
-	
-	var p2_contribution = p2_total_gain
-	if p1_parries: p2_contribution -= p2_single_gain
-	if p2_is_dodged: p2_contribution = 0
-	
-	var p1_final_push = p1_contribution + p1_stolen
-	var p2_final_push = p2_contribution + p2_stolen
-	
-	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
-	
-	# --- PHASE 2: COMBAT EFFECTS ---
-	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
-	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
-	
-	var p2_immune_or_dodged = p2_parry_success or p1_is_dodged
-	var p1_immune_or_dodged = p1_parry_success or p2_is_dodged
-	
-	if p1_active: p1_results = _apply_phase_2_combat_effects(1, 2, p1_action_queue, p2_action_queue, p2_immune_or_dodged)
-	if p2_active: p2_results = _apply_phase_2_combat_effects(2, 1, p2_action_queue, p1_action_queue, p1_immune_or_dodged)
-	
-	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue, p1_parry_success, p2_parry_success)
-	
-	if p1_results["fatal"] or p2_results["fatal"]:
-		_handle_death(winner_id)
-		return 
-	
-	# --- PHASE 3: APPLY MOMENTUM & REVERSAL ---
-	var p1_reversed = (p1_active and p1_action_queue.reversal and delta < 0)
-	var p2_reversed = (p2_active and p2_action_queue.reversal and delta > 0)
-
-	if is_initial_clash:
-		momentum = MOMENTUM_P1_MAX if winner_id == 1 else MOMENTUM_P2_START
-		print("DEBUG: Initial Clash Winner: P", winner_id, " | Set Mom: ", momentum)
-		
-		if p1_reversed:
-			attacker_override = 1
-			emit_signal("combat_log_updated", ">> P1 Reverses! Seizing Offence.")
-		elif p2_reversed:
-			attacker_override = 2
-			emit_signal("combat_log_updated", ">> P2 Reverses! Seizing Offence.")
-			
-	else:
-		momentum = clamp_momentum(momentum + delta)
-		
-		if p1_reversed:
-			attacker_override = 1
-			emit_signal("combat_log_updated", ">> P1 REVERSAL SUCCESSFUL!")
-		elif p2_reversed:
-			attacker_override = 2
-			emit_signal("combat_log_updated", ">> P2 REVERSAL SUCCESSFUL!")
-
-	# --- CLEANUP ---
-	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
-	_check_reversal_state() 
-	_handle_locks(winner_id)
-	
-	# --- NEW: UPDATE MUSIC INTENSITY ---
-	_update_dynamic_music()
-	# -----------------------------------
-
-	p1_action_queue = null
-	p2_action_queue = null
-	
-	if p1_data.current_hp <= 0 or p2_data.current_hp <= 0:
-		_handle_death(winner_id)
+	if not btn_offence or not btn_defence:
+		printerr("CRITICAL: Buttons missing in BattleUI")
 		return
 	
-	
-	change_state(State.POST_CLASH)
-	change_state(State.SELECTION)
+	# --- NEW: GENERATE SHADER FOR BACKGROUND ---
+	# This allows us to desaturate the BG without needing a file
+	var shader = Shader.new()
+	shader.code = """
+	shader_type canvas_item;
+	uniform float saturation : hint_range(0.0, 1.0) = 1.0;
+	void fragment() {
+		vec4 tex_color = texture(TEXTURE, UV);
+		float grey = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
+		vec3 final_color = mix(vec3(grey), tex_color.rgb, saturation);
+		COLOR = vec4(final_color, tex_color.a);
+	}
+	"""
+	var mat = ShaderMaterial.new()
+	mat.shader = shader
+	if background:
+		background.material = mat
+	# -------------------------------------------
 
-# ==============================================================================
-# PHASE IMPLEMENTATIONS
-# ==============================================================================
+	GameManager.wall_crush_occurred.connect(_on_wall_crush_ui)
+	
+	momentum_slider.max_value = GameManager.TOTAL_MOMENTUM_SLOTS
+	momentum_slider.min_value = 1
+	
+	GameManager.combat_log_updated.emit("Location: " + GameManager.current_environment_name + " (" + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots)")
+	
+	if clash_layer: clash_layer.visible = false
+	
+	log_toggle.button_pressed = false
+	combat_log.visible = false
+	
+	if log_toggle:
+		log_toggle.toggled.connect(_on_log_toggled)
+		combat_log.visible = log_toggle.button_pressed
+	
+	btn_offence.pressed.connect(func(): _switch_tab(ActionData.Type.OFFENCE))
+	btn_defence.pressed.connect(func(): _switch_tab(ActionData.Type.DEFENCE))
+	
+	skip_action = ActionData.new()
+	skip_action.display_name = "SKIP FEINT"
+	skip_action.description = "Stop combining and use your original action."
+	skip_action.cost = 0
+	
+	button_grid.visible = false
+	preview_card.visible = false
+	if tooltip_label: tooltip_label.visible = false
+	
+	GameManager.damage_dealt.connect(_on_damage_dealt)
+	GameManager.healing_received.connect(_on_healing_received)
+	GameManager.status_applied.connect(_on_status_applied)	
+	GameManager.combat_log_updated.connect(_on_combat_log_updated)
+	GameManager.clash_resolved.connect(_on_clash_resolved_log)
+	
+	if not GameManager.state_changed.is_connected(_on_game_state_changed):
+		GameManager.state_changed.connect(_on_game_state_changed)
+	
+	await get_tree().process_frame
+	_snapshot_stats()
+	
+	_create_debug_toggles()
+	_create_passive_toggles()
+	setup_toggles()
+	
 
-func _apply_wall_crush(player_id: int, amount: int):
-	var character = p1_data if player_id == 1 else p2_data
-	
-	# --- NEW: CHECK IF ATTACKER HAS SPIKED CLEATS ---
-	var attacker_data = p2_data if player_id == 1 else p1_data
-	var final_amount = amount
-	for item in attacker_data.equipment:
-		final_amount += item.wall_crush_damage_bonus
-	# ------------------------------------------------
-	
-	# --- NEW: EMIT SIGNAL ---
-	emit_signal("wall_crush_occurred", player_id, final_amount)
-	# ------------------------
-	
-	emit_signal("combat_log_updated", ">> P" + str(player_id) + " CRUSHED against the wall!")
-	
-	if character.current_sp >= final_amount:
-		character.current_sp -= final_amount
-		emit_signal("combat_log_updated", "   Lost " + str(final_amount) + " SP to hold ground.")
-	else:
-		var sp_paid = character.current_sp
-		var hp_damage = final_amount - sp_paid
-		
-		character.current_sp = 0
-		character.current_hp -= hp_damage
-		
-		emit_signal("combat_log_updated", "   Lost " + str(sp_paid) + " SP and took " + str(hp_damage) + " HP DAMAGE!")
-		emit_signal("damage_dealt", player_id, hp_damage, false)
+	$MomentumSlider/Label2.text = str(GameManager.momentum)
 
-func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
-	var character = p1_data if owner_id == 1 else p2_data
-	var total_hits = max(1, my_card.repeat_count)
+	if env_button and env_popup:
+		env_button.pressed.connect(_on_env_button_pressed)
+		close_env_button.pressed.connect(func(): env_popup.visible = false)
+		env_details.bbcode_enabled = true
+		env_details.fit_content = true
+		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
 	
-	if character.combo_sp_recovery_rate > 0:
-		if character.combo_action_count > 0 and (character.combo_action_count % character.combo_sp_recovery_rate == 0):
-			character.current_sp = min(character.current_sp + 1, character.max_sp)
-			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
+	if inspect_btn:
+		inspect_btn.pressed.connect(_on_inspect_pressed)
 	
-	for i in range(total_hits):
-		var actual_recover = my_card.recover_value
-		if my_card.type == ActionData.Type.DEFENCE: actual_recover += 1
-		
-		if actual_recover > 0: 
-			character.current_sp = min(character.current_sp + actual_recover, character.max_sp)
+	_update_background()
+	
+# --- DYNAMIC CAMERA PROCESS ---
+# --- DYNAMIC CAMERA PROCESS ---
+func _process(delta):
+	# 1. Decay Values
+	var is_frozen = (finisher_triggered and get_tree().paused)
+	
+	if not is_frozen:
+		if shake_strength > 0:
+			shake_strength = lerpf(shake_strength, 0, shake_decay * delta)
+			if shake_strength < 0.1: shake_strength = 0
 			
-		if my_card.heal_value > 0: 
-			character.current_hp = min(character.current_hp + my_card.heal_value, character.max_hp)
-			emit_signal("healing_received", owner_id, my_card.heal_value)
+		if zoom_strength > 0:
+			zoom_strength = lerpf(zoom_strength, 0, zoom_decay * delta)
+			if zoom_strength < 0.001: zoom_strength = 0
 
-		if my_card.heal_value > 0 or my_card.fall_back_value > 0:
-			if has_status(owner_id, "Injured"):
-				remove_status(owner_id, "Injured")
-				emit_signal("combat_log_updated", ">> P" + str(owner_id) + " cures Injury!")
-
-func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool) -> Dictionary:
-	var character = p1_data if owner_id == 1 else p2_data
-	var target = p2_data if owner_id == 1 else p1_data
-	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
-	
-	if target_is_immune:
-		emit_signal("combat_log_updated", "P" + str(owner_id) + " attack NULLIFIED (Dodge/Parry)!")
-		emit_signal("status_applied", owner_id, "MISS")
-		emit_signal("status_applied", target_id, "DODGED")
-		return result
-
-	# --- 1. CALCULATE EQUIPMENT PASSIVES ---
-	var dmg_mod = 0
-	var attacker_block_mod = 0 # In case they get hit by Thorns/Retaliate
-	
-	var defender_block_mod = 0
-	var thorns_dmg = 0
-	
-	# Attacker's bonuses
-	for eq in character.equipment:
-		dmg_mod += eq.damage_modifier
-		attacker_block_mod += eq.block_modifier
+	# 2. Apply to Camera2D directly (Highly Efficient)
+	if camera:
+		# Base zoom is 1.0. We zoom IN by increasing the numbers.
+		var current_zoom = 1.0 + zoom_strength
+		camera.zoom = Vector2(current_zoom, current_zoom)
 		
-	# Defender's bonuses
-	for eq in target.equipment:
-		defender_block_mod += eq.block_modifier
-		thorns_dmg += eq.thorns
-	# -----------------------------------------
-
-	var total_hits = max(1, my_card.repeat_count)
-	for i in range(total_hits):
-		
-		# --- 2. APPLY OFFENSIVE / DEFENSIVE MODIFIERS ---
-		var total_damage = max(0, my_card.damage + dmg_mod)
-		var enemy_block = enemy_card.block_value + defender_block_mod
-		
-		if my_card.guard_break: 
-			enemy_block = 0
-			
-		var net_damage = max(0, total_damage - enemy_block)
-		
-		# --- 3. TIRING (SP DRAIN) ---
-		if my_card.tiring > 0:
-			if target.tiring_drains_hp and target.current_sp < my_card.tiring:
-				var drain_amount = my_card.tiring
-				var sp_avail = target.current_sp
-				var hp_cost = drain_amount - sp_avail
-				target.current_sp = 0
-				target.current_hp -= hp_cost
-				emit_signal("combat_log_updated", ">> Rage! P" + str(target_id) + " takes " + str(hp_cost) + " HP dmg instead of SP.")
-				emit_signal("damage_dealt", target_id, hp_cost, false)
-			else:
-				target.current_sp = max(0, target.current_sp - my_card.tiring)
-				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
-		
-		# --- 4. STATUSES ---
-		for effect in my_card.statuses_to_apply:
-			var s_name = effect.get("name", "Unknown")
-			var s_val = effect.get("amount", 1)
-			var is_self = effect.get("self", false)
-			var dest_id = owner_id if is_self else target_id
-			
-			if not has_status(dest_id, s_name):
-				apply_status(dest_id, s_name, s_val)
-
-		# --- 5. OPENINGS / OPPORTUNITY ---
-		if my_card.create_opening > 0:
-			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
-			result["opening"] = my_card.create_opening
-		
-		if my_card.opportunity > 0:
-			result["opportunity"] = my_card.opportunity
-
-		# --- 6. APPLY DAMAGE AND THORNS ---
-		if net_damage > 0:
-			target.current_hp -= net_damage
-			emit_signal("damage_dealt", target_id, net_damage, false)
-			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
-			
-			# Trigger Thorns if the attack connects
-			if thorns_dmg > 0:
-				character.current_hp -= thorns_dmg
-				emit_signal("damage_dealt", owner_id, thorns_dmg, false)
-				emit_signal("combat_log_updated", ">> Spikes! P" + str(owner_id) + " took " + str(thorns_dmg) + " Thorns damage!")
-				
-				# Check if attacker died from Thorns
-				if character.current_hp <= 0:
-					result["fatal"] = true
-					return result
-					
-		elif total_damage > 0:
-			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
-			emit_signal("damage_dealt", target_id, 0, true)
-
-		# --- 7. RETALIATE (REFLECT DAMAGE) ---
-		if total_damage > 0 and enemy_card.retaliate:
-			var raw_recoil = total_damage
-			# Notice the attacker's equipment block modifier applies to incoming reflect damage!
-			var self_block = my_card.block_value + my_card.dodge_value + attacker_block_mod 
-			var net_recoil = max(0, raw_recoil - self_block)
-			
-			if net_recoil > 0:
-				character.current_hp -= net_recoil
-				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
-				
-				# Check if attacker died from Retaliate
-				if character.current_hp <= 0:
-					result["fatal"] = true
-					return result
-			else:
-				emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
-
-		# --- 8. FATALITY CHECK ---
-		if target.current_hp <= 0:
-			result["fatal"] = true
-			return result
-			
-	RunManager.check_danger_state()		
-	return result
-
-# ==============================================================================
-# HELPER FUNCTIONS
-# ==============================================================================
-
-func _calculate_projected_momentum(player_id: int, card: ActionData, is_active: bool) -> int:
-	if not is_active: return 0
-	var opp_val = _get_opportunity_value(player_id)
-	var single_gain = card.momentum_gain + opp_val
-	var total_gain = single_gain * max(1, card.repeat_count)
-	return total_gain
-
-func _get_opportunity_value(player_id: int) -> int:
-	return p1_opportunity_stat if player_id == 1 else p2_opportunity_stat
-
-func _pay_cost(player_id: int, card: ActionData) -> bool:
-	var character = p1_data if player_id == 1 else p2_data
-	var is_free = (p1_locked_card != null if player_id == 1 else p2_locked_card != null)
-	var rage_is_on = (p1_rage_active if player_id == 1 else p2_rage_active)
-	
-	var raw_cost = card.cost
-	var opp_val = _get_opportunity_value(player_id)
-	var effective_single_cost = max(0, raw_cost - opp_val)
-	var total_reps = max(1, card.repeat_count)
-	var total_cost = effective_single_cost * total_reps
-	
-	if is_free: total_cost = 0
-	
-	if rage_is_on and character.can_pay_with_hp:
-		if character.current_hp > total_cost:
-			character.current_hp -= total_cost
-			emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
-			emit_signal("damage_dealt", player_id, total_cost, false)
-			return true
+		# Shake Offset
+		if shake_strength > 0:
+			camera.offset = Vector2(
+				randf_range(-shake_strength, shake_strength),
+				randf_range(-shake_strength, shake_strength)
+			)
 		else:
-			emit_signal("combat_log_updated", ">> RAGE failed! Not enough HP.")
-			return false
+			camera.offset = Vector2.ZERO
+
+func apply_camera_impact(zoom_amount: float, shake_amount: float):
+	zoom_strength = max(zoom_strength, zoom_amount)
+	shake_strength = max(shake_strength, shake_amount)
+
+func _play_finisher_sequence():
+	if finisher_triggered: return
+	finisher_triggered = true
 	
-	if character.current_sp >= total_cost:
-		character.current_sp -= total_cost
-		return true
-	else:
-		if character.can_pay_with_hp:
-			if (character.current_sp + character.current_hp) > total_cost:
-				var sp_avail = character.current_sp
-				var hp_cost = total_cost - sp_avail
-				character.current_sp = 0
-				character.current_hp -= hp_cost
-				emit_signal("combat_log_updated", ">> Rage! P" + str(player_id) + " pays " + str(hp_cost) + " HP for action.")
-				emit_signal("damage_dealt", player_id, hp_cost, false)
-				return true
+	HitStopManager.stop_frame(1.5)
+	
+	# Visuals
+	zoom_strength = 0.45
+	shake_strength = 0.0 
+	
+	# --- CALL GLOBAL ---
+	GlobalCinematics.apply_finisher_effect()
+
+func _on_game_state_changed(new_state):
+	if new_state == GameManager.State.POST_CLASH:
+		_log_stat_changes()
+		finisher_triggered = false
 		
-		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
+		# --- CALL GLOBAL ---
+		GlobalCinematics.reset_visuals()
+
+func _create_passive_toggles():
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	container.position.y -= 200
+	container.position.x -= 570
+	rage_toggle = CheckButton.new()
+	rage_toggle.text = "RAGE (Pay HP)"
+	rage_toggle.visible = false
+	rage_toggle.toggled.connect(func(_on): _refresh_grid())
+	container.add_child(rage_toggle)
+	
+	keep_up_toggle = CheckButton.new()
+	keep_up_toggle.text = "KEEP UP (Pay SP)"
+	keep_up_toggle.visible = false
+	container.add_child(keep_up_toggle)
+	
+	tech_dropdown = OptionButton.new()
+	tech_dropdown.add_item("Tech: None")
+	tech_dropdown.add_item("+Opener (1 SP)")
+	tech_dropdown.add_item("+Tiring 1 (1 SP)")
+	tech_dropdown.add_item("+Momentum 1 (1 SP)")
+	tech_dropdown.selected = 0
+	tech_dropdown.visible = false
+	tech_dropdown.item_selected.connect(func(_idx): _refresh_grid())
+	container.add_child(tech_dropdown)
+	
+func setup_passive_toggles(character: CharacterData):
+	rage_toggle.visible = character.can_pay_with_hp
+	keep_up_toggle.visible = character.has_keep_up_toggle
+	tech_dropdown.visible = character.has_technique_dropdown
+	tech_dropdown.selected = 0 
+	rage_toggle.button_pressed = false
+	keep_up_toggle.button_pressed = false
+
+func _create_debug_toggles():
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	container.position.y += 60 
+	container.add_theme_constant_override("separation", 20)
+	container.visible = false
+	container.name = "DebugContainer" 
+	
+	var p1_is_human = true 
+	var p2_is_human = false
+	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		p2_is_human = true
+	
+	p1_toggle = CheckButton.new()
+	p1_toggle.text = "P1 Human"
+	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
+	p1_toggle.button_pressed = p1_is_human 
+	container.add_child(p1_toggle)
+	
+	p2_toggle = CheckButton.new()
+	p2_toggle.text = "P2 Human"
+	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
+	p2_toggle.button_pressed = p2_is_human
+	container.add_child(p2_toggle)
+
+func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
+	p1_hud.setup(p1_data)
+	p2_hud.setup(p2_data)
+	p1_hud.configure_visuals(false) 
+	p2_hud.configure_visuals(true)
+	update_momentum(0)
+	
+	_populate_equipment(p1_data)
+
+func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
+	p1_hud.update_stats(p1, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat, p1.patient_buff_active)
+	p2_hud.update_stats(p2, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat, p2.patient_buff_active)
+	
+	update_momentum(momentum)
+	$MomentumSlider/Label2.text = str(GameManager.momentum)
+
+func update_momentum(val: int):
+	var visual_val = val
+	var text = "NEUTRAL: " + GameManager.current_environment_name
+	if val == 0: 
+		visual_val = float(GameManager.TOTAL_MOMENTUM_SLOTS) / 2.0 + 0.5
+	elif val <= GameManager.MOMENTUM_P1_MAX: 
+		text = "P1 MOMENTUM"
+	else: 
+		text = "P2 MOMENTUM"
+		
+	var tween = create_tween()
+	tween.tween_property(momentum_slider, "value", visual_val, 0.4).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if momentum_label: momentum_label.text = text
+
+func load_deck(deck: Array[ActionData]):
+	current_deck = deck
+	_refresh_grid()
+
+func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
+	button_grid.visible = true 
+	is_locked = false
+	current_sp_limit = player_current_sp
+	current_hp_limit = player_current_hp
+	opener_restriction = must_be_opener
+	turn_cost_limit = max_cost 
+	my_opening_value = opening_val
+	super_allowed = can_use_super 
+	my_opportunity_val = opportunity_val 
+	feint_mode = is_feint_mode 
+	
+	if forced_tab != null:
+		_switch_tab(forced_tab)
+		btn_offence.disabled = (forced_tab != ActionData.Type.OFFENCE)
+		btn_defence.disabled = (forced_tab != ActionData.Type.DEFENCE)
+		btn_offence.modulate = Color.WHITE if !btn_offence.disabled else Color(0.3, 0.3, 0.3)
+		btn_defence.modulate = Color.WHITE if !btn_defence.disabled else Color(0.3, 0.3, 0.3)
+	else:
+		btn_offence.disabled = false
+		btn_defence.disabled = false
+		_switch_tab(current_tab)
+
+func lock_ui():
+	is_locked = true
+	button_grid.visible = false 
+	_on_card_exited() 
+
+func _on_card_selected(card: ActionData):
+	if is_locked: return
+	var extra_data = {
+		"rage": rage_toggle.button_pressed if rage_toggle.visible else false,
+		"keep_up": keep_up_toggle.button_pressed if keep_up_toggle.visible else false,
+		"technique": tech_dropdown.selected if tech_dropdown.visible else 0 
+	}
+	emit_signal("human_selected_card", card, extra_data)
+	lock_ui() 
+
+func _switch_tab(type):
+	current_tab = type
+	_refresh_grid()
+	if !btn_offence.disabled: btn_offence.modulate = Color.WHITE if type == ActionData.Type.OFFENCE else Color(0.6, 0.6, 0.6)
+	if !btn_defence.disabled: btn_defence.modulate = Color.WHITE if type == ActionData.Type.DEFENCE else Color(0.6, 0.6, 0.6)
+
+func _refresh_grid():
+	for child in button_grid.get_children():
+		child.queue_free()
+		
+	# 1. Standard Deck Cards
+	for card in current_deck:
+		if card == null: continue
+		if card.type != current_tab: continue 
+		
+		var final_cost = _calculate_card_cost(card)
+		var is_valid = _check_card_validity(card, final_cost)
+		
+		var btn = card_button_scene.instantiate()
+		button_grid.add_child(btn)
+		
+		btn.setup(card)
+		btn.update_cost_display(final_cost) 
+		btn.set_available(is_valid)          
+	
+		btn.card_hovered.connect(_on_card_hovered)
+		btn.card_exited.connect(_on_card_exited) 
+		btn.card_selected.connect(_on_card_selected)
+	
+	# 2. Tutorial Struggle Logic
+	var hide_struggle = false
+	if TutorialManager.is_tutorial_active:
+		var required_card_name = TutorialManager.get_current_data().get("player_card", "")
+		
+		# If the tutorial wants you to play Struggle, we only show it on the correct tab
+		if required_card_name == "Struggle":
+			# If the current tab (Offence/Defence) doesn't match the card's required type, hide it
+			# This prevents Struggle (Offence) from showing up on the Defence tab
+			pass 
+		else:
+			# If the tutorial wants any other specific card, hide Struggle everywhere
+			hide_struggle = true
+	
+	# 3. Struggle Button instantiation
+	if not feint_mode and not hide_struggle:
+		var struggle = GameManager.get_struggle_action(current_tab)
+		var s_btn = card_button_scene.instantiate()
+		button_grid.add_child(s_btn)
+		
+		s_btn.setup(struggle)
+		s_btn.update_cost_display(0)
+		s_btn.set_available(true)
+		s_btn.modulate = Color(0.9, 0.9, 0.9) 
+
+		s_btn.card_hovered.connect(_on_card_hovered)
+		s_btn.card_exited.connect(_on_card_exited)
+		s_btn.card_selected.connect(_on_card_selected)
+	
+	# 4. Skip Feint logic
+	if feint_mode:
+		skip_action.type = current_tab 
+		var skip_btn = card_button_scene.instantiate()
+		button_grid.add_child(skip_btn)
+		
+		skip_btn.setup(skip_action)
+		skip_btn.update_cost_display(0)
+		skip_btn.set_available(true)
+		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
+		
+		skip_btn.card_hovered.connect(_on_card_hovered)
+		skip_btn.card_exited.connect(_on_card_exited)
+		skip_btn.card_selected.connect(_on_card_selected)
+
+func _calculate_card_cost(card: ActionData) -> int:
+	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
+	var tech_cost = 1 if tech_idx > 0 else 0
+	var base_cost = card.cost + tech_cost
+	var effective_single_cost = max(0, base_cost - my_opportunity_val)
+	var total_reps = max(1, card.repeat_count)
+	return effective_single_cost * total_reps
+
+func _check_card_validity(card: ActionData, final_cost: int) -> bool:
+	var can_afford = false
+	if rage_toggle.visible and rage_toggle.button_pressed:
+		can_afford = (current_hp_limit > final_cost)
+	else:
+		can_afford = (final_cost <= current_sp_limit)
+	
+	if not can_afford: return false
+
+	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
+	if tech_idx == 1 and card.type == ActionData.Type.DEFENCE:
 		return false
 
-# Change arguments from '_p1_started_injured' to 'p1_started_injured' (remove underscores)
-func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
-	# We iterate through players to apply End-of-Turn effects
-	for id in [1, 2]:
-		var player = p1_data if id == 1 else p2_data
-		var started_injured = p1_started_injured if id == 1 else p2_started_injured
+	var effective_is_opener = card.is_opener
+	if tech_idx == 1 and card.type == ActionData.Type.OFFENCE:
+		effective_is_opener = true
 		
-		# Check every status this player has
-		for s_name in player.statuses.keys():
-			match s_name:
-				"Injured":
-					if started_injured:
-						player.current_hp -= 1
-						emit_signal("combat_log_updated", ">> P" + str(id) + " suffers Injury damage!")
-						emit_signal("damage_dealt", id, 1, false)
-				"Poison":
-					# EXAMPLE: Future proofing!
-					var stacks = player.statuses["Poison"]
-					player.current_hp -= stacks
-					emit_signal("combat_log_updated", ">> P" + str(id) + " takes Poison dmg!")
-					# Decay poison?
-					# player.statuses["Poison"] -= 1
-					
-		if player.current_hp <= 0:
-			_handle_death(winner_id)
-			return
+	if opener_restriction and card.type == ActionData.Type.OFFENCE and not effective_is_opener:
+		return false
 
-func _handle_death(winner_id):
-	var game_winner = 0
-	if p1_data.current_hp > 0: game_winner = 1
-	elif p2_data.current_hp > 0: game_winner = 2
-	else: game_winner = winner_id 
+	if card.cost > turn_cost_limit: return false
+	if card.counter_value > 0 and my_opening_value < card.counter_value: return false
+	if card.is_super and not super_allowed: return false
 	
-	# --- NEW: HEAL ON WIN (EQUIPMENT) ---
-	if game_winner == 1 and RunManager.player_run_data:
-		var heal_amt = 0
-		for eq in RunManager.player_run_data.equipment:
-			heal_amt += eq.heal_on_win
-		
-		if heal_amt > 0:
-			# Apply healing, making sure not to exceed Max HP
-			p1_data.current_hp = min(p1_data.current_hp + heal_amt, p1_data.max_hp)
-			
-			emit_signal("combat_log_updated", ">> Victory Sustain! Recovered " + str(heal_amt) + " HP.")
-			print("Victory Heal: +%d HP" % heal_amt)
-	# ------------------------------------
+	# --- NEW: TUTORIAL RAILROAD ---
+	if TutorialManager.is_tutorial_active:
+		var required_card = TutorialManager.get_current_data().get("player_card", "")
+		# If this card isn't the exact one the Sensei asked for, disable it!
+		if required_card != "" and card.display_name != required_card:
+			return false
+	# ------------------------------
 	
-	emit_signal("game_over", game_winner)
-	
-	# REMOVED: reset_combat() 
-	# We want the stats to stay at 0 so the player can see the final board state.
+	return true
 
-func _check_reversal_state():
-	var active_attacker = get_attacker()
+func _on_card_hovered(card: ActionData):
+	var effective_cost = max(0, card.cost - my_opportunity_val)
+	preview_card.set_card_data(card, effective_cost)
+	preview_card.visible = true
+	_update_tooltip_text(card)
+
+func _on_card_exited():
+	preview_card.visible = false
+	if tooltip_label: tooltip_label.visible = false
+
+func _update_tooltip_text(card: ActionData):
+	if not tooltip_label: return
 	
-	if attacker_override != 0:
-		current_combo_attacker = attacker_override 
-		if attacker_override == 1: p2_must_opener = true
-		else: p1_must_opener = true
+	var active_keys = []
+	if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")
+	if card.type == ActionData.Type.DEFENCE: active_keys.append("Defence")
+	if card.cost > 0: active_keys.append("Cost")
+	if card.damage > 0: active_keys.append("Damage")
+	if card.momentum_gain > 0: active_keys.append("Momentum")
+	if card.block_value > 0: active_keys.append("Block")
+	if card.dodge_value > 0: active_keys.append("Dodge")
+	if card.heal_value > 0: active_keys.append("Heal")
+	if card.recover_value > 0: active_keys.append("Recover")
+	if card.fall_back_value > 0: active_keys.append("Fall Back")
+	if card.counter_value > 0: active_keys.append("Counter")
+	if card.tiring > 0: active_keys.append("Tiring")
+	if card.is_opener: active_keys.append("Opener")
+	if card.is_super: active_keys.append("Super")
+	if card.guard_break: active_keys.append("Guard Break")
+	if card.feint: active_keys.append("Feint")
+	
+	for s in card.statuses_to_apply:
+		var s_name = s.get("name", "")
+		if s_name != "":
+			active_keys.append(s_name)
+
+	if card.retaliate: active_keys.append("Retaliate")
+	if card.reversal: active_keys.append("Reversal")
+	if card.is_parry: active_keys.append("Parry")
+	if card.sweep: active_keys.append("Sweep")
+	if card.multi_limit > 0: active_keys.append("Multi")
+	if card.repeat_count > 1: active_keys.append("Repeat")
+	if card.create_opening > 0: active_keys.append("Create Opening")
+	if card.opportunity > 0: active_keys.append("Opportunity")
+	
+	if active_keys.is_empty():
+		tooltip_label.visible = false
 		return
+		
+	var full_text = ""
+	for k in active_keys:
+		if k in GameManager.KEYWORD_DEFS:
+			full_text += "[b]" + k + ":[/b] " + GameManager.KEYWORD_DEFS[k] + "\n"
+			
+	tooltip_label.text = full_text
+	tooltip_label.visible = true
+	
+	tooltip_label.size.y = 0 
+	var padding = 20
+	var preview_bottom = preview_card.position.y + preview_card.size.y
+	tooltip_label.position.y = preview_bottom - tooltip_label.size.y - padding
+	tooltip_label.position.x = preview_card.position.x - tooltip_label.size.x - padding
 
-	if active_attacker != 0:
-		var att_data = p1_data if active_attacker == 1 else p2_data
-		if att_data.current_sp <= 0:
-			emit_signal("combat_log_updated", ">> Attacker Out of SP. Combo Ends.")
-			current_combo_attacker = 0 
+func _get_clash_text_pos(target_id: int) -> Vector2:
+	var hud = p1_hud if target_id == 1 else p2_hud
+	var pos = hud.global_position + (hud.size / 2)
+	var center_offset = 100 
+	pos.y += 75
+	if target_id == 1: pos.x += center_offset
+	else: pos.x -= center_offset
+	return pos
+
+func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	if is_blocked: 
+		_spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
+		AudioManager.play_sfx("block", 0.1)
+	else: 
+		_spawn_text(spawn_pos, str(amount), Color.RED)
+		if amount >= 5:
+			AudioManager.play_sfx("hit_heavy", 0.1)
+			apply_camera_impact(0.15, 20.0) 
 		else:
-			current_combo_attacker = active_attacker
-	else:
-		current_combo_attacker = 0
-
-func _handle_locks(winner_id):
-	p1_locked_card = null; p2_locked_card = null
-	var winner_card = p1_action_queue if winner_id == 1 else p2_action_queue
-	var loser_card_obj = p2_action_queue if winner_id == 1 else p1_action_queue 
-	if winner_card.multi_limit > 0:
-		emit_signal("combat_log_updated", "Multi Triggered! Loser Locked.")
-		if winner_id == 1: p2_locked_card = loser_card_obj
-		else: p1_locked_card = loser_card_obj
-
-func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bool, p2_parry_win: bool):
-	var next_p1_limit = 99; var next_p2_limit = 99
-	var next_p1_opening = 0; var next_p2_opening = 0
-	p1_must_opener = false; p2_must_opener = false
-	
-	if p1_res["opening"] > 0:
-		next_p2_limit = min(next_p2_limit, p1_res["opening"]) 
-		next_p1_opening = p1_res["opening"] 
-	if p2_res["opening"] > 0:
-		next_p1_limit = min(next_p1_limit, p2_res["opening"])
-		next_p2_opening = p2_res["opening"]
-	
-	if p1_card.multi_limit > 0: next_p1_limit = min(next_p1_limit, p1_card.multi_limit)
-	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
-		
-	if p1_parry_win:
-		p2_must_opener = true
-		emit_signal("combat_log_updated", ">> P2 is unbalanced! Must use Opener next turn.")
-	if p2_parry_win:
-		p1_must_opener = true
-		emit_signal("combat_log_updated", ">> P1 is unbalanced! Must use Opener next turn.")
-
-	p1_cost_limit = next_p1_limit
-	p2_cost_limit = next_p2_limit
-	p1_opening_stat = next_p1_opening
-	p2_opening_stat = next_p2_opening
-
-	p1_opportunity_stat = p1_res["opportunity"]
-	p2_opportunity_stat = p2_res["opportunity"]
-	
-	if p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity.")
-	if p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity.")
-
-func swap_priority():
-	priority_player = 3 - priority_player
-
-func get_player(id: int) -> CharacterData:
-	return p1_data if id == 1 else p2_data
-
-func get_opponent(id: int) -> CharacterData:
-	return p2_data if id == 1 else p1_data
-
-func is_p1_attacker() -> bool:
-	if attacker_override == 1: return true
-	if attacker_override == 2: return false
-	if momentum == 0: return true
-	return momentum <= MOMENTUM_P1_MAX
-
-func clamp_momentum(val: int) -> int:
-	return clampi(val, 1, TOTAL_MOMENTUM_SLOTS)
-
-func get_advantage_momentum(player_id: int) -> int:
-	if player_id == 1:
-		return max(1, MOMENTUM_P1_MAX - 1)
-	else:
-		return min(TOTAL_MOMENTUM_SLOTS, MOMENTUM_P2_START + 1)
-
-func get_wall_momentum(player_id: int) -> int:
-	if player_id == 1: return 1
-	else: return TOTAL_MOMENTUM_SLOTS
-
-func apply_environment_rules(env_type: String):
-	current_environment_name = env_type
-	match env_type:
-		"Ring": TOTAL_MOMENTUM_SLOTS = 6
-		"Dojo": TOTAL_MOMENTUM_SLOTS = 8
-		"Street": TOTAL_MOMENTUM_SLOTS = 10
-		_: TOTAL_MOMENTUM_SLOTS = 8 
+			AudioManager.play_sfx("hit_light", 0.2) 
+			apply_camera_impact(0.05, 5.0)  
 			
-	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
-	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
+		if target_id == 1: p1_hud.play_hit_animation()
+		else: p2_hud.play_hit_animation()
 	
-	print(">>> ENVIRONMENT SET: " + env_type + " (Momentum: " + str(TOTAL_MOMENTUM_SLOTS) + ")")
-
-func _handle_patient_passive(player_id: int, card: ActionData):
-	var character = p1_data if player_id == 1 else p2_data
-	if not character.has_bide_mechanic: return
-	var consumed_buff = false
-	
-	if character.patient_buff_active:
-		card.damage += 1
-		character.patient_buff_active = false 
-		consumed_buff = true
-		emit_signal("combat_log_updated", ">> P" + str(player_id) + " BIDE Unleashed! (+1 Dmg)")
+	# React to heavy hits (>3 damage)
+	if amount >= 3:
+		var victim = GameManager.p1_data if target_id == 1 else GameManager.p2_data
+		var line = DialogueManager.get_reaction(victim.class_type, "HURT_HEAVY")
+		# High priority: Show this even if we barked recently
+		_show_bark(target_id, line)
 		
-	var total_fb = card.fall_back_value
-	if total_fb > 0 and not consumed_buff:
-		character.patient_buff_active = true
-		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Bides their time... (Next Action Buffed)")
-
-func get_struggle_action(force_type: ActionData.Type) -> ActionData:
-	var action = ActionData.new()
-	action.display_name = "Struggle"
-	action.is_struggle = true
-	action.description = "Offence, Defence, Recover 1, Fall Back 2"
-	action.type = force_type
-	action.cost = 0
+	# React to Death?
+	# (Already covered by Low HP lines potentially, or add a specific check here)
 	
-	# Stats: Recover 1, Fall Back 1
-	# Note: Defence actions naturally get +1 Recover in the rules, 
-	# so Struggle (Def) will actually recover 2 SP, which makes sense (catching breath).
-	action.recover_value = 1 
-	action.fall_back_value = 2
+# --- NEW: CHECK FOR FINISHER ---
+	var victim_data = GameManager.p1_data if target_id == 1 else GameManager.p2_data
 	
-	return action
-
-func apply_status(target_id: int, status_name: String, value: int = 1):
-	var target = p1_data if target_id == 1 else p2_data
-	
-	# Logic: If already exists, you might want to stack it or refresh it.
-	# For "Injured", it's just a binary state (1), so overwriting is fine.
-	target.statuses[status_name] = value
-	
-	emit_signal("status_applied", target_id, status_name)
-	emit_signal("combat_log_updated", ">> P" + str(target_id) + " gained status: " + status_name)
-
-func has_status(target_id: int, status_name: String) -> bool:
-	var target = p1_data if target_id == 1 else p2_data
-	return target.statuses.has(status_name)
-
-func remove_status(target_id: int, status_name: String):
-	var target = p1_data if target_id == 1 else p2_data
-	if target.statuses.has(status_name):
-		target.statuses.erase(status_name)
-		emit_signal("status_applied", target_id, "CURED") # Generic cure msg
-
-func _load_backgrounds():
-	var path = "res://Art/Background/"
-	var dir = DirAccess.open(path)
-	
-	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
+	if victim_data.current_hp <= 0:
+		_play_finisher_sequence()
 		
-		while file_name != "":
-			# Skip hidden files and imports
-			if !dir.current_is_dir() and !file_name.ends_with(".import"):
-				# Support PNG and JPG
-				if file_name.ends_with(".png") or file_name.ends_with(".jpg"):
-					
-					# Key = "Dojo" (stripped of .png)
-					var key = file_name.get_basename()
-					
-					# Load the image and store it
-					environment_backgrounds[key] = load(path + file_name)
-					print(">> Loaded Environment Art: " + key)
+		# --- ADD THIS BLOCK ---
+		# 1. Wait for the freeze-frame/drama to finish (e.g. 2 seconds)
+		# We use create_timer because the game might be in HitStop
+		await get_tree().create_timer(2.0).timeout
+		
+		# 2. Fade the color back in smoothly
+		if GlobalCinematics:
+			GlobalCinematics.reset_visuals()
+	# --------------------------------
+
+func _on_healing_received(target_id: int, amount: int):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	_spawn_text(spawn_pos, "+" + str(amount), Color.GREEN)
+
+func _on_status_applied(target_id: int, status: String):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	spawn_pos.y -= 40 
+	_spawn_text(spawn_pos, status, Color.YELLOW)
+
+func _spawn_text(pos: Vector2, text: String, color: Color):
+	var popup = floating_text_scene.instantiate()
+	add_child(popup)
+	popup.setup(text, color, pos)
+
+func _on_combat_log_updated(text: String):
+	if combat_log: combat_log.add_log(text)
+
+func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
+	if combat_log:
+		combat_log.add_clash_log(winner_id, p1_card, p2_card)
+		
+	apply_camera_impact(0.02, 0.0) 
+		
+	if p1_card.type == ActionData.Type.OFFENCE:
+		p1_hud.play_attack_animation(Vector2(50, 0))
+	if p2_card.type == ActionData.Type.OFFENCE:
+		p2_hud.play_attack_animation(Vector2(-50, 0))
+		
+	AudioManager.play_sfx("clash", 0.1)
+	
+	# 25% chance to bark on win (don't spam every turn)
+	if randf() < 0.25:
+		var winner_data = GameManager.p1_data if winner_id == 1 else GameManager.p2_data
+		var winner_card = p1_card if winner_id == 1 else p2_card
+		
+		var context = "WIN_OFFENCE"
+		if winner_card.type == ActionData.Type.DEFENCE:
+			context = "WIN_DEFENCE"
 			
-			file_name = dir.get_next()
-	else:
-		print("ERROR: Could not find 'res://Art/Background/' folder.")
-
-# --- NEW: DYNAMIC MUSIC LOGIC ---
-# Inside GameManager.gd
-
-# Inside GameManager.gd -> _update_dynamic_music()
-
-func _update_dynamic_music():
-	if p1_data.max_hp <= 0: return
+		var line = DialogueManager.get_reaction(winner_data.class_type, context)
+		_show_bark(winner_id, line)
 	
-	var hp_percent = float(p1_data.current_hp) / float(p1_data.max_hp)
+func _on_log_toggled(toggled_on: bool):
+	combat_log.visible = toggled_on
+
+func play_clash_animation(p1_card: ActionData, p2_card: ActionData):
+	clash_layer.visible = true
+	left_card_display.set_card_data(p1_card)
+	right_card_display.set_card_data(p2_card)
 	
-	if hp_percent <= 0.33:
-		# --- LAST STAND MODE ---
-		# 1. Audio: Drop intensity to Layer 2
-		AudioManager.set_music_intensity(0.5, 1.5) 
-		
-		# 2. Visual: Increase Vignette (Tunnel Vision)
-		if GlobalCinematics.has_method("set_danger_vignette"):
-			GlobalCinematics.set_danger_vignette(true)
-			
+	var card_size = Vector2(250, 350) 
+	left_card_display.custom_minimum_size = card_size
+	left_card_display.size = card_size
+	right_card_display.custom_minimum_size = card_size
+	right_card_display.size = card_size
+	
+	left_card_display.pivot_offset = card_size / 2
+	right_card_display.pivot_offset = card_size / 2
+	left_card_display.scale = Vector2(1.0, 1.0)
+	right_card_display.scale = Vector2(1.0, 1.0)
+	
+	var center = get_viewport().get_visible_rect().size / 2
+	left_card_display.position.x = -400
+	right_card_display.position.x = get_viewport().get_visible_rect().size.x + 400
+	left_card_display.position.y = center.y - (card_size.y / 2)
+	right_card_display.position.y = center.y - (card_size.y / 2)
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_QUART)
+	tween.set_ease(Tween.EASE_OUT)
+	
+	tween.tween_property(left_card_display, "position:x", center.x - card_size.x - 40, 0.4)
+	tween.tween_property(right_card_display, "position:x", center.x + 20, 0.4)
+	
+	await tween.finished
+	HitStopManager.stop_frame(0.15) 
+	await get_tree().create_timer(1.2).timeout
+	
+	clash_layer.visible = false
+	GameManager.clash_animation_finished.emit()
+
+func _on_menu_pressed():
+	var compendium = compendium_scene.instantiate()
+	compendium.is_overlay = true
+	add_child(compendium)
+
+func setup_toggles(p1_override = null, p2_override = null):
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	container.position.y += 60 
+	container.add_theme_constant_override("separation", 20)
+	container.visible = false
+	container.name = "DebugContainer"
+	
+	var p1_is_human = true 
+	var p2_is_human = false
+	
+	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		p2_is_human = true
+	
+	if p1_override != null: p1_is_human = p1_override
+	if p2_override != null: p2_is_human = p2_override
+	
+	p1_toggle = CheckButton.new()
+	p1_toggle.text = "P1 Human"
+	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
+	p1_toggle.button_pressed = p1_is_human 
+	container.add_child(p1_toggle)
+	
+	p2_toggle = CheckButton.new()
+	p2_toggle.text = "P2 Human"
+	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
+	p2_toggle.button_pressed = p2_is_human
+	container.add_child(p2_toggle)
+
+func _log_stat_changes():
+	if not combat_log or not GameManager.p1_data or not GameManager.p2_data: return
+	
+	var p1_cur = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
+	var p2_cur = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
+	
+	if _prev_p1_stats.hp == 0 and _prev_p2_stats.hp == 0:
+		_snapshot_stats()
+		return
+	
+	var p1_diff = { "hp": p1_cur.hp - _prev_p1_stats.hp, "sp": p1_cur.sp - _prev_p1_stats.sp }
+	var p2_diff = { "hp": p2_cur.hp - _prev_p2_stats.hp, "sp": p2_cur.sp - _prev_p2_stats.sp }
+	
+	combat_log.add_round_summary(p1_diff, p2_diff, GameManager.momentum)
+	_snapshot_stats()
+
+func _snapshot_stats():
+	if GameManager.p1_data:
+		_prev_p1_stats = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
+	if GameManager.p2_data:
+		_prev_p2_stats = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
+
+func _on_wall_crush_ui(target_id: int, _dmg: int):
+	apply_camera_impact(0.05, 15.0) 
+	var original_x = momentum_slider.position.x
+	var tween = create_tween()
+	var shake_dir = -10 if target_id == 1 else 10
+	tween.tween_property(momentum_slider, "position:x", original_x + shake_dir, 0.05)
+	tween.tween_property(momentum_slider, "position:x", original_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+func _on_env_button_pressed():
+	env_popup.visible = not env_popup.visible
+	if env_popup.visible:
+		env_title.text = "ENVIRONMENT: " + GameManager.current_environment_name.to_upper()
+		var details = "[b]Momentum Tracker:[/b] " + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots\n"
+		env_details.text = details
+
+func _populate_equipment(p1_data: CharacterData):
+	if not equipment_grid: return
+	for child in equipment_grid.get_children():
+		child.queue_free()
+	for item in p1_data.equipment:
+		var icon = TextureRect.new()
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.custom_minimum_size = Vector2(40, 40)
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		if item.icon: icon.texture = item.icon
+		else: icon.texture = preload("res://icon.svg") 
+		var tip = item.display_name + "\n" + item.description + "\n"
+		tip += "-------------------\n"
+		if item.max_hp_bonus != 0: tip += "Max HP: " + ("+" if item.max_hp_bonus > 0 else "") + str(item.max_hp_bonus) + "\n"
+		if item.max_sp_bonus != 0: tip += "Max SP: " + ("+" if item.max_sp_bonus > 0 else "") + str(item.max_sp_bonus) + "\n"
+		if item.starting_sp_bonus != 0: tip += "Start SP: +" + str(item.starting_sp_bonus) + "\n"
+		if item.wall_crush_damage_bonus != 0: tip += "Wall Crush Dmg: +" + str(item.wall_crush_damage_bonus)
+		icon.tooltip_text = tip 
+		equipment_grid.add_child(icon)
+
+func _on_inspect_pressed():
+	inspect_popup.visible = not inspect_popup.visible
+	if inspect_popup.visible:
+		inspect_btn.text = "CLOSE INSPECT"
+		_populate_enemy_deck()
 	else:
-		# --- NORMAL MODE ---
-		# 1. Audio: Full Intensity
-		AudioManager.set_music_intensity(1.0, 2.0)
-		
-		# 2. Visual: Reset Vignette
-		if GlobalCinematics.has_method("set_danger_vignette"):
-			GlobalCinematics.set_danger_vignette(false)
+		inspect_btn.text = "INSPECT OPPONENT"
+
+func _populate_enemy_deck():
+	for child in inspect_grid.get_children():
+		child.queue_free()
+	var p2 = GameManager.p2_data
+	if not p2: return
+	for card in p2.deck:
+		var card_disp = card_display_scene.instantiate()
+		inspect_grid.add_child(card_disp)
+		card_disp.set_card_data(card)
+		card_disp.custom_minimum_size = Vector2(180, 250)
+		card_disp.scale = Vector2(0.8, 0.8) 
+		card_disp.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+
+# Helper to safely tween shader params
+func _set_bg_saturation(val: float):
+	if background and background.material:
+		background.material.set_shader_parameter("saturation", val)
+
+func _update_background():
+	var env_name = GameManager.current_environment_name
+	if GameManager.environment_backgrounds.has(env_name):
+		background.texture = GameManager.environment_backgrounds[env_name]
+	else:
+		print("Warning: No art found for '" + env_name + "'. Using default.")
+
+func _show_bark(player_id: int, text: String):
+	var lbl = p1_bark_label if player_id == 1 else p2_bark_label
+	lbl.text = text
+	
+	# Simple Pop-in Animation
+	lbl.modulate.a = 0
+	lbl.scale = Vector2(0.5, 0.5)
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(lbl, "modulate:a", 1.0, 0.2)
+	tween.tween_property(lbl, "scale", Vector2(1.2, 1.2), 0.2).set_trans(Tween.TRANS_BACK)
+	
+	# Wait, then fade out
+	tween.chain().tween_interval(1.5)
+	tween.chain().tween_property(lbl, "modulate:a", 0.0, 0.3)
+
+func _exit_tree():
+	if GlobalCinematics:
+		GlobalCinematics.reset_visuals()
 

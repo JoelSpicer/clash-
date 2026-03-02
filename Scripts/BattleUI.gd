@@ -14,7 +14,9 @@ signal p2_mode_toggled(is_human)
 
 @onready var button_grid = %ButtonGrid
 @onready var preview_card = %PreviewCard
-@onready var tooltip_label = $MainLayout/PreviewAnchor/ToolTipLabel
+@onready var tooltip_panel = $MainLayout/PreviewAnchor/TooltipPanel
+@onready var tooltip_label = $MainLayout/PreviewAnchor/TooltipPanel/ToolTipLabel # Or whatever the exact path is now!
+var tooltip_tween: Tween # Keeps track of the animation so we don't spam it
 @onready var btn_offence = %Offence        
 @onready var btn_defence = %Defence      
 @onready var equipment_grid = $EquipmentGrid
@@ -494,12 +496,18 @@ func _on_card_hovered(card: ActionData):
 
 func _on_card_exited():
 	preview_card.visible = false
-	if tooltip_label: tooltip_label.visible = false
+	
+	# smoothly cancel the animation and hide the panel
+	if tooltip_tween and tooltip_tween.is_valid():
+		tooltip_tween.kill()
+	if tooltip_panel:
+		tooltip_panel.visible = false
 
 func _update_tooltip_text(card: ActionData):
-	if not tooltip_label: return
+	if not tooltip_label or not tooltip_panel: return
 	
 	var active_keys = []
+	# ... (Keep all your existing 'if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")' logic exactly the same here) ...
 	if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")
 	if card.type == ActionData.Type.DEFENCE: active_keys.append("Defence")
 	if card.cost > 0: active_keys.append("Cost")
@@ -519,8 +527,7 @@ func _update_tooltip_text(card: ActionData):
 	
 	for s in card.statuses_to_apply:
 		var s_name = s.get("name", "")
-		if s_name != "":
-			active_keys.append(s_name)
+		if s_name != "": active_keys.append(s_name)
 
 	if card.retaliate: active_keys.append("Retaliate")
 	if card.reversal: active_keys.append("Reversal")
@@ -530,24 +537,49 @@ func _update_tooltip_text(card: ActionData):
 	if card.repeat_count > 1: active_keys.append("Repeat")
 	if card.create_opening > 0: active_keys.append("Create Opening")
 	if card.opportunity > 0: active_keys.append("Opportunity")
-	
+
 	if active_keys.is_empty():
-		tooltip_label.visible = false
+		tooltip_panel.visible = false
 		return
 		
+	# --- 1. COLOR CODING & SPACING ---
 	var full_text = ""
 	for k in active_keys:
 		if k in GameManager.KEYWORD_DEFS:
-			full_text += "[b]" + k + ":[/b] " + GameManager.KEYWORD_DEFS[k] + "\n"
+			full_text += "[color=#ffcc00][b]" + k + ":[/b][/color] " + GameManager.KEYWORD_DEFS[k] + "\n"
 			
-	tooltip_label.text = full_text
+	tooltip_label.text = full_text.strip_edges()
+	
+	# --- THE FIX: MAKE THE TEXT VISIBLE SO IT TAKES UP SPACE ---
 	tooltip_label.visible = true
 	
-	tooltip_label.size.y = 0 
+	# --- 2. THE SIZE FIX ---
+	# Ask Godot what the size WILL be now that new text is added AND visible
+	var target_size = tooltip_panel.get_minimum_size()
+	
+	# Force the panel to match that size immediately so the text has room to breathe
+	tooltip_panel.size = target_size 
+	
+	# --- 3. ANIMATION & MATH ---
+	if tooltip_tween and tooltip_tween.is_valid():
+		tooltip_tween.kill() 
+		
+	tooltip_panel.visible = true
+	tooltip_panel.modulate.a = 0.0 
+	
 	var padding = 20
 	var preview_bottom = preview_card.position.y + preview_card.size.y
-	tooltip_label.position.y = preview_bottom - tooltip_label.size.y - padding
-	tooltip_label.position.x = preview_card.position.x - tooltip_label.size.x - padding
+	
+	# Use 'target_size' instead of 'size' for the math!
+	var final_y = preview_bottom - target_size.y - padding
+	var start_y = final_y + 15 
+	
+	tooltip_panel.position.x = preview_card.position.x - target_size.x - padding
+	tooltip_panel.position.y = start_y
+	
+	tooltip_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tooltip_tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
+	tooltip_tween.tween_property(tooltip_panel, "position:y", final_y, 0.2)
 
 func _get_clash_text_pos(target_id: int) -> Vector2:
 	var hud = p1_hud if target_id == 1 else p2_hud
