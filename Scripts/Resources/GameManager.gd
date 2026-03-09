@@ -1031,17 +1031,18 @@ func _load_backgrounds():
 		var file_name = dir.get_next()
 		
 		while file_name != "":
-			# Skip hidden files and imports
-			if !dir.current_is_dir() and !file_name.ends_with(".import"):
-				# Support PNG and JPG
-				if file_name.ends_with(".png") or file_name.ends_with(".jpg"):
+			if not dir.current_is_dir():
+				# EXPORT FIX: Strip the .import or .remap extensions Godot adds during export
+				var clean_name = file_name.replace(".import", "").replace(".remap", "")
+				
+				if clean_name.ends_with(".png") or clean_name.ends_with(".jpg"):
+					var key = clean_name.get_basename()
 					
-					# Key = "Dojo" (stripped of .png)
-					var key = file_name.get_basename()
-					
-					# Load the image and store it
-					environment_backgrounds[key] = load(path + file_name)
-					print(">> Loaded Environment Art: " + key)
+					# Make sure we don't load the same file twice 
+					if not environment_backgrounds.has(key):
+						# load() expects the original clean name!
+						environment_backgrounds[key] = load(path + clean_name)
+						print(">> Loaded Environment Art: " + key)
 			
 			file_name = dir.get_next()
 	else:
