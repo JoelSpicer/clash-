@@ -2,501 +2,1237 @@
 
 
 ============================================================
-FILE: .\Scenes\MenuArcade.tscn
-============================================================
-[gd_scene format=3 uid="uid://7q8sfitoh2xb"]
-
-[ext_resource type="Script" uid="uid://ciu2sa2jx11fl" path="res://Scripts/MenuArcade.gd" id="1_trdke"]
-[ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_wu21k"]
-[ext_resource type="Resource" uid="uid://nr6gvrvw5pmd" path="res://Data/Classes/HeavyClass.tres" id="3_6bivt"]
-[ext_resource type="Resource" uid="uid://bpk3oy5rf8g3w" path="res://Data/Classes/PatientClass.tres" id="4_s7eqx"]
-[ext_resource type="Resource" uid="uid://c007py27u78qj" path="res://Data/Classes/QuickClass.tres" id="5_e67h7"]
-[ext_resource type="Resource" uid="uid://bg5ik82a2fybg" path="res://Data/Classes/TechnicalClass.tres" id="6_dinlh"]
-[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="7_e67h7"]
-
-[node name="MenuArcade" type="Control" unique_id=443753700]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_trdke")
-base_classes = Array[ExtResource("2_wu21k")]([ExtResource("3_6bivt"), ExtResource("4_s7eqx"), ExtResource("5_e67h7"), ExtResource("6_dinlh")])
-
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=153896058]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/margin_left = 50
-theme_override_constants/margin_top = 50
-theme_override_constants/margin_right = 50
-theme_override_constants/margin_bottom = 50
-
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1885117998]
-layout_mode = 2
-
-[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=2124791326]
-layout_mode = 2
-theme_type_variation = &"TitleLabel"
-horizontal_alignment = 1
-
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1336012931]
-self_modulate = Color(0, 0, 0, 1)
-layout_mode = 2
-size_flags_vertical = 3
-alignment = 1
-
-[node name="ClassScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=627875079]
-clip_contents = false
-custom_minimum_size = Vector2(320, 0)
-layout_mode = 2
-
-[node name="ClassList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/ClassScroll" unique_id=1862420477]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 6
-theme_override_constants/separation = 15
-
-[node name="VSeparator" type="VSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=1200793424]
-modulate = Color(1, 1, 1, 0)
-layout_mode = 2
-theme_override_constants/separation = 15
-
-[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=862813615]
-layout_mode = 2
-alignment = 1
-
-[node name="P1_Portrait" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=178845335]
-custom_minimum_size = Vector2(200, 200)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="InfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=1162463489]
-custom_minimum_size = Vector2(0, 200)
-layout_mode = 2
-bbcode_enabled = true
-horizontal_alignment = 1
-
-[node name="VSeparator2" type="VSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=930054453]
-modulate = Color(1, 1, 1, 0)
-layout_mode = 2
-theme_override_constants/separation = 15
-
-[node name="Settings_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=509839584]
-custom_minimum_size = Vector2(300, 0)
-layout_mode = 2
-alignment = 1
-
-[node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1577746598]
-layout_mode = 2
-theme_override_constants/outline_size = 15
-text = "CPU Difficulty"
-horizontal_alignment = 1
-
-[node name="DifficultyOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1010762416]
-layout_mode = 2
-
-[node name="MaintainHPToggle" type="CheckButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=58537736]
-layout_mode = 2
-theme_override_constants/outline_size = 13
-text = "Maintain HP Between Fights?"
-
-[node name="SponsorOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1919069859]
-layout_mode = 2
-
-[node name="NameInput" type="LineEdit" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1793080627]
-layout_mode = 2
-placeholder_text = "Enter Run Name..."
-alignment = 1
-
-[node name="StartButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1870661896]
-layout_mode = 2
-theme_override_constants/outline_size = 5
-text = "Start Arcade Run"
-script = ExtResource("7_e67h7")
-
-[node name="DeleteButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=436727636]
-visible = false
-layout_mode = 2
-theme_override_colors/font_color = Color(0.97824043, 0, 0.17609239, 1)
-text = "Delete Save"
-script = ExtResource("7_e67h7")
-
-[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1631594333]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="TutorialButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1756516446]
-layout_mode = 2
-text = "PLAY TUTORIAL"
-
-
-============================================================
-FILE: .\Scripts\MenuArcade.gd
+FILE: .\Scripts\DeckEditScreen.gd
 ============================================================
 extends Control
 
-# --- UI REFERENCES ---
-@onready var class_list_root = $MarginContainer/VBoxContainer/HBoxContainer/ClassScroll/ClassList # Changed to VBoxContainer!
-@onready var info_label = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/InfoLabel
-@onready var portrait_rect = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
-@onready var tutorial_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/TutorialButton
-@onready var sponsor_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorOption
-var available_sponsors: Array[SponsorData] = []
-# Settings
-@onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
-@onready var maintain_hp_toggle = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/MaintainHPToggle
-@onready var start_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/StartButton
-@onready var delete_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DeleteButton
-@onready var name_input = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/NameInput
+@onready var card_grid = $ScrollContainer/CardGrid
+@onready var count_label = $CountLabel
+@onready var fight_btn = $FightBtn
 
-# --- DATA ---
-@export var base_classes: Array[ClassDefinition]
-
-# --- STATE ---
-var selected_index: int = 0
-var buttons: Array[Button] = []
-var selected_save_file: String = "" 
-var preview_tween: Tween # NEW: Keeps track of our animation
+var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
+var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
 
 func _ready():
-	_setup_difficulty()
-	_load_sponsors()
-	_generate_lists() 
+	AudioManager.play_music("menu_theme")
+	# 1. Add Status Overlay
+	var overlay = overlay_scene.instantiate()
+	add_child(overlay)
 	
-	start_btn.pressed.connect(_on_start_pressed)
-	
-	if tutorial_btn:
-		tutorial_btn.pressed.connect(_on_tutorial_pressed)
-	
-	if delete_btn:
-		delete_btn.pressed.connect(_on_delete_pressed)
-		delete_btn.hide() 
-	
-	_select_class(0)
+	# 2. Connect Button
+	fight_btn.pressed.connect(_on_fight_pressed)
+	# NEW: Update text to reflect new flow
+	fight_btn.text = "CONTINUE"
+	# 3. Draw Grid
+	_refresh_grid()
 
-# --- NEW: DYNAMIC SECTION GENERATION ---
-func _generate_lists():
-	# Clear the root
-	for child in class_list_root.get_children(): child.queue_free()
-	buttons.clear()
+func _refresh_grid():
+	# Clear old
+	for c in card_grid.get_children():
+		c.queue_free()
 	
-	# 1. CREATE NEW GAME GRID
-	var class_grid = GridContainer.new()
-	class_grid.columns = 2
-	class_grid.add_theme_constant_override("h_separation", 10)
-	class_grid.add_theme_constant_override("v_separation", 10)
-	class_list_root.add_child(class_grid)
+	var deck = RunManager.player_run_data.deck
+	var unlocked = RunManager.player_run_data.unlocked_actions
 	
-	for i in range(base_classes.size()):
-		var def = base_classes[i]
-		_create_button(class_grid, i, def.class_named, def.portrait, false)
+	# Update Label
+	count_label.text = "HAND: " + str(deck.size()) + " / " + str(ClassFactory.HAND_LIMIT)
+	count_label.modulate = Color.GREEN if deck.size() == ClassFactory.HAND_LIMIT else Color.WHITE
 
-	# 2. CREATE SAVE FILES SECTION
-	var saves = RunManager.get_save_files()
-	if saves.size() > 0:
-		# Add a stylised Header
-		var header = Label.new()
-		header.text = "- SAVED RUNS -"
-		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		header.add_theme_color_override("font_color", Color.YELLOW)
-		class_list_root.add_child(header)
+	# Draw all unlocked cards
+	for action in unlocked:
+		var wrapper = Control.new()
+		wrapper.custom_minimum_size = Vector2(180, 240) 
+		wrapper.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		
-		# Add a VBox for Save Files (Wide horizontal bars)
-		var save_vbox = VBoxContainer.new()
-		save_vbox.add_theme_constant_override("separation", 10)
-		class_list_root.add_child(save_vbox)
+		var disp = card_display_scene.instantiate()
+		# Add child FIRST (Safety fix we learned earlier)
+		wrapper.add_child(disp)
+		disp.set_card_data(action)
+		disp.scale = Vector2(0.75, 0.75)
+		disp.position = Vector2(10, 10)
+		disp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		
-		for i in range(saves.size()):
-			var filename = saves[i]
-			var save_index = 100 + i 
-			_create_button(save_vbox, save_index, filename.replace(".tres", ""), null, true)
+		# Check if Equipped
+		if RunManager.player_run_data.has_card_in_deck(action.display_name):
+			disp.modulate = Color(1, 1, 1, 1) # Bright
+			_add_equipped_badge(wrapper)
+		else:
+			disp.modulate = Color(0.5, 0.5, 0.5, 0.8) # Dim
+		
+		# Click Handling
+		wrapper.gui_input.connect(func(ev): 
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				_toggle_card(action)
+		)
+		
+		card_grid.add_child(wrapper)
 
-func _create_button(parent_container: Control, index: int, text: String, icon: Texture2D, is_save: bool):
+func _toggle_card(action):
+	var player = RunManager.player_run_data
+	
+	if player.has_card_in_deck(action.display_name):
+		# Remove
+		player.remove_card_from_deck(action.display_name)
+		AudioManager.play_sfx("ui_back")
+	else:
+		# Add
+		if player.deck.size() < ClassFactory.HAND_LIMIT:
+			player.deck.append(action)
+			AudioManager.play_sfx("ui_click")
+		else:
+			AudioManager.play_sfx("error") # (Optional: Make sure you have an error sound!)
+			
+	_refresh_grid()
+
+func _add_equipped_badge(parent):
+	var lbl = Label.new()
+	lbl.text = "EQUIPPED"
+	lbl.add_theme_color_override("font_color", Color.GREEN)
+	lbl.position = Vector2(30, -5)
+	lbl.z_index = 5
+	parent.add_child(lbl)
+
+func _on_fight_pressed():
+	if RunManager.player_run_data.deck.size() < 1: return
+	
+	AudioManager.play_sfx("ui_confirm")
+	
+	# CHANGED: Use the new smart exit function
+	RunManager.exit_deck_editor()
+
+
+============================================================
+FILE: .\Scripts\GameOverScreen.gd
+============================================================
+extends Control
+
+@onready var title_label = $Panel/MarginContainer/VBoxContainer/TitleLabel
+@onready var winner_label = $Panel/MarginContainer/VBoxContainer/WinnerLabel
+@onready var main_btn = $Panel/MarginContainer/VBoxContainer/RematchButton # Check if this matches your scene (RematchBtn vs RematchButton)
+@onready var menu_btn = $Panel/MarginContainer/VBoxContainer/MenuButton
+@onready var panel = $Panel
+@onready var view_btn = $Panel/MarginContainer/VBoxContainer/ViewBtn
+
+var winner_data: CharacterData = null
+var match_log_text: String = ""
+
+# -- NEW: Code-generated Log Window --
+var log_popup: Panel = null
+var log_label: RichTextLabel = null
+
+func _ready():
+	# Default connections
+	if not main_btn.pressed.is_connected(_on_main_action):
+		main_btn.pressed.connect(_on_main_action)
+	
+	if not menu_btn.pressed.is_connected(_on_menu_pressed):
+		menu_btn.pressed.connect(_on_menu_pressed)
+	
+	# --- VIEW BUTTON CONNECTION ---
+	if view_btn:
+		view_btn.text = "VIEW LOG" 
+		if not view_btn.pressed.is_connected(_on_view_pressed): 
+			view_btn.pressed.connect(_on_view_pressed)
+	
+	# Build the popup immediately
+	_build_log_window()
+
+func setup(data: CharacterData, log_text: String = ""):
+	winner_data = data
+	match_log_text = log_text
+	
+	# DEBUG: Check if text is actually arriving
+	if log_text == "":
+		print("GameOverScreen: WARNING - log_text is empty!")
+		match_log_text = "[center]No log data recorded.[/center]"
+	else:
+		print("GameOverScreen: Log text received. Length: " + str(log_text.length()))
+
+	# Populate the log label
+	if log_label:
+		log_label.text = match_log_text
+		
+	winner_label.text = "Winner: " + data.character_name
+	
+	# Mode Check
+	if RunManager.player_run_data != null:
+		_setup_arcade_mode()
+	else:
+		_setup_quick_match_mode()
+
+func _setup_quick_match_mode():
+	main_btn.text = "REMATCH"
+
+func _setup_arcade_mode():
+	var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
+	
+	if player_won:
+		title_label.text = "VICTORY!"
+		title_label.modulate = Color.GREEN
+		main_btn.text = "CONTINUE"
+	else:
+		title_label.text = "GAME OVER"
+		title_label.modulate = Color.RED
+		main_btn.text = "TRY AGAIN" 
+
+func _on_main_action():
+	AudioManager.play_sfx("ui_confirm")
+	
+	# 1. ARCADE MODE LOGIC
+	if RunManager.player_run_data != null:
+		var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
+		
+		if player_won:
+			RunManager.handle_win()
+		else:
+			# --- FIX START ---
+			# We MUST reset the audio/visuals before leaving!
+			AudioManager.reset_audio_state() 
+			# -----------------
+			
+			get_tree().paused = false 
+			SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
+			
+	# 2. QUICK MATCH LOGIC
+	else:
+		# --- FIX START ---
+		AudioManager.reset_audio_state()
+		# -----------------
+		get_tree().paused = false
+		SceneLoader.reload_current_scene()
+
+func _on_menu_pressed():
+	AudioManager.play_sfx("ui_back")
+	
+	# --- FIX START ---
+	AudioManager.reset_audio_state()
+	# -----------------
+	
+	if RunManager.player_run_data:
+		RunManager.player_run_data = null 
+	
+	get_tree().paused = false
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
+
+func _on_view_pressed():
+	AudioManager.play_sfx("ui_click")
+	log_popup.visible = not log_popup.visible
+
+func _build_log_window():
+	# 1. Create the Popup Panel
+	log_popup = Panel.new()
+	log_popup.visible = false
+	log_popup.mouse_filter = Control.MOUSE_FILTER_STOP # Blocks clicks
+	
+	# Size and Position (Centered)
+	log_popup.custom_minimum_size = Vector2(600, 400)
+	log_popup.size = Vector2(600, 400)
+	# Center it on screen
+	log_popup.position = (get_viewport_rect().size / 2) - (Vector2(600, 400) / 2)
+	
+	# Style: Dark Overlay with Border
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.1, 0.95)
+	style.set_border_width_all(2)
+	style.border_color = Color.WHITE
+	style.set_corner_radius_all(8)
+	log_popup.add_theme_stylebox_override("panel", style)
+	
+	add_child(log_popup)
+	
+	# 2. FIX: Add an "X" Close Button inside the popup
+	var close_btn = Button.new()
+	close_btn.text = "X"
+	close_btn.position = Vector2(560, 10) # Top right corner
+	close_btn.size = Vector2(30, 30)
+	close_btn.pressed.connect(_on_view_pressed) # Re-use the toggle function
+	log_popup.add_child(close_btn)
+	
+	# 3. Create Scroll Container
+	var scroll = ScrollContainer.new()
+	scroll.position = Vector2(20, 50) # Below the close button
+	scroll.size = Vector2(560, 330) # Fill remaining space
+	log_popup.add_child(scroll)
+	
+	# 4. Create Text Label
+	log_label = RichTextLabel.new()
+	log_label.bbcode_enabled = true
+	# FIX: These flags ensure the label expands to hold the text
+	log_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL 
+	log_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	log_label.fit_content = true # CRITICAL: Allows scrolling to work
+	log_label.text = "Loading log..."
+	
+	scroll.add_child(log_label)
+
+
+============================================================
+FILE: .\Scripts\RewardScreen.gd
+============================================================
+extends Control
+
+@onready var container = $RewardContainer
+@onready var title_label = $TitleLabel # Make sure you have this node
+
+# Preload your existing displays
+var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
+var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
+
+func _ready():
+	AudioManager.play_music("menu_theme")
+	
+	# 1. Add Overlay
+	var overlay = overlay_scene.instantiate()
+	add_child(overlay)
+	
+	# --- NEW: AWARD META CURRENCY ---
+	var tokens_earned = 1 # Base payout for winning any fight
+	
+	# Check for massive Grudge Match payout
+	if RunManager.is_rival_match and RunManager.active_sponsor:
+		tokens_earned += RunManager.active_sponsor.rival_reward_currency_bonus
+		
+		# Reset the flag so they don't get the boss loot again!
+		RunManager.is_rival_match = false 
+	
+	# Add it to the global bank!
+	RunManager.add_circuit_tokens(tokens_earned)
+	# --------------------------------
+	
+	# 2. Generate Rewards
+	_generate_rewards()
+
+func _generate_rewards():
+	# 1. Clear old rewards
+	for c in container.get_children():
+		c.queue_free()
+		
+	var valid_actions = RunManager.get_valid_action_rewards()
+	var all_items = RunManager.get_all_equipment()
+	var stat_upgrades = RunManager.get_stat_upgrades()
+	
+	var valid_items = []
+	for item in all_items:
+		if not _player_has_item(item):
+			valid_items.append(item)
+	
+	var choices = []
+	
+	# SLOT 1: ACTION
+	if valid_actions.size() > 0: choices.append(valid_actions.pick_random())
+	else: choices.append(stat_upgrades.pick_random())
+		
+	# SLOT 2: UPGRADE/ITEM 
+	if valid_items.size() > 0 and randf() > 0.5: choices.append(valid_items.pick_random())
+	else: choices.append(stat_upgrades.pick_random())
+		
+	# SLOT 3: WILDCARD
+	var roll = randf()
+	if roll < 0.4 and valid_actions.size() > 0: choices.append(valid_actions.pick_random())
+	elif roll < 0.7 and valid_items.size() > 0: choices.append(valid_items.pick_random())
+	else: choices.append(stat_upgrades.pick_random())
+		
+	# --- NEW: SPONSOR EXTRA OPTIONS ---
+	if RunManager.active_sponsor and RunManager.active_sponsor.extra_draft_options > 0:
+		for i in range(RunManager.active_sponsor.extra_draft_options):
+			if valid_actions.size() > 0 and randf() > 0.5:
+				choices.append(valid_actions.pick_random())
+			else:
+				choices.append(stat_upgrades.pick_random())
+	# ----------------------------------
+	
+	# --- NEW: GRUDGE MATCH PAYOUT ---
+	if RunManager.is_rival_match and RunManager.active_sponsor:
+		# 1. Give the unique item (if it exists)
+		if RunManager.active_sponsor.rival_reward_item != null:
+			# We insert it at the front of the array so it's the first card they see
+			choices.insert(0, RunManager.active_sponsor.rival_reward_item)
+			
+		# 2. (Optional) Award Currency
+		if RunManager.active_sponsor.rival_reward_currency_bonus > 0:
+			print("Awarded " + str(RunManager.active_sponsor.rival_reward_currency_bonus) + " Circuit Tokens!")
+			# You will hook this up later when we build the Meta-Save System
+			
+		# 3. Reset the flag so they don't get the item on the next normal node
+		#RunManager.is_rival_match = false
+	# ---------------------------------
+	
+	# 4. Render Options
+	for reward in choices:
+		_create_reward_card(reward)
+		
+	# --- NEW: SPONSOR REROLLS ---
+	# Dynamically spawn a Reroll Button at the bottom if they have tokens
+	if RunManager.get("current_rerolls") != null and RunManager.current_rerolls > 0:
+		var reroll_btn = Button.new()
+		reroll_btn.text = "Reroll Options (" + str(RunManager.current_rerolls) + " left)"
+		reroll_btn.custom_minimum_size = Vector2(200, 50)
+		reroll_btn.add_theme_font_size_override("font_size", 20)
+		# Add it to the main screen, anchored bottom center
+		add_child(reroll_btn)
+		reroll_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		reroll_btn.position.y -= 50
+		
+		reroll_btn.pressed.connect(func():
+			AudioManager.play_sfx("ui_click")
+			RunManager.current_rerolls -= 1
+			reroll_btn.queue_free() # Remove button to refresh
+			_generate_rewards()     # Re-run this entire function!
+		)
+
+func _create_reward_card(reward):
 	var btn = Button.new()
-	btn.text = text
+	btn.custom_minimum_size = Vector2(220, 320)
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	
-	if is_save:
-		btn.custom_minimum_size = Vector2(290, 60) # Wide Bar for saves
-		btn.modulate = Color(0.6, 0.8, 1.0) # Blue tint
-	else:
-		btn.icon = icon
-		btn.expand_icon = true
-		btn.custom_minimum_size = Vector2(140, 160) # Tall Rectangle for characters
-		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	container.add_child(btn)
+	
+	# Styling (Dark Card Base)
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.1, 1.0)
+	style.set_corner_radius_all(10)
+	style.set_border_width_all(2)
+	style.border_color = Color(0.3, 0.3, 0.3)
+	btn.add_theme_stylebox_override("normal", style)
+	
+	var hover = style.duplicate()
+	hover.border_color = Color(1.0, 0.8, 0.2) # Gold Border on Hover
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", hover)
+	
+	
+	# --- CONTENT GENERATION ---
+	
+	# A. ACTION CARD
+	if reward is ActionData:
+		# We reuse your nice CardDisplay, but scale it down slightly
+		var disp = card_display_scene.instantiate()
+		disp.set_card_data(reward)
+		disp.scale = Vector2(0.8, 0.8)
+		disp.position = Vector2(10, 10) # Padding
+		disp.mouse_filter = Control.MOUSE_FILTER_IGNORE # Let button catch clicks
+		btn.add_child(disp)
 		
-	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	btn.clip_text = true
-	
-	# --- NEW: HOVER CONNECTION ---
-	btn.mouse_entered.connect(func(): _on_class_hover(index, is_save, text))
-	btn.mouse_exited.connect(_on_class_unhover)
-	btn.pressed.connect(func(): _on_item_selected(index, text, is_save))
-	
-	parent_container.add_child(btn)
-	buttons.append(btn)
+		# Label for "New Action"
+		var lbl = Label.new()
+		lbl.text = "NEW ACTION"
+		lbl.modulate = Color.GREEN
+		lbl.position = Vector2(0, -30)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.size.x = 220
+		btn.add_child(lbl)
 
-# --- INTERACTION ---
-func _on_class_hover(index: int, is_save: bool, text: String = ""):
-	AudioManager.play_sfx("ui_hover", 0.1)
-	
-	if is_save:
-		# If hovering a save, preview the save file!
-		_show_save_preview(text + ".tres")
-	else:
-		# If hovering a base class, preview the base class!
-		_update_preview_panel(index)
-
-func _on_class_unhover():
-	# Revert the preview panel to whatever is actually locked in
-	if selected_save_file != "":
-		_show_save_preview(selected_save_file)
-	else:
-		_update_preview_panel(selected_index)
-
-# --- THE "SLAM" AND "TYPEWRITER" ANIMATION ---
-func _update_preview_panel(index: int):
-	if index >= base_classes.size(): return
-	var data = base_classes[index]
-	
-	# 1. Kill any currently running animation (so it doesn't glitch if moving mouse fast)
-	if preview_tween and preview_tween.is_valid():
-		preview_tween.kill()
+	# B. EQUIPMENT
+	elif reward is EquipmentData:
+		_build_info_card(btn, reward.display_name, reward.description, Color(0.4, 0.6, 1.0), "EQUIPMENT")
 		
-	preview_tween = create_tween().set_parallel(true)
+	# C. STAT UPGRADE
+	elif reward is Dictionary:
+		_build_info_card(btn, reward.text, reward.desc, Color(1.0, 0.5, 0.5), "UPGRADE")
+
+	# Connection
+	btn.pressed.connect(func(): _on_selected(reward))
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+
+func _build_info_card(parent, title, desc, color, category):
+	# Title
+	var t = Label.new()
+	t.text = title
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.add_theme_font_size_override("font_size", 20)
+	t.modulate = color
+	t.position = Vector2(10, 40)
+	t.size = Vector2(200, 60)
+	parent.add_child(t)
 	
-	# 2. ANIMATE PORTRAIT (The Slam)
-	if portrait_rect:
-		portrait_rect.texture = data.portrait
-		# Start high, invisible, and slightly scaled up
-		portrait_rect.position.y = -50 
-		portrait_rect.modulate.a = 0.0
-		portrait_rect.scale = Vector2(1.1, 1.1)
-		
-		# Tween it back to normal with a "Bounce/Back" ease
-		preview_tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		preview_tween.tween_property(portrait_rect, "position:y", 0.0, 0.3)
-		preview_tween.tween_property(portrait_rect, "modulate:a", 1.0, 0.2)
-		preview_tween.tween_property(portrait_rect, "scale", Vector2.ONE, 0.3)
+	# Category Header
+	var cat = Label.new()
+	cat.text = category
+	cat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cat.modulate = Color(0.5, 0.5, 0.5)
+	cat.position = Vector2(0, 10)
+	cat.size.x = 220
+	parent.add_child(cat)
 	
-	# 3. TYPEWRITER EFFECT FOR INFO
-	info_label.text = data.arcade_description.c_unescape() if data.arcade_description != "" else "Info missing."
-	info_label.visible_ratio = 0.0 # Hide text completely
-	
-	# Calculate typing time (longer text takes slightly longer, max 0.5s)
-	var type_time = min(info_label.text.length() * 0.005, 0.5) 
-	preview_tween.tween_property(info_label, "visible_ratio", 1.0, type_time).set_trans(Tween.TRANS_LINEAR)
+	# Description
+	var d = RichTextLabel.new()
+	d.text = "[center]" + desc + "[/center]"
+	d.bbcode_enabled = true
+	d.position = Vector2(10, 120)
+	d.size = Vector2(200, 150)
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(d)
 
-# --- START RUN ---
-func _on_start_pressed():
-	AudioManager.play_sfx("ui_confirm")
-	RunManager.maintain_hp_enabled = maintain_hp_toggle.button_pressed
-	
-	if selected_save_file != "":
-		RunManager.load_run(selected_save_file)
-	else:
-		if selected_index < base_classes.size():
-			var run_name = name_input.text
-			if run_name.strip_edges() == "": run_name = "Unnamed"
-			
-			# GRAB THE SELECTED SPONSOR
-			var chosen_sponsor = available_sponsors[sponsor_option.selected]
-			
-			# PASS IT TO RUN MANAGER
-			RunManager.start_new_run(base_classes[selected_index], run_name, chosen_sponsor)
-
-# --- SETTINGS HELPERS ---
-
-func _on_difficulty_changed(index: int):
-	GameManager.ai_difficulty = index as GameManager.Difficulty
-
-# --- UPDATED INTERACTION LOGIC ---
-
-func _select_class(index: int):
+func _on_selected(reward):
 	AudioManager.play_sfx("ui_click")
-	selected_index = index
-	selected_save_file = "" 
-	
-	name_input.editable = true
-	start_btn.text = "START RUN"
-	
-	# 1. Re-enable the UI
-	difficulty_option.disabled = false 
-	maintain_hp_toggle.disabled = false 
+	RunManager.apply_reward(reward)
 
-	# 2. INSERT THE FIX HERE:
-	# This ensures GameManager knows the difficulty immediately upon selection
-	GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty
+func _player_has_item(item_data):
+	var p = RunManager.player_run_data
+	for i in p.equipment:
+		if i.display_name == item_data.display_name: return true
+	return false
+
+
+============================================================
+FILE: .\Scripts\RunManager.gd
+============================================================
+extends Node
+
+var is_arcade_mode: bool = false
+var current_level: int = 1
+var player_run_data: CharacterData
+var player_owned_tree_ids: Array[int] = [] 
+var free_unlocks_remaining: int = 0
+var active_sponsor: SponsorData = null
+var current_rerolls: int = 0
+
+var active_gym_buff: String = ""
+
+var pending_advancement: bool = false
+
+var current_run_name: String = "Test Run" # <--- NEW
+const SAVE_DIR = "user://saves/"
+
+# --- NEW: RUN MODIFIERS ---
+var maintain_hp_enabled: bool = false
+const EQUIPMENT_DIR = "res://Data/Equipment/"
+const BOSS_DIR = "res://Data/Presets/Bosses/"
+
+# --- MAP STATE ---
+var tournament_map: Array[MapNodeData] = []
+var current_map_index: int = 0
+var leagues_completed: int = 0
+var current_enemy_data: CharacterData # The enemy we are currently fighting
+
+# --- CONFIGURATION ---
+# A standard "Cup" might be 8 steps long
+const LEAGUE_LENGTH = 20
+var is_rival_match: bool = false
+
+# --- GLOBAL META DATA ---
+const GLOBAL_SAVE_PATH = "user://global_save.tres"
+var meta_data: GlobalSaveData
+
+const BOSS_SCHEDULE = {
+	#5: "juggernaut_boss.tres",
+	#10: "grandmaster_boss.tres"
+}
+
+# ... (start_run and start_run_from_preset remain exactly the same) ...
+var next_fight_statuses: Array[String] = []
+
+# --- ADD THIS RIGHT HERE ---
+func _ready():
+	_init_global_save()
+# -------------------------
+
+# OPTION A: STANDARD RUN (Level 1, Drafting)
+func start_run(starting_class: CharacterData.ClassType):
+	is_arcade_mode = true
+	current_level = 1
+	player_run_data = ClassFactory.create_character(starting_class, "You")
+	_init_tree_root(starting_class)
+	free_unlocks_remaining = 1
+	#player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
+
+# OPTION B: PRESET RUN
+# 2. Preset Start (If you use Presets)
+func start_run_from_preset(preset_data: CharacterData):
+	# A. Deep Copy the preset so we don't modify the original resource
+	player_run_data = preset_data.duplicate(true)
 	
-	# 3. Handle button highlights
-	for i in range(buttons.size()):
-		var btn = buttons[i]
-		if i == index:
-			btn.modulate = Color(1.2, 1.2, 1.2)
-			btn.add_theme_color_override("font_color", Color.GREEN)
-		else:
-			# Reset to white (or blue-ish if it's a save file button)
-			btn.modulate = Color(1, 1, 1) if not (btn.custom_minimum_size.x > 200) else Color(0.6, 0.8, 1.0)
-			btn.remove_theme_color_override("font_color")
+	# B. Reset Loop State
+	current_level = 1
+	player_owned_tree_ids.clear() # Presets might need manual ID setup if you want them to use the tree later
+	
+	# C. Ensure Class Root is unlocked (so Draft works later)
+	_unlock_class_starters(player_run_data)
+	
+	# D. Route
+	print("Starting Preset Run. Loading Deck Editor...")
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+
+# Helper
+func _init_tree_root(class_type: CharacterData.ClassType):
+	#player_owned_tree_ids.clear()
+	#match class_type:
+		#CharacterData.ClassType.QUICK: player_owned_tree_ids.append(73)
+		#CharacterData.ClassType.TECHNICAL: player_owned_tree_ids.append(74)
+		#CharacterData.ClassType.PATIENT: player_owned_tree_ids.append(75)
+		#CharacterData.ClassType.HEAVY: player_owned_tree_ids.append(76)
+		
+	player_owned_tree_ids.clear()
+	
+	# 1. Look up the Resource
+	if ClassFactory.class_registry.has(class_type):
+		var def = ClassFactory.class_registry[class_type]
+		
+		# 2. Read the Start Node from the File
+		if def.skill_tree_root_id != 0:
+			player_owned_tree_ids.append(def.skill_tree_root_id)
+			return
+
+	# Fallback (Safety)
+	player_owned_tree_ids.append(76)
+
+# --- UPDATED FIGHT GENERATION LOGIC ---
+func start_next_fight():
+	# 1. Setup Player Data
+	GameManager.next_match_p1_data = player_run_data
+	
+	# --- NEW: RANDOMIZE ENVIRONMENT ---
+	var envs = ["Ring", "Dojo", "Street"]
+	var selected_env = envs.pick_random()
+	GameManager.apply_environment_rules(selected_env)
+	
+	# --- NEW: TRIGGER ENVIRONMENT MUSIC ---
+	# We call this AFTER we pick the environment so the manager knows which one to play
+	if AudioManager.has_method("play_location_music"):
+		AudioManager.play_location_music(selected_env)
+	else:
+		# Fallback if you haven't updated AudioManager yet
+		AudioManager.play_music("battle_theme")
+	# -----------------------------------
+	
+	# 2. CALCULATE TARGET LEVEL
+	var raw_level = current_level
+	
+	# Apply Difficulty Modifier
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.VERY_EASY: raw_level -= 2
+		GameManager.Difficulty.EASY:      raw_level -= 1
+		GameManager.Difficulty.MEDIUM:    pass 
+		GameManager.Difficulty.HARD:      raw_level += 1
+	
+	# 3. DETERMINE ACTUAL LEVEL & PENALTIES
+	var final_enemy_level = raw_level
+	var stat_penalty = 0
+	
+	if raw_level < 1:
+		# If we dip below Level 1, stick to Level 1 but apply penalty.
+		# Example: Level 1 on Very Easy (-2) = Raw -1. 
+		# Penalty = 1 - (-1) = 2.
+		stat_penalty = 1 - raw_level
+		final_enemy_level = 1
+		
+	print("Generating Arcade Opponent: Difficulty ", GameManager.ai_difficulty, " -> Enemy Lv.", final_enemy_level)
+	if stat_penalty > 0:
+		print(">> UNDER-LEVEL PENALTY APPLIED: -", stat_penalty, " HP/SP")
+	
+# 4. Generate Enemy (MODIFIED FOR BOSSES)
+	var enemy: CharacterData
+	
+	# Check if the CURRENT level has a scheduled boss
+	if BOSS_SCHEDULE.has(current_level):
+		var boss_path = BOSS_DIR + BOSS_SCHEDULE[current_level]
+		var boss_preset = load(boss_path) as PresetCharacter
+		
+		# Generate the boss exactly as designed in the editor
+		enemy = ClassFactory.create_from_preset(boss_preset)
+		
+		# Bosses scale slightly with difficulty
+		if GameManager.ai_difficulty == GameManager.Difficulty.HARD:
+			enemy.max_hp += 5
+			enemy.max_sp += 1
+		elif GameManager.ai_difficulty <= GameManager.Difficulty.EASY:
+			enemy.max_hp = max(1, enemy.max_hp - 3)
 			
-	_update_preview_panel(index)
+		enemy.reset_stats()
+		print(">> BOSS ENCOUNTER LOADED: " + enemy.character_name)
+		
+	else:
+		# Standard Random Enemy
+		enemy = ClassFactory.create_random_enemy(final_enemy_level, GameManager.ai_difficulty)
+		
+		# 5. Apply Stats Penalty (Only for standard enemies)
+		if stat_penalty > 0:
+			enemy.max_hp = max(1, enemy.max_hp - stat_penalty)
+			enemy.max_sp = max(1, enemy.max_sp - stat_penalty)
+			enemy.reset_stats()
+			enemy.character_name += " (Weakened)"
+	
+	GameManager.next_match_p2_data = enemy
+	
+	# 6. Launch
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
-func _get_difficulty_name(value: int) -> String:
-	var keys = GameManager.Difficulty.keys()
-	if value >= 0 and value < keys.size(): return keys[value].capitalize()
-	return "Unknown"
+func handle_win():
+	# --- FIX: UNPAUSE THE GAME ---
+	# If we don't do this, the scene change might get stuck 
+	# or the next scene will start frozen.
+	get_tree().paused = false 
+	# -----------------------------
+	AudioManager.reset_audio_state()
+	print("Victory! Processing Level Up...")
+	current_level += 1
+	save_run() # Save progress after winning
+	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
 
-func _on_delete_pressed():
-	if selected_save_file == "": return
-	AudioManager.play_sfx("ui_click")
-	RunManager.delete_save_file(selected_save_file)
-	selected_save_file = ""
-	delete_btn.hide()
-	_generate_lists()
-	_select_class(0)
+# Helper to fetch all equipment for the draft
+func get_all_equipment() -> Array[EquipmentData]:
+	var list: Array[EquipmentData] = []
+	var dir = DirAccess.open(EQUIPMENT_DIR)
+	if dir:
+		dir.list_dir_begin()
+		var file = dir.get_next()
+		while file != "":
+			if file.ends_with(".tres") or file.ends_with(".res"):
+				var res = load(EQUIPMENT_DIR + file)
+				if res is EquipmentData:
+					list.append(res)
+			file = dir.get_next()
+	return list
 
-func _show_save_preview(filename: String):
-	var data: RunSaveData = RunManager.peek_save_file(filename)
-	if data == null:
-		info_label.text = "[color=red]Error reading save.[/color]"
+func handle_loss():
+	AudioManager.reset_audio_state()
+	is_arcade_mode = false
+
+# --- REWARD POOL LOGIC ---
+
+# 1. Fetch Valid Actions (The "Invisible Tree" Logic)
+func get_valid_action_rewards() -> Array[ActionData]:
+	var valid_actions: Array[ActionData] = []
+	var neighbor_ids = []
+	
+	# Look at every node we currently own
+	for owned_id in player_owned_tree_ids:
+		# Check its connections in the static Tree Map
+		if ClassFactory.TREE_CONNECTIONS.has(owned_id):
+			for neighbor in ClassFactory.TREE_CONNECTIONS[owned_id]:
+				# If we don't own it yet, it's a valid reward
+				if neighbor not in player_owned_tree_ids and neighbor not in neighbor_ids:
+					neighbor_ids.append(neighbor)
+	
+	# Convert IDs to actual Resources
+	for id in neighbor_ids:
+		var c_name = ClassFactory.ID_TO_NAME_MAP.get(id)
+		if c_name:
+			var card = ClassFactory.find_action_resource(c_name)
+			if card: valid_actions.append(card)
+			
+	return valid_actions
+
+# 2. Fetch Stat Upgrades (Generated on the fly)
+func get_stat_upgrades() -> Array[Dictionary]:
+	return [
+		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +2 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 2; p.current_hp += 2 },
+		{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
+		{ "type": "stat", "text": "FULL RESTORE", "desc": "Heal to Full HP.", "icon": "heal", "func": func(p): p.current_hp = p.max_hp }
+	]
+
+# 3. Handle Reward Selection
+func apply_reward(reward):
+	# A. If it's an Action (Resource)
+	if reward is ActionData:
+		# 1. Unlock in Tree
+		var id = ClassFactory.get_id_by_name(reward.display_name)
+		if id != 0: player_owned_tree_ids.append(id)
+		
+		# 2. Add to Deck/Library
+		player_run_data.unlocked_actions.append(reward)
+		if player_run_data.deck.size() < ClassFactory.HAND_LIMIT:
+			player_run_data.deck.append(reward)
+		
+		# 3. The "Draft Heal" (Action is its own reward + tiny sustain)
+		player_run_data.current_hp = min(player_run_data.current_hp + 2, player_run_data.max_hp)
+		print("Drafted Action: " + reward.display_name + " (Healed 2 HP)")
+
+	# B. If it's Equipment (Resource)
+	elif reward is EquipmentData:
+		player_run_data.equipment.append(reward)
+		# Recalculate stats immediately to apply bonuses
+		ClassFactory._recalculate_stats(player_run_data)
+		print("Drafted Item: " + reward.display_name)
+
+	# C. If it's a Stat Upgrade (Dictionary)
+	elif reward is Dictionary and reward.has("func"):
+		reward["func"].call(player_run_data)
+		print("Drafted Upgrade: " + reward.text)
+
+	# Save/Continue
+	handle_reward_complete()
+
+# --- NEW: CENTRALIZED RUN START ---
+# 1. Standard Start (From Class Selection)
+# CHANGED: Accept the Resource (ClassStats) instead of just an int
+# Update this function
+func start_new_run(source_class: ClassDefinition, run_name: String = "New Run", sponsor: SponsorData = null):
+	current_run_name = run_name 
+	is_arcade_mode = true 
+	
+	# 1. Reset Run State
+	current_level = 1
+	player_owned_tree_ids.clear()
+	free_unlocks_remaining = 0
+	leagues_completed = 0 
+	
+	# --- NEW: SET ACTIVE SPONSOR ---
+	active_sponsor = sponsor
+	
+	# 2. Create Character Data
+	var p_data = CharacterData.new()
+	
+	p_data.class_type = source_class.class_type 
+	p_data.character_name = run_name
+	p_data.portrait = source_class.portrait
+	p_data.passive_desc = source_class.passive_description
+	
+	p_data.can_pay_with_hp = source_class.can_pay_with_hp
+	p_data.tiring_drains_hp = source_class.tiring_drains_hp
+	p_data.combo_sp_recovery_rate = source_class.combo_sp_recovery_rate
+	p_data.has_bide_mechanic = source_class.has_bide_mechanic
+	p_data.has_keep_up_toggle = source_class.has_keep_up_toggle
+	p_data.has_technique_dropdown = source_class.has_technique_dropdown
+	
+	# Set Base Stats [cite: 25]
+	p_data.max_hp = 5
+	p_data.current_hp = 5
+	p_data.max_sp = 4
+	p_data.current_sp = 4
+	
+	# --- APPLY SPONSOR MODIFIERS ---
+	if active_sponsor != null:
+		# Apply Base Stats
+		p_data.max_hp += active_sponsor.bonus_max_hp
+		p_data.max_sp += active_sponsor.bonus_max_sp
+		
+		# Apply Missing Stats
+		p_data.speed += active_sponsor.bonus_speed
+		
+		# If combo SP regen is 3, a bonus of 1 makes it 2 (faster regen)
+		if p_data.combo_sp_recovery_rate > 0:
+			p_data.combo_sp_recovery_rate = max(1, p_data.combo_sp_recovery_rate - active_sponsor.combo_sp_regen_bonus)
+		
+		# Ensure current HP/SP matches the newly buffed max
+		p_data.current_hp = p_data.max_hp
+		p_data.current_sp = p_data.max_sp
+		
+		# Apply Barrier (Temporary HP added ON TOP of max)
+		if active_sponsor.starting_barrier > 0:
+			p_data.current_hp += active_sponsor.starting_barrier
+			
+		# Grant Reroll Tokens
+		current_rerolls = active_sponsor.starting_rerolls
+		
+		# Give Starting Equipment
+		if active_sponsor.starting_equipment.size() > 0:
+			p_data.equipment.append_array(active_sponsor.starting_equipment)
+
+	# 3. LOAD STARTING DECK 
+	p_data.unlocked_actions = ClassFactory.get_starting_deck(source_class.class_type)
+	
+	# --- NEW: ADD SPONSOR CARDS TO DECK ---
+	if active_sponsor != null and active_sponsor.starting_cards.size() > 0:
+		p_data.unlocked_actions.append_array(active_sponsor.starting_cards)
+	
+	# 4. Auto-Unlock Class Starter Node
+	_unlock_class_starters(p_data, source_class)
+	
+	# 5. Fill Initial Hand
+	for action in p_data.unlocked_actions:
+		if p_data.deck.size() < ClassFactory.HAND_LIMIT:
+			p_data.deck.append(action)
+	
+	# 6. Save & Route
+	player_run_data = p_data
+	
+	generate_new_league()
+	pending_advancement = false 
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+
+# --- HELPER: Unlock the first node so the Draft System has "Neighbors" to find ---
+# CHANGED: Added '= null' to make the second argument optional
+func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition = null):
+	var root_id = 0
+	
+	# Priority 1: Read from the Resource (The new, flexible way)
+	if source_class:
+		root_id = source_class.skill_tree_root_id
+	
+	# Priority 2: Fallback to defaults if Resource is missing (Safety net for Presets)
+	if root_id == 0:
+		match p_data.class_type:
+			ClassFactory.ClassType.HEAVY: root_id = 76
+			ClassFactory.ClassType.QUICK: root_id = 73
+			ClassFactory.ClassType.TECHNICAL:  root_id = 74
+			ClassFactory.ClassType.PATIENT: root_id = 75
+	
+	# --- UNLOCK LOGIC ---
+	if root_id != 0:
+		if not player_owned_tree_ids.has(root_id):
+			player_owned_tree_ids.append(root_id)
+		
+		var c_name = ClassFactory.ID_TO_NAME_MAP.get(root_id)
+		if c_name:
+			var card = ClassFactory.find_action_resource(c_name)
+			
+			# --- FIX: CHECK IF CARD EXISTS BEFORE USING IT ---
+			if card:
+				# Now it is safe to check for duplicates
+				var already_has = false
+				for c in p_data.unlocked_actions:
+					# Check c is valid too, just to be super safe
+					if c and c.display_name == card.display_name: 
+						already_has = true
+						break
+				
+				if not already_has:
+					p_data.unlocked_actions.append(card)
+			else:
+				print("ERROR: Could not find Starter Card resource for name: " + str(c_name))
+
+# --- UPDATE: REWARD ROUTING ---
+func handle_reward_complete():
+	save_run()
+	print("Reward Claimed. Going to Deck Editor...")
+	
+	# We just finished a reward, so when we leave the deck screen, we should advance the map.
+	pending_advancement = true 
+	
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+
+# --- SAVE SYSTEM ---
+
+func save_run():
+	if not DirAccess.dir_exists_absolute(SAVE_DIR):
+		DirAccess.make_dir_absolute(SAVE_DIR)
+	
+	# 1. Create our Save Resource
+	var save_data = RunSaveData.new()
+	save_data.run_name = current_run_name
+	save_data.current_level = current_level
+	save_data.current_map_index = current_map_index
+	save_data.difficulty = GameManager.ai_difficulty
+	save_data.maintain_hp = maintain_hp_enabled
+	save_data.tree_ids = player_owned_tree_ids.duplicate()
+	save_data.player_data = player_run_data
+	
+	# We duplicate the array so we aren't saving by reference accidentally
+	save_data.map_data = tournament_map.duplicate() 
+	save_data.timestamp = Time.get_datetime_string_from_system()
+	
+	# 2. Save it as a .tres file!
+	var safe_name = current_run_name.validate_filename()
+	var file_path = SAVE_DIR + safe_name + ".tres"
+	
+	ResourceSaver.save(save_data, file_path)
+	
+	_show_save_notification()
+	print("Run saved to: " + file_path)
+
+func load_run(filename: String):
+	var path = SAVE_DIR + filename
+	if not FileAccess.file_exists(path): return
+
+	var save_data = ResourceLoader.load(path) as RunSaveData
+	if not save_data:
+		print("Error loading save file.")
 		return
-		
-	# 1. Kill any currently running animation
-	if preview_tween and preview_tween.is_valid():
-		preview_tween.kill()
-		
-	preview_tween = create_tween().set_parallel(true)
-	var p_data = data.player_data
 	
-	# 2. ANIMATE PORTRAIT (The Slam)
-	if portrait_rect and p_data.portrait:
-		portrait_rect.texture = p_data.portrait
-		portrait_rect.position.y = -50 
-		portrait_rect.modulate.a = 0.0
-		portrait_rect.scale = Vector2(1.1, 1.1)
-		
-		preview_tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		preview_tween.tween_property(portrait_rect, "position:y", 0.0, 0.3)
-		preview_tween.tween_property(portrait_rect, "modulate:a", 1.0, 0.2)
-		preview_tween.tween_property(portrait_rect, "scale", Vector2.ONE, 0.3)
-	elif portrait_rect:
-		portrait_rect.texture = null
+	current_run_name = save_data.run_name
+	current_level = save_data.current_level
+	current_map_index = save_data.current_map_index
+	GameManager.ai_difficulty = save_data.difficulty as GameManager.Difficulty
+	maintain_hp_enabled = save_data.maintain_hp
+	player_owned_tree_ids.assign(save_data.tree_ids)
 	
-	# 3. BUILD TEXT
-	var txt = "[center][b][font_size=24]" + data.run_name + "[/font_size][/b][/center]\n"
-	txt += "[center][color=gray]Level " + str(data.current_level) + " - " + _get_difficulty_name(data.difficulty) + "[/color][/center]\n\n"
-	txt += "[b]Class:[/b] " + ClassFactory.class_enum_to_string(p_data.class_type) + "\n"
-	txt += "[b]HP:[/b] " + str(p_data.current_hp) + "/" + str(p_data.max_hp) + "   "
-	txt += "[b]SP:[/b] " + str(p_data.current_sp) + "/" + str(p_data.max_sp) + "\n"
+	player_run_data = save_data.player_data
 	
-	# 4. TYPEWRITER EFFECT
-	info_label.text = txt
-	info_label.visible_ratio = 0.0 
+	# --- ADD THIS LINE ---
+	# Force the character name to match the Run Name (fixes old saves)
+	player_run_data.character_name = current_run_name
+	# ---------------------
 	
-	var type_time = min(info_label.text.length() * 0.005, 0.5) 
-	preview_tween.tween_property(info_label, "visible_ratio", 1.0, type_time).set_trans(Tween.TRANS_LINEAR)
+	tournament_map.assign(save_data.map_data)
+	is_arcade_mode = true
+	pending_advancement = false 
+	
+	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
-func _setup_difficulty():
-	difficulty_option.clear()
-	difficulty_option.add_item("Very Easy")
-	difficulty_option.add_item("Easy")
-	difficulty_option.add_item("Medium")
-	difficulty_option.add_item("Hard")
-	
-	difficulty_option.selected = 2 # Medium
-	# FIX: Explicitly tell GameManager the starting difficulty!
-	GameManager.ai_difficulty = 2 as GameManager.Difficulty
-	
-	if not difficulty_option.item_selected.is_connected(_on_difficulty_changed):
-		difficulty_option.item_selected.connect(_on_difficulty_changed)
-
-func _on_item_selected(index: int, text: String, is_save: bool):
-	AudioManager.play_sfx("ui_click")
-	
-	# 1. Visual Highlight
-	for i in range(buttons.size()):
-		var btn = buttons[i]
-		if i == index:
-			btn.modulate = Color(1.2, 1.2, 1.2)
-			btn.add_theme_color_override("font_color", Color.GREEN)
-		else:
-			btn.modulate = Color(1, 1, 1) if not (btn.custom_minimum_size.x > 200) else Color(0.6, 0.8, 1.0)
-			btn.remove_theme_color_override("font_color")
-
-	if is_save:
-		selected_save_file = text + ".tres"
-		start_btn.text = "LOAD RUN"
-		name_input.editable = false
-		name_input.text = text
-		
-		var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
-		if data == null: return
-		# Ensure the fighter's internal name matches the Run Name for the VS Screen/UI
-		data.player_data.character_name = data.run_name
-
-		# Lock the settings to match the save file
-		difficulty_option.selected = data.difficulty
-		difficulty_option.disabled = true 
-		maintain_hp_toggle.button_pressed = data.maintain_hp
-		maintain_hp_toggle.disabled = true
-		
-		# Call our new helper function!
-		_show_save_preview(selected_save_file)
-		delete_btn.show()
-
-	else:
-		selected_save_file = "" 
-		selected_index = index
-		start_btn.text = "START RUN"
-		name_input.editable = true
-		
-		# FIX: If we clicked a save file previously, reset dropdown to Medium
-		if difficulty_option.disabled == true:
-			difficulty_option.selected = 2
-			
-		difficulty_option.disabled = false 
-		maintain_hp_toggle.disabled = false
-		
-		# FIX: Sync GameManager to whatever the dropdown currently says
-		GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty
-		
-		_update_preview_panel(index)
-		delete_btn.hide()
-
-func _on_tutorial_pressed():
-	AudioManager.play_sfx("ui_confirm")
-	TutorialManager.setup_and_start_tutorial("basic")
-
-func _load_sponsors():
-	sponsor_option.clear()
-	available_sponsors.clear()
-	
-	# Add a "None" option first
-	sponsor_option.add_item("No Sponsor")
-	available_sponsors.append(null)
-	
-	var dir_path = "res://Data/Sponsors/"
-	
-	# Make sure the folder exists!
-	if not DirAccess.dir_exists_absolute(dir_path):
-		DirAccess.make_dir_absolute(dir_path)
-		return
-		
-	var dir = DirAccess.open(dir_path)
+func get_save_files() -> Array:
+	var files = []
+	var dir = DirAccess.open(SAVE_DIR)
 	if dir:
 		dir.list_dir_begin()
 		var file_name = dir.get_next()
 		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".tres"):
-				var sponsor = load(dir_path + file_name) as SponsorData
-				if sponsor:
-					available_sponsors.append(sponsor)
-					sponsor_option.add_item(sponsor.sponsor_name)
+			if not dir.current_is_dir() and file_name.ends_with(".tres"): # Changed to .tres
+				files.append(file_name)
 			file_name = dir.get_next()
+	return files
+
+func peek_save_file(filename: String) -> RunSaveData:
+	var path = SAVE_DIR + filename
+	if not FileAccess.file_exists(path): return null
+	return ResourceLoader.load(path) as RunSaveData
+
+func delete_save_file(filename: String):
+	var path = SAVE_DIR + filename
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+		print("Deleted save: " + filename)
+		
+func _show_save_notification():
+	var layer = CanvasLayer.new()
+	layer.layer = 100
+	add_child(layer)
+	
+	var panel = PanelContainer.new()
+	layer.add_child(panel)
+	
+	# 1. Anchor to Top-Left
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	
+	# 2. Set Grow Directions (Expand Right and Down from the corner)
+	panel.grow_horizontal = Control.GROW_DIRECTION_END
+	panel.grow_vertical = Control.GROW_DIRECTION_END
+	
+	# 3. Position offsets (20 pixels from the top and left edges)
+	panel.offset_left = 20
+	panel.offset_top = 20
+	
+	# --- CUSTOM THEME OVERRIDE ---
+	var custom_style = StyleBoxFlat.new()
+	custom_style.bg_color = Color(0, 0, 0, 0.8) 
+	custom_style.corner_radius_top_left = 6
+	custom_style.corner_radius_top_right = 6
+	custom_style.corner_radius_bottom_right = 6
+	custom_style.corner_radius_bottom_left = 6
+	custom_style.content_margin_left = 15
+	custom_style.content_margin_right = 15
+	custom_style.content_margin_top = 8
+	custom_style.content_margin_bottom = 8
+	
+	panel.add_theme_stylebox_override("panel", custom_style)
+	
+	# --- STYLING & TEXT ---
+	panel.modulate.a = 0.0
+	
+	var label = Label.new()
+	label.text = " GAME SAVED "
+	label.add_theme_font_size_override("font_size", 20)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	panel.add_child(label)
+	
+	# --- ANIMATION ---
+	var tween = create_tween()
+	tween.tween_property(panel, "modulate:a", 1.0, 0.5)
+	tween.tween_interval(1.5)
+	tween.tween_property(panel, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(layer.queue_free)
+
+# Call this whenever Player HP changes (Heal or Damage)
+func check_danger_state():
+	if not player_run_data: return
+	
+	var hp_percent = float(player_run_data.current_hp) / float(player_run_data.max_hp)
+	
+	# If HP is 25% or lower (and alive), trigger danger
+	if player_run_data.current_hp > 0 and hp_percent <= 0.25:
+		AudioManager.set_danger_mode(true)
+	else:
+		AudioManager.set_danger_mode(false)
+
+# --- GENERATION LOGIC ---
+# --- GENERATION LOGIC ---
+# --- GENERATION LOGIC ---
+# --- GENERATION LOGIC ---
+func generate_new_league():
+	tournament_map.clear()
+	current_map_index = 0
+	
+	print("Generating League " + str(leagues_completed + 1) + "...")
+	
+	var diff_offset = 0
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.VERY_EASY: diff_offset = -2
+		GameManager.Difficulty.EASY:      diff_offset = -1
+		GameManager.Difficulty.MEDIUM:    diff_offset = 0
+		GameManager.Difficulty.HARD:      diff_offset = 1
+		
+	var fight_counter = 0 
+	
+	# --- NEW: PICK A RIVAL AMBUSH NODE ---
+	# Pick a random node in the middle of the run (e.g., between node 5 and 15)
+	var rival_node_index = -1
+	if active_sponsor != null and active_sponsor.rival_character_name != "":
+		rival_node_index = randi_range(5, LEAGUE_LENGTH - 4)
+		rival_node_index = 0
+	# -------------------------------------
+	
+	for i in range(LEAGUE_LENGTH):
+		var node = MapNodeData.new()
+		var step_number = i + 1
+		var actual_progress_level = current_level + fight_counter 
+		var raw_rank = actual_progress_level + diff_offset
+		var fight_level = raw_rank if raw_rank > 0 else raw_rank - 1
+		
+		# 1. CHECK BOSS SCHEDULE
+		if BOSS_SCHEDULE.has(actual_progress_level):
+			node.type = MapNodeData.Type.BOSS
+			node.title = "RIVAL"
+			
+			var boss_path = BOSS_DIR + BOSS_SCHEDULE[actual_progress_level]
+			if ResourceLoader.exists(boss_path):
+				var boss_preset = load(boss_path) as PresetCharacter
+				node.enemy_data = ClassFactory.create_from_preset(boss_preset)
+				node.enemy_data.max_hp = max(1, node.enemy_data.max_hp + diff_offset)
+				node.enemy_data.max_sp = max(1, node.enemy_data.max_sp + diff_offset)
+				node.enemy_data.reset_stats()
+				node.enemy_data.character_name = "RIVAL: " + node.enemy_data.character_name
+			else:
+				node.enemy_data = ClassFactory.create_random_enemy(fight_level + 2, GameManager.ai_difficulty)
+			fight_counter += 1
+			
+		# 2. LEAGUE FINALS
+		elif i == LEAGUE_LENGTH - 1:
+			node.type = MapNodeData.Type.BOSS
+			node.title = "FINALS"
+			node.enemy_data = ClassFactory.create_random_enemy(fight_level + 2, GameManager.ai_difficulty)
+			node.enemy_data.character_name = "CHAMPION " + node.enemy_data.character_name
+			fight_counter += 1
+			
+		# --- NEW: 3. RIVAL GRUDGE MATCH INJECTION ---
+		elif i == rival_node_index:
+			node.type = MapNodeData.Type.BOSS # Treat them as a boss so the node is tinted
+			node.title = "HATER"
+			# Give them a slight +1 level bump before the massive Sponsor Buffs apply
+			#node.enemy_data = ClassFactory.create_random_enemy(fight_level + 1, GameManager.ai_difficulty)
+			# Overwrite their name so the Grudge Match logic detects them!
+			node.enemy_data.character_name = active_sponsor.rival_character_name
+			fight_counter += 1
+		# --------------------------------------------
+			
+		# 4. FIXED REST SPOTS (GYM)
+		elif randf() < 0.2 and i > 0:
+			node.type = MapNodeData.Type.GYM
+			node.title = "Training"
+			
+		# 5. STANDARD FIGHT
+		else:
+			node.type = MapNodeData.Type.FIGHT
+			node.title = "Round " + str(step_number)
+			node.enemy_data = ClassFactory.create_random_enemy(fight_level, GameManager.ai_difficulty)
+			fight_counter += 1
+			
+		node.is_locked = (i != 0)
+		tournament_map.append(node)
+	
+	save_run()
+
+# --- NAVIGATION ---
+func advance_map():
+	# Mark current node complete
+	if current_map_index < tournament_map.size():
+		tournament_map[current_map_index].is_completed = true
+		
+	current_map_index += 1
+	
+	# Check for League Victory
+	if current_map_index >= tournament_map.size():
+		handle_league_victory()
+	else:
+		# Unlock next node
+		tournament_map[current_map_index].is_locked = false
+		save_run()
+		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+func handle_league_victory():
+	leagues_completed += 1
+	print("League Complete! Starting next tier...")
+	# For now, just generate the next one immediately
+	# Later, we can add a "Victory Lap" screen
+	generate_new_league()
+	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+# Call this from the Deck Editor "Continue" button
+func exit_deck_editor():
+	if pending_advancement:
+		# Case: We just won a fight and grabbed rewards.
+		# Mark previous node complete and unlock the next one.
+		pending_advancement = false
+		advance_map()
+	else:
+		# Case: We just started a run, or loaded a save.
+		# The map is already ready, just go there.
+		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+# Call this from your TournamentMap script when a node is clicked!
+# Inside RunManager.gd
+
+# Inside RunManager.gd
+
+func start_map_fight(node_data: MapNodeData):
+	# 1. TRACK LOCATION
+	current_map_index = RunManager.tournament_map.find(node_data)
+	
+	# 2. DUPLICATE ENEMY DATA (Critical so buffs don't permanently alter the base resource file)
+	var enemy_copy = node_data.enemy_data.duplicate(true)
+	is_rival_match = false # Reset the flag for this specific fight
+	
+	# 3. RIVALRY SYSTEM (Check for Grudge Match)
+	if active_sponsor != null and enemy_copy.character_name == active_sponsor.rival_character_name:
+		is_rival_match = true
+		
+		# Apply Grudge Match Buffs
+		enemy_copy.max_hp += active_sponsor.rival_boss_hp_buff
+		enemy_copy.current_hp = enemy_copy.max_hp
+		enemy_copy.max_sp += active_sponsor.rival_boss_sp_buff
+		enemy_copy.current_sp = enemy_copy.max_sp
+		
+		print("!!! GRUDGE MATCH INITIATED against " + enemy_copy.character_name + " !!!")
+		
+		# Apply the custom intro text if the sponsor has one
+		# Pass the custom intro to our new override variable!
+		if active_sponsor.rival_custom_intro != "":
+			GameManager.rival_intro_override = active_sponsor.rival_custom_intro
+	else:
+		GameManager.rival_intro_override = ""
+
+	# 4. SETUP PLAYER & ENEMY (CRITICAL! DO NOT REMOVE)
+	GameManager.next_match_p1_data = player_run_data
+	GameManager.next_match_p2_data = enemy_copy
+	
+	# 5. RANDOMIZE ENVIRONMENT
+	var envs = ["Ring", "Dojo", "Street"]
+	var selected_env = envs.pick_random()
+	GameManager.apply_environment_rules(selected_env)
+	
+	# 6. START MUSIC (VS SCREEN MODE)
+	if AudioManager.has_method("play_location_music"):
+		AudioManager.play_location_music(selected_env)
+		
+		# Set to Intensity 1 (Calm/Intro) for the VS Screen
+		AudioManager.set_music_intensity(0.0, 0.0)
+
+	# 7. LAUNCH VS SCREEN
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
+
+
+# Call this inside RunManager's _ready() function!
+func _init_global_save():
+	if ResourceLoader.exists(GLOBAL_SAVE_PATH):
+		meta_data = load(GLOBAL_SAVE_PATH) as GlobalSaveData
+	else:
+		meta_data = GlobalSaveData.new()
+		_save_global_data()
+
+func _save_global_data():
+	ResourceSaver.save(meta_data, GLOBAL_SAVE_PATH)
+
+func add_circuit_tokens(amount: int):
+	var final_amount = amount
+	
+	# Apply Sponsor Multiplier if they have one!
+	if active_sponsor != null:
+		final_amount = roundi(final_amount * active_sponsor.meta_currency_multiplier)
+		
+	meta_data.circuit_tokens += final_amount
+	print(">>> GAINED %d CIRCUIT TOKENS! (Total Bank: %d) <<<" % [final_amount, meta_data.circuit_tokens])
+	
+	_save_global_data()
 

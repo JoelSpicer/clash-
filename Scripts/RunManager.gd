@@ -11,6 +11,7 @@ var current_rerolls: int = 0
 var active_gym_buff: String = ""
 
 var pending_advancement: bool = false
+var pending_reward: bool = false
 
 var current_run_name: String = "Test Run" # <--- NEW
 const SAVE_DIR = "user://saves/"
@@ -180,15 +181,14 @@ func start_next_fight():
 	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
 func handle_win():
-	# --- FIX: UNPAUSE THE GAME ---
-	# If we don't do this, the scene change might get stuck 
-	# or the next scene will start frozen.
 	get_tree().paused = false 
-	# -----------------------------
 	AudioManager.reset_audio_state()
 	print("Victory! Processing Level Up...")
+	
 	current_level += 1
-	save_run() # Save progress after winning
+	pending_reward = true # <--- Tell the game we are owed a reward!
+	
+	save_run() # Save progress AFTER setting the flag
 	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
 
 # Helper to fetch all equipment for the draft
@@ -406,11 +406,12 @@ func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition
 
 # --- UPDATE: REWARD ROUTING ---
 func handle_reward_complete():
-	save_run()
 	print("Reward Claimed. Going to Deck Editor...")
 	
-	# We just finished a reward, so when we leave the deck screen, we should advance the map.
-	pending_advancement = true 
+	pending_reward = false       # <--- We got our reward
+	pending_advancement = true   # <--- Now we need to advance the map
+	
+	save_run() # Save AFTER the flags are updated!
 	
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
@@ -427,6 +428,8 @@ func save_run():
 	save_data.current_map_index = current_map_index
 	save_data.difficulty = GameManager.ai_difficulty
 	save_data.maintain_hp = maintain_hp_enabled
+	save_data.pending_advancement = pending_advancement
+	save_data.pending_reward = pending_reward
 	save_data.tree_ids = player_owned_tree_ids.duplicate()
 	save_data.player_data = player_run_data
 	
@@ -460,17 +463,28 @@ func load_run(filename: String):
 	player_owned_tree_ids.assign(save_data.tree_ids)
 	
 	player_run_data = save_data.player_data
-	
-	# --- ADD THIS LINE ---
-	# Force the character name to match the Run Name (fixes old saves)
 	player_run_data.character_name = current_run_name
-	# ---------------------
 	
 	tournament_map.assign(save_data.map_data)
 	is_arcade_mode = true
-	pending_advancement = false 
 	
-	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+	# --- NEW: SAFELY FETCH FLAGS ---
+	# We use .get() here so that old save files from before you added 
+	# these variables don't crash the game!
+	pending_advancement = save_data.get("pending_advancement") if save_data.get("pending_advancement") != null else false
+	pending_reward = save_data.get("pending_reward") if save_data.get("pending_reward") != null else false
+	# -------------------------------
+	
+	# --- NEW: SMART ROUTING ---
+	if pending_reward:
+		# They won the fight but quit before picking loot!
+		SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
+	elif pending_advancement:
+		# They picked loot, but haven't advanced the map yet!
+		SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+	else:
+		# Default fallback: Put them on the map
+		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
 
 func get_save_files() -> Array:
 	var files = []
@@ -618,9 +632,9 @@ func generate_new_league():
 		# --- NEW: 3. RIVAL GRUDGE MATCH INJECTION ---
 		elif i == rival_node_index:
 			node.type = MapNodeData.Type.BOSS # Treat them as a boss so the node is tinted
-			node.title = "AMBUSH"
+			node.title = "HATER"
 			# Give them a slight +1 level bump before the massive Sponsor Buffs apply
-			node.enemy_data = ClassFactory.create_random_enemy(fight_level + 1, GameManager.ai_difficulty)
+			#node.enemy_data = ClassFactory.create_random_enemy(fight_level + 1, GameManager.ai_difficulty)
 			# Overwrite their name so the Grudge Match logic detects them!
 			node.enemy_data.character_name = active_sponsor.rival_character_name
 			fight_counter += 1

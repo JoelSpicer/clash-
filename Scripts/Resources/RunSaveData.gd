@@ -11,3 +11,6 @@ extends Resource
 @export var player_data: CharacterData
 @export var map_data: Array[MapNodeData] = []
 @export var timestamp: String = ""
+
+@export var pending_advancement: bool = false
+@export var pending_reward: bool = false
