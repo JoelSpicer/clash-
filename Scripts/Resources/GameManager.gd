@@ -176,9 +176,14 @@ func reset_combat():
 			# D. Collect Speed Bonus
 			p1_speed_bonus += equip.speed_bonus
 	
-		# --- NEW: APPLY SPONSOR MOMENTUM ---
+		# --- APPLY SPONSOR MOMENTUM ---
 	if RunManager.active_sponsor:
 		total_momentum_bonus += RunManager.active_sponsor.momentum_start_bonus
+		
+		# NEW: Check for Rival Handicap
+		if RunManager.is_rival_match:
+			total_momentum_bonus -= RunManager.active_sponsor.rival_momentum_handicap
+			print("Rival Handicap Applied! Momentum shifted by " + str(RunManager.active_sponsor.rival_momentum_handicap))
 	# -----------------------------------
 		
 	# --- 5. APPLY MOMENTUM STARTING POSITION ---

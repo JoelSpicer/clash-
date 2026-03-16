@@ -54,7 +54,23 @@ func _generate_rewards():
 			else:
 				choices.append(stat_upgrades.pick_random())
 	# ----------------------------------
-
+	
+	# --- NEW: GRUDGE MATCH PAYOUT ---
+	if RunManager.is_rival_match and RunManager.active_sponsor:
+		# 1. Give the unique item (if it exists)
+		if RunManager.active_sponsor.rival_reward_item != null:
+			# We insert it at the front of the array so it's the first card they see
+			choices.insert(0, RunManager.active_sponsor.rival_reward_item)
+			
+		# 2. (Optional) Award Currency
+		if RunManager.active_sponsor.rival_reward_currency_bonus > 0:
+			print("Awarded " + str(RunManager.active_sponsor.rival_reward_currency_bonus) + " Circuit Tokens!")
+			# You will hook this up later when we build the Meta-Save System
+			
+		# 3. Reset the flag so they don't get the item on the next normal node
+		RunManager.is_rival_match = false
+	# ---------------------------------
+	
 	# 4. Render Options
 	for reward in choices:
 		_create_reward_card(reward)

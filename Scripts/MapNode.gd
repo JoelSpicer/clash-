@@ -64,6 +64,16 @@ func setup(node_data: MapNodeData, index: int):
 		status.modulate = Color.YELLOW
 		button.disabled = false
 		
+		# --- NEW: RIVALRY DETECTOR ---
+		if RunManager.active_sponsor and data.enemy_data:
+			if data.enemy_data.character_name == RunManager.active_sponsor.rival_character_name:
+				label.text = "GRUDGE MATCH"
+				label.modulate = Color(1.0, 0.2, 0.2) # Bright Red Text
+				status.text = "! WARNING !"
+				status.modulate = Color.RED
+				modulate = Color(1.5, 0.8, 0.8) # Tint the whole panel red
+		# ------------------------------
+		
 		# Juice: Make the current node pulse!
 		var tween = create_tween().set_loops()
 		tween.tween_property(self, "scale", Vector2(1.05, 1.05), 0.5)

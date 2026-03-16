@@ -29,6 +29,7 @@ var current_enemy_data: CharacterData # The enemy we are currently fighting
 # --- CONFIGURATION ---
 # A standard "Cup" might be 8 steps long
 const LEAGUE_LENGTH = 20
+var is_rival_match: bool = false
 
 const BOSS_SCHEDULE = {
 	#5: "juggernaut_boss.tres",
@@ -667,24 +668,47 @@ func exit_deck_editor():
 # Inside RunManager.gd
 
 func start_map_fight(node_data: MapNodeData):
-	# --- 1. SETUP PLAYER & ENEMY (CRITICAL! DO NOT REMOVE) ---
-	GameManager.next_match_p1_data = player_run_data
-	GameManager.next_match_p2_data = node_data.enemy_data
-	# ---------------------------------------------------------
+	# 1. TRACK LOCATION
+	current_map_index = RunManager.tournament_map.find(node_data)
 	
-	# 2. Randomize Environment
+	# 2. DUPLICATE ENEMY DATA (Critical so buffs don't permanently alter the base resource file)
+	var enemy_copy = node_data.enemy_data.duplicate(true)
+	is_rival_match = false # Reset the flag for this specific fight
+	
+	# 3. RIVALRY SYSTEM (Check for Grudge Match)
+	if active_sponsor != null and enemy_copy.character_name == active_sponsor.rival_character_name:
+		is_rival_match = true
+		
+		# Apply Grudge Match Buffs
+		enemy_copy.max_hp += active_sponsor.rival_boss_hp_buff
+		enemy_copy.current_hp = enemy_copy.max_hp
+		enemy_copy.max_sp += active_sponsor.rival_boss_sp_buff
+		enemy_copy.current_sp = enemy_copy.max_sp
+		
+		print("!!! GRUDGE MATCH INITIATED against " + enemy_copy.character_name + " !!!")
+		
+		# Apply the custom intro text if the sponsor has one
+		if active_sponsor.rival_custom_intro != "":
+			GameManager.temp_p2_name = active_sponsor.rival_custom_intro
+	else:
+		# Reset the custom intro for normal fights just in case
+		GameManager.temp_p2_name = ""
+
+	# 4. SETUP PLAYER & ENEMY (CRITICAL! DO NOT REMOVE)
+	GameManager.next_match_p1_data = player_run_data
+	GameManager.next_match_p2_data = enemy_copy
+	
+	# 5. RANDOMIZE ENVIRONMENT
 	var envs = ["Ring", "Dojo", "Street"]
 	var selected_env = envs.pick_random()
 	GameManager.apply_environment_rules(selected_env)
 	
-	# 3. Start Music (VS SCREEN MODE)
+	# 6. START MUSIC (VS SCREEN MODE)
 	if AudioManager.has_method("play_location_music"):
 		AudioManager.play_location_music(selected_env)
 		
 		# Set to Intensity 1 (Calm/Intro) for the VS Screen
 		AudioManager.set_music_intensity(0.0, 0.0)
 
-	# 4. Launch VS Screen
-	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
-
+	# 7. LAUNCH VS SCREEN
 	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
