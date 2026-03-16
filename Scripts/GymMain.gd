@@ -16,9 +16,10 @@ func _ready():
 	# 2. Setup Texts
 	_update_stats_display()
 	
-	# HEAL: 30% of Max HP
-	var heal_amt = max(1, roundi(player.max_hp * 0.3))
+	# --- UPDATED: HEAL BUTTON TEXT ---
+	var heal_amt = _get_heal_amount()
 	btn_heal.text = "FIRST AID\n\nHeal %d HP\n(Immediate)" % heal_amt
+	# ---------------------------------mt
 	
 	# BLOCK: Flat 10 (You can adjust this number)
 	btn_block.text = "IRON STANCE\n\nStart Next Fight\nwith 10 Block"
@@ -44,8 +45,10 @@ func _update_stats_display():
 func _on_heal_pressed():
 	AudioManager.play_sfx("ui_confirm")
 	
-	var heal_amt = max(1, roundi(player.max_hp * 0.3))
+	# --- UPDATED: ACTUAL HEALING ---
+	var heal_amt = _get_heal_amount()
 	player.current_hp = min(player.current_hp + heal_amt, player.max_hp)
+	# -------------------------------
 	
 	flavor_text.text = "Patched up and ready to fight."
 	_finish_gym()
@@ -84,3 +87,12 @@ func _finish_gym():
 	
 	# Return to Map
 	RunManager.advance_map()
+
+# --- NEW: SPONSOR HEAL CALCULATION ---
+func _get_heal_amount() -> int:
+	var base_heal = max(1, roundi(player.max_hp * 0.3))
+	
+	if RunManager.active_sponsor:
+		base_heal = roundi(base_heal * RunManager.active_sponsor.gym_bonus_multiplier)
+		
+	return base_heal

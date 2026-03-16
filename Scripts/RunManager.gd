@@ -6,6 +6,7 @@ var player_run_data: CharacterData
 var player_owned_tree_ids: Array[int] = [] 
 var free_unlocks_remaining: int = 0
 var active_sponsor: SponsorData = null
+var current_rerolls: int = 0
 
 var active_gym_buff: String = ""
 
@@ -302,20 +303,33 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run", 
 	p_data.max_sp = 4
 	p_data.current_sp = 4
 	
-	# --- NEW: APPLY SPONSOR MODIFIERS ---
+	# --- APPLY SPONSOR MODIFIERS ---
 	if active_sponsor != null:
-		# Apply Stats
+		# Apply Base Stats
 		p_data.max_hp += active_sponsor.bonus_max_hp
 		p_data.max_sp += active_sponsor.bonus_max_sp
 		
-		# Ensure current HP/SP matches the newly buffed max [cite: 25]
+		# Apply Missing Stats
+		p_data.speed += active_sponsor.bonus_speed
+		
+		# If combo SP regen is 3, a bonus of 1 makes it 2 (faster regen)
+		if p_data.combo_sp_recovery_rate > 0:
+			p_data.combo_sp_recovery_rate = max(1, p_data.combo_sp_recovery_rate - active_sponsor.combo_sp_regen_bonus)
+		
+		# Ensure current HP/SP matches the newly buffed max
 		p_data.current_hp = p_data.max_hp
 		p_data.current_sp = p_data.max_sp
+		
+		# Apply Barrier (Temporary HP added ON TOP of max)
+		if active_sponsor.starting_barrier > 0:
+			p_data.current_hp += active_sponsor.starting_barrier
+			
+		# Grant Reroll Tokens
+		current_rerolls = active_sponsor.starting_rerolls
 		
 		# Give Starting Equipment
 		if active_sponsor.starting_equipment.size() > 0:
 			p_data.equipment.append_array(active_sponsor.starting_equipment)
-	# ------------------------------------
 
 	# 3. LOAD STARTING DECK 
 	p_data.unlocked_actions = ClassFactory.get_starting_deck(source_class.class_type)

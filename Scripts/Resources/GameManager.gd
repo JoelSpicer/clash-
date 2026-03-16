@@ -175,7 +175,12 @@ func reset_combat():
 			
 			# D. Collect Speed Bonus
 			p1_speed_bonus += equip.speed_bonus
-
+	
+		# --- NEW: APPLY SPONSOR MOMENTUM ---
+	if RunManager.active_sponsor:
+		total_momentum_bonus += RunManager.active_sponsor.momentum_start_bonus
+	# -----------------------------------
+		
 	# --- 5. APPLY MOMENTUM STARTING POSITION ---
 	# If we have a bonus, we skip the "0" (Neutral) state and start on our side.
 	# MOMENTUM_P1_MAX is the "front line". Subscripting moves it closer to the enemy wall (1).
@@ -670,7 +675,15 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		defender_block_mod += eq.block_modifier
 		thorns_dmg += eq.thorns
 	# -----------------------------------------
-
+	# --- NEW: APPLY SPONSOR PASSIVES ---
+	if owner_id == 1 and RunManager.active_sponsor:
+		dmg_mod += RunManager.active_sponsor.global_damage_mod
+		attacker_block_mod += RunManager.active_sponsor.global_block_mod
+		
+	if target_id == 1 and RunManager.active_sponsor:
+		defender_block_mod += RunManager.active_sponsor.global_block_mod
+		thorns_dmg += RunManager.active_sponsor.thorns_active
+	# -----------------------------------
 	var total_hits = max(1, my_card.repeat_count)
 	for i in range(total_hits):
 		

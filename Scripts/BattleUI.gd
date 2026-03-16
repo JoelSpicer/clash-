@@ -381,6 +381,18 @@ func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int
 	my_opportunity_val = opportunity_val 
 	feint_mode = is_feint_mode 
 	
+	# --- NEW: SPONSOR TOGGLES ---
+	if RunManager.active_sponsor:
+		# 1. Disable Supers
+		if RunManager.active_sponsor.disable_supers:
+			super_allowed = false
+			
+		# 2. Reveal Enemy Opener (Only triggers on Neutral/Start of fight)
+		if RunManager.active_sponsor.reveal_enemy_opener and GameManager.momentum == 0:
+			if GameManager.p2_action_queue:
+				_show_bark(2, "I'll open with " + GameManager.p2_action_queue.display_name + "!")
+	# ----------------------------- 
+	
 	if forced_tab != null:
 		_switch_tab(forced_tab)
 		btn_offence.disabled = (forced_tab != ActionData.Type.OFFENCE)
@@ -494,6 +506,13 @@ func _check_card_validity(card: ActionData, final_cost: int) -> bool:
 		can_afford = (current_hp_limit > final_cost)
 	else:
 		can_afford = (final_cost <= current_sp_limit)
+		
+	# --- NEW: SPONSOR FEINT COST ---
+	if feint_mode and RunManager.active_sponsor and RunManager.active_sponsor.feints_cost_hp:
+		# Allow combining SP and HP to pay for the feint
+		if (current_hp_limit + current_sp_limit) >= final_cost:
+			can_afford = true
+	# -------------------------------
 	
 	if not can_afford: return false
 

@@ -21,48 +21,62 @@ func _generate_rewards():
 	for c in container.get_children():
 		c.queue_free()
 		
-	# 2. Fetch Pools
 	var valid_actions = RunManager.get_valid_action_rewards()
 	var all_items = RunManager.get_all_equipment()
 	var stat_upgrades = RunManager.get_stat_upgrades()
 	
-	# Filter items player already has (Unique Equip Rule)
 	var valid_items = []
 	for item in all_items:
 		if not _player_has_item(item):
 			valid_items.append(item)
 	
-	# 3. THE "SAFETY SLOT" ALGORITHM
 	var choices = []
 	
-	# SLOT 1: ACTION (The Class Progression)
-	if valid_actions.size() > 0:
-		choices.append(valid_actions.pick_random())
-	else:
-		# Fallback if tree is maxed out
-		choices.append(stat_upgrades.pick_random())
+	# SLOT 1: ACTION
+	if valid_actions.size() > 0: choices.append(valid_actions.pick_random())
+	else: choices.append(stat_upgrades.pick_random())
 		
-	# SLOT 2: UPGRADE/ITEM (The Build Control)
-	# 50/50 chance between Equipment and Stats
-	if valid_items.size() > 0 and randf() > 0.5:
-		choices.append(valid_items.pick_random())
-	else:
-		choices.append(stat_upgrades.pick_random())
+	# SLOT 2: UPGRADE/ITEM 
+	if valid_items.size() > 0 and randf() > 0.5: choices.append(valid_items.pick_random())
+	else: choices.append(stat_upgrades.pick_random())
 		
-	# SLOT 3: WILDCARD (Pure Chaos)
+	# SLOT 3: WILDCARD
 	var roll = randf()
-	if roll < 0.4 and valid_actions.size() > 0: # 40% Action
-		# Try to pick a DIFFERENT action than slot 1
-		var act = valid_actions.pick_random()
-		choices.append(act) 
-	elif roll < 0.7 and valid_items.size() > 0: # 30% Item
-		choices.append(valid_items.pick_random())
-	else: # 30% Stat
-		choices.append(stat_upgrades.pick_random())
+	if roll < 0.4 and valid_actions.size() > 0: choices.append(valid_actions.pick_random())
+	elif roll < 0.7 and valid_items.size() > 0: choices.append(valid_items.pick_random())
+	else: choices.append(stat_upgrades.pick_random())
 		
+	# --- NEW: SPONSOR EXTRA OPTIONS ---
+	if RunManager.active_sponsor and RunManager.active_sponsor.extra_draft_options > 0:
+		for i in range(RunManager.active_sponsor.extra_draft_options):
+			if valid_actions.size() > 0 and randf() > 0.5:
+				choices.append(valid_actions.pick_random())
+			else:
+				choices.append(stat_upgrades.pick_random())
+	# ----------------------------------
+
 	# 4. Render Options
 	for reward in choices:
 		_create_reward_card(reward)
+		
+	# --- NEW: SPONSOR REROLLS ---
+	# Dynamically spawn a Reroll Button at the bottom if they have tokens
+	if RunManager.get("current_rerolls") != null and RunManager.current_rerolls > 0:
+		var reroll_btn = Button.new()
+		reroll_btn.text = "Reroll Options (" + str(RunManager.current_rerolls) + " left)"
+		reroll_btn.custom_minimum_size = Vector2(200, 50)
+		reroll_btn.add_theme_font_size_override("font_size", 20)
+		# Add it to the main screen, anchored bottom center
+		add_child(reroll_btn)
+		reroll_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		reroll_btn.position.y -= 50
+		
+		reroll_btn.pressed.connect(func():
+			AudioManager.play_sfx("ui_click")
+			RunManager.current_rerolls -= 1
+			reroll_btn.queue_free() # Remove button to refresh
+			_generate_rewards()     # Re-run this entire function!
+		)
 
 func _create_reward_card(reward):
 	var btn = Button.new()
