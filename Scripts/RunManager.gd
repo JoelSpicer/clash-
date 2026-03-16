@@ -31,6 +31,10 @@ var current_enemy_data: CharacterData # The enemy we are currently fighting
 const LEAGUE_LENGTH = 20
 var is_rival_match: bool = false
 
+# --- GLOBAL META DATA ---
+const GLOBAL_SAVE_PATH = "user://global_save.tres"
+var meta_data: GlobalSaveData
+
 const BOSS_SCHEDULE = {
 	#5: "juggernaut_boss.tres",
 	#10: "grandmaster_boss.tres"
@@ -38,6 +42,11 @@ const BOSS_SCHEDULE = {
 
 # ... (start_run and start_run_from_preset remain exactly the same) ...
 var next_fight_statuses: Array[String] = []
+
+# --- ADD THIS RIGHT HERE ---
+func _ready():
+	_init_global_save()
+# -------------------------
 
 # OPTION A: STANDARD RUN (Level 1, Drafting)
 func start_run(starting_class: CharacterData.ClassType):
@@ -712,3 +721,27 @@ func start_map_fight(node_data: MapNodeData):
 
 	# 7. LAUNCH VS SCREEN
 	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
+
+
+# Call this inside RunManager's _ready() function!
+func _init_global_save():
+	if ResourceLoader.exists(GLOBAL_SAVE_PATH):
+		meta_data = load(GLOBAL_SAVE_PATH) as GlobalSaveData
+	else:
+		meta_data = GlobalSaveData.new()
+		_save_global_data()
+
+func _save_global_data():
+	ResourceSaver.save(meta_data, GLOBAL_SAVE_PATH)
+
+func add_circuit_tokens(amount: int):
+	var final_amount = amount
+	
+	# Apply Sponsor Multiplier if they have one!
+	if active_sponsor != null:
+		final_amount = roundi(final_amount * active_sponsor.meta_currency_multiplier)
+		
+	meta_data.circuit_tokens += final_amount
+	print(">>> GAINED %d CIRCUIT TOKENS! (Total Bank: %d) <<<" % [final_amount, meta_data.circuit_tokens])
+	
+	_save_global_data()

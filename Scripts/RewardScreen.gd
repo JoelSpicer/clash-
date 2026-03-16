@@ -9,9 +9,24 @@ var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
 
 func _ready():
 	AudioManager.play_music("menu_theme")
+	
 	# 1. Add Overlay
 	var overlay = overlay_scene.instantiate()
 	add_child(overlay)
+	
+	# --- NEW: AWARD META CURRENCY ---
+	var tokens_earned = 1 # Base payout for winning any fight
+	
+	# Check for massive Grudge Match payout
+	if RunManager.is_rival_match and RunManager.active_sponsor:
+		tokens_earned += RunManager.active_sponsor.rival_reward_currency_bonus
+		
+		# Reset the flag so they don't get the boss loot again!
+		RunManager.is_rival_match = false 
+	
+	# Add it to the global bank!
+	RunManager.add_circuit_tokens(tokens_earned)
+	# --------------------------------
 	
 	# 2. Generate Rewards
 	_generate_rewards()
@@ -68,7 +83,7 @@ func _generate_rewards():
 			# You will hook this up later when we build the Meta-Save System
 			
 		# 3. Reset the flag so they don't get the item on the next normal node
-		RunManager.is_rival_match = false
+		#RunManager.is_rival_match = false
 	# ---------------------------------
 	
 	# 4. Render Options
