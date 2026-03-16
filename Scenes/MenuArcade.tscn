@@ -103,6 +103,40 @@ text = "Maintain HP Between Fights?"
 [node name="SponsorOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1919069859]
 layout_mode = 2
 
+[node name="SponsorInfoPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1381000458]
+custom_minimum_size = Vector2(300, 80)
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel" unique_id=1730199948]
+layout_mode = 2
+
+[node name="SponsorIcon" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox" unique_id=1992555505]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox" unique_id=541054633]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SponsorName" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox/VBox" unique_id=1710794035]
+layout_mode = 2
+text = "Name"
+horizontal_alignment = 1
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="SponsorDesc" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox/VBox" unique_id=276428090]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8431839, 0.8431839, 0.84318376, 1)
+theme_override_font_sizes/font_size = 15
+text = "Desc"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
 [node name="NameInput" type="LineEdit" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1793080627]
 layout_mode = 2
 placeholder_text = "Enter Run Name..."

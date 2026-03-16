@@ -102,6 +102,8 @@ var temp_p1_name: String = ""
 var temp_p2_name: String = ""
 var temp_p1_preset: Resource = null
 var temp_p2_preset: Resource = null
+
+var rival_intro_override: String = ""
 #endregion
 
 # ==============================================================================

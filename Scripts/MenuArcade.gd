@@ -6,6 +6,10 @@ extends Control
 @onready var portrait_rect = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
 @onready var tutorial_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/TutorialButton
 @onready var sponsor_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorOption
+@onready var sponsor_info_panel = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel
+@onready var sponsor_icon = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox/SponsorIcon
+@onready var sponsor_name = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox/VBox/SponsorName
+@onready var sponsor_desc = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox/VBox/SponsorDesc
 var available_sponsors: Array[SponsorData] = []
 # Settings
 @onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
@@ -294,6 +298,9 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		name_input.editable = false
 		name_input.text = text
 		
+		sponsor_option.disabled = true
+		sponsor_info_panel.hide() # Hide it to avoid confusion
+		
 		var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
 		if data == null: return
 		# Ensure the fighter's internal name matches the Run Name for the VS Screen/UI
@@ -314,6 +321,9 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		selected_index = index
 		start_btn.text = "START RUN"
 		name_input.editable = true
+		
+		sponsor_option.disabled = false
+		_on_sponsor_selected(sponsor_option.selected) # Bring the panel back!
 		
 		# FIX: If we clicked a save file previously, reset dropdown to Medium
 		if difficulty_option.disabled == true:
@@ -358,3 +368,28 @@ func _load_sponsors():
 					available_sponsors.append(sponsor)
 					sponsor_option.add_item(sponsor.sponsor_name)
 			file_name = dir.get_next()
+			
+	# --- NEW: CONNECT SIGNAL AND INITIALIZE ---
+	if not sponsor_option.item_selected.is_connected(_on_sponsor_selected):
+		sponsor_option.item_selected.connect(_on_sponsor_selected)
+		
+	# Force it to update right away so the panel hides if "No Sponsor" is the default
+	_on_sponsor_selected(sponsor_option.selected)
+
+# --- SPONSOR VISUALS ---
+func _on_sponsor_selected(index: int):
+	var sponsor = available_sponsors[index]
+	
+	if sponsor == null:
+		# "No Sponsor" selected
+		sponsor_info_panel.hide()
+	else:
+		sponsor_info_panel.show()
+		sponsor_name.text = sponsor.sponsor_name
+		sponsor_desc.text = sponsor.description
+		
+		if sponsor.icon:
+			sponsor_icon.texture = sponsor.icon
+		else:
+			# Fallback icon if you forgot to assign one
+			sponsor_icon.texture = preload("res://Art/Icons/icon_Opportunity.png")

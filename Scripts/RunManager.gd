@@ -566,8 +566,6 @@ func generate_new_league():
 	
 	print("Generating League " + str(leagues_completed + 1) + "...")
 	
-	# 1. Calculate Difficulty Offset
-	# Medium starts at base (0). Very Easy pushes you 2 steps back (-2).
 	var diff_offset = 0
 	match GameManager.ai_difficulty:
 		GameManager.Difficulty.VERY_EASY: diff_offset = -2
@@ -577,18 +575,19 @@ func generate_new_league():
 		
 	var fight_counter = 0 
 	
+	# --- NEW: PICK A RIVAL AMBUSH NODE ---
+	# Pick a random node in the middle of the run (e.g., between node 5 and 15)
+	var rival_node_index = -1
+	if active_sponsor != null and active_sponsor.rival_character_name != "":
+		rival_node_index = randi_range(5, LEAGUE_LENGTH - 4)
+		rival_node_index = 0
+	# -------------------------------------
+	
 	for i in range(LEAGUE_LENGTH):
 		var node = MapNodeData.new()
 		var step_number = i + 1
-		
-		# The player's actual progression step (1, 2, 3...)
 		var actual_progress_level = current_level + fight_counter 
-		
-		# Apply the difficulty shift (Results in -1, 0, 1...)
 		var raw_rank = actual_progress_level + diff_offset
-		
-		# THE ZERO-SKIPPER: If rank is 0 or less, subtract 1 to skip zero.
-		# Example for Very Easy: rank -1 becomes Level -2. rank 0 becomes Level -1. rank 1 stays Level 1.
 		var fight_level = raw_rank if raw_rank > 0 else raw_rank - 1
 		
 		# 1. CHECK BOSS SCHEDULE
@@ -600,7 +599,6 @@ func generate_new_league():
 			if ResourceLoader.exists(boss_path):
 				var boss_preset = load(boss_path) as PresetCharacter
 				node.enemy_data = ClassFactory.create_from_preset(boss_preset)
-				# Apply difficulty scaling to the preset boss
 				node.enemy_data.max_hp = max(1, node.enemy_data.max_hp + diff_offset)
 				node.enemy_data.max_sp = max(1, node.enemy_data.max_sp + diff_offset)
 				node.enemy_data.reset_stats()
@@ -608,13 +606,8 @@ func generate_new_league():
 			else:
 				node.enemy_data = ClassFactory.create_random_enemy(fight_level + 2, GameManager.ai_difficulty)
 			fight_counter += 1
-				
-		# 2. FIXED REST SPOTS (GYM)
-		elif randf() < 0.2 and i > 0:
-			node.type = MapNodeData.Type.GYM
-			node.title = "Training"
 			
-		# 3. LEAGUE FINALS
+		# 2. LEAGUE FINALS
 		elif i == LEAGUE_LENGTH - 1:
 			node.type = MapNodeData.Type.BOSS
 			node.title = "FINALS"
@@ -622,7 +615,23 @@ func generate_new_league():
 			node.enemy_data.character_name = "CHAMPION " + node.enemy_data.character_name
 			fight_counter += 1
 			
-		# 4. STANDARD FIGHT
+		# --- NEW: 3. RIVAL GRUDGE MATCH INJECTION ---
+		elif i == rival_node_index:
+			node.type = MapNodeData.Type.BOSS # Treat them as a boss so the node is tinted
+			node.title = "AMBUSH"
+			# Give them a slight +1 level bump before the massive Sponsor Buffs apply
+			node.enemy_data = ClassFactory.create_random_enemy(fight_level + 1, GameManager.ai_difficulty)
+			# Overwrite their name so the Grudge Match logic detects them!
+			node.enemy_data.character_name = active_sponsor.rival_character_name
+			fight_counter += 1
+		# --------------------------------------------
+			
+		# 4. FIXED REST SPOTS (GYM)
+		elif randf() < 0.2 and i > 0:
+			node.type = MapNodeData.Type.GYM
+			node.title = "Training"
+			
+		# 5. STANDARD FIGHT
 		else:
 			node.type = MapNodeData.Type.FIGHT
 			node.title = "Round " + str(step_number)
@@ -697,11 +706,11 @@ func start_map_fight(node_data: MapNodeData):
 		print("!!! GRUDGE MATCH INITIATED against " + enemy_copy.character_name + " !!!")
 		
 		# Apply the custom intro text if the sponsor has one
+		# Pass the custom intro to our new override variable!
 		if active_sponsor.rival_custom_intro != "":
-			GameManager.temp_p2_name = active_sponsor.rival_custom_intro
+			GameManager.rival_intro_override = active_sponsor.rival_custom_intro
 	else:
-		# Reset the custom intro for normal fights just in case
-		GameManager.temp_p2_name = ""
+		GameManager.rival_intro_override = ""
 
 	# 4. SETUP PLAYER & ENEMY (CRITICAL! DO NOT REMOVE)
 	GameManager.next_match_p1_data = player_run_data

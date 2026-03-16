@@ -8,7 +8,13 @@
 [resource]
 script = ExtResource("1_65364")
 sponsor_name = "CRASH Supplements"
+description = "+10 Max SP, Provides free energy drinks"
 flavor_quote = "\"I love that classic taste!\""
 bonus_max_sp = 10
 starting_equipment = Array[ExtResource("3_enlbk")]([ExtResource("4_vxw0f")])
+rival_character_name = "CRASH Hater"
+rival_custom_intro = "I can't believe you drink that stuff!"
+rival_boss_hp_buff = 1
+rival_boss_sp_buff = 1
+rival_reward_currency_bonus = 10
 metadata/_custom_type_script = "uid://c45g8d8d4wjtr"

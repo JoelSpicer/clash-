@@ -8,6 +8,7 @@
 [resource]
 script = ExtResource("1_ffhlm")
 sponsor_name = "SLAM Supplements"
+description = "+10 Max HP, Provides free energy drinks"
 flavor_quote = "\"I love that classic taste!\""
 bonus_max_hp = 10
 starting_equipment = Array[ExtResource("3_sgqji")]([ExtResource("4_8gnev")])

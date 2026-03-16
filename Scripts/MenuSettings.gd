@@ -12,6 +12,8 @@ extends Control
 # --- META DEBUG REFERENCES ---
 @onready var token_label = $CenterContainer/VBoxContainer/TokenLabel
 @onready var reset_tokens_btn = $CenterContainer/VBoxContainer/ResetTokensBtn
+@onready var add_tokens_btn = $CenterContainer/VBoxContainer/AddTokensBtn     # NEW
+@onready var minus_tokens_btn = $CenterContainer/VBoxContainer/MinusTokensBtn # NEW
 
 func _ready():
 	# 1. Setup Audio
@@ -31,6 +33,10 @@ func _ready():
 	
 	if reset_tokens_btn:
 		reset_tokens_btn.pressed.connect(_on_reset_tokens_pressed)
+	if add_tokens_btn:
+		add_tokens_btn.pressed.connect(_on_add_tokens_pressed)
+	if minus_tokens_btn:
+		minus_tokens_btn.pressed.connect(_on_minus_tokens_pressed)
 
 
 # --- SETUP HELPER: AUDIO ---
@@ -67,9 +73,24 @@ func _update_token_display():
 func _on_reset_tokens_pressed():
 	if RunManager.meta_data:
 		RunManager.meta_data.circuit_tokens = 0
-		RunManager._save_global_data() # Instantly write the 0 to the hard drive
+		RunManager._save_global_data()
 		_update_token_display()
 		print("DEBUG: Circuit Tokens reset to 0.")
+
+func _on_add_tokens_pressed():
+	if RunManager.meta_data:
+		RunManager.meta_data.circuit_tokens += 1
+		RunManager._save_global_data()
+		_update_token_display()
+		print("DEBUG: Added 1 Circuit Token.")
+
+func _on_minus_tokens_pressed():
+	if RunManager.meta_data:
+		# Use max() to prevent tokens from going below 0
+		RunManager.meta_data.circuit_tokens = max(0, RunManager.meta_data.circuit_tokens - 1)
+		RunManager._save_global_data()
+		_update_token_display()
+		print("DEBUG: Removed 1 Circuit Token.")
 
 
 # --- EVENT HANDLER: AUDIO ---

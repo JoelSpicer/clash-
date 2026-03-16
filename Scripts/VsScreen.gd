@@ -134,8 +134,15 @@ func _play_intro_animation():
 	var p1_data = GameManager.next_match_p1_data
 	var p2_data = GameManager.next_match_p2_data
 	var banter = DialogueManager.get_intro_banter(p1_data, p2_data)
+	
 	p1_bubble.text = banter["p1"]
-	p2_bubble.text = banter["p2"]
+	
+	# --- NEW: RIVAL DIALOGUE OVERRIDE ---
+	if GameManager.rival_intro_override != "":
+		p2_bubble.text = GameManager.rival_intro_override
+	else:
+		p2_bubble.text = banter["p2"]
+	# ------------------------------------
 	
 	# --- PHASE 4: TYPEWRITER SEQUENCE ---
 	

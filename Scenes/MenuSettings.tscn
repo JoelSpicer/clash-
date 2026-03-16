@@ -82,6 +82,15 @@ layout_mode = 2
 
 [node name="TokenLabel" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1783921969]
 layout_mode = 2
+horizontal_alignment = 1
+
+[node name="AddTokensBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1636988375]
+layout_mode = 2
+text = "Add Token"
+
+[node name="MinusTokensBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1835107433]
+layout_mode = 2
+text = "Remove Token"
 
 [node name="ResetTokensBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1713479956]
 layout_mode = 2
