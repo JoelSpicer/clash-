@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://b6wj7jbw7qa6y"]
+
+[ext_resource type="Script" uid="uid://cwl6ggt48lx4x" path="res://Scripts/Tools/StructureExporter.gd" id="1_lc1oi"]
+
+[node name="Node" type="Node" unique_id=1004545350]
+script = ExtResource("1_lc1oi")

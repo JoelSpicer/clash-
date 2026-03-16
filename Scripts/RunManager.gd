@@ -5,6 +5,7 @@ var current_level: int = 1
 var player_run_data: CharacterData
 var player_owned_tree_ids: Array[int] = [] 
 var free_unlocks_remaining: int = 0
+var active_sponsor: SponsorData = null
 
 var active_gym_buff: String = ""
 
@@ -267,65 +268,74 @@ func apply_reward(reward):
 # 1. Standard Start (From Class Selection)
 # CHANGED: Accept the Resource (ClassStats) instead of just an int
 # Update this function
-func start_new_run(source_class: ClassDefinition, run_name: String = "New Run"):
-	current_run_name = run_name # <--- Set the name!n):
-	# --- ADD THIS LINE ---
+func start_new_run(source_class: ClassDefinition, run_name: String = "New Run", sponsor: SponsorData = null):
+	current_run_name = run_name 
 	is_arcade_mode = true 
-	# ---------------------
+	
 	# 1. Reset Run State
 	current_level = 1
 	player_owned_tree_ids.clear()
 	free_unlocks_remaining = 0
-	leagues_completed = 0 # Reset league count
+	leagues_completed = 0 
+	
+	# --- NEW: SET ACTIVE SPONSOR ---
+	active_sponsor = sponsor
+	
 	# 2. Create Character Data
 	var p_data = CharacterData.new()
 	
-	# --- FIX START: COPY IDENTITY FROM RESOURCE ---
-	p_data.class_type = source_class.class_type # Crucial: Sets the Enum (Heavy/Quick/etc)
-	p_data.character_name = source_class.class_named
+	p_data.class_type = source_class.class_type 
 	p_data.character_name = run_name
 	p_data.portrait = source_class.portrait
 	p_data.passive_desc = source_class.passive_description
 	
-	# --- NEW: COPY PASSIVES ---
 	p_data.can_pay_with_hp = source_class.can_pay_with_hp
 	p_data.tiring_drains_hp = source_class.tiring_drains_hp
 	p_data.combo_sp_recovery_rate = source_class.combo_sp_recovery_rate
 	p_data.has_bide_mechanic = source_class.has_bide_mechanic
 	p_data.has_keep_up_toggle = source_class.has_keep_up_toggle
 	p_data.has_technique_dropdown = source_class.has_technique_dropdown
-	# -------
 	
-	# Copy Stats (Optional: if your resource has custom start stats)
+	# Set Base Stats [cite: 25]
 	p_data.max_hp = 5
 	p_data.current_hp = 5
 	p_data.max_sp = 4
 	p_data.current_sp = 4
-	# --- FIX END ---
 	
-	#print("Starting Run: " + p_data.display_name + " (" + str(p_data.class_type) + ")")
-	
-# 3. LOAD STARTING DECK (Fixed)
-	# We ask the Factory for the full deck (Basics + Class Specials)
+	# --- NEW: APPLY SPONSOR MODIFIERS ---
+	if active_sponsor != null:
+		# Apply Stats
+		p_data.max_hp += active_sponsor.bonus_max_hp
+		p_data.max_sp += active_sponsor.bonus_max_sp
+		
+		# Ensure current HP/SP matches the newly buffed max [cite: 25]
+		p_data.current_hp = p_data.max_hp
+		p_data.current_sp = p_data.max_sp
+		
+		# Give Starting Equipment
+		if active_sponsor.starting_equipment.size() > 0:
+			p_data.equipment.append_array(active_sponsor.starting_equipment)
+	# ------------------------------------
+
+	# 3. LOAD STARTING DECK 
 	p_data.unlocked_actions = ClassFactory.get_starting_deck(source_class.class_type)
+	
+	# --- NEW: ADD SPONSOR CARDS TO DECK ---
+	if active_sponsor != null and active_sponsor.starting_cards.size() > 0:
+		p_data.unlocked_actions.append_array(active_sponsor.starting_cards)
 	
 	# 4. Auto-Unlock Class Starter Node
 	_unlock_class_starters(p_data, source_class)
 	
 	# 5. Fill Initial Hand
-	# Since unlocked_actions is now complete, this will fill the hand correctly
 	for action in p_data.unlocked_actions:
 		if p_data.deck.size() < ClassFactory.HAND_LIMIT:
 			p_data.deck.append(action)
 	
 	# 6. Save & Route
 	player_run_data = p_data
-	#SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 	
-	# --- CHANGED: GENERATE MAP INSTEAD OF SCENE CHANGE ---
 	generate_new_league()
-	
-	# Go to the Map Screen (The player will click "Round 1" to start)
 	pending_advancement = false 
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 

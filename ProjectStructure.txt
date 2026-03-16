@@ -1,0 +1,330 @@
+=== GODOT PROJECT STRUCTURE ===
+Generated: 2026-03-10T09:52:51
+
+res://
+    [+] Art/
+        [+] Background/
+             -  1.png
+             -  Dojo.png
+             -  Library.png
+             -  LockerRoom.png
+             -  Ring.png
+             -  Street.png
+        [+] Fonts/
+             -  MainGameFont.tres
+             -  NotoEmoji-VariableFont_wght.ttf
+             -  OpenSans-VariableFont_wdth,wght.ttf
+             -  Oswald-VariableFont_wght.ttf
+        [+] Icons/
+             -  icon_Bide.png
+             -  icon_Injured.png
+             -  icon_Opening.png
+             -  icon_Opportunity.png
+             -  해리포터 버프.png
+             -  해리포터 버프2.png
+             -  해리포터 버프3.png
+             -  해리포터 버프4.png
+             -  해리포터 버프5.png
+             -  해리포터 버프6.png
+             -  해리포터 버프7.png
+        [+] Portraits/
+             -  Heavy.png
+             -  Patient.png
+             -  Quick.png
+             -  Technical.png
+        [+] Themes/
+             -  DarkTheme.tres
+             -  MainTheme.tres
+         -  DefenceBasic.jpg
+         -  OffenceBasic.jpg
+         -  balance_report.csv
+         -  logo-no-background.png
+         -  logo-transparent_grey_nosplash.png
+    [+] Audio/
+        [+] Combat/
+             -  block.wav
+             -  buff.wav
+             -  clash.wav
+             -  clash_win.wav
+             -  hit_heavy.wav
+             -  hit_light.wav
+        [+] Music/
+            [+] Ovani Packs/
+                [+] Bound (RT 2.652)/
+                     -  HipHop Vol3 Bound Cut 30.wav
+                     -  HipHop Vol3 Bound Cut 60.wav
+                     -  HipHop Vol3 Bound Intensity 1.wav
+                     -  HipHop Vol3 Bound Intensity 2.wav
+                     -  HipHop Vol3 Bound Main.wav
+                [+] Crate Digger (RT 1.163)/
+                     -  HipHop Vol3 Crate Digger Cut 30.wav
+                     -  HipHop Vol3 Crate Digger Cut 60.wav
+                     -  HipHop Vol3 Crate Digger Intensity 1.wav
+                     -  HipHop Vol3 Crate Digger Intensity 2.wav
+                     -  HipHop Vol3 Crate Digger Main.wav
+                [+] Harihara (RT 1.938)/
+                     -  HipHop Vol3 Harihara Cut 30.wav
+                     -  HipHop Vol3 Harihara Cut 60.wav
+                     -  HipHop Vol3 Harihara Intensity 1.wav
+                     -  HipHop Vol3 Harihara Intensity 2.wav
+                     -  HipHop Vol3 Harihara Main.wav
+                [+] Swangy (RT 3.0)/
+                    [+] Crate Digger (RT 1.163)/
+                         -  HipHop Vol3 Crate Digger Cut 30.wav
+                         -  HipHop Vol3 Crate Digger Cut 60.wav
+                         -  HipHop Vol3 Crate Digger Intensity 1.wav
+                         -  HipHop Vol3 Crate Digger Intensity 2.wav
+                         -  HipHop Vol3 Crate Digger Main.wav
+                     -  HipHop Vol3 Swangy Cut 30.wav
+                     -  HipHop Vol3 Swangy Cut 60.wav
+                     -  HipHop Vol3 Swangy Intensity 1.wav
+                     -  HipHop Vol3 Swangy Intensity 2.wav
+                     -  HipHop Vol3 Swangy Main.wav
+             -  BattleRing.wav
+             -  BattleStreet.wav
+             -  BattleTheme.wav
+             -  MenuTheme.wav
+             -  SongDojo.tres
+             -  SongMenus.tres
+             -  SongRing.tres
+             -  SongStreet.tres
+        [+] SFX/
+             -  heartbeat.wav
+        [+] UI/
+             -  click.wav
+             -  game_start.ogg
+             -  hover.wav
+    [+] Data/
+        [+] Actions/
+             -  100_hand_slap.tres
+             -  active_block.tres
+             -  adept_block.tres
+             -  adept_dodge.tres
+             -  adept_heavy.tres
+             -  adept_light.tres
+             -  adept_parry.tres
+             -  adept_positioning.tres
+             -  adept_reversal.tres
+             -  adept_tech.tres
+             -  adjust_stance.tres
+             -  advancing_parry.tres
+             -  basic_block.tres
+             -  basic_dodge.tres
+             -  basic_heavy.tres
+             -  basic_light.tres
+             -  basic_parry.tres
+             -  basic_positioning.tres
+             -  basic_reversal.tres
+             -  basic_technical.tres
+             -  breakout.tres
+             -  catch.tres
+             -  counter_strike.tres
+             -  crushing_block.tres
+             -  discombobulate.tres
+             -  draining_defence.tres
+             -  drop_kick.tres
+             -  drop_prone.tres
+             -  drop_punch.tres
+             -  elbow_block.tres
+             -  evading_dance.tres
+             -  final_strike.tres
+             -  flying_kick.tres
+             -  go_with_the_flow.tres
+             -  grab.tres
+             -  hand_catch.tres
+             -  haymaker.tres
+             -  headbutt.tres
+             -  immovable_stance.tres
+             -  inner_peace.tres
+             -  knee_crush.tres
+             -  lariat.tres
+             -  leg_sweep.tres
+             -  master_block.tres
+             -  master_dodge.tres
+             -  master_heavy.tres
+             -  master_light.tres
+             -  master_parry.tres
+             -  master_positioning.tres
+             -  master_reversal.tres
+             -  master_tech.tres
+             -  one_two.tres
+             -  overwhelming_aura.tres
+             -  parry_follow_up.tres
+             -  perfect_block.tres
+             -  perfect_strike.tres
+             -  precise_strike.tres
+             -  preparation.tres
+             -  prime.tres
+             -  pummel.tres
+             -  push.tres
+             -  push_kick.tres
+             -  quick_dodge.tres
+             -  read_defence.tres
+             -  read_offence.tres
+             -  redirect.tres
+             -  resounding_counter.tres
+             -  resounding_parry.tres
+             -  retreating_defence.tres
+             -  roll_punch.tres
+             -  roundhouse_kick.tres
+             -  slapping_parry.tres
+             -  slip_behind.tres
+             -  step_up.tres
+             -  strike_back.tres
+             -  suplex.tres
+             -  throw.tres
+             -  tiring_parry.tres
+             -  toppling_kick.tres
+             -  twist_arm.tres
+             -  ultimate_barrage.tres
+             -  unassailable_stance.tres
+             -  untouchable_dodge.tres
+             -  uppercut.tres
+             -  vital_point_assault.tres
+             -  vital_strike.tres
+             -  weave.tres
+             -  wind_up.tres
+        [+] Classes/
+             -  HeavyClass.tres
+             -  PatientClass.tres
+             -  QuickClass.tres
+             -  TechnicalClass.tres
+        [+] Equipment/
+             -  Adrenaline.tres
+             -  AfterFightSnacks.tres
+             -  BodyArmour.tres
+             -  BoxingTape.tres
+             -  EnergyDrink.tres
+             -  SpikedCleats.tres
+             -  SpikedJacket.tres
+             -  WeightedKnuckles.tres
+        [+] Presets/
+            [+] Bosses/
+                 -  grandmaster_boss.tres
+                 -  juggernaut_boss.tres
+             -  Crash_Johnson_Lv6.tres
+             -  Kaiji_Akagi_Lv6.tres
+         -  ALLACTIONS.csv
+         -  enemy_names.txt
+    [+] Scenes/
+        [+] UI/
+             -  MapNode.tscn
+         -  ActionNode.tscn
+         -  ActionTree.tscn
+         -  AudioManager.tscn
+         -  BalanceTester.tscn
+         -  BattleUI.gdshader
+         -  BattleUI.tscn
+         -  BattleUI.tscn111634411308.tmp
+         -  CardButton.tscn
+         -  CardDisplay.tscn
+         -  CarouselHub.tscn
+         -  CharacterSelect.tscn
+         -  CombatLog.tscn
+         -  DeckEditScreen.tscn
+         -  EventRoom.tscn
+         -  FloatingText.tscn
+         -  GameOverScreen.tscn
+         -  GlobalCinematics.gdshader
+         -  GlobalCinematics.tscn
+         -  Gym.tscn
+         -  MainMenu.tscn
+         -  MainScene.tscn
+         -  MainScene.tscn116787772057.tmp
+         -  MainScene.tscn96360625085.tmp
+         -  MainScene.tscn96859657817.tmp
+         -  MenuArcade.tscn
+         -  MenuQuick.tscn
+         -  MenuSettings.tscn
+         -  Pausemenu.tscn
+         -  PlayerHUD.tscn
+         -  RewardScreen.tscn
+         -  RunStatusOverlay.tscn
+         -  SceneLoader.tscn
+         -  SplashScreen.tscn
+         -  TournamentMap.tscn
+         -  TutorialLayer.gdshader
+         -  TutorialLayer.tscn
+         -  VsScreen.tscn
+         -  compendium.tscn
+         -  equipmentdraft.tscn
+         -  test.tscn
+    [+] Scripts/
+        [+] Resources/
+             -  ActionData.gd
+             -  CharacterData.gd
+             -  ClassDefinition.gd
+             -  DialogueManager.gd
+             -  EquipmentData.gd
+             -  GameManager.gd
+             -  MapNodeData.gd
+             -  PresetCharacter.gd
+             -  RunSaveData.gd
+        [+] Tools/
+             -  ActionImporter.gd
+             -  BulkIconAssigner.gd
+             -  ProjectDumper.gd
+             -  ProjectExporter.gd
+             -  SceneDumper.gd
+             -  StructureExporter.gd
+         -  ActionNode.gd
+         -  ActionTree.gd
+         -  AudioManager.gd
+         -  BalanceTester.gd
+         -  BattleUI.gd
+         -  CardButton.gd
+         -  CardDisplay.gd
+         -  CarouselHub.gd
+         -  ClassFactory.gd
+         -  CombatLog.gd
+         -  DeckEditScreen.gd
+         -  EventRoom.gd
+         -  FloatingText.gd
+         -  GameOverScreen.gd
+         -  GlobalCinematics.gd
+         -  GymMain.gd
+         -  HitStopManager.gd
+         -  LinesLayer.gd
+         -  MainMenu.gd
+         -  MapNode.gd
+         -  MenuArcade.gd
+         -  MenuQuick.gd
+         -  MenuSettings.gd
+         -  PlayerHud.gd
+         -  RewardScreen.gd
+         -  RunManager.gd
+         -  RunStatusOverlay.gd
+         -  SceneLoader.gd
+         -  SettingsManager.gd
+         -  SoundButton.gd
+         -  SplashScreen.gd
+         -  TestArena.gd
+         -  TournamentMap.gd
+         -  TutorialLayer.gd
+         -  TutorialManager.gd
+         -  VFXManager.gd
+         -  VsScreen.gd
+         -  compendium.gd
+         -  equipmentdraft.gd
+         -  pausemenu.gd
+    [+] addons/
+        [+] OvaniPlugin/
+             -  OvaniPlayer.gd
+             -  OvaniPlayerIcon.png
+             -  OvaniSong.gd
+             -  SeamlessStream.gd
+             -  SeamlessStreamManager.gd
+     -  .gitattributes
+     -  .gitignore
+     -  FullProjectCode.txt
+     -  FullProjectScenes.txt
+     -  Player1.tres
+     -  Player2.tres
+     -  ProjectDump.txt
+     -  README.md
+     -  ScreenFilter.gdshader
+     -  bundle_scripts.py
+     -  default_bus_layout.tres
+     -  export_presets.cfg
+     -  icon.svg
+     -  project.godot

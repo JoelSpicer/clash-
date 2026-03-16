@@ -5,6 +5,8 @@ extends Control
 @onready var info_label = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/InfoLabel
 @onready var portrait_rect = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
 @onready var tutorial_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/TutorialButton
+@onready var sponsor_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorOption
+var available_sponsors: Array[SponsorData] = []
 # Settings
 @onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
 @onready var maintain_hp_toggle = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/MaintainHPToggle
@@ -23,6 +25,7 @@ var preview_tween: Tween # NEW: Keeps track of our animation
 
 func _ready():
 	_setup_difficulty()
+	_load_sponsors()
 	_generate_lists() 
 	
 	start_btn.pressed.connect(_on_start_pressed)
@@ -160,7 +163,12 @@ func _on_start_pressed():
 		if selected_index < base_classes.size():
 			var run_name = name_input.text
 			if run_name.strip_edges() == "": run_name = "Unnamed"
-			RunManager.start_new_run(base_classes[selected_index], run_name)
+			
+			# GRAB THE SELECTED SPONSOR
+			var chosen_sponsor = available_sponsors[sponsor_option.selected]
+			
+			# PASS IT TO RUN MANAGER
+			RunManager.start_new_run(base_classes[selected_index], run_name, chosen_sponsor)
 
 # --- SETTINGS HELPERS ---
 
@@ -323,3 +331,30 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 func _on_tutorial_pressed():
 	AudioManager.play_sfx("ui_confirm")
 	TutorialManager.setup_and_start_tutorial("basic")
+
+func _load_sponsors():
+	sponsor_option.clear()
+	available_sponsors.clear()
+	
+	# Add a "None" option first
+	sponsor_option.add_item("No Sponsor")
+	available_sponsors.append(null)
+	
+	var dir_path = "res://Data/Sponsors/"
+	
+	# Make sure the folder exists!
+	if not DirAccess.dir_exists_absolute(dir_path):
+		DirAccess.make_dir_absolute(dir_path)
+		return
+		
+	var dir = DirAccess.open(dir_path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and file_name.ends_with(".tres"):
+				var sponsor = load(dir_path + file_name) as SponsorData
+				if sponsor:
+					available_sponsors.append(sponsor)
+					sponsor_option.add_item(sponsor.sponsor_name)
+			file_name = dir.get_next()
