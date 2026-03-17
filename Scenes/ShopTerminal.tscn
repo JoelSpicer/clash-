@@ -7,6 +7,7 @@ layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 88.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_j7gxt")
@@ -16,15 +17,17 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 5.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 50
-theme_override_constants/margin_top = 50
-theme_override_constants/margin_right = 50
+theme_override_constants/margin_left = 70
+theme_override_constants/margin_top = 100
+theme_override_constants/margin_right = 70
 theme_override_constants/margin_bottom = 50
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=1598651463]
 layout_mode = 2
+alignment = 1
 
 [node name="LeftPanel" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=671430109]
 layout_mode = 2
@@ -33,8 +36,10 @@ size_flags_horizontal = 3
 [node name="TokenBankLabel" type="Label" parent="MarginContainer/HBoxContainer/LeftPanel" unique_id=852760074]
 layout_mode = 2
 text = "AVAILABLE TOKENS: 0"
+horizontal_alignment = 1
 
 [node name="ItemList" type="ScrollContainer" parent="MarginContainer/HBoxContainer/LeftPanel" unique_id=680514138]
+clip_contents = false
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -59,6 +64,8 @@ stretch_mode = 5
 
 [node name="ItemName" type="Label" parent="MarginContainer/HBoxContainer/RightPanel" unique_id=1981231660]
 layout_mode = 2
+theme_override_font_sizes/font_size = 30
+horizontal_alignment = 1
 
 [node name="ItemDesc" type="RichTextLabel" parent="MarginContainer/HBoxContainer/RightPanel" unique_id=455875324]
 layout_mode = 2
@@ -67,4 +74,4 @@ bbcode_enabled = true
 
 [node name="BuyButton" type="Button" parent="MarginContainer/HBoxContainer/RightPanel" unique_id=2082910909]
 layout_mode = 2
-text = "AUTHORISE DOWNLOAD"
+text = "AUTHORISE PURCHASE"

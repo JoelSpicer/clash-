@@ -371,7 +371,7 @@ func _load_sponsors():
 				var sponsor = load(dir_path + file_name) as SponsorData
 				if sponsor:
 					# --- NEW: UNLOCK CHECK ---
-					if sponsor.sponsor_name in RunManager.meta_data.unlocked_sponsors:
+					if sponsor.sponsor_name in RunManager.meta_data.unlocked_sponsors or sponsor.sponsor_name == "SLAM Supplements" or sponsor.sponsor_name == "CRASH Supplements":
 						available_sponsors.append(sponsor)
 						sponsor_option.add_item(sponsor.sponsor_name)
 					# -------------------------

@@ -20,8 +20,22 @@ var catalog = [
 		"id": "Technical", 
 		"type": "class",
 		"cost": 10,
-		"desc": "Unlock the Technical fighter class. High combo potential.",
+		"desc": "Unlock the Technical fighter class. Use custom moves to confuse your opponent.",
 		"icon_path": "res://Art/Portraits/Technical.png"
+	},
+	{
+		"id": "Quick", 
+		"type": "class",
+		"cost": 10,
+		"desc": "Unlock the Quick fighter class. High combo potential.",
+		"icon_path": "res://Art/Portraits/Quick.png"
+	},
+	{
+		"id": "Patient", 
+		"type": "class",
+		"cost": 10,
+		"desc": "Unlock the Patient fighter class. Bide your time before unleasing on your opponent.",
+		"icon_path": "res://Art/Portraits/Patient.png"
 	}
 ]
 
