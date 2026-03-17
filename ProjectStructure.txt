@@ -1,5 +1,5 @@
 === GODOT PROJECT STRUCTURE ===
-Generated: 2026-03-10T09:52:51
+Generated: 2026-03-17T20:04:51
 
 res://
     [+] Art/
@@ -204,6 +204,9 @@ res://
                  -  juggernaut_boss.tres
              -  Crash_Johnson_Lv6.tres
              -  Kaiji_Akagi_Lv6.tres
+        [+] Sponsors/
+             -  CRASHSupplements.tres
+             -  SLAMSupplements.tres
          -  ALLACTIONS.csv
          -  enemy_names.txt
     [+] Scenes/
@@ -257,9 +260,11 @@ res://
              -  DialogueManager.gd
              -  EquipmentData.gd
              -  GameManager.gd
+             -  GlobalSaveData.gd
              -  MapNodeData.gd
              -  PresetCharacter.gd
              -  RunSaveData.gd
+             -  SponsorData.gd
         [+] Tools/
              -  ActionImporter.gd
              -  BulkIconAssigner.gd
@@ -321,6 +326,7 @@ res://
      -  Player1.tres
      -  Player2.tres
      -  ProjectDump.txt
+     -  ProjectStructure.txt
      -  README.md
      -  ScreenFilter.gdshader
      -  bundle_scripts.py

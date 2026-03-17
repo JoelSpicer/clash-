@@ -1,0 +1,291 @@
+--- PROJECT BUNDLE ---
+
+
+============================================================
+FILE: .\Scenes\CarouselHub.tscn
+============================================================
+[gd_scene format=3 uid="uid://bxymoimlkb0g2"]
+
+[ext_resource type="Script" uid="uid://b5sk5jjigxxdu" path="res://Scripts/CarouselHub.gd" id="1_ocdqy"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_07bmk"]
+
+[node name="CarouselHub" type="Control" unique_id=1967209312]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_ocdqy")
+
+[node name="Background" type="TextureRect" parent="." unique_id=1707841584]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+
+[node name="BackgroundFader" type="TextureRect" parent="." unique_id=1593912713]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+
+[node name="DimmerLayer" type="ColorRect" parent="." unique_id=880599731]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.68235296)
+
+[node name="ContentContainer" type="Control" parent="." unique_id=1527734958]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="UI_Layer" type="Control" parent="." unique_id=105395051]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="UI_Layer" unique_id=321756827]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -48.0
+offset_right = 48.0
+offset_bottom = 23.0
+grow_horizontal = 2
+theme_type_variation = &"TitleLabel"
+text = "THE CIRCUIT"
+
+[node name="LeftArrow" type="Button" parent="UI_Layer" unique_id=832121798]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 20.0
+offset_top = -15.5
+offset_right = 56.0
+offset_bottom = 15.5
+grow_vertical = 2
+text = "<<<"
+script = ExtResource("2_07bmk")
+
+[node name="RightArrow" type="Button" parent="UI_Layer" unique_id=569323903]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -56.0
+offset_top = -15.5
+offset_right = -20.0
+offset_bottom = 15.5
+grow_horizontal = 0
+grow_vertical = 2
+text = ">>>"
+script = ExtResource("2_07bmk")
+
+[node name="BackButton" type="Button" parent="UI_Layer" unique_id=1724607185]
+layout_mode = 0
+offset_left = 11.0
+offset_top = 9.0
+offset_right = 132.0
+offset_bottom = 40.0
+text = "BACK TO TITLE"
+script = ExtResource("2_07bmk")
+
+
+============================================================
+FILE: .\Scenes\MenuArcade.tscn
+============================================================
+[gd_scene format=3 uid="uid://7q8sfitoh2xb"]
+
+[ext_resource type="Script" uid="uid://ciu2sa2jx11fl" path="res://Scripts/MenuArcade.gd" id="1_trdke"]
+[ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_wu21k"]
+[ext_resource type="Resource" uid="uid://nr6gvrvw5pmd" path="res://Data/Classes/HeavyClass.tres" id="3_6bivt"]
+[ext_resource type="Resource" uid="uid://bpk3oy5rf8g3w" path="res://Data/Classes/PatientClass.tres" id="4_s7eqx"]
+[ext_resource type="Resource" uid="uid://c007py27u78qj" path="res://Data/Classes/QuickClass.tres" id="5_e67h7"]
+[ext_resource type="Resource" uid="uid://bg5ik82a2fybg" path="res://Data/Classes/TechnicalClass.tres" id="6_dinlh"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="7_e67h7"]
+
+[node name="MenuArcade" type="Control" unique_id=443753700]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_trdke")
+base_classes = Array[ExtResource("2_wu21k")]([ExtResource("3_6bivt"), ExtResource("4_s7eqx"), ExtResource("5_e67h7"), ExtResource("6_dinlh")])
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=153896058]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1885117998]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=2124791326]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1336012931]
+self_modulate = Color(0, 0, 0, 1)
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="ClassScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=627875079]
+clip_contents = false
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+
+[node name="ClassList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/ClassScroll" unique_id=1862420477]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 6
+theme_override_constants/separation = 10
+
+[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=862813615]
+layout_mode = 2
+alignment = 1
+
+[node name="P1_Portrait" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=178845335]
+custom_minimum_size = Vector2(150, 150)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="InfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=1162463489]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+bbcode_enabled = true
+horizontal_alignment = 1
+
+[node name="SponsorInfoPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=1381000458]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 100)
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel" unique_id=1730199948]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+
+[node name="SponsorIcon" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel/HBox" unique_id=1992555505]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel/HBox" unique_id=541054633]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SponsorName" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel/HBox/VBox" unique_id=1710794035]
+layout_mode = 2
+text = "Name"
+horizontal_alignment = 1
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="SponsorDesc" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel/HBox/VBox" unique_id=276428090]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8431839, 0.8431839, 0.84318376, 1)
+theme_override_font_sizes/font_size = 15
+text = "Desc"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="VSeparator2" type="VSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=930054453]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Settings_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=509839584]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+alignment = 1
+
+[node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1577746598]
+layout_mode = 2
+theme_override_constants/outline_size = 15
+text = "Run Settings"
+horizontal_alignment = 1
+
+[node name="DifficultyOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1010762416]
+layout_mode = 2
+
+[node name="MaintainHPToggle" type="CheckButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=58537736]
+layout_mode = 2
+theme_override_constants/outline_size = 13
+text = "Maintain HP Between Fights?"
+
+[node name="SponsorOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1919069859]
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1197192709]
+layout_mode = 2
+
+[node name="NameInput" type="LineEdit" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1793080627]
+layout_mode = 2
+placeholder_text = "Enter Run Name..."
+alignment = 1
+
+[node name="StartButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1870661896]
+layout_mode = 2
+theme_override_constants/outline_size = 5
+text = "Start Arcade Run"
+script = ExtResource("7_e67h7")
+
+[node name="DeleteButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=436727636]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.97824043, 0, 0.17609239, 1)
+text = "Delete Save"
+script = ExtResource("7_e67h7")
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1631594333]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TutorialButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1756516446]
+layout_mode = 2
+text = "PLAY TUTORIAL"
+

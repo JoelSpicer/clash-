@@ -16,6 +16,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 72.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -95,3 +96,7 @@ text = "Remove Token"
 [node name="ResetTokensBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1713479956]
 layout_mode = 2
 text = "Reset Circuit Tokens (Debug)"
+
+[node name="WipeSaveBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1346506025]
+layout_mode = 2
+text = "WIPE GLOBAL SAVE (Debug)"

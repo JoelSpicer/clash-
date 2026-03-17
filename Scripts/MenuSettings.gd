@@ -12,8 +12,9 @@ extends Control
 # --- META DEBUG REFERENCES ---
 @onready var token_label = $CenterContainer/VBoxContainer/TokenLabel
 @onready var reset_tokens_btn = $CenterContainer/VBoxContainer/ResetTokensBtn
-@onready var add_tokens_btn = $CenterContainer/VBoxContainer/AddTokensBtn     # NEW
-@onready var minus_tokens_btn = $CenterContainer/VBoxContainer/MinusTokensBtn # NEW
+@onready var add_tokens_btn = $CenterContainer/VBoxContainer/AddTokensBtn     
+@onready var minus_tokens_btn = $CenterContainer/VBoxContainer/MinusTokensBtn 
+@onready var wipe_save_btn = $CenterContainer/VBoxContainer/WipeSaveBtn       # NEW
 
 func _ready():
 	# 1. Setup Audio
@@ -37,6 +38,8 @@ func _ready():
 		add_tokens_btn.pressed.connect(_on_add_tokens_pressed)
 	if minus_tokens_btn:
 		minus_tokens_btn.pressed.connect(_on_minus_tokens_pressed)
+	if wipe_save_btn:                                                         # NEW
+		wipe_save_btn.pressed.connect(_on_wipe_save_pressed)
 
 
 # --- SETUP HELPER: AUDIO ---
@@ -86,11 +89,16 @@ func _on_add_tokens_pressed():
 
 func _on_minus_tokens_pressed():
 	if RunManager.meta_data:
-		# Use max() to prevent tokens from going below 0
 		RunManager.meta_data.circuit_tokens = max(0, RunManager.meta_data.circuit_tokens - 1)
 		RunManager._save_global_data()
 		_update_token_display()
 		print("DEBUG: Removed 1 Circuit Token.")
+
+# --- NEW: WIPE SAVE FUNCTION ---
+func _on_wipe_save_pressed():
+	if RunManager.has_method("wipe_global_save"):
+		RunManager.wipe_global_save()
+		_update_token_display()
 
 
 # --- EVENT HANDLER: AUDIO ---

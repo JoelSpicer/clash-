@@ -768,3 +768,12 @@ func add_circuit_tokens(amount: int):
 	print(">>> GAINED %d CIRCUIT TOKENS! (Total Bank: %d) <<<" % [final_amount, meta_data.circuit_tokens])
 	
 	_save_global_data()
+
+func wipe_global_save():
+	# 1. Create a brand new, empty save data object
+	meta_data = GlobalSaveData.new()
+	
+	# 2. Overwrite the file on the hard drive with this empty one
+	_save_global_data()
+	
+	print(">>> GLOBAL SAVE COMPLETELY WIPED <<<")
