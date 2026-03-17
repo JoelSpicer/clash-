@@ -14,12 +14,10 @@ passive_description = "RAGE: Pay HP instead of SP if stamina is low."
 tree_description = "[b]Action: Haymaker[/b]\\nOpener, Cost 3, Dmg 2, Mom 3\\n[b]Action: Elbow Block[/b]\\nBlock 1, Cost 2, Dmg 1\\n[b]Passive: Rage[/b]\\nPay HP instead of SP when low.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\\n[b]Speed:[/b] 1"
 playstyle_summary = "Tank with blocks and unleash massive hits."
 arcade_description = "[center][b][font_size=28]HEAVY[/font_size][/b][/center]
-[center][i][color=light_gray]A powerhouse that uses HP as a resource.[/color][/i][/center]
-
-[b]HP:[/b] 5   [b]SP:[/b] 4
-[b]Speed:[/b] 1
+[font_size=17][center][i][color=light_gray]A powerhouse that uses HP as a resource.[/color][/i][/center]
+[b]HP:[/b] 5   [b]SP:[/b] 4  [b]Speed:[/b] 1
 ----------------
-[color=yellow]Rage: Can pay HP instead of SP when low.[/color]"
+[color=yellow]Rage: Can pay HP instead of SP when low.[/color][/font_size]"
 starting_deck = Array[ExtResource("2_7e45r")]([ExtResource("12_juwg8"), ExtResource("13_vd8an")])
 skill_tree_root_id = 76
 can_pay_with_hp = true

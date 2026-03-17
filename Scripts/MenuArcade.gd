@@ -6,10 +6,10 @@ extends Control
 @onready var portrait_rect = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
 @onready var tutorial_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/TutorialButton
 @onready var sponsor_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorOption
-@onready var sponsor_info_panel = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel
-@onready var sponsor_icon = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox/SponsorIcon
-@onready var sponsor_name = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox/VBox/SponsorName
-@onready var sponsor_desc = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorInfoPanel/HBox/VBox/SponsorDesc
+@onready var sponsor_info_panel = %SponsorInfoPanel
+@onready var sponsor_icon = %SponsorInfoPanel/HBox/SponsorIcon
+@onready var sponsor_name = %SponsorInfoPanel/HBox/VBox/SponsorName
+@onready var sponsor_desc = %SponsorInfoPanel/HBox/VBox/SponsorDesc
 var available_sponsors: Array[SponsorData] = []
 # Settings
 @onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
@@ -382,8 +382,13 @@ func _on_sponsor_selected(index: int):
 	
 	if sponsor == null:
 		# "No Sponsor" selected
-		sponsor_info_panel.hide()
+		#sponsor_info_panel.hide()
+		sponsor_info_panel.modulate = "ffffff00"
+		sponsor_info_panel.show()
+		sponsor_name.text = "Sponsor"
+		sponsor_desc.text = "Select a Sponsor to enhance your run"
 	else:
+		sponsor_info_panel.modulate = "ffffffff"
 		sponsor_info_panel.show()
 		sponsor_name.text = sponsor.sponsor_name
 		sponsor_desc.text = sponsor.description

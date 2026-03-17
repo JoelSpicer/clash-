@@ -15,12 +15,10 @@ passive_description = "Custom Technique: Spend 1 stamina to add one of the follo
 tree_description = "[b]Action: Discombobulate[/b]\\nCost 1, Dmg 1, Tiring 1\\n[b]Action: Hand Catch[/b]\\nBlock 1, Cost 1, Reversal\\n[b]Passive: Technique[/b]\\nSpend 1 SP to add Opener, Tiring, or Momentum to action.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 SP/HP, [color=#99ccff]Defence:[/color] +1 SP\\n[b]Speed:[/b] 3"
 playstyle_summary = "Throw attacks your opponent won't see coming before taking the offence when they can't stop you."
 arcade_description = "[center][b][font_size=28]TECHNICAL[/font_size][/b][/center]
-[center][i][color=light_gray]A versatile tactician with a tool for every situation.[/color][/i][/center]
-
-[b]HP:[/b] 5   [b]SP:[/b] 4
-[b]Speed:[/b] 3
+[font_size=17][center][i][color=light_gray]A versatile tactician with a tool for every situation.[/color][/i][/center]
+[b]HP:[/b] 5   [b]SP:[/b] 4  [b]Speed:[/b] 3
 ----------------
-[color=yellow]Custom Technique: Spend 1 SP to add Opener, Tiring, or Momentum to any action.[/color]"
+[color=yellow]Custom Technique: Spend 1 SP to add Opener, Tiring, or Momentum to any action.[/color][/font_size]"
 starting_deck = Array[ExtResource("3_uhsbe")]([ExtResource("12_7frj5"), ExtResource("13_67n4n")])
 skill_tree_root_id = 74
 has_technique_dropdown = true
