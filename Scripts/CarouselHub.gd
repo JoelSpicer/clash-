@@ -23,11 +23,11 @@ func _ready():
 			"scene_path": "res://Scenes/MenuArcade.tscn",
 			"bg_path": "res://Art/Background/LockerRoom.png" # You need this art
 		},
-		#{
-			#"title": "QUICK CLASH (PvP / PvE)",
-			#"scene_path": "res://Scenes/MenuQuick.tscn",
-			#"bg_path": "res://Art/Background/Street.png"
-		#},
+		{
+			"title": "NETWORK TERMINAL",
+			"scene_path": "res://Scenes/ShopTerminal.tscn",
+			"bg_path": "res://Art/Background/Library.png"
+		},
 		{
 			"title": "GAME SETTINGS",
 			"scene_path": "res://Scenes/MenuSettings.tscn",
@@ -36,7 +36,7 @@ func _ready():
 		{
 			"title": "COMPENDIUM",
 			"scene_path": "res://Scenes/compendium.tscn", # Reusing your existing scene!
-			"bg_path": "res://Art/Background/Library.png"
+			"bg_path": "res://Art/Background/Street.png"
 		}
 	]
 	

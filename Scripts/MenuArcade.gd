@@ -58,7 +58,12 @@ func _generate_lists():
 	
 	for i in range(base_classes.size()):
 		var def = base_classes[i]
-		_create_button(class_grid, i, def.class_named, def.portrait, false)
+		# --- NEW: UNLOCK CHECK ---
+		# Is it the Heavy (Free), OR is it in our global save file?
+		var is_unlocked = (def.class_named == "Heavy") or (def.class_named in RunManager.meta_data.unlocked_classes)
+		
+		if is_unlocked:
+			_create_button(class_grid, i, def.class_named, def.portrait, false)
 
 	# 2. CREATE SAVE FILES SECTION
 	var saves = RunManager.get_save_files()
@@ -365,8 +370,11 @@ func _load_sponsors():
 			if not dir.current_is_dir() and file_name.ends_with(".tres"):
 				var sponsor = load(dir_path + file_name) as SponsorData
 				if sponsor:
-					available_sponsors.append(sponsor)
-					sponsor_option.add_item(sponsor.sponsor_name)
+					# --- NEW: UNLOCK CHECK ---
+					if sponsor.sponsor_name in RunManager.meta_data.unlocked_sponsors:
+						available_sponsors.append(sponsor)
+						sponsor_option.add_item(sponsor.sponsor_name)
+					# -------------------------
 			file_name = dir.get_next()
 			
 	# --- NEW: CONNECT SIGNAL AND INITIALIZE ---

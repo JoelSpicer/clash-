@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://bxq0baq7d1pjh"]
+
+[ext_resource type="Script" uid="uid://ceew0q1r1h30m" path="res://Scripts/ShopTerminal.gd" id="1_j7gxt"]
+
+[node name="ShopTerminal" type="Control" unique_id=2147208092]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_j7gxt")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1707480493]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=1598651463]
+layout_mode = 2
+
+[node name="LeftPanel" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=671430109]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TokenBankLabel" type="Label" parent="MarginContainer/HBoxContainer/LeftPanel" unique_id=852760074]
+layout_mode = 2
+text = "AVAILABLE TOKENS: 0"
+
+[node name="ItemList" type="ScrollContainer" parent="MarginContainer/HBoxContainer/LeftPanel" unique_id=680514138]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="InventoryList" type="VBoxContainer" parent="MarginContainer/HBoxContainer/LeftPanel/ItemList" unique_id=1856951319]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VSeparator" type="VSeparator" parent="MarginContainer/HBoxContainer" unique_id=404611346]
+layout_mode = 2
+
+[node name="RightPanel" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=1741514230]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="ItemIcon" type="TextureRect" parent="MarginContainer/HBoxContainer/RightPanel" unique_id=1364730580]
+custom_minimum_size = Vector2(150, 150)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ItemName" type="Label" parent="MarginContainer/HBoxContainer/RightPanel" unique_id=1981231660]
+layout_mode = 2
+
+[node name="ItemDesc" type="RichTextLabel" parent="MarginContainer/HBoxContainer/RightPanel" unique_id=455875324]
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+
+[node name="BuyButton" type="Button" parent="MarginContainer/HBoxContainer/RightPanel" unique_id=2082910909]
+layout_mode = 2
+text = "AUTHORISE DOWNLOAD"

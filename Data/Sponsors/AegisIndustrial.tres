@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="SponsorData" format=3 uid="uid://ck2oq5b4beyms"]
+
+[ext_resource type="Script" uid="uid://c45g8d8d4wjtr" path="res://Scripts/Resources/SponsorData.gd" id="1_oeg8u"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_mgm5s"]
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="3_5u2u2"]
+
+[resource]
+script = ExtResource("1_oeg8u")
+sponsor_name = "Aegis Industrial"
+description = "A corporate sponsor offering solid defensive tech. +1 Global Block."
+flavor_quote = "\"I can fight for ages with Aegis\""
+global_block_mod = 1
+rival_character_name = "Aegis Hater"
+rival_custom_intro = "Step out from behind your sponsor!"
+rival_boss_hp_buff = 1
+rival_boss_sp_buff = 1
+rival_reward_currency_bonus = 10
+metadata/_custom_type_script = "uid://c45g8d8d4wjtr"
