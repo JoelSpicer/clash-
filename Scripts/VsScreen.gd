@@ -27,7 +27,7 @@ extends Control
 @onready var p2_bubble = $Content/P2_Container/PanelContainer/SpeechBubble
 
 @onready var vs_label = $Content/VsLabel
-@onready var arena_label = $BottomLetterbox/ArenaLabel
+@onready var arena_label = $ArenaLabel
 
 func _ready():
 	# 1. Hide things before setup

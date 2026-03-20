@@ -265,7 +265,7 @@ func apply_reward(reward):
 		player_run_data.equipment.append(reward)
 		# Recalculate stats immediately to apply bonuses
 		ClassFactory._recalculate_stats(player_run_data)
-		print("Drafted Item: " + reward.display_name)
+		print("Drafted Item: " + reward.item_name)
 
 	# C. If it's a Stat Upgrade (Dictionary)
 	elif reward is Dictionary and reward.has("func"):

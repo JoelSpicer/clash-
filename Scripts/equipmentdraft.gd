@@ -43,7 +43,7 @@ func _create_item_button(item: EquipmentData) -> Button:
 	
 	# Name
 	var name_lbl = Label.new()
-	name_lbl.text = item.display_name
+	name_lbl.text = item.item_name
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_lbl.add_theme_font_size_override("font_size", 24)
 	vbox.add_child(name_lbl)
@@ -63,7 +63,7 @@ func _create_item_button(item: EquipmentData) -> Button:
 
 func _on_item_selected(item: EquipmentData):
 	AudioManager.play_sfx("ui_click")
-	print("Equipped: " + item.display_name)
+	print("Equipped: " + item.item_name)
 	
 	# 1. Add to inventory
 	RunManager.player_run_data.equipment.append(item)

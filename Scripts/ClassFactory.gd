@@ -434,8 +434,8 @@ func calculate_stats_for_deck(type: CharacterData.ClassType, _deck: Array[Action
 	
 	# Keep Equipment Logic (This is still useful!)
 	for item in equipment:
-		final_hp += item.max_hp_bonus
-		final_sp += item.max_sp_bonus
+		final_hp += item.bonus_max_hp
+		final_sp += item.bonus_max_sp
 			
 	return {"hp": max(1, final_hp), "sp": max(1, final_sp)}
 

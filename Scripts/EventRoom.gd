@@ -53,9 +53,9 @@ func _on_option_selected(choice: int):
 			2: # TAKE DRUGS
 				# We create a permanent piece of equipment on the fly!
 				var drugs = EquipmentData.new()
-				drugs.display_name = "Experimental Drugs"
+				drugs.item_name = "Experimental Drugs"
 				drugs.description = "Side effects include sweating and nausea."
-				drugs.max_sp_bonus = 1
+				drugs.bonus_max_sp = 1
 				p1.equipment.append(drugs)
 				
 				# Add the penalty for the next fight
