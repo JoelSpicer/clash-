@@ -104,3 +104,8 @@ text = "Reset Circuit Tokens (Debug)"
 layout_mode = 2
 theme_override_font_sizes/font_size = 5
 text = "WIPE GLOBAL SAVE (Debug)"
+
+[node name="ResetTutorialsBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=826610255]
+layout_mode = 2
+theme_override_font_sizes/font_size = 5
+text = "Reset tutorials"

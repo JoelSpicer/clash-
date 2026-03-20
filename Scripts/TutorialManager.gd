@@ -84,28 +84,52 @@ const SCRIPTS = {
 		]
 	},
 	
-	"advanced": {
+	"begin": {
 		"config": {
-			"environment": "Dojo",
-			"p1_name": "Student",
-			"p1_hp": 10,
-			"p1_sp": 5,
+			"environment": "Street",
+			"p1_name": "Nobody",
+			"p1_hp": 2,
+			"p1_sp": 8,
 			"p1_class": CharacterData.ClassType.NONE, 
-			"p1_deck": "basic",
+			"p1_deck": "toobasic",
 			
-			"p2_name": "Sensei",
-			"p2_hp": 25,
-			"p2_sp": 10,
+			"p2_name": "Bad Kid",
+			"p2_hp": 5,
+			"p2_sp": 2,
 			"p2_class": CharacterData.ClassType.NONE,
 			"p2_deck": "basic"
 		},
 		"steps": [
 			{
-				"sensei_text": "This is the advanced tutorial which doesn't exist yet",
-				"bot_card": "Basic Technical",
-				"player_card": "Basic Dodge",
-				"highlight": "card:Basic Dodge"
-			}
+				"sensei_text": "Who do you think you are kid? Some kind of fighter? Just try and hit me, see how that works out!",
+				"bot_card": "Basic Dodge",
+				"player_card": "Basic Light",
+				"highlight": "card:Basic Light"
+			},
+			{
+				"sensei_text": "Nice try, think you got a combo going huh? Go on, I won't even dodge this time.",
+				"bot_card": "Basic Block",
+				"player_card": "Basic Light",
+				"highlight": "card:Basic Light"
+			},
+			{
+				"sensei_text": "Heh, didn't feel a thing. In fact I feel better than ever. You don't even have a technique, just flailing away!",
+				"bot_card": "Basic Block",
+				"player_card": "Basic Technical",
+				"highlight": "card:Basic Technical"
+			},
+			{
+				"sensei_text": "Damn, broke through huh? [i]Better dodge this little runt instead, if he's just gonna keep tossing out light attacks...[/i]",
+				"bot_card": "Basic Dodge",
+				"player_card": "Basic Heavy",
+				"highlight": "card:Basic Heavy"
+			},
+			{
+				"sensei_text": "[b]WOAH,[/b] okay kid, I get it, I'll tell you where the circuit starts, just don't hit me like that again, catch your breath!",
+				"bot_card": "Basic Block",
+				"player_card": "Basic Positioning",
+				"highlight": "card:Basic Positioning"
+			},
 		]
 	}
 }
@@ -185,7 +209,18 @@ func _generate_deck(deck_name: String) -> Array[ActionData]:
 			d.append(load("res://Data/Actions/haymaker.tres").duplicate(true))
 			d.append(load("res://Data/Actions/elbow_block.tres").duplicate(true))
 			# Add as many as you need for the advanced tutorial...
-			
+		
+		"toobasic":
+			# OFFENCE
+			d.append(load("res://Data/Actions/basic_light.tres").duplicate(true))
+			d.append(load("res://Data/Actions/basic_technical.tres").duplicate(true))
+			d.append(load("res://Data/Actions/basic_heavy.tres").duplicate(true))
+			d.append(load("res://Data/Actions/basic_positioning.tres").duplicate(true))
+			# DEFENCE
+			#d.append(load("res://Data/Actions/basic_block.tres").duplicate(true))
+			#d.append(load("res://Data/Actions/basic_dodge.tres").duplicate(true))
+			#d.append(load("res://Data/Actions/basic_parry.tres").duplicate(true))
+			#d.append(load("res://Data/Actions/basic_reversal.tres").duplicate(true))
 	return d
 
 # --- UPDATED HELPERS ---

@@ -15,6 +15,7 @@ extends Control
 @onready var add_tokens_btn = $CenterContainer/VBoxContainer/AddTokensBtn     
 @onready var minus_tokens_btn = $CenterContainer/VBoxContainer/MinusTokensBtn 
 @onready var wipe_save_btn = $CenterContainer/VBoxContainer/WipeSaveBtn       # NEW
+@onready var reset_tutorials_btn = $CenterContainer/VBoxContainer/ResetTutorialsBtn
 
 func _ready():
 	# 1. Setup Audio
@@ -40,6 +41,8 @@ func _ready():
 		minus_tokens_btn.pressed.connect(_on_minus_tokens_pressed)
 	if wipe_save_btn:                                                         # NEW
 		wipe_save_btn.pressed.connect(_on_wipe_save_pressed)
+	if reset_tutorials_btn: # <--- NEW
+		reset_tutorials_btn.pressed.connect(_on_reset_tutorials_pressed)
 
 
 # --- SETUP HELPER: AUDIO ---
@@ -116,3 +119,15 @@ func _on_visual_changed(value: float, type: String):
 		GlobalCinematics.set_brightness(value)
 	elif type == "Contrast":
 		GlobalCinematics.set_contrast(value)
+
+# --- NEW: RESET TUTORIALS FUNCTION ---
+func _on_reset_tutorials_pressed():
+	if RunManager.meta_data:
+		# Clear the dictionary tracking seen tutorials
+		RunManager.meta_data.seen_menu_tutorials.clear() 
+		
+		# Save the wiped dictionary to the hard drive
+		if RunManager.has_method("_save_global_data"):
+			RunManager._save_global_data()
+			
+		print("DEBUG: All menu tutorials have been reset!")

@@ -154,8 +154,32 @@ func _shake_screen(intensity: float, duration: float):
 	, intensity, 0.0, duration) # Tween from intensity down to 0
 
 func _on_start_pressed():
-	AudioManager.play_sfx("ui_click") # Added SFX
-	SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
+	AudioManager.play_sfx("ui_click") 
+	
+	# 1. Safety check to ensure save data is loaded
+	if not RunManager.meta_data:
+		SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
+		return
+		
+	# 2. Check if the "intro" tutorial has been seen
+	if not RunManager.meta_data.seen_menu_tutorials.has("intro_begin"):
+		# Mark it as seen and save the game immediately
+		RunManager.meta_data.seen_menu_tutorials["intro_begin"] = true
+		RunManager._save_global_data()
+		
+		# Trigger your custom Tutorial Manager
+		TutorialManager.setup_and_start_tutorial("begin")
+		
+		# IMPORTANT: How does your TutorialManager handle finishing?
+		# If it emits a signal when the player clicks "Finish Tutorial", 
+		# you should await that signal before changing the scene like this:
+		#
+		# await TutorialManager.tutorial_completed 
+		# SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
+		
+	else:
+		# If they HAVE seen it, skip the tutorial and go straight to the game
+		SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
 	
 func _on_quit_pressed():
 	get_tree().quit()
