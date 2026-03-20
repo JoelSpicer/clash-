@@ -594,7 +594,7 @@ func generate_new_league():
 	var rival_node_index = -1
 	if active_sponsor != null and active_sponsor.rival_character_name != "":
 		rival_node_index = randi_range(5, LEAGUE_LENGTH - 4)
-		rival_node_index = 0
+		#rival_node_index = 0
 	# -------------------------------------
 	
 	for i in range(LEAGUE_LENGTH):
@@ -634,7 +634,7 @@ func generate_new_league():
 			node.type = MapNodeData.Type.BOSS # Treat them as a boss so the node is tinted
 			node.title = "HATER"
 			# Give them a slight +1 level bump before the massive Sponsor Buffs apply
-			#node.enemy_data = ClassFactory.create_random_enemy(fight_level + 1, GameManager.ai_difficulty)
+			node.enemy_data = ClassFactory.create_random_enemy(fight_level+1, GameManager.ai_difficulty)
 			# Overwrite their name so the Grudge Match logic detects them!
 			node.enemy_data.character_name = active_sponsor.rival_character_name
 			fight_counter += 1

@@ -674,7 +674,8 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 	var thorns_dmg = 0
 	
 	# Gather Attacker Mods
-	var attacker_mods: Array[BaseModifierData] = character.equipment.duplicate()
+	var attacker_mods: Array[BaseModifierData] = []
+	attacker_mods.append_array(character.equipment) # <-- Safely appends the items
 	if owner_id == 1 and RunManager.active_sponsor:
 		attacker_mods.append(RunManager.active_sponsor)
 		
@@ -683,7 +684,8 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		attacker_block_mod += mod.block_modifier
 		
 	# Gather Defender Mods
-	var defender_mods: Array[BaseModifierData] = target.equipment.duplicate()
+	var defender_mods: Array[BaseModifierData] = []
+	defender_mods.append_array(target.equipment) # <-- Safely appends the items
 	if target_id == 1 and RunManager.active_sponsor:
 		defender_mods.append(RunManager.active_sponsor)
 		

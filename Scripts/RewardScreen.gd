@@ -1,7 +1,7 @@
 extends Control
 
 @onready var container = $RewardContainer
-@onready var title_label = $TitleLabel # Make sure you have this node
+@onready var title_label = $TitleLabel 
 
 # Preload your existing displays
 var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
@@ -14,25 +14,19 @@ func _ready():
 	var overlay = overlay_scene.instantiate()
 	add_child(overlay)
 	
-	# --- NEW: AWARD META CURRENCY ---
-	var tokens_earned = 1 # Base payout for winning any fight
+	# --- AWARD META CURRENCY ---
+	var tokens_earned = 1 
 	
-	# Check for massive Grudge Match payout
 	if RunManager.is_rival_match and RunManager.active_sponsor:
 		tokens_earned += RunManager.active_sponsor.rival_reward_currency_bonus
-		
-		# Reset the flag so they don't get the boss loot again!
-		RunManager.is_rival_match = false 
+		# Note: We do NOT reset is_rival_match yet so the item can spawn below!
 	
-	# Add it to the global bank!
 	RunManager.add_circuit_tokens(tokens_earned)
-	# --------------------------------
 	
 	# 2. Generate Rewards
 	_generate_rewards()
 
 func _generate_rewards():
-	# 1. Clear old rewards
 	for c in container.get_children():
 		c.queue_free()
 		
@@ -47,57 +41,52 @@ func _generate_rewards():
 	
 	var choices = []
 	
-	# SLOT 1: ACTION
-	if valid_actions.size() > 0: choices.append(_get_weighted_random(valid_actions))
-	else: choices.append(_get_weighted_random(stat_upgrades))
+	# SLOT 1: ACTION (Standard Random - No weighting needed)
+	if valid_actions.size() > 0: 
+		choices.append(valid_actions.pick_random())
+	else: 
+		choices.append(stat_upgrades.pick_random())
 		
-	# SLOT 2: UPGRADE/ITEM 
-	if valid_items.size() > 0 and randf() > 0.5: choices.append(_get_weighted_random(valid_items))
-	else: choices.append(_get_weighted_random(stat_upgrades))
+	# SLOT 2: UPGRADE/ITEM (Weighted for Synergy!)
+	if valid_items.size() > 0 and randf() > 0.5: 
+		choices.append(_get_weighted_random(valid_items))
+	else: 
+		choices.append(stat_upgrades.pick_random())
 		
 	# SLOT 3: WILDCARD
 	var roll = randf()
-	if roll < 0.4 and valid_actions.size() > 0: choices.append(_get_weighted_random(valid_actions))
-	elif roll < 0.7 and valid_items.size() > 0: choices.append(_get_weighted_random(valid_items))
-	else: choices.append(_get_weighted_random(stat_upgrades))
+	if roll < 0.4 and valid_actions.size() > 0: 
+		choices.append(valid_actions.pick_random())
+	elif roll < 0.7 and valid_items.size() > 0: 
+		choices.append(_get_weighted_random(valid_items))
+	else: 
+		choices.append(stat_upgrades.pick_random())
 		
 	# --- SPONSOR EXTRA OPTIONS ---
 	if RunManager.active_sponsor and RunManager.active_sponsor.extra_draft_options > 0:
 		for i in range(RunManager.active_sponsor.extra_draft_options):
 			if valid_actions.size() > 0 and randf() > 0.5:
-				choices.append(_get_weighted_random(valid_actions))
+				choices.append(valid_actions.pick_random())
 			else:
-				choices.append(_get_weighted_random(stat_upgrades))
-	# ----------------------------------
+				choices.append(stat_upgrades.pick_random())
 	
-	# --- NEW: GRUDGE MATCH PAYOUT ---
+	# --- GRUDGE MATCH PAYOUT ---
 	if RunManager.is_rival_match and RunManager.active_sponsor:
-		# 1. Give the unique item (if it exists)
 		if RunManager.active_sponsor.rival_reward_item != null:
-			# We insert it at the front of the array so it's the first card they see
 			choices.insert(0, RunManager.active_sponsor.rival_reward_item)
-			
-		# 2. (Optional) Award Currency
-		if RunManager.active_sponsor.rival_reward_currency_bonus > 0:
-			print("Awarded " + str(RunManager.active_sponsor.rival_reward_currency_bonus) + " Circuit Tokens!")
-			# You will hook this up later when we build the Meta-Save System
-			
-		# 3. Reset the flag so they don't get the item on the next normal node
-		#RunManager.is_rival_match = false
-	# ---------------------------------
+		
+		# NOW we reset the flag
+		RunManager.is_rival_match = false
 	
 	# 4. Render Options
 	for reward in choices:
 		_create_reward_card(reward)
 		
-	# --- NEW: SPONSOR REROLLS ---
-	# Dynamically spawn a Reroll Button at the bottom if they have tokens
+	# --- SPONSOR REROLLS ---
 	if RunManager.get("current_rerolls") != null and RunManager.current_rerolls > 0:
 		var reroll_btn = Button.new()
 		reroll_btn.text = "Reroll Options (" + str(RunManager.current_rerolls) + " left)"
 		reroll_btn.custom_minimum_size = Vector2(200, 50)
-		reroll_btn.add_theme_font_size_override("font_size", 20)
-		# Add it to the main screen, anchored bottom center
 		add_child(reroll_btn)
 		reroll_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 		reroll_btn.position.y -= 50
@@ -105,18 +94,17 @@ func _generate_rewards():
 		reroll_btn.pressed.connect(func():
 			AudioManager.play_sfx("ui_click")
 			RunManager.current_rerolls -= 1
-			reroll_btn.queue_free() # Remove button to refresh
-			_generate_rewards()     # Re-run this entire function!
+			reroll_btn.queue_free()
+			_generate_rewards()
 		)
 
 func _create_reward_card(reward):
 	var btn = Button.new()
 	btn.custom_minimum_size = Vector2(220, 320)
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	
 	container.add_child(btn)
 	
-	# Styling (Dark Card Base)
+	# Card Styling
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.1, 1.0)
 	style.set_corner_radius_all(10)
@@ -124,75 +112,30 @@ func _create_reward_card(reward):
 	style.border_color = Color(0.3, 0.3, 0.3)
 	btn.add_theme_stylebox_override("normal", style)
 	
-	var hover = style.duplicate()
-	hover.border_color = Color(1.0, 0.8, 0.2) # Gold Border on Hover
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_stylebox_override("pressed", hover)
-	
-	
-	# --- CONTENT GENERATION ---
-	
-	# A. ACTION CARD
 	if reward is ActionData:
-		# We reuse your nice CardDisplay, but scale it down slightly
 		var disp = card_display_scene.instantiate()
 		disp.set_card_data(reward)
-		disp.scale = Vector2(0.8, 0.8)
-		disp.position = Vector2(10, 10) # Padding
-		disp.mouse_filter = Control.MOUSE_FILTER_IGNORE # Let button catch clicks
+		disp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
 		btn.add_child(disp)
 		
-		# Label for "New Action"
-		var lbl = Label.new()
-		lbl.text = "NEW ACTION"
-		lbl.modulate = Color.GREEN
-		lbl.position = Vector2(0, -30)
-		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl.size.x = 220
-		btn.add_child(lbl)
-
-	# B. EQUIPMENT
-	elif reward is EquipmentData:
-		_build_info_card(btn, reward.display_name, reward.description, Color(0.4, 0.6, 1.0), "EQUIPMENT")
+		# 1. Set to full rectangle first
+		disp.set_anchors_preset(Control.PRESET_FULL_RECT)
 		
-	# C. STAT UPGRADE
+		# 2. Add a 5-pixel margin on all sides to shrink it slightly
+		disp.offset_left = 5
+		disp.offset_top = 5
+		disp.offset_right = -5   # Negative to pull it inward from the right
+		disp.offset_bottom = -5  # Negative to pull it inward from the bottom
+	
+	elif reward is EquipmentData:
+		# FIX: item_name instead of display_name
+		_build_info_card(btn, reward.item_name, reward.description, Color(0.4, 0.6, 1.0), "EQUIPMENT")
+		
 	elif reward is Dictionary:
 		_build_info_card(btn, reward.text, reward.desc, Color(1.0, 0.5, 0.5), "UPGRADE")
 
-	# Connection
 	btn.pressed.connect(func(): _on_selected(reward))
-	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
-
-func _build_info_card(parent, title, desc, color, category):
-	# Title
-	var t = Label.new()
-	t.text = title
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	t.add_theme_font_size_override("font_size", 20)
-	t.modulate = color
-	t.position = Vector2(10, 40)
-	t.size = Vector2(200, 60)
-	parent.add_child(t)
-	
-	# Category Header
-	var cat = Label.new()
-	cat.text = category
-	cat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	cat.modulate = Color(0.5, 0.5, 0.5)
-	cat.position = Vector2(0, 10)
-	cat.size.x = 220
-	parent.add_child(cat)
-	
-	# Description
-	var d = RichTextLabel.new()
-	d.text = "[center]" + desc + "[/center]"
-	d.bbcode_enabled = true
-	d.position = Vector2(10, 120)
-	d.size = Vector2(200, 150)
-	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(d)
 
 func _on_selected(reward):
 	AudioManager.play_sfx("ui_click")
@@ -201,33 +144,57 @@ func _on_selected(reward):
 func _player_has_item(item_data):
 	var p = RunManager.player_run_data
 	for i in p.equipment:
-		if i.display_name == item_data.display_name: return true
+		# FIX: item_name check
+		if i.item_name == item_data.item_name: return true
 	return false
 
-# --- NEW: WEIGHTED RANDOM POOL ---
+# --- WEIGHTED RANDOM (Only for Equipment) ---
 func _get_weighted_random(pool: Array):
 	if pool.is_empty(): return null
 	
-	var active_synergies: Array[String] = []
-	# Fetch our active keywords from RunManager (if the function exists)
+	var active_synergies = []
 	if RunManager.has_method("get_active_synergies"):
 		active_synergies = RunManager.get_active_synergies()
 		
 	var weighted_pool = []
-	
 	for item in pool:
-		var weight = 1 # Base chance (It goes in the hat 1 time)
-		
-		# Only check for synergies if the item is a Resource (Action or Equipment)
-		# We skip dictionaries (Stat Upgrades) since they don't have keywords
-		if item is Resource and "synergy_keywords" in item:
+		var weight = 1
+		# Only weight items that have synergy_keywords (Sponsors/Equipment)
+		if item is BaseModifierData:
 			for keyword in active_synergies:
 				if keyword in item.synergy_keywords:
-					weight += 2 # Synergy Match! Add 2 extra tickets to the hat!
+					weight += 2
 					
-		# Throw the item into our virtual hat 'weight' amount of times
 		for i in range(weight):
 			weighted_pool.append(item)
 			
-	# Pick blindly from the heavily stacked hat!
 	return weighted_pool.pick_random()
+
+func _build_info_card(parent, title, desc, color, category):
+	# 1. Title
+	var t = Label.new()
+	t.text = title
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.modulate = color
+	t.position = Vector2(10, 40)
+	t.size = Vector2(200, 60)
+	parent.add_child(t)
+	
+	# --- FIX: Re-added the Category Header! ---
+	var cat = Label.new()
+	cat.text = category
+	cat.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cat.modulate = Color(0.5, 0.5, 0.5)
+	cat.position = Vector2(0, 10)
+	cat.size.x = 220
+	parent.add_child(cat)
+	# ------------------------------------------
+	
+	# 3. Description
+	var d = RichTextLabel.new()
+	d.text = "[center]" + desc + "[/center]"
+	d.bbcode_enabled = true
+	d.position = Vector2(10, 120)
+	d.size = Vector2(200, 150)
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	parent.add_child(d)

@@ -12,14 +12,14 @@ var catalog = [
 	{
 		"id": "Aegis Industrial", # Must match SponsorName / ClassName exactly
 		"type": "sponsor",
-		"cost": 5,
+		"cost": 10,
 		"desc": "A corporate sponsor offering solid defensive tech.\n\n+1 Global Block.",
 		"icon_path": "res://Art/Icons/icon_Opening.png" # Temporary placeholder
 	},
 	{
 		"id": "Technical", 
 		"type": "class",
-		"cost": 10,
+		"cost": 30,
 		"desc": "Unlock the Technical fighter class. Use custom moves to confuse your opponent.",
 		"icon_path": "res://Art/Portraits/Technical.png"
 	},
@@ -33,7 +33,7 @@ var catalog = [
 	{
 		"id": "Patient", 
 		"type": "class",
-		"cost": 10,
+		"cost": 20,
 		"desc": "Unlock the Patient fighter class. Bide your time before unleasing on your opponent.",
 		"icon_path": "res://Art/Portraits/Patient.png"
 	}

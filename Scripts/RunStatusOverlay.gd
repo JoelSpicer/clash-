@@ -54,13 +54,14 @@ func _refresh_display():
 		if item.icon: icon.texture = item.icon
 		else: icon.texture = preload("res://icon.svg") 
 		
-		# Build Tooltip
-		var tip = item.display_name + "\n" + item.description + "\n"
+		# --- FIX: Update to the new unified variable names ---
+		var tip = item.item_name + "\n" + item.description + "\n"
 		tip += "-------------------\n"
-		if item.max_hp_bonus != 0: tip += "Max HP: " + ("+" if item.max_hp_bonus > 0 else "") + str(item.max_hp_bonus) + "\n"
-		if item.max_sp_bonus != 0: tip += "Max SP: " + ("+" if item.max_sp_bonus > 0 else "") + str(item.max_sp_bonus) + "\n"
+		if item.bonus_max_hp != 0: tip += "Max HP: " + ("+" if item.bonus_max_hp > 0 else "") + str(item.bonus_max_hp) + "\n"
+		if item.bonus_max_sp != 0: tip += "Max SP: " + ("+" if item.bonus_max_sp > 0 else "") + str(item.bonus_max_sp) + "\n"
 		if item.starting_sp_bonus != 0: tip += "Start SP: +" + str(item.starting_sp_bonus) + "\n"
 		if item.wall_crush_damage_bonus != 0: tip += "Wall Crush Dmg: +" + str(item.wall_crush_damage_bonus)
+		# -----------------------------------------------------
 		
 		icon.tooltip_text = tip 
 		eq_grid.add_child(icon)

@@ -13,6 +13,7 @@ grow_vertical = 2
 script = ExtResource("1_sj3ga")
 
 [node name="Background" type="ColorRect" parent="." unique_id=1805813444]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -129,9 +130,9 @@ size_flags_vertical = 3
 
 [node name="BackButton" type="Button" parent="." unique_id=858159310]
 layout_mode = 0
-offset_left = 988.0
-offset_top = 5.0
-offset_right = 1102.0
-offset_bottom = 36.0
+offset_left = 1011.0
+offset_top = 17.0
+offset_right = 1125.0
+offset_bottom = 61.0
 text = "Back to Menu"
 script = ExtResource("2_b5rji")
