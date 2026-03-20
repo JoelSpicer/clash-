@@ -116,7 +116,6 @@ theme_override_constants/separation = 15
 [node name="Settings_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=509839584]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-alignment = 1
 
 [node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1577746598]
 layout_mode = 2

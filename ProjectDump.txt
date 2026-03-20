@@ -1,3 +1,179 @@
+--- PROJECT BUNDLE ---
+
+
+============================================================
+FILE: .\Scenes\MenuArcade.tscn
+============================================================
+[gd_scene format=3 uid="uid://7q8sfitoh2xb"]
+
+[ext_resource type="Script" uid="uid://ciu2sa2jx11fl" path="res://Scripts/MenuArcade.gd" id="1_trdke"]
+[ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="2_wu21k"]
+[ext_resource type="Resource" uid="uid://nr6gvrvw5pmd" path="res://Data/Classes/HeavyClass.tres" id="3_6bivt"]
+[ext_resource type="Resource" uid="uid://bpk3oy5rf8g3w" path="res://Data/Classes/PatientClass.tres" id="4_s7eqx"]
+[ext_resource type="Resource" uid="uid://c007py27u78qj" path="res://Data/Classes/QuickClass.tres" id="5_e67h7"]
+[ext_resource type="Resource" uid="uid://bg5ik82a2fybg" path="res://Data/Classes/TechnicalClass.tres" id="6_dinlh"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="7_e67h7"]
+
+[node name="MenuArcade" type="Control" unique_id=443753700]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_trdke")
+base_classes = Array[ExtResource("2_wu21k")]([ExtResource("3_6bivt"), ExtResource("4_s7eqx"), ExtResource("5_e67h7"), ExtResource("6_dinlh")])
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=153896058]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1885117998]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/VBoxContainer" unique_id=2124791326]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer" unique_id=1336012931]
+self_modulate = Color(0, 0, 0, 1)
+layout_mode = 2
+size_flags_vertical = 3
+alignment = 1
+
+[node name="ClassScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=627875079]
+clip_contents = false
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 2
+
+[node name="ClassList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/ClassScroll" unique_id=1862420477]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 6
+theme_override_constants/separation = 10
+
+[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=862813615]
+layout_mode = 2
+alignment = 1
+
+[node name="P1_Portrait" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=178845335]
+custom_minimum_size = Vector2(150, 150)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="InfoLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=1162463489]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+bbcode_enabled = true
+horizontal_alignment = 1
+
+[node name="SponsorInfoPanel" type="PanelContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=1381000458]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 100)
+layout_mode = 2
+
+[node name="HBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel" unique_id=1730199948]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+
+[node name="SponsorIcon" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel/HBox" unique_id=1992555505]
+custom_minimum_size = Vector2(64, 64)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel/HBox" unique_id=541054633]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SponsorName" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel/HBox/VBox" unique_id=1710794035]
+layout_mode = 2
+text = "Name"
+horizontal_alignment = 1
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="SponsorDesc" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column/SponsorInfoPanel/HBox/VBox" unique_id=276428090]
+custom_minimum_size = Vector2(10, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8431839, 0.8431839, 0.84318376, 1)
+theme_override_font_sizes/font_size = 15
+text = "Desc"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="VSeparator2" type="VSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=930054453]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Settings_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=509839584]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+alignment = 1
+
+[node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1577746598]
+layout_mode = 2
+theme_override_constants/outline_size = 15
+text = "Run Settings"
+horizontal_alignment = 1
+
+[node name="DifficultyOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1010762416]
+layout_mode = 2
+
+[node name="MaintainHPToggle" type="CheckButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=58537736]
+layout_mode = 2
+theme_override_constants/outline_size = 13
+text = "Maintain HP Between Fights?"
+
+[node name="SponsorOption" type="OptionButton" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1919069859]
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1197192709]
+layout_mode = 2
+
+[node name="NameInput" type="LineEdit" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1793080627]
+layout_mode = 2
+placeholder_text = "Enter Run Name..."
+alignment = 1
+
+[node name="StartButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1870661896]
+layout_mode = 2
+theme_override_constants/outline_size = 5
+text = "Start Arcade Run"
+script = ExtResource("7_e67h7")
+
+[node name="DeleteButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=436727636]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.97824043, 0, 0.17609239, 1)
+text = "Delete Save"
+script = ExtResource("7_e67h7")
+
+[node name="HSeparator" type="HSeparator" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1631594333]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TutorialButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1756516446]
+layout_mode = 2
+text = "PLAY TUTORIAL"
+
+
+============================================================
+FILE: .\Scripts\MenuArcade.gd
+============================================================
 extends Control
 
 # --- UI REFERENCES ---
@@ -304,10 +480,7 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		name_input.text = text
 		
 		sponsor_option.disabled = true
-		
-		# --- FIX: Turn it invisible without removing its layout space ---
-		sponsor_info_panel.modulate = "ffffff00"
-		# ---------------------------------------------------------------
+		sponsor_info_panel.hide() # Hide it to avoid confusion
 		
 		var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
 		if data == null: return
@@ -373,11 +546,11 @@ func _load_sponsors():
 			if not dir.current_is_dir() and file_name.ends_with(".tres"):
 				var sponsor = load(dir_path + file_name) as SponsorData
 				if sponsor:
-					# --- FIX: Change sponsor_name to item_name ---
-					if sponsor.item_name in RunManager.meta_data.unlocked_sponsors or sponsor.item_name == "CRASH Supplements" or sponsor.item_name == "SLAM Supplements":
+					# --- NEW: UNLOCK CHECK ---
+					if sponsor.sponsor_name in RunManager.meta_data.unlocked_sponsors or sponsor.sponsor_name == "SLAM Supplements" or sponsor.sponsor_name == "CRASH Supplements":
 						available_sponsors.append(sponsor)
-						sponsor_option.add_item(sponsor.item_name)
-					# ---------------------------------------------
+						sponsor_option.add_item(sponsor.sponsor_name)
+					# -------------------------
 			file_name = dir.get_next()
 			
 	# --- NEW: CONNECT SIGNAL AND INITIALIZE ---
@@ -401,7 +574,7 @@ func _on_sponsor_selected(index: int):
 	else:
 		sponsor_info_panel.modulate = "ffffffff"
 		sponsor_info_panel.show()
-		sponsor_name.text = sponsor.item_name
+		sponsor_name.text = sponsor.sponsor_name
 		sponsor_desc.text = sponsor.description
 		
 		if sponsor.icon:
@@ -409,3 +582,4 @@ func _on_sponsor_selected(index: int):
 		else:
 			# Fallback icon if you forgot to assign one
 			sponsor_icon.texture = preload("res://Art/Icons/icon_Opportunity.png")
+

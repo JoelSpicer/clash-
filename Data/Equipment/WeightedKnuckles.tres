@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_2ewo2")
-display_name = "Weighted Knuckles"
+item_name = "Weighted Knuckles"
 description = "-3 Max SP, +1 Damage"
-max_sp_bonus = -3
+bonus_max_sp = -3
 damage_modifier = 1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

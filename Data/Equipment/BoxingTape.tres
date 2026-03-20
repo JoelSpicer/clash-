@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_5o11t")
-display_name = "Boxing Tape"
+item_name = "Boxing Tape"
 description = "Max HP +2, -1 Starting SP"
-max_hp_bonus = 2
+bonus_max_hp = 2
 starting_sp_bonus = -1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

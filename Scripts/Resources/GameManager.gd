@@ -98,6 +98,8 @@ var p2_rage_active: bool = false
 var p1_keep_up_active: bool = false
 var p2_keep_up_active: bool = false
 
+var p1_gym_block_bonus: int = 0
+
 var temp_p1_name: String = ""
 var temp_p2_name: String = ""
 var temp_p1_preset: Resource = null
@@ -157,36 +159,34 @@ func reset_combat():
 	p1_rage_active = false; p2_rage_active = false
 	p1_keep_up_active = false; p2_keep_up_active = false
 	
-	# --- 4. APPLY PLAYER EQUIPMENT BONUSES ---
+	# --- 4. APPLY PLAYER EQUIPMENT & SPONSOR BONUSES ---
 	var total_momentum_bonus = 0
 	var p1_speed_bonus = 0
 	
+	var all_p1_modifiers: Array[BaseModifierData] = []
 	if RunManager.player_run_data:
-		for equip in RunManager.player_run_data.equipment:
-			
-			# A. SP Bonus
-			p1_data.current_sp += equip.starting_sp_bonus
-			
-			# B. Barrier (Temporary HP)
-			if equip.starting_barrier > 0:
-				p1_data.current_hp += equip.starting_barrier
-				print("Equipment Barrier Applied: +%d HP" % equip.starting_barrier)
-
-			# C. Collect Momentum Bonus
-			total_momentum_bonus += equip.starting_momentum
-			
-			# D. Collect Speed Bonus
-			p1_speed_bonus += equip.speed_bonus
-	
-		# --- APPLY SPONSOR MOMENTUM ---
+		all_p1_modifiers.append_array(RunManager.player_run_data.equipment)
 	if RunManager.active_sponsor:
-		total_momentum_bonus += RunManager.active_sponsor.momentum_start_bonus
+		all_p1_modifiers.append(RunManager.active_sponsor)
 		
-		# NEW: Check for Rival Handicap
-		if RunManager.is_rival_match:
-			total_momentum_bonus -= RunManager.active_sponsor.rival_momentum_handicap
-			print("Rival Handicap Applied! Momentum shifted by " + str(RunManager.active_sponsor.rival_momentum_handicap))
-	# -----------------------------------
+	for mod in all_p1_modifiers:
+		# SP Bonus
+		p1_data.current_sp += mod.starting_sp_bonus
+		
+		# Barrier
+		if mod.starting_barrier > 0:
+			p1_data.current_hp += mod.starting_barrier
+			print("Modifier Barrier Applied: +%d HP" % mod.starting_barrier)
+			
+		# Momentum & Speed
+		total_momentum_bonus += mod.momentum_start_bonus
+		p1_speed_bonus += mod.bonus_speed
+
+	# Apply Rival Handicap if active
+	if RunManager.is_rival_match and RunManager.active_sponsor:
+		total_momentum_bonus -= RunManager.active_sponsor.rival_momentum_handicap
+		print("Rival Handicap Applied! Momentum shifted by " + str(RunManager.active_sponsor.rival_momentum_handicap))
+	# ----------------------------------------------------
 		
 	# --- 5. APPLY MOMENTUM STARTING POSITION ---
 	# If we have a bonus, we skip the "0" (Neutral) state and start on our side.
@@ -201,14 +201,16 @@ func reset_combat():
 	for item in p2_data.equipment:
 		p2_data.current_sp += item.starting_sp_bonus
 	
-	# --- 7. APPLY GYM BUFFS ---
+# --- 7. APPLY GYM BUFFS ---
+	p1_gym_block_bonus = 0 # <-- Reset it every fight!
+	
 	if RunManager.active_gym_buff != "":
 		print("Applying Gym Buff: " + RunManager.active_gym_buff)
 		
 		if RunManager.active_gym_buff == "iron_stance":
-			# Simulate a 'Start with 10 Block' by adding 10 Temporary HP.
-			p1_data.current_hp += 10
-			print(">> Iron Stance: +10 Temp HP")
+			# --- UPDATED: Grant +1 Global Block ---
+			p1_gym_block_bonus = 1
+			print(">> Iron Stance: +1 Global Block")
 			
 		elif RunManager.active_gym_buff == "exploit_weakness":
 			# Reduce enemy starting HP by 20%
@@ -665,32 +667,36 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		emit_signal("status_applied", target_id, "DODGED")
 		return result
 
-	# --- 1. CALCULATE EQUIPMENT PASSIVES ---
+	# --- 1. CALCULATE EQUIPMENT & SPONSOR PASSIVES ---
 	var dmg_mod = 0
-	var attacker_block_mod = 0 # In case they get hit by Thorns/Retaliate
-	
+	var attacker_block_mod = 0 
 	var defender_block_mod = 0
 	var thorns_dmg = 0
 	
-	# Attacker's bonuses
-	for eq in character.equipment:
-		dmg_mod += eq.damage_modifier
-		attacker_block_mod += eq.block_modifier
-		
-	# Defender's bonuses
-	for eq in target.equipment:
-		defender_block_mod += eq.block_modifier
-		thorns_dmg += eq.thorns
-	# -----------------------------------------
-	# --- NEW: APPLY SPONSOR PASSIVES ---
+	# Gather Attacker Mods
+	var attacker_mods: Array[BaseModifierData] = character.equipment.duplicate()
 	if owner_id == 1 and RunManager.active_sponsor:
-		dmg_mod += RunManager.active_sponsor.global_damage_mod
-		attacker_block_mod += RunManager.active_sponsor.global_block_mod
+		attacker_mods.append(RunManager.active_sponsor)
 		
+	for mod in attacker_mods:
+		dmg_mod += mod.damage_modifier
+		attacker_block_mod += mod.block_modifier
+		
+	# Gather Defender Mods
+	var defender_mods: Array[BaseModifierData] = target.equipment.duplicate()
 	if target_id == 1 and RunManager.active_sponsor:
-		defender_block_mod += RunManager.active_sponsor.global_block_mod
-		thorns_dmg += RunManager.active_sponsor.thorns_active
-	# -----------------------------------
+		defender_mods.append(RunManager.active_sponsor)
+		
+	for mod in defender_mods:
+		defender_block_mod += mod.block_modifier
+		thorns_dmg += mod.thorns
+		
+	# Apply Gym Buffs independently so they aren't lost!
+	if owner_id == 1:
+		attacker_block_mod += p1_gym_block_bonus
+	elif target_id == 1:
+		defender_block_mod += p1_gym_block_bonus
+	# ----------------------------------------------------------
 	var total_hits = max(1, my_card.repeat_count)
 	for i in range(total_hits):
 		

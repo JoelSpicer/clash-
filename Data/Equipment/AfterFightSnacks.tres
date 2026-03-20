@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_04fcc")
-display_name = "Post-Fight Snacks"
+item_name = "After-Fight Snaks"
 description = "Heal 2HP on a win."
 heal_on_win = 2
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

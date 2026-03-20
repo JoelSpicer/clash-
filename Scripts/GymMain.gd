@@ -22,7 +22,7 @@ func _ready():
 	# ---------------------------------mt
 	
 	# BLOCK: Flat 10 (You can adjust this number)
-	btn_block.text = "IRON STANCE\n\nStart Next Fight\nwith 10 Block"
+	btn_block.text = "IRON STANCE\n\nStart Next Fight\nwith +1 Block"
 	
 	# DEBUFF: 20% of Enemy HP
 	btn_debuff.text = "EXPLOIT WEAKNESS\n\nNext Enemy Starts\nwith -20% HP"

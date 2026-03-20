@@ -6,13 +6,13 @@
 
 [resource]
 script = ExtResource("1_oeg8u")
-sponsor_name = "Aegis Industrial"
-description = "A corporate sponsor offering solid defensive tech. +1 Global Block."
 flavor_quote = "\"I can fight for ages with Aegis\""
-global_block_mod = 1
 rival_character_name = "Aegis Hater"
 rival_custom_intro = "Step out from behind your sponsor!"
 rival_boss_hp_buff = 1
 rival_boss_sp_buff = 1
 rival_reward_currency_bonus = 10
+item_name = "Aegis Industrial"
+description = "A corporate sponsor offering solid defensive tech. +1 Global Block."
+block_modifier = 1
 metadata/_custom_type_script = "uid://c45g8d8d4wjtr"

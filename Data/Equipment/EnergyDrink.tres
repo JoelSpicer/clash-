@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_7h5tc")
-display_name = "Energy Drink"
-description = "Start every fight with +1 SP, but Max HP -1."
-max_hp_bonus = -1
-starting_sp_bonus = 1
+item_name = "Energy Drink"
+description = "+1 max SP, -1 max HP"
+bonus_max_hp = -1
+bonus_max_sp = 1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"
