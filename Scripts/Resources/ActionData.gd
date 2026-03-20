@@ -10,6 +10,7 @@ enum Type { OFFENCE, DEFENCE }
 @export var display_name: String   # The name displayed to the player
 @export var icon: Texture2D        # The card art/icon
 @export_multiline var description: String # Tooltip description of effects
+@export var keywords: Array[String] = []
 
 # --- CORE STATS ---
 @export_group("Core Stats")

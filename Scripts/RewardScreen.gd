@@ -48,26 +48,26 @@ func _generate_rewards():
 	var choices = []
 	
 	# SLOT 1: ACTION
-	if valid_actions.size() > 0: choices.append(valid_actions.pick_random())
-	else: choices.append(stat_upgrades.pick_random())
+	if valid_actions.size() > 0: choices.append(_get_weighted_random(valid_actions))
+	else: choices.append(_get_weighted_random(stat_upgrades))
 		
 	# SLOT 2: UPGRADE/ITEM 
-	if valid_items.size() > 0 and randf() > 0.5: choices.append(valid_items.pick_random())
-	else: choices.append(stat_upgrades.pick_random())
+	if valid_items.size() > 0 and randf() > 0.5: choices.append(_get_weighted_random(valid_items))
+	else: choices.append(_get_weighted_random(stat_upgrades))
 		
 	# SLOT 3: WILDCARD
 	var roll = randf()
-	if roll < 0.4 and valid_actions.size() > 0: choices.append(valid_actions.pick_random())
-	elif roll < 0.7 and valid_items.size() > 0: choices.append(valid_items.pick_random())
-	else: choices.append(stat_upgrades.pick_random())
+	if roll < 0.4 and valid_actions.size() > 0: choices.append(_get_weighted_random(valid_actions))
+	elif roll < 0.7 and valid_items.size() > 0: choices.append(_get_weighted_random(valid_items))
+	else: choices.append(_get_weighted_random(stat_upgrades))
 		
-	# --- NEW: SPONSOR EXTRA OPTIONS ---
+	# --- SPONSOR EXTRA OPTIONS ---
 	if RunManager.active_sponsor and RunManager.active_sponsor.extra_draft_options > 0:
 		for i in range(RunManager.active_sponsor.extra_draft_options):
 			if valid_actions.size() > 0 and randf() > 0.5:
-				choices.append(valid_actions.pick_random())
+				choices.append(_get_weighted_random(valid_actions))
 			else:
-				choices.append(stat_upgrades.pick_random())
+				choices.append(_get_weighted_random(stat_upgrades))
 	# ----------------------------------
 	
 	# --- NEW: GRUDGE MATCH PAYOUT ---
@@ -203,3 +203,31 @@ func _player_has_item(item_data):
 	for i in p.equipment:
 		if i.display_name == item_data.display_name: return true
 	return false
+
+# --- NEW: WEIGHTED RANDOM POOL ---
+func _get_weighted_random(pool: Array):
+	if pool.is_empty(): return null
+	
+	var active_synergies: Array[String] = []
+	# Fetch our active keywords from RunManager (if the function exists)
+	if RunManager.has_method("get_active_synergies"):
+		active_synergies = RunManager.get_active_synergies()
+		
+	var weighted_pool = []
+	
+	for item in pool:
+		var weight = 1 # Base chance (It goes in the hat 1 time)
+		
+		# Only check for synergies if the item is a Resource (Action or Equipment)
+		# We skip dictionaries (Stat Upgrades) since they don't have keywords
+		if item is Resource and "synergy_keywords" in item:
+			for keyword in active_synergies:
+				if keyword in item.synergy_keywords:
+					weight += 2 # Synergy Match! Add 2 extra tickets to the hat!
+					
+		# Throw the item into our virtual hat 'weight' amount of times
+		for i in range(weight):
+			weighted_pool.append(item)
+			
+	# Pick blindly from the heavily stacked hat!
+	return weighted_pool.pick_random()

@@ -777,3 +777,16 @@ func wipe_global_save():
 	_save_global_data()
 	
 	print(">>> GLOBAL SAVE COMPLETELY WIPED <<<")
+
+# Gathers all keywords from the active Sponsor and currently equipped items
+func get_active_synergies() -> Array[String]:
+	var active_keywords: Array[String] = []
+	
+	if active_sponsor:
+		active_keywords.append_array(active_sponsor.synergy_keywords)
+		
+	if player_run_data:
+		for equip in player_run_data.equipment:
+			active_keywords.append_array(equip.synergy_keywords)
+			
+	return active_keywords

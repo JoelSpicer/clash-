@@ -1,6 +1,10 @@
 extends Resource
 class_name BaseModifierData
 
+@export_category("Synergy & Drops")
+@export var synergy_keywords: Array[String] = [] 
+# Example inputs: ["Defence", "Block", "Heavy"]
+
 @export_category("Identity")
 @export var item_name: String = "Unknown Modifier"
 @export_multiline var description: String = ""
