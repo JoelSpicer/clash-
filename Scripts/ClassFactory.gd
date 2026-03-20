@@ -263,8 +263,11 @@ func _select_smart_hand(pool: Array[ActionData], _archetype: CharacterData.AIArc
 	while chosen.size() < HAND_LIMIT and remaining.size() > 0:
 		chosen.append(remaining.pop_back())
 		
-	# 3. SAFETY: Ensure at least 1 Opener
-	# If we drafted a hand full of "Finishers" or "Cost 3" cards, the bot will break.
+	# 3. Trim down to 8 FIRST (Moved this up!)
+	if chosen.size() > HAND_LIMIT:
+		chosen.resize(HAND_LIMIT)
+
+	# 4. SAFETY: NOW Ensure at least 1 Opener
 	var has_opener = false
 	for c in chosen:
 		if c.is_opener or c.cost == 0: has_opener = true
@@ -278,11 +281,7 @@ func _select_smart_hand(pool: Array[ActionData], _archetype: CharacterData.AIArc
 					chosen.pop_back() 
 				chosen.append(c)
 				break
-
-	# 4. Trim if we somehow exceeded (though logic prevents it)
-	if chosen.size() > HAND_LIMIT:
-		chosen.resize(HAND_LIMIT)
-		
+				
 	return chosen
 
 func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
