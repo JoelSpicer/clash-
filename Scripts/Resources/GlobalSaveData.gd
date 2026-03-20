@@ -6,3 +6,4 @@ class_name GlobalSaveData
 # Future-proofing for when we build the unlock shop!
 @export var unlocked_sponsors: Array[String] = []
 @export var unlocked_classes: Array[String] = []
+@export var seen_menu_tutorials: Dictionary = {}

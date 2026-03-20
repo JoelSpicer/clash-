@@ -57,6 +57,8 @@ func _ready():
 	if is_overlay:
 		back_button.text = "Close Help"
 		$Background.visible = true
+	else: 
+		$BackButton.visible = false
 	tab_container.current_tab = initial_tab_index
 
 func _populate_card_library():

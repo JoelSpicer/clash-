@@ -2,6 +2,128 @@
 
 
 ============================================================
+FILE: .\Scenes\CarouselHub.tscn
+============================================================
+[gd_scene format=3 uid="uid://bxymoimlkb0g2"]
+
+[ext_resource type="Script" uid="uid://b5sk5jjigxxdu" path="res://Scripts/CarouselHub.gd" id="1_ocdqy"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_07bmk"]
+
+[node name="CarouselHub" type="Control" unique_id=1967209312]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_ocdqy")
+
+[node name="Background" type="TextureRect" parent="." unique_id=1707841584]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+
+[node name="BackgroundFader" type="TextureRect" parent="." unique_id=1593912713]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+
+[node name="DimmerLayer" type="ColorRect" parent="." unique_id=880599731]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.68235296)
+
+[node name="ContentContainer" type="Control" parent="." unique_id=1527734958]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 61.0
+offset_top = 75.0
+offset_right = -65.0
+offset_bottom = -37.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="UI_Layer" type="Control" parent="." unique_id=105395051]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="UI_Layer" unique_id=321756827]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -48.0
+offset_right = 48.0
+offset_bottom = 23.0
+grow_horizontal = 2
+theme_type_variation = &"TitleLabel"
+text = "THE CIRCUIT"
+
+[node name="LeftArrow" type="Button" parent="UI_Layer" unique_id=832121798]
+layout_mode = 1
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 20.0
+offset_top = -15.5
+offset_right = 56.0
+offset_bottom = 15.5
+grow_vertical = 2
+text = "<<<"
+script = ExtResource("2_07bmk")
+
+[node name="RightArrow" type="Button" parent="UI_Layer" unique_id=569323903]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -56.0
+offset_top = -15.5
+offset_right = -20.0
+offset_bottom = 15.5
+grow_horizontal = 0
+grow_vertical = 2
+text = ">>>"
+script = ExtResource("2_07bmk")
+
+[node name="BackButton" type="Button" parent="UI_Layer" unique_id=1724607185]
+layout_mode = 0
+offset_left = 11.0
+offset_top = 9.0
+offset_right = 132.0
+offset_bottom = 40.0
+text = "BACK TO TITLE"
+script = ExtResource("2_07bmk")
+
+
+============================================================
 FILE: .\Scenes\MenuArcade.tscn
 ============================================================
 [gd_scene format=3 uid="uid://7q8sfitoh2xb"]
@@ -31,10 +153,10 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 50
-theme_override_constants/margin_top = 50
-theme_override_constants/margin_right = 50
-theme_override_constants/margin_bottom = 50
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
 
 [node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer" unique_id=1885117998]
 layout_mode = 2
@@ -63,7 +185,6 @@ theme_override_constants/separation = 10
 
 [node name="P1_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=862813615]
 layout_mode = 2
-alignment = 1
 
 [node name="P1_Portrait" type="TextureRect" parent="MarginContainer/VBoxContainer/HBoxContainer/P1_Column" unique_id=178845335]
 custom_minimum_size = Vector2(150, 150)
@@ -122,7 +243,6 @@ theme_override_constants/separation = 15
 [node name="Settings_Column" type="VBoxContainer" parent="MarginContainer/VBoxContainer/HBoxContainer" unique_id=509839584]
 custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-alignment = 1
 
 [node name="DifficultyLabel" type="Label" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1577746598]
 layout_mode = 2
@@ -169,6 +289,494 @@ theme_override_constants/separation = 10
 [node name="TutorialButton" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer/Settings_Column" unique_id=1756516446]
 layout_mode = 2
 text = "PLAY TUTORIAL"
+
+
+============================================================
+FILE: .\Scenes\MenuQuick.tscn
+============================================================
+[gd_scene format=3 uid="uid://crugd7hminj5p"]
+
+[ext_resource type="Script" uid="uid://c873im0nw7ebj" path="res://Scripts/MenuQuick.gd" id="1_yp31r"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_t3twd"]
+
+[node name="MenuQuick" type="Control" unique_id=1729773511]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_yp31r")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=2017957618]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=607826649]
+layout_mode = 2
+alignment = 1
+
+[node name="P1_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=1044157135]
+layout_mode = 2
+alignment = 1
+
+[node name="P1Label" type="Label" parent="MarginContainer/HBoxContainer/P1_Column" unique_id=425793245]
+layout_mode = 2
+text = "PLAYER 1"
+horizontal_alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P1_Column" unique_id=758426362]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P1_Column" unique_id=40870938]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
+
+[node name="VS_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=202432771]
+layout_mode = 2
+alignment = 1
+
+[node name="VSLabel" type="Label" parent="MarginContainer/HBoxContainer/VS_Column" unique_id=928118028]
+layout_mode = 2
+text = "VS"
+horizontal_alignment = 1
+
+[node name="QuickFightButton" type="Button" parent="MarginContainer/HBoxContainer/VS_Column" unique_id=877221279]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "Quick CLASH!"
+script = ExtResource("2_t3twd")
+
+[node name="CustomDeckButton" type="Button" parent="MarginContainer/HBoxContainer/VS_Column" unique_id=3078225]
+custom_minimum_size = Vector2(200, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+text = "CLASH! (Build P1 Deck)"
+script = ExtResource("2_t3twd")
+
+[node name="P2_Column" type="VBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=1588201652]
+layout_mode = 2
+alignment = 1
+
+[node name="P2_Mode_Button" type="Button" parent="MarginContainer/HBoxContainer/P2_Column" unique_id=1918727360]
+layout_mode = 2
+text = "OPPONENT: CPU"
+script = ExtResource("2_t3twd")
+
+[node name="Portrait" type="TextureRect" parent="MarginContainer/HBoxContainer/P2_Column" unique_id=71408849]
+custom_minimum_size = Vector2(200, 200)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClassOption" type="OptionButton" parent="MarginContainer/HBoxContainer/P2_Column" unique_id=995511497]
+custom_minimum_size = Vector2(250, 20)
+layout_mode = 2
+alignment = 1
+text_overrun_behavior = 1
+
+
+============================================================
+FILE: .\Scenes\MenuSettings.tscn
+============================================================
+[gd_scene format=3 uid="uid://clrhc07bmkygu"]
+
+[ext_resource type="Script" uid="uid://cxutqps1iq1wk" path="res://Scripts/MenuSettings.gd" id="1_8a0lb"]
+
+[node name="MenuSettings" type="Control" unique_id=842952949]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_8a0lb")
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=1600752943]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=555637527]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1243792487]
+layout_mode = 2
+text = "AUDIO SETTINGS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Label2" type="Label" parent="CenterContainer/VBoxContainer" unique_id=643262368]
+layout_mode = 2
+text = "Master Volume"
+horizontal_alignment = 1
+
+[node name="MasterSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=536774335]
+layout_mode = 2
+
+[node name="Label3" type="Label" parent="CenterContainer/VBoxContainer" unique_id=36439776]
+layout_mode = 2
+text = "Music Volume"
+horizontal_alignment = 1
+
+[node name="MusicSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=971282247]
+layout_mode = 2
+
+[node name="Label4" type="Label" parent="CenterContainer/VBoxContainer" unique_id=113207794]
+layout_mode = 2
+text = "SFX Volume"
+horizontal_alignment = 1
+
+[node name="SFXSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=1459500008]
+layout_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/VBoxContainer" unique_id=711243355]
+layout_mode = 2
+
+[node name="Label7" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1983297003]
+layout_mode = 2
+text = "GRAPHICS SETTINGS"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Label5" type="Label" parent="CenterContainer/VBoxContainer" unique_id=145999579]
+layout_mode = 2
+text = "Brightness"
+horizontal_alignment = 1
+
+[node name="BrightnessSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=704119293]
+layout_mode = 2
+
+[node name="Label6" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1743577898]
+layout_mode = 2
+text = "Contrast"
+horizontal_alignment = 1
+
+[node name="ContrastSlider" type="HSlider" parent="CenterContainer/VBoxContainer" unique_id=1955370978]
+layout_mode = 2
+
+[node name="HSeparator2" type="HSeparator" parent="CenterContainer/VBoxContainer" unique_id=1297781142]
+layout_mode = 2
+
+[node name="TokenLabel" type="Label" parent="CenterContainer/VBoxContainer" unique_id=1783921969]
+layout_mode = 2
+text = "Tokens"
+horizontal_alignment = 1
+
+[node name="AddTokensBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1636988375]
+layout_mode = 2
+theme_override_font_sizes/font_size = 5
+text = "Add Token"
+
+[node name="MinusTokensBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1835107433]
+layout_mode = 2
+theme_override_font_sizes/font_size = 5
+text = "Remove Token"
+
+[node name="ResetTokensBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1713479956]
+layout_mode = 2
+theme_override_font_sizes/font_size = 5
+text = "Reset Circuit Tokens (Debug)"
+
+[node name="WipeSaveBtn" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1346506025]
+layout_mode = 2
+theme_override_font_sizes/font_size = 5
+text = "WIPE GLOBAL SAVE (Debug)"
+
+
+============================================================
+FILE: .\Scenes\compendium.tscn
+============================================================
+[gd_scene format=3 uid="uid://cm1rql55op5wn"]
+
+[ext_resource type="Script" uid="uid://2rcv6fa6yax" path="res://Scripts/compendium.gd" id="1_sj3ga"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_b5rji"]
+
+[node name="Compendium" type="Control" unique_id=1765162170]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_sj3ga")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1805813444]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.38928655, 0.38928664, 0.38928658, 1)
+
+[node name="TabContainer" type="TabContainer" parent="." unique_id=1669885147]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = -50.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 2
+current_tab = 3
+
+[node name="Rules" type="ScrollContainer" parent="TabContainer" unique_id=1679244808]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Rules" unique_id=1325699383]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Rules/MarginContainer" unique_id=1998873065]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Combat" type="ScrollContainer" parent="TabContainer" unique_id=995293852]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Combat" unique_id=51746046]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Combat/MarginContainer" unique_id=2065444444]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Traits" type="ScrollContainer" parent="TabContainer" unique_id=938768841]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Traits" unique_id=574440577]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Traits/MarginContainer" unique_id=331729510]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Card Library" type="ScrollContainer" parent="TabContainer" unique_id=1888943011]
+layout_mode = 2
+metadata/_tab_index = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Card Library" unique_id=1801472066]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 15
+
+[node name="GridContainer" type="GridContainer" parent="TabContainer/Card Library/MarginContainer" unique_id=1193952494]
+clip_contents = true
+layout_mode = 2
+localize_numeral_system = false
+theme_override_constants/v_separation = 5
+columns = 5
+
+[node name="Modes" type="ScrollContainer" parent="TabContainer" unique_id=1404989254]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 4
+
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Modes" unique_id=1066832284]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="TabContainer/Modes/MarginContainer" unique_id=503385378]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="BackButton" type="Button" parent="." unique_id=858159310]
+layout_mode = 0
+offset_left = 1011.0
+offset_top = 17.0
+offset_right = 1125.0
+offset_bottom = 61.0
+text = "Back to Menu"
+script = ExtResource("2_b5rji")
+
+
+============================================================
+FILE: .\Scripts\CarouselHub.gd
+============================================================
+extends Control
+
+# --- CONFIGURATION ---
+var slides: Array = []
+var current_index: int = 0
+var is_transitioning: bool = false
+
+# --- NODES ---
+@onready var bg_current = $Background
+@onready var bg_fader = $BackgroundFader
+@onready var content_container = $ContentContainer
+@onready var title_label = $UI_Layer/TitleLabel
+@onready var btn_left = $UI_Layer/LeftArrow
+@onready var btn_right = $UI_Layer/RightArrow
+@onready var btn_back = $UI_Layer/BackButton
+
+func _ready():
+	# 1. DEFINE YOUR SLIDES HERE
+	# Easy to add more later! Just append a new dictionary.
+	slides = [
+		{
+			"title": "THE CIRCUIT",
+			"scene_path": "res://Scenes/MenuArcade.tscn",
+			"bg_path": "res://Art/Background/LockerRoom.png" # You need this art
+		},
+		{
+			"title": "NETWORK TERMINAL",
+			"scene_path": "res://Scenes/ShopTerminal.tscn",
+			"bg_path": "res://Art/Background/Library.png"
+		},
+		{
+			"title": "GAME SETTINGS",
+			"scene_path": "res://Scenes/MenuSettings.tscn",
+			"bg_path": "res://Art/Background/Dojo.png"
+		},
+		{
+			"title": "COMPENDIUM",
+			"scene_path": "res://Scenes/compendium.tscn", # Reusing your existing scene!
+			"bg_path": "res://Art/Background/Street.png"
+		}
+	]
+	
+	# 2. Setup Buttons
+	btn_left.pressed.connect(func(): _change_slide(-1))
+	btn_right.pressed.connect(func(): _change_slide(1))
+	btn_back.pressed.connect(_on_back_pressed)
+	
+	# 3. Load Initial Slide (Arcade)
+	_load_slide_content(0)
+	_snap_background(0)
+
+func _change_slide(direction: int):
+	if is_transitioning: return
+	is_transitioning = true
+	AudioManager.play_sfx("ui_hover", 0.5) # Whoosh sound
+	
+	# 1. Calculate new index (Looping)
+	var _old_index = current_index
+	current_index += direction
+	
+	if current_index >= slides.size(): current_index = 0
+	elif current_index < 0: current_index = slides.size() - 1
+	
+	# 2. VISUAL TRANSITION
+	var slide_data = slides[current_index]
+	title_label.text = slide_data.title
+	
+# A. Crossfade Background
+	var new_bg = load(slide_data.bg_path)
+	
+	if new_bg:
+		bg_fader.texture = new_bg
+		bg_fader.modulate.a = 0.0
+		bg_fader.visible = true # <--- FORCE VISIBILITY ON
+		
+		# Create the tween
+		var t_bg = create_tween()
+		t_bg.tween_property(bg_fader, "modulate:a", 1.0, 0.4)
+		await t_bg.finished
+		
+		# Swap and reset
+		bg_current.texture = new_bg
+		bg_fader.modulate.a = 0.0
+		# bg_fader.visible = false # Optional: Hide it again if you want
+	else:
+		print("ERROR: Could not load background at path: ", slide_data.bg_path)
+	# B. Slide Content (The "Carousel" movement)
+	# We instance the new scene OFF SCREEN, slide it in, then delete the old one.
+	
+	var old_content = content_container.get_child(0) if content_container.get_child_count() > 0 else null
+	var new_scene = load(slide_data.scene_path).instantiate()
+	
+	# Determine direction
+	var screen_width = get_viewport_rect().size.x
+	var enter_pos = Vector2(screen_width, 0) if direction > 0 else Vector2(-screen_width, 0)
+	var exit_pos = Vector2(-screen_width, 0) if direction > 0 else Vector2(screen_width, 0)
+	
+	# Setup New Content
+	new_scene.position = enter_pos
+	content_container.add_child(new_scene)
+	
+	# Animate
+	var t_slide = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	
+	t_slide.tween_property(new_scene, "position", Vector2.ZERO, 0.4)
+	if old_content:
+		t_slide.tween_property(old_content, "position", exit_pos, 0.4)
+	
+	await t_slide.finished
+	
+	if old_content: old_content.queue_free()
+	is_transitioning = false
+
+# Used for the very first load (instant, no animation)
+func _load_slide_content(idx: int):
+	var data = slides[idx]
+	title_label.text = data.title
+	
+	for child in content_container.get_children():
+		child.queue_free()
+		
+	var scene = load(data.scene_path).instantiate()
+	content_container.add_child(scene)
+
+func _snap_background(idx: int):
+	var tex = load(slides[idx].bg_path)
+	if tex: bg_current.texture = tex
+
+func _on_back_pressed():
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 
 ============================================================
@@ -480,7 +1088,10 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		name_input.text = text
 		
 		sponsor_option.disabled = true
-		sponsor_info_panel.hide() # Hide it to avoid confusion
+		
+		# --- FIX: Turn it invisible without removing its layout space ---
+		sponsor_info_panel.modulate = "ffffff00"
+		# ---------------------------------------------------------------
 		
 		var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
 		if data == null: return
@@ -546,11 +1157,11 @@ func _load_sponsors():
 			if not dir.current_is_dir() and file_name.ends_with(".tres"):
 				var sponsor = load(dir_path + file_name) as SponsorData
 				if sponsor:
-					# --- NEW: UNLOCK CHECK ---
-					if sponsor.sponsor_name in RunManager.meta_data.unlocked_sponsors or sponsor.sponsor_name == "SLAM Supplements" or sponsor.sponsor_name == "CRASH Supplements":
+					# --- FIX: Change sponsor_name to item_name ---
+					if sponsor.item_name in RunManager.meta_data.unlocked_sponsors or sponsor.item_name == "CRASH Supplements" or sponsor.item_name == "SLAM Supplements":
 						available_sponsors.append(sponsor)
-						sponsor_option.add_item(sponsor.sponsor_name)
-					# -------------------------
+						sponsor_option.add_item(sponsor.item_name)
+					# ---------------------------------------------
 			file_name = dir.get_next()
 			
 	# --- NEW: CONNECT SIGNAL AND INITIALIZE ---
@@ -574,7 +1185,7 @@ func _on_sponsor_selected(index: int):
 	else:
 		sponsor_info_panel.modulate = "ffffffff"
 		sponsor_info_panel.show()
-		sponsor_name.text = sponsor.sponsor_name
+		sponsor_name.text = sponsor.item_name
 		sponsor_desc.text = sponsor.description
 		
 		if sponsor.icon:
@@ -582,4 +1193,389 @@ func _on_sponsor_selected(index: int):
 		else:
 			# Fallback icon if you forgot to assign one
 			sponsor_icon.texture = preload("res://Art/Icons/icon_Opportunity.png")
+
+
+============================================================
+FILE: .\Scripts\MenuQuick.gd
+============================================================
+extends Control
+
+# --- NODES ---
+# Added Portrait references
+@onready var p1_option = $MarginContainer/HBoxContainer/P1_Column/ClassOption
+@onready var p1_portrait = $MarginContainer/HBoxContainer/P1_Column/Portrait # <--- NEW
+@onready var p2_option = $MarginContainer/HBoxContainer/P2_Column/ClassOption
+@onready var p2_portrait = $MarginContainer/HBoxContainer/P2_Column/Portrait # <--- NEW
+@onready var p2_mode_btn = $MarginContainer/HBoxContainer/P2_Column/P2_Mode_Button
+@onready var fight_btn = $MarginContainer/HBoxContainer/VS_Column/QuickFightButton
+@onready var custom_btn = $MarginContainer/HBoxContainer/VS_Column/CustomDeckButton
+
+var presets: Array[PresetCharacter] = []
+var base_classes = []
+
+func _ready():
+	# --- NEW: AUTO-GENERATE CLASS ARRAYS ---
+	for key in CharacterData.ClassType.keys():
+		base_classes.append(key.capitalize())
+	# ---------------------------------------
+	# ... rest of your _ready code
+	_load_presets()
+	_setup_options(p1_option)
+	_setup_options(p2_option)
+	
+	# Defaults
+	p1_option.selected = 0
+	p2_option.selected = 1
+	
+	# --- NEW: Connect Signals to Update Portraits ---
+	p1_option.item_selected.connect(func(_idx): _update_portraits())
+	p2_option.item_selected.connect(func(_idx): _update_portraits())
+	
+	# Connections
+	fight_btn.pressed.connect(_on_fight_pressed)
+	p2_mode_btn.pressed.connect(_on_p2_mode_toggle)
+	if custom_btn:
+		custom_btn.pressed.connect(_on_custom_deck_pressed)
+	# Sync State
+	if GameManager.p2_is_custom == null: GameManager.p2_is_custom = false
+	_update_p2_btn_visuals()
+	
+	# Initial Update
+	_update_portraits()
+
+# --- NEW: UPDATE LOGIC ---
+func _update_portraits():
+	# Update P1
+	var p1_data = _get_char(p1_option.selected, "P1")
+	if p1_portrait:
+		p1_portrait.texture = p1_data.portrait
+		
+	# Update P2
+	var p2_data = _get_char(p2_option.selected, "P2")
+	if p2_portrait:
+		p2_portrait.texture = p2_data.portrait
+		# Flip P2 to face center
+		p2_portrait.flip_h = true
+
+func _on_fight_pressed():
+	# 1. Random Environment
+	var envs = ["Ring", "Dojo", "Street"]
+	GameManager.apply_environment_rules(envs.pick_random())
+	
+	# 2. Setup Data
+	var p1 = _get_char(p1_option.selected, "Player 1")
+	var p2 = _get_char(p2_option.selected, "Player 2")
+	
+	GameManager.next_match_p1_data = p1
+	GameManager.next_match_p2_data = p2
+	
+	# 3. Launch
+	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
+
+func _on_p2_mode_toggle():
+	GameManager.p2_is_custom = !GameManager.p2_is_custom
+	_update_p2_btn_visuals()
+
+func _update_p2_btn_visuals():
+	if GameManager.p2_is_custom:
+		p2_mode_btn.text = "OPPONENT: PLAYER 2"
+		p2_mode_btn.modulate = Color.GREEN
+	else:
+		p2_mode_btn.text = "OPPONENT: CPU BOT"
+		p2_mode_btn.modulate = Color.WHITE
+
+# --- HELPERS ---
+func _load_presets():
+	presets.clear()
+	var path = "res://Data/Presets/"
+	var dir = DirAccess.open(path)
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		while file_name != "":
+			if not dir.current_is_dir() and (file_name.ends_with(".tres") or file_name.ends_with(".res")):
+				var res = load(path + file_name)
+				if res is PresetCharacter: presets.append(res)
+			file_name = dir.get_next()
+
+func _setup_options(opt):
+	opt.clear()
+	for c in base_classes: opt.add_item(c)
+	if presets.size() > 0: opt.add_separator("Presets")
+	for p in presets: opt.add_item(p.character_name)
+
+func _get_char(idx, pname):
+	if idx < base_classes.size():
+		return ClassFactory.create_character(idx as CharacterData.ClassType, pname)
+	var preset_idx = idx - base_classes.size() - 1
+	if preset_idx >= 0: return ClassFactory.create_from_preset(presets[preset_idx])
+	return ClassFactory.create_character(0 as CharacterData.ClassType, "Error")
+
+func _on_custom_deck_pressed():
+	# 1. P1 SETUP
+	var p1_sel = p1_option.selected
+	if p1_sel < base_classes.size():
+		GameManager.temp_p1_class_selection = p1_sel
+		GameManager.temp_p1_name = "Player 1"
+		GameManager.temp_p1_preset = null
+	else:
+		var preset_idx = p1_sel - base_classes.size() - 1
+		if preset_idx >= 0:
+			var p = presets[preset_idx]
+			GameManager.temp_p1_class_selection = p.class_type
+			GameManager.temp_p1_name = p.character_name
+			GameManager.temp_p1_preset = p
+
+	# 2. P2 SETUP
+	var p2_sel = p2_option.selected
+	if p2_sel < base_classes.size():
+		GameManager.temp_p2_class_selection = p2_sel
+		GameManager.temp_p2_name = "Player 2"
+		GameManager.temp_p2_preset = null
+	else:
+		var preset_idx = p2_sel - base_classes.size() - 1
+		if preset_idx >= 0:
+			var p = presets[preset_idx]
+			GameManager.temp_p2_class_selection = p.class_type
+			GameManager.temp_p2_name = p.character_name
+			GameManager.temp_p2_preset = p
+
+	GameManager.editing_player_index = 1 
+	
+	if GameManager.p2_is_custom:
+		GameManager.next_match_p2_data = null 
+	else:
+		var p2 = _get_char(p2_sel, "Player 2")
+		GameManager.next_match_p2_data = p2
+	
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
+
+
+============================================================
+FILE: .\Scripts\MenuSettings.gd
+============================================================
+extends Control
+
+# --- AUDIO REFERENCES ---
+@onready var master_slider = $CenterContainer/VBoxContainer/MasterSlider
+@onready var music_slider = $CenterContainer/VBoxContainer/MusicSlider
+@onready var sfx_slider = $CenterContainer/VBoxContainer/SFXSlider 
+
+# --- VISUAL REFERENCES ---
+@onready var brightness_slider = $CenterContainer/VBoxContainer/BrightnessSlider
+@onready var contrast_slider = $CenterContainer/VBoxContainer/ContrastSlider
+
+# --- META DEBUG REFERENCES ---
+@onready var token_label = $CenterContainer/VBoxContainer/TokenLabel
+@onready var reset_tokens_btn = $CenterContainer/VBoxContainer/ResetTokensBtn
+@onready var add_tokens_btn = $CenterContainer/VBoxContainer/AddTokensBtn     
+@onready var minus_tokens_btn = $CenterContainer/VBoxContainer/MinusTokensBtn 
+@onready var wipe_save_btn = $CenterContainer/VBoxContainer/WipeSaveBtn       # NEW
+
+func _ready():
+	# 1. Setup Audio
+	if master_slider: _setup_audio_slider(master_slider, "Master")
+	if music_slider: _setup_audio_slider(music_slider, "Music")
+	if sfx_slider: _setup_audio_slider(sfx_slider, "SFX")
+
+	# 2. Setup Visuals
+	if brightness_slider:
+		_setup_visual_slider(brightness_slider, "Brightness", -0.5, 0.5, GlobalCinematics.user_brightness)
+	if contrast_slider:
+		_setup_visual_slider(contrast_slider, "Contrast", 0.5, 1.5, GlobalCinematics.user_contrast)
+		
+	# 3. Setup Meta Debug
+	if token_label and RunManager.meta_data:
+		_update_token_display()
+	
+	if reset_tokens_btn:
+		reset_tokens_btn.pressed.connect(_on_reset_tokens_pressed)
+	if add_tokens_btn:
+		add_tokens_btn.pressed.connect(_on_add_tokens_pressed)
+	if minus_tokens_btn:
+		minus_tokens_btn.pressed.connect(_on_minus_tokens_pressed)
+	if wipe_save_btn:                                                         # NEW
+		wipe_save_btn.pressed.connect(_on_wipe_save_pressed)
+
+
+# --- SETUP HELPER: AUDIO ---
+func _setup_audio_slider(slider: HSlider, bus_name: String):
+	slider.min_value = 0.0
+	slider.max_value = 1.0
+	slider.step = 0.05
+	
+	if SettingsManager.has_method("get_saved_volume"):
+		slider.value = SettingsManager.get_saved_volume(bus_name)
+	else:
+		var bus_idx = AudioServer.get_bus_index(bus_name)
+		slider.value = db_to_linear(AudioServer.get_bus_volume_db(bus_idx))
+	
+	if not slider.value_changed.is_connected(_on_audio_changed):
+		slider.value_changed.connect(_on_audio_changed.bind(bus_name))
+
+# --- SETUP HELPER: VISUALS ---
+func _setup_visual_slider(slider: HSlider, type: String, min_v: float, max_v: float, start_val: float):
+	slider.min_value = min_v
+	slider.max_value = max_v
+	slider.step = 0.05
+	slider.value = start_val
+	
+	if not slider.value_changed.is_connected(_on_visual_changed):
+		slider.value_changed.connect(_on_visual_changed.bind(type))
+
+
+# --- META DEBUG FUNCTIONS ---
+func _update_token_display():
+	if token_label and RunManager.meta_data:
+		token_label.text = "Circuit Tokens: " + str(RunManager.meta_data.circuit_tokens)
+
+func _on_reset_tokens_pressed():
+	if RunManager.meta_data:
+		RunManager.meta_data.circuit_tokens = 0
+		RunManager._save_global_data()
+		_update_token_display()
+		print("DEBUG: Circuit Tokens reset to 0.")
+
+func _on_add_tokens_pressed():
+	if RunManager.meta_data:
+		RunManager.meta_data.circuit_tokens += 1
+		RunManager._save_global_data()
+		_update_token_display()
+		print("DEBUG: Added 1 Circuit Token.")
+
+func _on_minus_tokens_pressed():
+	if RunManager.meta_data:
+		RunManager.meta_data.circuit_tokens = max(0, RunManager.meta_data.circuit_tokens - 1)
+		RunManager._save_global_data()
+		_update_token_display()
+		print("DEBUG: Removed 1 Circuit Token.")
+
+# --- NEW: WIPE SAVE FUNCTION ---
+func _on_wipe_save_pressed():
+	if RunManager.has_method("wipe_global_save"):
+		RunManager.wipe_global_save()
+		_update_token_display()
+
+
+# --- EVENT HANDLER: AUDIO ---
+func _on_audio_changed(value: float, bus_name: String):
+	if SettingsManager.has_method("update_volume"):
+		SettingsManager.update_volume(bus_name, value)
+	else:
+		var bus_idx = AudioServer.get_bus_index(bus_name)
+		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(value))
+		AudioServer.set_bus_mute(bus_idx, value < 0.05)
+
+# --- EVENT HANDLER: VISUALS ---
+func _on_visual_changed(value: float, type: String):
+	if type == "Brightness":
+		GlobalCinematics.set_brightness(value)
+	elif type == "Contrast":
+		GlobalCinematics.set_contrast(value)
+
+
+============================================================
+FILE: .\Scripts\compendium.gd
+============================================================
+extends Control
+
+@onready var keyword_container = $TabContainer/Traits/MarginContainer/VBoxContainer
+@onready var combat_container = $TabContainer/Combat/MarginContainer/VBoxContainer
+@onready var card_grid = $"TabContainer/Card Library/MarginContainer/GridContainer"
+@onready var rules_container = $"TabContainer/Rules/MarginContainer/VBoxContainer"
+@onready var modes_container = $TabContainer/Modes/MarginContainer/VBoxContainer
+@onready var tab_container = $TabContainer # <--- NEW
+@onready var back_button = $BackButton
+
+# New variable to control which tab opens first
+var initial_tab_index: int = 0
+
+const RULES_DEFS = {
+	"Actions": "An action is a move, technique or attack that is used in combat. Every action has a number of traits that convey how the action works.",
+	"Passive Abilities": "Passive enhancements that affect all actions. Everyone gets a passive ability from their chosen class.",
+	"Combo": "A combo is one or more Offence actions used in a row, without having to check the momentum advantage. If the player on offence runs out of stamina, their combo is over, and they must check the momentum advantage.",
+	"Traits": "All actions have one or more traits. A trait is a keyword that conveys information about how an action interacts with other rules elements or traits. Traits can stack unless otherwise noted. Actions are sometimes named for their traits, e.g. an action with the Offence trait is called an Offence action.", 
+	"Stamina": "Every combatant has a number of stamina points (SP), which is used to keep track of their current stamina as it increases and falls throughout a combat. Stamina can be increased and reduced by you or your opponent’s actions and special abilities.", 
+	"Health": "Every combatant has a number of hit points (HP) that they must keep track of. Actions can deal damage to you to reduce your HP, or heal yourself to increase your HP (up to your max HP).", 
+	"Momentum": "Momentum keeps track of who has taken the advantage in combat. Each combatant is allocated either high or low numbers to be theirs. Any time a player is in their ‘half’ of the tracker, they have the momentum advantage, and can use offence actions in combat (once their opponent's combo has ended). Example: With a momentum of 8, player 1 is given low numbers, so 1-4, and player 2 is given high numbers, so 5-8. Whenever player 1 would gain momentum, through actions or special abilities, they would decrease the number. Conversely, whenever player 2 would gain momentum, they would increase the number. For example, if momentum is on 2, player 1 has the momentum advantage, and if the momentum was 1, player 2 would first take SP damage if they use fall back actions, or HP if they are out of SP.", 
+	"Order of Actions": "When you apply the traits from an action to yourself, please use the following rules: \n• Apply traits from your action to yourself before you apply traits from your opponent’s action to yourself \n• Apply traits that affect the momentum tracker from Offence actions first, then Defence actions."
+}
+
+const COMBAT_DEFS = {
+	"Combat Rules": "A combat is a 1v1 fight between two 'combatants'. These could be between player characters, non-player characters, or any combination of the two.",
+	"Structure": "A ‘Combat’ is played out in a series of ‘Clashes’.",
+	"Clash": "Two combatants choose an action secretly, and resolve the results.",
+	"Combat": "Combatants resolve clashes until one of them is defeated by losing all their health.",
+	"Step 1: Set Stamina and Health": "At the start of every combat, each combatant normally has their maximum stamina and health, however this could be reduced by things like previous fights or environmental effects.",
+	"Step 2: Choose Momentum": "The momentum tracker length is determined by the stage, with player 1 taking low numbers, and player 2 taking high numbers. A priority token is also awarded to the player whose class has the highest speed. If the speed is the same, it is awarded randomly.",
+	"Step 3: Initial Clash ": "The combatants then start with an initial clash, where both combatants secretly choose an action. As no one has a momentum advantage yet, both combatants can choose Offence (with the Opener trait) or Defence actions. The combatants then reveal their actions, and the momentum advantage is awarded as follows: \n•	If one combatant chooses an action with the Offence trait, and one combatant chooses and action with the Defense trait, the combatant that chose the Offence action is awarded the momentum advantage. \n•	If the traits are the same, the action with lower stamina interrupts the other, taking the momentum advantage.\n If the stamina is also the same, the player with the priority token goes first, and the priority token switches to the other player.\n Whichever combatant is awarded the momentum advantage has the momentum tracker set to the number on their half closest to the center (e.g. on a tracker of 8, 4 for Low, 5 for High). The combatant with the momentum advantage is now on the attack, and can only use actions with the Offence trait, while the other combatant can only use actions with the Defence trait.",
+	"Step 4: Resolve Initial Actions ": "The combatants now resolve the effects of their actions, such as using stamina, but ignore any momentum gain or loss from their actions.",
+	"Step 5: Clashes ": "Now that the initial clash is resolved, combat can continue as normal. The combatant that is on the attack can continue their combo. When a combo is over, the momentum is checked. Whichever combatant has the momentum advantage is now on the offence, and the other combatant is now on the defence. Each clash, combatants secretly choose a move, a this repeats until a combatant loses all their health."
+}
+
+var MODES_DEFS = {
+		"The Circuit": "Continuous battles against random opponents with a hand limit of 8, where you unlock new actions, equipment or stat increases after each victory. If you lose a match, the run ends. \n\n- Choose a class, choose the NPC difficulty, toggle optional rules, name your character, then select Start Run!."
+	}
+
+# We need the CardDisplay scene to spawn cards
+var card_scene = preload("res://Scenes/CardDisplay.tscn")
+
+var is_overlay: bool = false # Default is False (Main Menu Mode)
+
+func _ready():
+	back_button.pressed.connect(_on_back_pressed)
+	
+	# Consolidated calls
+	_populate_section(keyword_container, GameManager.KEYWORD_DEFS)
+	_populate_section(rules_container, RULES_DEFS)
+	_populate_section(combat_container, COMBAT_DEFS)
+	_populate_section(modes_container, MODES_DEFS)
+	
+	_populate_card_library()
+	
+	if is_overlay:
+		back_button.text = "Close Help"
+		$Background.visible = true
+	tab_container.current_tab = initial_tab_index
+
+func _populate_card_library():
+	# We use the ID map from ClassFactory to find every card
+	var all_ids = ClassFactory.ID_TO_NAME_MAP.keys()
+	all_ids.sort() # Keep them in order
+	
+	for id in all_ids:
+		# skip class nodes
+		if id in ClassFactory.CLASS_ROOT_IDS: continue 
+		
+		var card_name = ClassFactory.ID_TO_NAME_MAP[id]
+		var card_data = ClassFactory.find_action_resource(card_name)
+		
+		if card_data:
+			var display = card_scene.instantiate()
+			card_grid.add_child(display)
+			
+			# Setup visuals
+			display.set_card_data(card_data)
+			display.custom_minimum_size = Vector2(200, 280) # Smaller version
+			display.scale = Vector2(0.8, 0.8) # Shrink to fit more
+
+func _on_back_pressed():
+	if is_overlay:
+		# Just close this window, don't restart the game!
+		queue_free()
+	else:
+		# Go back to Main Menu
+		SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
+
+func _populate_section(container: Control, data: Dictionary):
+	for key in data:
+		var text_value = data[key]
+		
+		var l = RichTextLabel.new()
+		l.bbcode_enabled = true
+		l.text = "[b][color=yellow]" + key + ":[/color][/b] " + text_value
+		l.fit_content = true
+		l.custom_minimum_size.y = 50 
+		
+		container.add_child(l)
 
