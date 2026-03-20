@@ -13,7 +13,6 @@ extends Control
 var available_sponsors: Array[SponsorData] = []
 # Settings
 @onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
-@onready var maintain_hp_toggle = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/MaintainHPToggle
 @onready var start_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/StartButton
 @onready var delete_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DeleteButton
 @onready var name_input = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/NameInput
@@ -164,7 +163,6 @@ func _update_preview_panel(index: int):
 # --- START RUN ---
 func _on_start_pressed():
 	AudioManager.play_sfx("ui_confirm")
-	RunManager.maintain_hp_enabled = maintain_hp_toggle.button_pressed
 	
 	if selected_save_file != "":
 		RunManager.load_run(selected_save_file)
@@ -196,7 +194,6 @@ func _select_class(index: int):
 	
 	# 1. Re-enable the UI
 	difficulty_option.disabled = false 
-	maintain_hp_toggle.disabled = false 
 
 	# 2. INSERT THE FIX HERE:
 	# This ensures GameManager knows the difficulty immediately upon selection
@@ -317,8 +314,6 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		# Lock the settings to match the save file
 		difficulty_option.selected = data.difficulty
 		difficulty_option.disabled = true 
-		maintain_hp_toggle.button_pressed = data.maintain_hp
-		maintain_hp_toggle.disabled = true
 		
 		# Call our new helper function!
 		_show_save_preview(selected_save_file)
@@ -338,7 +333,6 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 			difficulty_option.selected = 2
 			
 		difficulty_option.disabled = false 
-		maintain_hp_toggle.disabled = false
 		
 		# FIX: Sync GameManager to whatever the dropdown currently says
 		GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty

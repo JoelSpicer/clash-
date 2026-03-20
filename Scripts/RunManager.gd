@@ -17,7 +17,7 @@ var current_run_name: String = "Test Run" # <--- NEW
 const SAVE_DIR = "user://saves/"
 
 # --- NEW: RUN MODIFIERS ---
-var maintain_hp_enabled: bool = false
+var maintain_hp_enabled: bool = true
 const EQUIPMENT_DIR = "res://Data/Equipment/"
 const BOSS_DIR = "res://Data/Presets/Bosses/"
 
@@ -29,7 +29,7 @@ var current_enemy_data: CharacterData # The enemy we are currently fighting
 
 # --- CONFIGURATION ---
 # A standard "Cup" might be 8 steps long
-const LEAGUE_LENGTH = 20
+const LEAGUE_LENGTH = 10
 var is_rival_match: bool = false
 
 # --- GLOBAL META DATA ---
