@@ -88,6 +88,11 @@ func _create_button(parent_container: Control, index: int, text: String, icon: T
 	var btn = Button.new()
 	btn.text = text
 	
+	# --- NEW: Store the true ID and type securely on the button ---
+	btn.set_meta("id", index)
+	btn.set_meta("is_save", is_save)
+	# --------------------------------------------------------------
+	
 	if is_save:
 		btn.custom_minimum_size = Vector2(290, 60) # Wide Bar for saves
 		btn.modulate = Color(0.6, 0.8, 1.0) # Blue tint
@@ -196,19 +201,18 @@ func _select_class(index: int):
 	difficulty_option.disabled = false 
 
 	# 2. INSERT THE FIX HERE:
-	# This ensures GameManager knows the difficulty immediately upon selection
 	GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty
 	
-	# 3. Handle button highlights
-	for i in range(buttons.size()):
-		var btn = buttons[i]
-		if i == index:
+	# --- 3. Handle button highlights (FIXED) ---
+	for btn in buttons:
+		if btn.get_meta("id") == index and btn.get_meta("is_save") == false:
 			btn.modulate = Color(1.2, 1.2, 1.2)
 			btn.add_theme_color_override("font_color", Color.GREEN)
 		else:
 			# Reset to white (or blue-ish if it's a save file button)
-			btn.modulate = Color(1, 1, 1) if not (btn.custom_minimum_size.x > 200) else Color(0.6, 0.8, 1.0)
+			btn.modulate = Color(1, 1, 1) if not btn.get_meta("is_save") else Color(0.6, 0.8, 1.0)
 			btn.remove_theme_color_override("font_color")
+	# -------------------------------------------
 			
 	_update_preview_panel(index)
 
@@ -284,15 +288,15 @@ func _setup_difficulty():
 func _on_item_selected(index: int, text: String, is_save: bool):
 	AudioManager.play_sfx("ui_click")
 	
-	# 1. Visual Highlight
-	for i in range(buttons.size()):
-		var btn = buttons[i]
-		if i == index:
+	# --- 1. Visual Highlight (FIXED) ---
+	for btn in buttons:
+		if btn.get_meta("id") == index and btn.get_meta("is_save") == is_save:
 			btn.modulate = Color(1.2, 1.2, 1.2)
 			btn.add_theme_color_override("font_color", Color.GREEN)
 		else:
-			btn.modulate = Color(1, 1, 1) if not (btn.custom_minimum_size.x > 200) else Color(0.6, 0.8, 1.0)
+			btn.modulate = Color(1, 1, 1) if not btn.get_meta("is_save") else Color(0.6, 0.8, 1.0)
 			btn.remove_theme_color_override("font_color")
+	# -----------------------------------
 
 	if is_save:
 		selected_save_file = text + ".tres"
