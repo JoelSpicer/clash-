@@ -103,44 +103,53 @@ func _animate_pan_zoom(layer: TextureRect):
 func _play_crash_intro():
 	# 1. SETUP STATE
 	var final_pos = title_label.position
-	var start_pos = final_pos - Vector2(0, 800) # Start 800px higher
+	var start_pos = final_pos - Vector2(0, 800) 
 	
 	title_label.position = start_pos
-	title_label.modulate.a = 0.0 # Start invisible
-	title_label.scale = Vector2(2.0, 2.0) # Start giant
+	title_label.modulate.a = 0.0 
+	title_label.scale = Vector2(3.0, 3.0) 
 	
-	# Hide buttons initially so they can pop in later
 	var buttons_container = $VBoxContainer
 	buttons_container.modulate.a = 0.0
 	
 	# 2. THE TWEEN
 	var tween = create_tween()
-	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS) # Run even if paused
+	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS) 
 	
-	# A. FALLING (Fast and Heavy)
-	tween.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+	# A. THE SLAM
+	tween.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
 	tween.set_parallel(true)
-	tween.tween_property(title_label, "position", final_pos, 0.4) # Fall duration
-	tween.tween_property(title_label, "modulate:a", 1.0, 0.2) # Fade in quickly
-	tween.tween_property(title_label, "scale", Vector2(1.0, 1.0), 0.4) # Shrink to normal
+	tween.tween_property(title_label, "position", final_pos, 0.35)
+	tween.tween_property(title_label, "scale", Vector2(1.0, 1.0), 0.35)
+	tween.tween_property(title_label, "modulate:a", 1.0, 0.1)
 	
-	# B. IMPACT (Sequence: Wait for fall to finish -> Shake)
-	tween.set_parallel(false) # Switch back to sequential
+	# B. THE IMPACT (Flash + Shake + Dust)
+	tween.set_parallel(false) 
 	tween.tween_callback(func(): 
-		# Play heavy impact sound
 		AudioManager.play_sfx("hit_heavy") 
-		_shake_screen(10.0, 0.4) # Shake the whole menu
+		_shake_screen(25.0, 0.5)
+		_trigger_camera_flash()
+		_trigger_dust_slam() # <--- NEW CALL
+		_trigger_glitch_effect()
 	)
 	
-	# C. SQUASH & STRETCH (The "Jelly" impact)
-	tween.set_parallel(true)
-	# Flatten it (squash)
-	tween.tween_property(title_label, "scale", Vector2(1.2, 0.8), 0.1).set_trans(Tween.TRANS_BOUNCE)
-	# Return to normal
-	tween.chain().tween_property(title_label, "scale", Vector2(1.0, 1.0), 0.5).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	# C. REVEAL BUTTONS
+	tween.tween_property(buttons_container, "modulate:a", 1.0, 0.5)
+
+# --- NEW: EXPLOSIVE FLASH EFFECT ---
+func _trigger_camera_flash():
+	# 1. Create a white rectangle that covers the whole screen
+	var flash = ColorRect.new()
+	flash.color = Color.WHITE
+	flash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	flash.mouse_filter = Control.MOUSE_FILTER_IGNORE # Don't block clicks
+	add_child(flash)
 	
-	# D. REVEAL BUTTONS
-	tween.parallel().tween_property(buttons_container, "modulate:a", 1.0, 0.5)
+	# 2. Animate it fading out instantly
+	var f_tween = create_tween()
+	# Start fully bright, then vanish in 0.3 seconds
+	f_tween.tween_property(flash, "modulate:a", 0.0, 0.3).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	f_tween.tween_callback(flash.queue_free) # Clean up the node when done
 
 # A generic shaker for the UI
 func _shake_screen(intensity: float, duration: float):
@@ -152,6 +161,70 @@ func _shake_screen(intensity: float, duration: float):
 		var offset = Vector2(randf_range(-val, val), randf_range(-val, val))
 		self.position = original_pos + offset
 	, intensity, 0.0, duration) # Tween from intensity down to 0
+
+func _trigger_dust_slam():
+	var particles = CPUParticles2D.new()
+	add_child(particles)
+	
+	# Position it at the bottom-center of the Title Label
+	particles.position = title_label.position + Vector2(title_label.size.x / 2, title_label.size.y * 0.8)
+	
+	# Visual Settings
+	particles.amount = 30
+	particles.explosiveness = 1.0
+	particles.one_shot = true
+	particles.spread = 180.0 # Full circle burst
+	particles.gravity = Vector2.ZERO # No falling, just expanding
+	particles.initial_velocity_min = 200.0
+	particles.initial_velocity_max = 400.0
+	particles.scale_amount_min = 4.0
+	particles.scale_amount_max = 8.0
+	
+	# Color Gradient (Dusty gray to transparent)
+	var grad = Gradient.new()
+	grad.set_color(0, Color(0.8, 0.8, 0.8, 0.6)) # Light gray
+	grad.set_color(1, Color(0.8, 0.8, 0.8, 0.0)) # Transparent
+	particles.color_ramp = grad
+	
+	# Start emitting and auto-delete
+	particles.emitting = true
+	get_tree().create_timer(1.0).timeout.connect(particles.queue_free)
+
+# --- NEW: CHROMATIC / DIGITAL GLITCH ---
+func _trigger_glitch_effect():
+	pass
+	#var layer1 = $BackgroundContainer/Layer1 
+	#var layer2 = $BackgroundContainer/Layer2 
+	#
+	## We'll use a fast loop to "jitter" the images
+	#var glitch_tween = create_tween()
+	#
+	#for i in range(8): # 8 rapid frames of glitching
+		#glitch_tween.tween_callback(func():
+			## 1. Random Offset (Simulates shifting scanlines)
+			#var offset = Vector2(randf_range(-40, 40), randf_range(-10, 10))
+			#layer1.position = offset 
+			#
+			## 2. Color Scrambling (Briefly turn one layer Red or Blue)
+			#if randf() > 0.5:
+				#layer1.modulate = Color(10, 0.5, 0.5, 1) # Over-bright Red
+			#else:
+				#layer1.modulate = Color(0.5, 0.5, 10, 1) # Over-bright Blue
+				#
+			## 3. Show the second layer briefly for a "ghosting" effect
+			#layer2.show() 
+			#layer2.modulate.a = 0.5 
+			#layer2.position = -offset
+		#)
+		#glitch_tween.tween_interval(0.03) # 30ms per glitch frame
+		#
+	## 4. RESET everything back to normal
+	#glitch_tween.chain().tween_callback(func():
+		#layer1.position = Vector2.ZERO 
+		#layer1.modulate = Color.WHITE 
+		#layer2.hide() 
+		#layer2.modulate.a = 0.0 
+	#)
 
 func _on_start_pressed():
 	AudioManager.play_sfx("ui_click") 

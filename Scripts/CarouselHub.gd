@@ -34,6 +34,11 @@ const TUTORIAL_TEXTS = [
 @onready var btn_right = $UI_Layer/RightArrow
 @onready var btn_back = $UI_Layer/BackButton
 
+# --- PARALLAX SETTINGS ---
+var max_parallax: float = 25.0        # How many pixels it can move in any direction
+var parallax_smoothness: float = 4.0  # How "heavy/smooth" the movement feels
+var base_bg_pos: Vector2 = Vector2.ZERO
+
 # Tutorial Dynamic Nodes
 var tut_layer: CanvasLayer
 var tut_overlay: ColorRect
@@ -70,6 +75,24 @@ func _ready():
 	btn_right.pressed.connect(func(): _change_slide(1))
 	btn_back.pressed.connect(_on_back_pressed)
 	
+	# --- SETUP PARALLAX VISUALS ---
+	# Wait one frame to ensure Godot has calculated the screen size
+	await get_tree().process_frame 
+	var screen_size = get_viewport_rect().size
+	
+	# Set the pivot to the center so it scales outward uniformly
+	bg_current.pivot_offset = screen_size / 2.0
+	bg_fader.pivot_offset = screen_size / 2.0
+	
+	# Scale it up slightly so when it moves, we don't see the edges!
+	bg_current.scale = Vector2(1.05, 1.05)
+	bg_fader.scale = Vector2(1.05, 1.05)
+	
+	# Store the baseline position (usually 0,0)
+	base_bg_pos = bg_current.position
+	# ------------------------------
+	
+	
 	_setup_tutorial_ui()
 	
 	_load_slide_content(0)
@@ -77,6 +100,24 @@ func _ready():
 	
 	# Check for tutorial on the very first screen load
 	_check_and_show_tutorial(0)
+
+func _process(delta):
+	# 1. Get current screen size and mouse position
+	var screen_size = get_viewport_rect().size
+	var mouse_pos = get_viewport().get_mouse_position()
+	var center = screen_size / 2.0
+	
+	# 2. Calculate offset (Returns a value between -1.0 and 1.0)
+	var offset_x = (mouse_pos.x - center.x) / center.x
+	var offset_y = (mouse_pos.y - center.y) / center.y
+	var mouse_offset = Vector2(offset_x, offset_y)
+	
+	# 3. Multiply by max distance and invert it (Negative moves OPPOSITE the mouse)
+	var target_pos = base_bg_pos - (mouse_offset * max_parallax)
+	
+	# 4. Smoothly interpolate (lerp) to the target position
+	bg_current.position = bg_current.position.lerp(target_pos, delta * parallax_smoothness)
+	bg_fader.position = bg_fader.position.lerp(target_pos, delta * parallax_smoothness)
 
 func _change_slide(direction: int):
 	if is_transitioning: return
