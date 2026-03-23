@@ -65,9 +65,12 @@ func _setup_arcade_mode():
 		title_label.modulate = Color.GREEN
 		main_btn.text = "CONTINUE"
 	else:
-		title_label.text = "GAME OVER"
+		title_label.text = "RUN ENDED"
 		title_label.modulate = Color.RED
-		main_btn.text = "TRY AGAIN" 
+		main_btn.text = "FINISH RUN" # Changed from "TRY AGAIN"
+		
+		# Hide the redundant Main Menu button so they only have one way out
+		menu_btn.visible = false
 
 func _on_main_action():
 	AudioManager.play_sfx("ui_confirm")
@@ -79,19 +82,16 @@ func _on_main_action():
 		if player_won:
 			RunManager.handle_win()
 		else:
-			# --- FIX START ---
-			# We MUST reset the audio/visuals before leaving!
-			AudioManager.reset_audio_state() 
-			# -----------------
+			# --- NEW: TRIGGER PERMADEATH ---
+			RunManager.handle_loss() 
+			# -------------------------------
 			
 			get_tree().paused = false 
 			SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 			
 	# 2. QUICK MATCH LOGIC
 	else:
-		# --- FIX START ---
 		AudioManager.reset_audio_state()
-		# -----------------
 		get_tree().paused = false
 		SceneLoader.reload_current_scene()
 

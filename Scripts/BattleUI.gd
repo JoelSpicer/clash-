@@ -85,6 +85,12 @@ var shake_decay: float = 5.0
 var zoom_strength: float = 0.0 
 var zoom_decay: float = 5.0    
 var camera: Camera2D
+# --- PARALLAX SETTINGS ---
+var max_parallax: float = 15.0       # Slightly smaller max distance so it isn't distracting in combat
+var parallax_smoothness: float = 4.0 
+var base_bg_pos: Vector2 = Vector2.ZERO
+
+
 #endregion
 
 func _ready():
@@ -159,6 +165,10 @@ func _ready():
 	preview_card.visible = false
 	if tooltip_label: tooltip_label.visible = false
 	
+	# --- ADD THIS LINE ---
+	if tooltip_panel: tooltip_panel.visible = false
+	# --------------------
+	
 	GameManager.damage_dealt.connect(_on_damage_dealt)
 	GameManager.healing_received.connect(_on_healing_received)
 	GameManager.status_applied.connect(_on_status_applied)	
@@ -191,6 +201,21 @@ func _ready():
 	
 	_update_background()
 	
+	# (Put this right after _update_background() at the end of _ready)
+	
+	# --- SETUP PARALLAX VISUALS ---
+	await get_tree().process_frame 
+	
+	# FIX: Ask the viewport directly!
+	var screen_size = get_viewport().get_visible_rect().size
+	
+	if background:
+		background.pivot_offset = screen_size / 2.0
+		background.scale = Vector2(1.05, 1.05)
+		base_bg_pos = background.position
+	# ------------------------------
+	
+	
 # --- DYNAMIC CAMERA PROCESS ---
 # --- DYNAMIC CAMERA PROCESS ---
 func _process(delta):
@@ -220,6 +245,23 @@ func _process(delta):
 			)
 		else:
 			camera.offset = Vector2.ZERO
+		
+		# --- 3. APPLY PARALLAX TO BACKGROUND ---
+	if background and not is_frozen:
+		# FIX: Ask the viewport directly!
+		var screen_size = get_viewport().get_visible_rect().size
+		
+		var mouse_pos = get_viewport().get_mouse_position()
+		var center = screen_size / 2.0
+		
+		# Calculate offset
+		var offset_x = (mouse_pos.x - center.x) / center.x
+		var offset_y = (mouse_pos.y - center.y) / center.y
+		var mouse_offset = Vector2(offset_x, offset_y)
+		
+		# Apply target position
+		var target_pos = base_bg_pos - (mouse_offset * max_parallax)
+		background.position = background.position.lerp(target_pos, delta * parallax_smoothness)
 
 func apply_camera_impact(zoom_amount: float, shake_amount: float):
 	zoom_strength = max(zoom_strength, zoom_amount)

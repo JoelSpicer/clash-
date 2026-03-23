@@ -29,6 +29,11 @@ extends Control
 @onready var vs_label = $Content/VsLabel
 @onready var arena_label = $ArenaLabel
 
+# --- PARALLAX SETTINGS ---
+var max_parallax: float = 20.0       # A good middle ground between menu and combat
+var parallax_smoothness: float = 4.0 
+var base_bg_pos: Vector2 = Vector2.ZERO
+
 func _ready():
 	# 1. Hide things before setup
 	p1_bubble.visible_ratio = 0.0 # Typewriter reset
@@ -47,6 +52,15 @@ func _ready():
 	
 	# Wait a frame to let Godot calculate the new Anchors
 	await get_tree().process_frame
+	
+	# --- SETUP PARALLAX VISUALS ---
+	if background:
+		var screen_size = get_viewport_rect().size
+		background.pivot_offset = screen_size / 2.0
+		background.scale = Vector2(1.05, 1.05)
+		base_bg_pos = background.position
+	# ------------------------------
+	
 	_play_intro_animation()
 	
 	# The intro takes about 4 seconds total, load fight after 5
@@ -163,10 +177,7 @@ func _play_intro_animation():
 		AudioManager.play_sfx("ui_click")
 	)
 	tween.tween_property(p2_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
-	
-	
-	
-	
+
 # Camera Shake effect for the Content layer
 func _shake_content(intensity: float, duration: float):
 	var original_pos = content.position
@@ -178,3 +189,19 @@ func _shake_content(intensity: float, duration: float):
 	, intensity, 0.0, duration)
 	
 	shake_tween.tween_callback(func(): content.position = original_pos)
+
+func _process(delta):
+	# --- APPLY PARALLAX TO BACKGROUND ---
+	if background:
+		var screen_size = get_viewport_rect().size
+		var mouse_pos = get_viewport().get_mouse_position()
+		var center = screen_size / 2.0
+		
+		# Calculate offset
+		var offset_x = (mouse_pos.x - center.x) / center.x
+		var offset_y = (mouse_pos.y - center.y) / center.y
+		var mouse_offset = Vector2(offset_x, offset_y)
+		
+		# Apply target position
+		var target_pos = base_bg_pos - (mouse_offset * max_parallax)
+		background.position = background.position.lerp(target_pos, delta * parallax_smoothness)

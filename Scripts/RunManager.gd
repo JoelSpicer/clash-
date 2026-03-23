@@ -209,6 +209,16 @@ func get_all_equipment() -> Array[EquipmentData]:
 func handle_loss():
 	AudioManager.reset_audio_state()
 	is_arcade_mode = false
+	
+	# --- NEW: PERMADEATH DELETION ---
+	# 1. Recreate the exact filename used in save_run()
+	var safe_name = current_run_name.validate_filename() + ".tres"
+	
+	# 2. Delete it from the hard drive
+	delete_save_file(safe_name)
+	
+	# 3. Clear the run data so the game knows the run is fully dead
+	player_run_data = null
 
 # --- REWARD POOL LOGIC ---
 

@@ -1,5 +1,5 @@
 === GODOT PROJECT STRUCTURE ===
-Generated: 2026-03-17T20:04:51
+Generated: 2026-03-23T18:39:28
 
 res://
     [+] Art/
@@ -195,6 +195,7 @@ res://
              -  BodyArmour.tres
              -  BoxingTape.tres
              -  EnergyDrink.tres
+             -  Gun.tres
              -  SpikedCleats.tres
              -  SpikedJacket.tres
              -  WeightedKnuckles.tres
@@ -205,6 +206,7 @@ res://
              -  Crash_Johnson_Lv6.tres
              -  Kaiji_Akagi_Lv6.tres
         [+] Sponsors/
+             -  AegisIndustrial.tres
              -  CRASHSupplements.tres
              -  SLAMSupplements.tres
          -  ALLACTIONS.csv
@@ -244,6 +246,7 @@ res://
          -  RewardScreen.tscn
          -  RunStatusOverlay.tscn
          -  SceneLoader.tscn
+         -  ShopTerminal.tscn
          -  SplashScreen.tscn
          -  TournamentMap.tscn
          -  TutorialLayer.gdshader
@@ -255,6 +258,7 @@ res://
     [+] Scripts/
         [+] Resources/
              -  ActionData.gd
+             -  BaseModifierData.gd
              -  CharacterData.gd
              -  ClassDefinition.gd
              -  DialogueManager.gd
@@ -301,6 +305,7 @@ res://
          -  RunStatusOverlay.gd
          -  SceneLoader.gd
          -  SettingsManager.gd
+         -  ShopTerminal.gd
          -  SoundButton.gd
          -  SplashScreen.gd
          -  TestArena.gd
@@ -326,6 +331,7 @@ res://
      -  Player1.tres
      -  Player2.tres
      -  ProjectDump.txt
+     -  ProjectDumpScene.txt
      -  ProjectStructure.txt
      -  README.md
      -  ScreenFilter.gdshader

@@ -11,6 +11,13 @@ var bg_list: Array[Texture2D] = []
 var current_layer_idx = 0
 var active_bg_index = 0
 
+@onready var bg_container = $BackgroundContainer # <--- NEW REFERENCE
+
+# --- PARALLAX SETTINGS ---
+var max_parallax: float = 20.0
+var parallax_smoothness: float = 4.0 
+var base_bg_pos: Vector2 = Vector2.ZERO
+
 func _ready():
 	# 1. SETUP UI
 	start_button.pressed.connect(_on_start_pressed)
@@ -25,6 +32,34 @@ func _ready():
 	
 	# 3. START BACKGROUND SLIDESHOW
 	_init_slideshow()
+	
+	# --- SETUP PARALLAX VISUALS ---
+	await get_tree().process_frame
+	var screen_size = get_viewport_rect().size
+	
+	# Set pivot to center and scale the ENTIRE container up
+	if bg_container:
+		bg_container.pivot_offset = screen_size / 2.0
+		bg_container.scale = Vector2(1.05, 1.05)
+		base_bg_pos = bg_container.position
+	# ------------------------------
+	
+
+func _process(delta):
+	# --- APPLY PARALLAX TO BACKGROUND CONTAINER ---
+	if bg_container:
+		var screen_size = get_viewport_rect().size
+		var mouse_pos = get_viewport().get_mouse_position()
+		var center = screen_size / 2.0
+		
+		# Calculate offset
+		var offset_x = (mouse_pos.x - center.x) / center.x
+		var offset_y = (mouse_pos.y - center.y) / center.y
+		var mouse_offset = Vector2(offset_x, offset_y)
+		
+		# Apply target position to the parent container!
+		var target_pos = base_bg_pos - (mouse_offset * max_parallax)
+		bg_container.position = bg_container.position.lerp(target_pos, delta * parallax_smoothness)
 
 func _init_slideshow():
 	if GameManager.environment_backgrounds.size() > 0:
