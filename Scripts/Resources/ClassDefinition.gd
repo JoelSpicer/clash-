@@ -9,6 +9,7 @@ class_name ClassDefinition
 @export_multiline var tree_description: String
 @export_multiline var playstyle_summary: String = "A brief description of how this class plays."
 @export_multiline var arcade_description: String
+@export var shop_cost: int = 20
 
 @export_group("Base Stats")
 @export var base_hp: int = 5

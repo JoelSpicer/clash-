@@ -9,6 +9,7 @@ class_name BaseModifierData
 @export var item_name: String = "Unknown Modifier"
 @export_multiline var description: String = ""
 @export var icon: Texture2D
+@export var shop_cost: int = 20
 
 @export_category("Starting Stats")
 @export var bonus_max_hp: int = 0
