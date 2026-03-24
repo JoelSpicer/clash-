@@ -11,10 +11,13 @@ func _ready():
 	GameManager.status_applied.connect(_on_status_applied)
 	
 	print("VFX Manager Initialized")
+	_warm_up_particles()
 
 # ==============================================================================
 # 1. PARTICLE GENERATORS (Templates)
 # ==============================================================================
+
+
 
 # ... (Keep _create_clash_particles as is) ...
 func _create_clash_particles() -> GPUParticles2D:
@@ -293,3 +296,32 @@ func _on_wall_crush(target_id: int, _damage: int):
 		mat.direction = Vector3(-1, -0.5, 0) # Fly Left-Up
 		
 	_spawn_vfx(p, spawn_pos)
+
+# --- NEW: PRELOAD SHADERS ---
+func _warm_up_particles():
+	# Gather one of every particle type you create
+	var particles_to_test = [
+		_create_clash_particles(),
+		_create_block_particles(),
+		_create_hit_particles(),
+		_create_heal_particles(),
+		_create_dodge_particles(),
+		_create_super_particles(),
+		_create_wall_debris()
+	]
+	
+	for p in particles_to_test:
+		# 1. Hide it way off-screen
+		p.position = Vector2(-9999, -9999) 
+		# 2. Make it completely invisible just in case
+		p.modulate.a = 0.0 
+		p.one_shot = true
+		
+		# 3. Add to the tree and fire it!
+		add_child(p)
+		p.emitting = true
+		
+		# 4. Give the GPU half a second to compile it, then delete it
+		get_tree().create_timer(0.5).timeout.connect(p.queue_free)
+		
+	print("VFX Shaders Pre-Compiled!")

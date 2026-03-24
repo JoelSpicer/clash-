@@ -107,7 +107,7 @@ clip_contents = true
 layout_mode = 2
 localize_numeral_system = false
 theme_override_constants/v_separation = 5
-columns = 5
+columns = 4
 
 [node name="Modes" type="ScrollContainer" parent="TabContainer" unique_id=1404989254]
 visible = false

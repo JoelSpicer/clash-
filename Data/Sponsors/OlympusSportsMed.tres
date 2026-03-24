@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SponsorData" format=3 uid="uid://d3v7lam2p4q1"]
+
+[ext_resource type="Script" uid="uid://c45g8d8d4wjtr" path="res://Scripts/Resources/SponsorData.gd" id="1_olympus"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_action"]
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="3_equip"]
+[ext_resource type="Resource" uid="uid://dncgblvufdh11" path="res://Data/Equipment/AfterFightSnacks.tres" id="4_snacks"]
+[ext_resource type="Resource" uid="uid://ctdad11hknabx" path="res://Data/Equipment/BodyArmour.tres" id="5_armour"]
+
+[resource]
+script = ExtResource("1_olympus")
+flavor_quote = "\"Peak performance isn't found; it's manufactured.\""
+starting_equipment = Array[ExtResource("3_equip")]([ExtResource("4_snacks")])
+rival_character_name = "The Natural"
+rival_custom_intro = "\"You can't buy talent, meathead!\""
+rival_momentum_handicap = 1
+rival_reward_item = ExtResource("5_armour")
+synergy_keywords = Array[String](["Utility", "Defence"])
+item_name = "Olympus Sports Med"
+description = "A clinical training sponsor. Gym buffs are 1.5x effective, heal 2 HP on win, and +1 Speed."
+bonus_speed = 1
+heal_on_win = 2
+gym_bonus_multiplier = 1.5
+metadata/_custom_type_script = "uid://c45g8d8d4wjtr"

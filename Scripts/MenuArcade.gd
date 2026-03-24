@@ -368,14 +368,18 @@ func _load_sponsors():
 		dir.list_dir_begin()
 		var file_name = dir.get_next()
 		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".tres"):
-				var sponsor = load(dir_path + file_name) as SponsorData
-				if sponsor:
-					# --- FIX: Change sponsor_name to item_name ---
-					if sponsor.item_name in RunManager.meta_data.unlocked_sponsors or sponsor.item_name == "CRASH Supplements" or sponsor.item_name == "SLAM Supplements":
-						available_sponsors.append(sponsor)
-						sponsor_option.add_item(sponsor.item_name)
-					# ---------------------------------------------
+			if not dir.current_is_dir():
+				# --- FIX: Handle Godot's Export Renaming ---
+				var clean_name = file_name.replace(".remap", "")
+				
+				if clean_name.ends_with(".tres") or clean_name.ends_with(".res"):
+					# Load using the clean name, Godot's resource loader handles the rest
+					var sponsor = load(dir_path + clean_name) as SponsorData
+					if sponsor:
+						if sponsor.item_name in RunManager.meta_data.unlocked_sponsors or sponsor.item_name == "CRASH Supplements" or sponsor.item_name == "SLAM Supplements":
+							available_sponsors.append(sponsor)
+							sponsor_option.add_item(sponsor.item_name)
+				# -------------------------------------------
 			file_name = dir.get_next()
 			
 	# --- NEW: CONNECT SIGNAL AND INITIALIZE ---
