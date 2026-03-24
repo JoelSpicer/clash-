@@ -8,4 +8,5 @@ script = ExtResource("1_i2xd5")
 
 [node name="MusicPlayer" type="Node" parent="." unique_id=884473204]
 script = ExtResource("2_u6owb")
+Bus = &"Music"
 metadata/_custom_type_script = "uid://ilexrjldybro"
