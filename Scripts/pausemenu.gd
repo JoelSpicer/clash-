@@ -8,6 +8,15 @@ func _ready():
 	
 func _input(event):
 	if event.is_action_pressed("ui_cancel"): # Default is 'Escape' key
+		# --- NEW: PREVENT PAUSING ON SPECIFIC SCREENS ---
+		# Get the name of the current active scene
+		var current_scene_name = get_tree().current_scene.name
+		
+		# If we are on the Main Menu or Game Over screen, ignore the Escape key!
+		if current_scene_name == "MainMenu" or current_scene_name == "GameOverScreen":
+			return
+		# ------------------------------------------------
+			
 		_toggle_pause()
 
 func _toggle_pause():

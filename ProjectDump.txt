@@ -2,3069 +2,369 @@
 
 
 ============================================================
-FILE: .\Scripts\BattleUI.gd
+FILE: .\Scenes\Pausemenu.tscn
+============================================================
+[gd_scene format=3 uid="uid://b2sxki8ci7lvb"]
+
+[ext_resource type="Script" uid="uid://0hs2t76gkflh" path="res://Scripts/pausemenu.gd" id="1_1tmd2"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_8t1co"]
+
+[node name="PauseMenu" type="CanvasLayer" unique_id=2035227779]
+process_mode = 3
+layer = 128
+script = ExtResource("1_1tmd2")
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=37121750]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5019608)
+
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=295028026]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=1783403641]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=2013240876]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="Button" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1812273736]
+layout_mode = 2
+text = "Resume"
+script = ExtResource("2_8t1co")
+
+[node name="Button2" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1342906979]
+layout_mode = 2
+text = "Main Menu"
+script = ExtResource("2_8t1co")
+
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Button" to="." method="_on_resume_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/Button2" to="." method="_on_main_menu_pressed"]
+
+
+============================================================
+FILE: .\Scripts\DeckEditScreen.gd
+============================================================
+extends Control
+
+@onready var card_grid = $ScrollContainer/CardGrid
+@onready var count_label = $CountLabel
+@onready var fight_btn = $FightBtn
+
+var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
+var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
+
+func _ready():
+	AudioManager.play_music("menu_theme")
+	# 1. Add Status Overlay
+	var overlay = overlay_scene.instantiate()
+	add_child(overlay)
+	
+	# 2. Connect Button
+	fight_btn.pressed.connect(_on_fight_pressed)
+	# NEW: Update text to reflect new flow
+	fight_btn.text = "CONTINUE"
+	# 3. Draw Grid
+	_refresh_grid()
+
+func _refresh_grid():
+	# Clear old
+	for c in card_grid.get_children():
+		c.queue_free()
+	
+	var deck = RunManager.player_run_data.deck
+	var unlocked = RunManager.player_run_data.unlocked_actions
+	
+	# Update Label
+	count_label.text = "HAND: " + str(deck.size()) + " / " + str(ClassFactory.HAND_LIMIT)
+	count_label.modulate = Color.GREEN if deck.size() == ClassFactory.HAND_LIMIT else Color.WHITE
+
+	# Draw all unlocked cards
+	for action in unlocked:
+		var wrapper = Control.new()
+		wrapper.custom_minimum_size = Vector2(180, 240) 
+		wrapper.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		
+		var disp = card_display_scene.instantiate()
+		# Add child FIRST (Safety fix we learned earlier)
+		wrapper.add_child(disp)
+		disp.set_card_data(action)
+		disp.scale = Vector2(0.75, 0.75)
+		disp.position = Vector2(10, 10)
+		disp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		
+		# Check if Equipped
+		if RunManager.player_run_data.has_card_in_deck(action.display_name):
+			disp.modulate = Color(1, 1, 1, 1) # Bright
+			_add_equipped_badge(wrapper)
+		else:
+			disp.modulate = Color(0.5, 0.5, 0.5, 0.8) # Dim
+		
+		# Click Handling
+		wrapper.gui_input.connect(func(ev): 
+			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+				_toggle_card(action)
+		)
+		
+		card_grid.add_child(wrapper)
+
+func _toggle_card(action):
+	var player = RunManager.player_run_data
+	
+	if player.has_card_in_deck(action.display_name):
+		# Remove
+		player.remove_card_from_deck(action.display_name)
+		AudioManager.play_sfx("ui_back")
+	else:
+		# Add
+		if player.deck.size() < ClassFactory.HAND_LIMIT:
+			player.deck.append(action)
+			AudioManager.play_sfx("ui_click")
+		else:
+			AudioManager.play_sfx("error") # (Optional: Make sure you have an error sound!)
+			
+	_refresh_grid()
+
+func _add_equipped_badge(parent):
+	var lbl = Label.new()
+	lbl.text = "EQUIPPED"
+	lbl.add_theme_color_override("font_color", Color.GREEN)
+	lbl.position = Vector2(30, -5)
+	lbl.z_index = 5
+	parent.add_child(lbl)
+
+func _on_fight_pressed():
+	if RunManager.player_run_data.deck.size() < 1: return
+	
+	AudioManager.play_sfx("ui_confirm")
+	
+	# CHANGED: Use the new smart exit function
+	RunManager.exit_deck_editor()
+
+
+============================================================
+FILE: .\Scripts\TournamentMap.gd
+============================================================
+extends Control
+
+@onready var scroll_container = $ScrollContainer # We need reference to the ScrollView itself
+@onready var container = $ScrollContainer/HBoxContainer
+
+var node_scene = preload("res://Scenes/UI/MapNode.tscn")
+
+func _ready():
+	_generate_map_visuals()
+
+func _generate_map_visuals():
+	# Clear previous children
+	for child in container.get_children():
+		child.queue_free()
+	
+	var target_node_control = null # Variable to hold the node we want to look at
+	
+	# Loop through the data
+	for i in range(RunManager.tournament_map.size()):
+		var data = RunManager.tournament_map[i]
+		
+		var node_instance = node_scene.instantiate()
+		container.add_child(node_instance)
+		
+		node_instance.setup(data, i)
+		node_instance.node_clicked.connect(_on_node_clicked)
+		
+		# --- NEW: Capture the node we are currently on ---
+		if i == RunManager.current_map_index:
+			target_node_control = node_instance
+
+	# Wait for layout to calculate sizes
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
+	_draw_connections()
+	
+	# --- NEW: SCROLL TO NODE ---
+	# We do this AFTER drawing connections so the line is behind the nodes
+	if target_node_control:
+		_scroll_to_node(target_node_control)
+
+func _scroll_to_node(target: Control):
+	# 1. Calculate the center of the target node
+	# (Node Position + Half its width)
+	var node_center_x = target.position.x + (target.size.x / 2)
+	
+	# 2. Calculate the center of the screen/scroll view
+	var screen_center_x = scroll_container.size.x / 2
+	
+	# 3. Determine the scroll position
+	# We want the Node Center to be at Screen Center.
+	# So we subtract the screen half-width from the node's position.
+	var final_scroll_x = node_center_x - screen_center_x
+	
+	# 4. Animate it smoothly (The "Juice")
+	var tween = create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_OUT)
+	tween.tween_property(scroll_container, "scroll_horizontal", final_scroll_x, 0.8)
+
+# --- VISUAL FLUFF: CONNECTING LINES ---
+func _draw_connections():
+	var line = Line2D.new()
+	line.width = 6 
+	line.default_color = Color(0.6, 0.6, 0.6) 
+	
+	container.add_child(line)
+	container.move_child(line, 0) # This puts the line at index 0
+	
+	for child_node in container.get_children():
+		if child_node is Control and child_node != line:
+			var center = child_node.position + (child_node.size / 2.0)
+			line.add_point(center)
+
+func _on_node_clicked(index: int):
+	# ... (Keep existing logic) ...
+	var data = RunManager.tournament_map[index]
+	match data.type:
+		MapNodeData.Type.FIGHT, MapNodeData.Type.BOSS:
+			_start_fight(data)
+		MapNodeData.Type.GYM:
+			_enter_gym(data)
+
+func _start_fight(data: MapNodeData):
+	RunManager.start_map_fight(data)
+
+func _enter_gym(_data: MapNodeData):
+	print("Entering Gym...")
+	SceneLoader.change_scene("res://Scenes/Gym.tscn")
+
+
+============================================================
+FILE: .\Scripts\equipmentdraft.gd
+============================================================
+extends Control
+
+@onready var item_grid = $ColorRect/ItemGrid
+
+func _ready():
+	# 1. Get all available equipment
+	var all_items = RunManager.get_all_equipment()
+	all_items.shuffle() # Randomize the list
+	
+	# 2. Pick the top 3 (or fewer if you haven't made 3 items yet)
+	var options = []
+	for i in range(min(3, all_items.size())):
+		options.append(all_items[i])
+		
+	# 3. Create Buttons
+	for item in options:
+		var btn = _create_item_button(item)
+		item_grid.add_child(btn)
+
+func _create_item_button(item: EquipmentData) -> Button:
+	var btn = SoundButton.new()
+	btn.custom_minimum_size = Vector2(250, 350)
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	
+	# Styling
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.15, 0.15, 0.15)
+	style.set_corner_radius_all(10)
+	btn.add_theme_stylebox_override("normal", style)
+	
+	# Content Container
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vbox.add_theme_constant_override("separation", 10)
+	btn.add_child(vbox)
+	
+	# Icon
+	var icon = TextureRect.new()
+	icon.custom_minimum_size.y = 100
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = item.icon if item.icon else preload("res://icon.svg")
+	vbox.add_child(icon)
+	
+	# Name
+	var name_lbl = Label.new()
+	name_lbl.text = item.item_name
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 24)
+	vbox.add_child(name_lbl)
+	
+	# Description
+	var desc_lbl = Label.new()
+	desc_lbl.text = item.description
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
+	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(desc_lbl)
+	
+	# Click Logic
+	btn.pressed.connect(func(): _on_item_selected(item))
+	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
+	
+	return btn
+
+func _on_item_selected(item: EquipmentData):
+	AudioManager.play_sfx("ui_click")
+	print("Equipped: " + item.item_name)
+	
+	# 1. Add to inventory
+	RunManager.player_run_data.equipment.append(item)
+	
+	# 2. Recalculate stats immediately so max HP/SP increases
+	ClassFactory._recalculate_stats(RunManager.player_run_data)
+	
+	# 3. Proceed to the Action Tree for the card reward
+	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
+
+
+============================================================
+FILE: .\Scripts\pausemenu.gd
 ============================================================
 extends CanvasLayer
 
-#region vars
-signal human_selected_card(action_card, extra_data)
-signal p1_mode_toggled(is_human)
-signal p2_mode_toggled(is_human)
-
-# --- REFERENCES ---
-@onready var p1_hud = $P1_HUD 
-@onready var p2_hud = $P2_HUD
-@onready var momentum_tracker = $MomentumTracker
-@onready var status_label = $MomentumTracker/StatusLabel
-@onready var slot_grid = $MomentumTracker/SlotGrid
-var momentum_slots: Array[Panel] = [] 
-@onready var combat_log = $CombatLog
-
-@onready var button_grid = %ButtonGrid
-@onready var preview_card = %PreviewCard
-@onready var tooltip_panel = $MainLayout/PreviewAnchor/TooltipPanel
-@onready var tooltip_label = $MainLayout/PreviewAnchor/TooltipPanel/ToolTipLabel # Or whatever the exact path is now!
-var tooltip_tween: Tween # Keeps track of the animation so we don't spam it
-var preview_tween: Tween
-var preview_base_pos: Vector2
-@onready var btn_offence = %Offence        
-@onready var btn_defence = %Defence      
-@onready var equipment_grid = $EquipmentGrid
-
-@onready var log_toggle = $LogToggle 
-
-@onready var clash_layer = $ClashLayer
-@onready var left_card_display = $ClashLayer/LeftCard
-@onready var right_card_display = $ClashLayer/RightCard
-@onready var background = $Background
-
-@onready var env_button = $EnvButton
-@onready var env_popup = $EnvPopup
-@onready var env_title = $EnvPopup/VBoxContainer/EnvTitle
-@onready var env_details = $EnvPopup/VBoxContainer/EnvDetails
-@onready var close_env_button = $EnvPopup/VBoxContainer/CloseEnvButton
-@onready var inspect_btn = $InspectButton
-@onready var inspect_popup = $InspectPopup
-@onready var inspect_grid = $InspectPopup/ScrollContainer/InspectGrid
-
-@onready var p1_bark_label = $P1_Bark # Adjust path
-@onready var p2_bark_label = $P2_Bark
-
-var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
-
-# --- DATA ---
-var card_button_scene = preload("res://Scenes/CardButton.tscn")
-var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
-var compendium_scene = preload("res://Scenes/compendium.tscn")
-var current_deck: Array[ActionData] = []
-var current_tab = ActionData.Type.OFFENCE
-
-var _prev_p1_stats = { "hp": 0, "sp": 0 }
-var _prev_p2_stats = { "hp": 0, "sp": 0 }
-
-# State Constraints
-var current_sp_limit: int = 0 
-var current_hp_limit: int = 0
-var my_opportunity_val: int = 0
-var my_opening_value: int = 0
-var turn_cost_limit: int = 99 
-var opener_restriction: bool = false
-var super_allowed: bool = false 
-var feint_mode: bool = false 
-
-var skip_action: ActionData
-var is_locked = false
-var finisher_triggered: bool = false # PREVENTS DOUBLE TRIGGERS
-
-# Toggle Buttons
-var p1_toggle: CheckButton
-var p2_toggle: CheckButton
-
-# --- VISUALS (Passives & Juice) ---
-var rage_toggle: CheckButton
-var keep_up_toggle: CheckButton
-var tech_dropdown: OptionButton
-
-# DYNAMIC CAMERA VARIABLES
-var shake_strength: float = 0.0
-var shake_decay: float = 5.0
-var zoom_strength: float = 0.0 
-var zoom_decay: float = 5.0    
-var camera: Camera2D
-# --- PARALLAX SETTINGS ---
-var max_parallax: float = 15.0       # Slightly smaller max distance so it isn't distracting in combat
-var parallax_smoothness: float = 4.0 
-var base_bg_pos: Vector2 = Vector2.ZERO
-
-
-#endregion
+@onready var background = $ColorRect # Assuming your ColorRect is named "ColorRect"
 
 func _ready():
-	process_mode = Node.PROCESS_MODE_ALWAYS 
-	
-	# --- FIX: FORCE RESET AT START OF FIGHT ---
-	# This ensures we don't inherit "Black & White" from the previous match
-	if GlobalCinematics:
-		GlobalCinematics.reset_visuals()
-	# ------------------------------------------
-	
-	# --- NEW: HARDWARE CAMERA SETUP ---
-	camera = Camera2D.new()
-	# Center the camera perfectly based on screen size
-	camera.position = get_viewport().get_visible_rect().size / 2.0
-	add_child(camera)
-	
-	# This magical checkbox tells Godot to apply the Camera's zoom and shake
-	# directly to the CanvasLayer using hardware acceleration!
-	self.follow_viewport_enabled = true
-	# ----------------------------------
-	
-	if not btn_offence or not btn_defence:
-		printerr("CRITICAL: Buttons missing in BattleUI")
-		return
-	
-	# --- NEW: GENERATE SHADER FOR BACKGROUND ---
-	# This allows us to desaturate the BG without needing a file
-	var shader = Shader.new()
-	shader.code = """
-	shader_type canvas_item;
-	uniform float saturation : hint_range(0.0, 1.0) = 1.0;
-	void fragment() {
-		vec4 tex_color = texture(TEXTURE, UV);
-		float grey = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
-		vec3 final_color = mix(vec3(grey), tex_color.rgb, saturation);
-		COLOR = vec4(final_color, tex_color.a);
-	}
-	"""
-	var mat = ShaderMaterial.new()
-	mat.shader = shader
-	if background:
-		background.material = mat
-	# -------------------------------------------
-
-	GameManager.wall_crush_occurred.connect(_on_wall_crush_ui)
-	
-
-	GameManager.combat_log_updated.emit("Location: " + GameManager.current_environment_name + " (" + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots)")
-	
-	if clash_layer: clash_layer.visible = false
-	
-	log_toggle.button_pressed = false
-	combat_log.visible = false
-	
-	if log_toggle:
-		log_toggle.toggled.connect(_on_log_toggled)
-		combat_log.visible = log_toggle.button_pressed
-	
-	btn_offence.pressed.connect(func(): _switch_tab(ActionData.Type.OFFENCE))
-	btn_defence.pressed.connect(func(): _switch_tab(ActionData.Type.DEFENCE))
-	
-	skip_action = ActionData.new()
-	skip_action.display_name = "SKIP FEINT"
-	skip_action.description = "Stop combining and use your original action."
-	skip_action.cost = 0
-	
-	button_grid.visible = false
-	
-	preview_base_pos = preview_card.position
-	
-	preview_card.visible = false
-	if tooltip_label: tooltip_label.visible = false
-	
-	# --- ADD THIS LINE ---
-	if tooltip_panel: tooltip_panel.visible = false
-	# --------------------
-	
-	GameManager.damage_dealt.connect(_on_damage_dealt)
-	GameManager.healing_received.connect(_on_healing_received)
-	GameManager.status_applied.connect(_on_status_applied)	
-	GameManager.combat_log_updated.connect(_on_combat_log_updated)
-	GameManager.clash_resolved.connect(_on_clash_resolved_log)
-	
-	if not GameManager.state_changed.is_connected(_on_game_state_changed):
-		GameManager.state_changed.connect(_on_game_state_changed)
-	
-	await get_tree().process_frame
-	_snapshot_stats()
-	
-	_create_debug_toggles()
-	_create_passive_toggles()
-	setup_toggles()
-	
-	if env_button and env_popup:
-		env_button.pressed.connect(_on_env_button_pressed)
-		close_env_button.pressed.connect(func(): env_popup.visible = false)
-		env_details.bbcode_enabled = true
-		env_details.fit_content = true
-		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
-	
-	if inspect_btn:
-		inspect_btn.pressed.connect(_on_inspect_pressed)
-	# SETUP LOG DRAWER: Start it off-screen to the left, but make it visible
-	combat_log.position.x = -400
-	combat_log.visible = true 
-	log_toggle.button_pressed = false
-	
-	_update_background()
-	
-	# (Put this right after _update_background() at the end of _ready)
-	
-	# --- SETUP PARALLAX VISUALS ---
-	await get_tree().process_frame 
-	
-	# FIX: Ask the viewport directly!
-	var screen_size = get_viewport().get_visible_rect().size
-	
-	if background:
-		background.pivot_offset = screen_size / 2.0
-		background.scale = Vector2(1.05, 1.05)
-		base_bg_pos = background.position
-	# ------------------------------
-	
-	
-# --- DYNAMIC CAMERA PROCESS ---
-# --- DYNAMIC CAMERA PROCESS ---
-func _process(delta):
-	# 1. Decay Values
-	var is_frozen = (finisher_triggered and get_tree().paused)
-	
-	if not is_frozen:
-		if shake_strength > 0:
-			shake_strength = lerpf(shake_strength, 0, shake_decay * delta)
-			if shake_strength < 0.1: shake_strength = 0
-			
-		if zoom_strength > 0:
-			zoom_strength = lerpf(zoom_strength, 0, zoom_decay * delta)
-			if zoom_strength < 0.001: zoom_strength = 0
-
-	# 2. Apply to Camera2D directly (Highly Efficient)
-	if camera:
-		# Base zoom is 1.0. We zoom IN by increasing the numbers.
-		var current_zoom = 1.0 + zoom_strength
-		camera.zoom = Vector2(current_zoom, current_zoom)
-		
-		# Shake Offset
-		if shake_strength > 0:
-			camera.offset = Vector2(
-				randf_range(-shake_strength, shake_strength),
-				randf_range(-shake_strength, shake_strength)
-			)
-		else:
-			camera.offset = Vector2.ZERO
-		
-		# --- 3. APPLY PARALLAX TO BACKGROUND ---
-	if background and not is_frozen:
-		# FIX: Ask the viewport directly!
-		var screen_size = get_viewport().get_visible_rect().size
-		
-		var mouse_pos = get_viewport().get_mouse_position()
-		var center = screen_size / 2.0
-		
-		# Calculate offset
-		var offset_x = (mouse_pos.x - center.x) / center.x
-		var offset_y = (mouse_pos.y - center.y) / center.y
-		var mouse_offset = Vector2(offset_x, offset_y)
-		
-		# Apply target position
-		var target_pos = base_bg_pos - (mouse_offset * max_parallax)
-		background.position = background.position.lerp(target_pos, delta * parallax_smoothness)
-
-func apply_camera_impact(zoom_amount: float, shake_amount: float):
-	zoom_strength = max(zoom_strength, zoom_amount)
-	shake_strength = max(shake_strength, shake_amount)
-
-func _play_finisher_sequence():
-	if finisher_triggered: return
-	finisher_triggered = true
-	
-	HitStopManager.stop_frame(1.5)
-	
-	# Visuals
-	zoom_strength = 0.45
-	shake_strength = 0.0 
-	
-	# --- CALL GLOBAL ---
-	GlobalCinematics.apply_finisher_effect()
-
-func _on_game_state_changed(new_state):
-	if new_state == GameManager.State.POST_CLASH:
-		_log_stat_changes()
-		finisher_triggered = false
-		
-		# --- CALL GLOBAL ---
-		GlobalCinematics.reset_visuals()
-
-func _create_passive_toggles():
-	var container = HBoxContainer.new()
-	add_child(container)
-	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
-	container.position.y -= 200
-	container.position.x -= 570
-	rage_toggle = CheckButton.new()
-	rage_toggle.text = "RAGE (Pay HP)"
-	rage_toggle.visible = false
-	rage_toggle.toggled.connect(func(_on): _refresh_grid())
-	container.add_child(rage_toggle)
-	
-	keep_up_toggle = CheckButton.new()
-	keep_up_toggle.text = "KEEP UP (Pay SP)"
-	keep_up_toggle.visible = false
-	container.add_child(keep_up_toggle)
-	
-	tech_dropdown = OptionButton.new()
-	tech_dropdown.add_item("Tech: None")
-	tech_dropdown.add_item("+Opener (1 SP)")
-	tech_dropdown.add_item("+Tiring 1 (1 SP)")
-	tech_dropdown.add_item("+Momentum 1 (1 SP)")
-	tech_dropdown.selected = 0
-	tech_dropdown.visible = false
-	tech_dropdown.item_selected.connect(func(_idx): _refresh_grid())
-	container.add_child(tech_dropdown)
-	
-func setup_passive_toggles(character: CharacterData):
-	rage_toggle.visible = character.can_pay_with_hp
-	keep_up_toggle.visible = character.has_keep_up_toggle
-	tech_dropdown.visible = character.has_technique_dropdown
-	tech_dropdown.selected = 0 
-	rage_toggle.button_pressed = false
-	keep_up_toggle.button_pressed = false
-
-func _create_debug_toggles():
-	var container = HBoxContainer.new()
-	add_child(container)
-	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	container.position.y += 60 
-	container.add_theme_constant_override("separation", 20)
-	container.visible = false
-	container.name = "DebugContainer" 
-	
-	var p1_is_human = true 
-	var p2_is_human = false
-	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
-		p2_is_human = true
-	
-	p1_toggle = CheckButton.new()
-	p1_toggle.text = "P1 Human"
-	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
-	p1_toggle.button_pressed = p1_is_human 
-	container.add_child(p1_toggle)
-	
-	p2_toggle = CheckButton.new()
-	p2_toggle.text = "P2 Human"
-	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
-	p2_toggle.button_pressed = p2_is_human
-	container.add_child(p2_toggle)
-
-func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
-	p1_hud.setup(p1_data)
-	p2_hud.setup(p2_data)
-	p1_hud.configure_visuals(false) 
-	p2_hud.configure_visuals(true)
-	update_momentum(0)
-	
-	_populate_equipment(p1_data)
-
-func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
-	p1_hud.update_stats(p1, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat, p1.patient_buff_active)
-	p2_hud.update_stats(p2, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat, p2.patient_buff_active)
-	
-	update_momentum(momentum)
-
-func update_momentum(val: int):
-	if momentum_slots.is_empty():
-		_build_momentum_track() # Ensure it's built the first time
-		
-	# 1. Update the Text
-	var text = "NEUTRAL: " + GameManager.current_environment_name.to_upper()
-	if val > 0 and val <= GameManager.MOMENTUM_P1_MAX:
-		text = "P1 ADVANTAGE"
-	elif val > GameManager.MOMENTUM_P1_MAX:
-		text = "P2 ADVANTAGE"
-	if status_label: status_label.text = text
-
-	# 2. Update the Slots (The Juice)
-	for i in range(momentum_slots.size()):
-		var slot = momentum_slots[i]
-		var style = slot.get_theme_stylebox("panel").duplicate()
-		var slot_num = i + 1
-		
-		# Neutral State (Dim everything)
-		if val == 0:
-			style.bg_color.a = 0.3
-			slot.scale = Vector2(1.0, 1.0)
-			
-		# Active State
-		else:
-			if slot_num == val:
-				# Highlight the active slot brightly
-				style.bg_color = Color.CYAN if slot_num <= GameManager.MOMENTUM_P1_MAX else Color.RED
-				style.bg_color.a = 1.0
-				
-				# JUICE: Make the active slot "pop"
-				var tween = create_tween()
-				slot.pivot_offset = slot.size / 2
-				slot.scale = Vector2(1.3, 1.3)
-				tween.tween_property(slot, "scale", Vector2(1.0, 1.0), 0.3).set_trans(Tween.TRANS_BOUNCE)
-			else:
-				# Dim the inactive slots
-				style.bg_color = Color(0.1, 0.4, 0.5) if slot_num <= GameManager.MOMENTUM_P1_MAX else Color(0.5, 0.1, 0.1)
-				style.bg_color.a = 0.4
-				slot.scale = Vector2(1.0, 1.0) # Reset scale just in case
-
-		slot.add_theme_stylebox_override("panel", style)
-
-func load_deck(deck: Array[ActionData]):
-	current_deck = deck
-	_refresh_grid()
-
-func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
-	button_grid.visible = true 
-	is_locked = false
-	current_sp_limit = player_current_sp
-	current_hp_limit = player_current_hp
-	opener_restriction = must_be_opener
-	turn_cost_limit = max_cost 
-	my_opening_value = opening_val
-	super_allowed = can_use_super 
-	my_opportunity_val = opportunity_val 
-	feint_mode = is_feint_mode 
-	
-	# --- NEW: SPONSOR TOGGLES ---
-	if RunManager.active_sponsor:
-		# 1. Disable Supers
-		if RunManager.active_sponsor.disable_supers:
-			super_allowed = false
-			
-		# 2. Reveal Enemy Opener (Only triggers on Neutral/Start of fight)
-		if RunManager.active_sponsor.reveal_enemy_opener and GameManager.momentum == 0:
-			if GameManager.p2_action_queue:
-				_show_bark(2, "I'll open with " + GameManager.p2_action_queue.display_name + "!")
-	# ----------------------------- 
-	
-	if forced_tab != null:
-		_switch_tab(forced_tab)
-		btn_offence.disabled = (forced_tab != ActionData.Type.OFFENCE)
-		btn_defence.disabled = (forced_tab != ActionData.Type.DEFENCE)
-		btn_offence.modulate = Color.WHITE if !btn_offence.disabled else Color(0.3, 0.3, 0.3)
-		btn_defence.modulate = Color.WHITE if !btn_defence.disabled else Color(0.3, 0.3, 0.3)
-	else:
-		btn_offence.disabled = false
-		btn_defence.disabled = false
-		_switch_tab(current_tab)
-
-func lock_ui():
-	is_locked = true
-	button_grid.visible = false 
-	_on_card_exited() 
-
-func _on_card_selected(card: ActionData):
-	if is_locked: return
-	var extra_data = {
-		"rage": rage_toggle.button_pressed if rage_toggle.visible else false,
-		"keep_up": keep_up_toggle.button_pressed if keep_up_toggle.visible else false,
-		"technique": tech_dropdown.selected if tech_dropdown.visible else 0 
-	}
-	emit_signal("human_selected_card", card, extra_data)
-	lock_ui() 
-
-func _switch_tab(type):
-	current_tab = type
-	_refresh_grid()
-	if !btn_offence.disabled: btn_offence.modulate = Color.WHITE if type == ActionData.Type.OFFENCE else Color(0.6, 0.6, 0.6)
-	if !btn_defence.disabled: btn_defence.modulate = Color.WHITE if type == ActionData.Type.DEFENCE else Color(0.6, 0.6, 0.6)
-
-func _refresh_grid():
-	for child in button_grid.get_children():
-		child.queue_free()
-		
-	# 1. Standard Deck Cards
-	for card in current_deck:
-		if card == null: continue
-		if card.type != current_tab: continue 
-		
-		var final_cost = _calculate_card_cost(card)
-		var is_valid = _check_card_validity(card, final_cost)
-		
-		var btn = card_button_scene.instantiate()
-		button_grid.add_child(btn)
-		
-		btn.setup(card)
-		btn.update_cost_display(final_cost) 
-		btn.set_available(is_valid)          
-	
-		btn.card_hovered.connect(_on_card_hovered)
-		btn.card_exited.connect(_on_card_exited) 
-		btn.card_selected.connect(_on_card_selected)
-	
-	# 2. Tutorial Struggle Logic
-	var hide_struggle = false
-	if TutorialManager.is_tutorial_active:
-		var required_card_name = TutorialManager.get_current_data().get("player_card", "")
-		
-		# If the tutorial wants you to play Struggle, we only show it on the correct tab
-		if required_card_name == "Struggle":
-			# If the current tab (Offence/Defence) doesn't match the card's required type, hide it
-			# This prevents Struggle (Offence) from showing up on the Defence tab
-			pass 
-		else:
-			# If the tutorial wants any other specific card, hide Struggle everywhere
-			hide_struggle = true
-	
-	# 3. Struggle Button instantiation
-	if not feint_mode and not hide_struggle:
-		var struggle = GameManager.get_struggle_action(current_tab)
-		var s_btn = card_button_scene.instantiate()
-		button_grid.add_child(s_btn)
-		
-		s_btn.setup(struggle)
-		s_btn.update_cost_display(0)
-		s_btn.set_available(true)
-		s_btn.modulate = Color(0.9, 0.9, 0.9) 
-
-		s_btn.card_hovered.connect(_on_card_hovered)
-		s_btn.card_exited.connect(_on_card_exited)
-		s_btn.card_selected.connect(_on_card_selected)
-	
-	# 4. Skip Feint logic
-	if feint_mode:
-		skip_action.type = current_tab 
-		var skip_btn = card_button_scene.instantiate()
-		button_grid.add_child(skip_btn)
-		
-		skip_btn.setup(skip_action)
-		skip_btn.update_cost_display(0)
-		skip_btn.set_available(true)
-		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
-		
-		skip_btn.card_hovered.connect(_on_card_hovered)
-		skip_btn.card_exited.connect(_on_card_exited)
-		skip_btn.card_selected.connect(_on_card_selected)
-
-func _calculate_card_cost(card: ActionData) -> int:
-	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
-	var tech_cost = 1 if tech_idx > 0 else 0
-	var base_cost = card.cost + tech_cost
-	var effective_single_cost = max(0, base_cost - my_opportunity_val)
-	var total_reps = max(1, card.repeat_count)
-	return effective_single_cost * total_reps
-
-func _check_card_validity(card: ActionData, final_cost: int) -> bool:
-	var can_afford = false
-	if rage_toggle.visible and rage_toggle.button_pressed:
-		can_afford = (current_hp_limit > final_cost)
-	else:
-		can_afford = (final_cost <= current_sp_limit)
-		
-	# --- NEW: SPONSOR FEINT COST ---
-	if feint_mode and RunManager.active_sponsor and RunManager.active_sponsor.feints_cost_hp:
-		# Allow combining SP and HP to pay for the feint
-		if (current_hp_limit + current_sp_limit) >= final_cost:
-			can_afford = true
-	# -------------------------------
-	
-	if not can_afford: return false
-
-	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
-	if tech_idx == 1 and card.type == ActionData.Type.DEFENCE:
-		return false
-
-	var effective_is_opener = card.is_opener
-	if tech_idx == 1 and card.type == ActionData.Type.OFFENCE:
-		effective_is_opener = true
-		
-	if opener_restriction and card.type == ActionData.Type.OFFENCE and not effective_is_opener:
-		return false
-
-	if card.cost > turn_cost_limit: return false
-	if card.counter_value > 0 and my_opening_value < card.counter_value: return false
-	if card.is_super and not super_allowed: return false
-	
-	# --- NEW: TUTORIAL RAILROAD ---
-	if TutorialManager.is_tutorial_active:
-		var required_card = TutorialManager.get_current_data().get("player_card", "")
-		# If this card isn't the exact one the Sensei asked for, disable it!
-		if required_card != "" and card.display_name != required_card:
-			return false
-	# ------------------------------
-	
-	return true
-
-func _on_card_hovered(card: ActionData):
-	var effective_cost = max(0, card.cost - my_opportunity_val)
-	preview_card.set_card_data(card, effective_cost)
-	
-	# --- 1. KILL OLD ANIMATIONS ---
-	if preview_tween and preview_tween.is_valid():
-		preview_tween.kill()
-		
-	# --- 2. SETUP FOR SLIDE ---
-	preview_card.visible = true
-	preview_card.modulate.a = 0.0 
-	preview_card.position.y = preview_base_pos.y + 20 # Start 20px lower
-	
-	# --- 3. ANIMATE CARD ---
-	preview_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	preview_tween.tween_property(preview_card, "modulate:a", 1.0, 0.15)
-	preview_tween.tween_property(preview_card, "position:y", preview_base_pos.y, 0.2)
-	
-	_update_tooltip_text(card)
-
-func _on_card_exited():
-	# Kill the card animation and hide it
-	if preview_tween and preview_tween.is_valid():
-		preview_tween.kill()
-	preview_card.visible = false
-	
-	# Kill the tooltip animation and hide it
-	if tooltip_tween and tooltip_tween.is_valid():
-		tooltip_tween.kill()
-	if tooltip_panel:
-		tooltip_panel.visible = false
-
-func _update_tooltip_text(card: ActionData):
-	if not tooltip_label or not tooltip_panel: return
-	
-	var active_keys = []
-	# ... (Keep all your existing 'if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")' logic exactly the same here) ...
-	if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")
-	if card.type == ActionData.Type.DEFENCE: active_keys.append("Defence")
-	if card.cost > 0: active_keys.append("Cost")
-	if card.damage > 0: active_keys.append("Damage")
-	if card.momentum_gain > 0: active_keys.append("Momentum")
-	if card.block_value > 0: active_keys.append("Block")
-	if card.dodge_value > 0: active_keys.append("Dodge")
-	if card.heal_value > 0: active_keys.append("Heal")
-	if card.recover_value > 0: active_keys.append("Recover")
-	if card.fall_back_value > 0: active_keys.append("Fall Back")
-	if card.counter_value > 0: active_keys.append("Counter")
-	if card.tiring > 0: active_keys.append("Tiring")
-	if card.is_opener: active_keys.append("Opener")
-	if card.is_super: active_keys.append("Super")
-	if card.guard_break: active_keys.append("Guard Break")
-	if card.feint: active_keys.append("Feint")
-	
-	for s in card.statuses_to_apply:
-		var s_name = s.get("name", "")
-		if s_name != "": active_keys.append(s_name)
-
-	if card.retaliate: active_keys.append("Retaliate")
-	if card.reversal: active_keys.append("Reversal")
-	if card.is_parry: active_keys.append("Parry")
-	if card.sweep: active_keys.append("Sweep")
-	if card.multi_limit > 0: active_keys.append("Multi")
-	if card.repeat_count > 1: active_keys.append("Repeat")
-	if card.create_opening > 0: active_keys.append("Create Opening")
-	if card.opportunity > 0: active_keys.append("Opportunity")
-
-	if active_keys.is_empty():
-		tooltip_panel.visible = false
-		return
-		
-	# --- 1. COLOR CODING & SPACING ---
-	var full_text = ""
-	for k in active_keys:
-		if k in GameManager.KEYWORD_DEFS:
-			full_text += "[color=#ffcc00][b]" + k + ":[/b][/color] " + GameManager.KEYWORD_DEFS[k] + "\n"
-			
-	tooltip_label.text = full_text.strip_edges()
-	
-	# --- THE FIX: MAKE THE TEXT VISIBLE SO IT TAKES UP SPACE ---
-	tooltip_label.visible = true
-	
-	# --- 2. THE SIZE FIX ---
-	# Ask Godot what the size WILL be now that new text is added AND visible
-	var target_size = tooltip_panel.get_minimum_size()
-	
-	# Force the panel to match that size immediately so the text has room to breathe
-	tooltip_panel.size = target_size 
-	
-	# --- 3. ANIMATION & MATH ---
-	if tooltip_tween and tooltip_tween.is_valid():
-		tooltip_tween.kill() 
-		
-	tooltip_panel.visible = true
-	tooltip_panel.modulate.a = 0.0 
-	
-	var padding = 20
-	var preview_bottom = preview_base_pos.y + preview_card.size.y
-	
-	# Use 'target_size' instead of 'size' for the math!
-	var final_y = preview_bottom - target_size.y - padding
-	var start_y = final_y + 15 
-	
-	tooltip_panel.position.x = preview_card.position.x - target_size.x - padding
-	tooltip_panel.position.y = start_y
-	
-	tooltip_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tooltip_tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
-	tooltip_tween.tween_property(tooltip_panel, "position:y", final_y, 0.2)
-
-func _get_clash_text_pos(target_id: int) -> Vector2:
-	var hud = p1_hud if target_id == 1 else p2_hud
-	var pos = hud.global_position + (hud.size / 2)
-	var center_offset = 100 
-	pos.y += 75
-	if target_id == 1: pos.x += center_offset
-	else: pos.x -= center_offset
-	return pos
-
-func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
-	var spawn_pos = _get_clash_text_pos(target_id)
-	if is_blocked: 
-		_spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
-		AudioManager.play_sfx("block", 0.1)
-	else: 
-		_spawn_text(spawn_pos, str(amount), Color.RED)
-		if amount >= 5:
-			AudioManager.play_sfx("hit_heavy", 0.1)
-			apply_camera_impact(0.15, 20.0) 
-		else:
-			AudioManager.play_sfx("hit_light", 0.2) 
-			apply_camera_impact(0.05, 5.0)  
-			
-		if target_id == 1: p1_hud.play_hit_animation()
-		else: p2_hud.play_hit_animation()
-	
-	# React to heavy hits (>3 damage)
-	if amount >= 3:
-		var victim = GameManager.p1_data if target_id == 1 else GameManager.p2_data
-		var line = DialogueManager.get_reaction(victim.class_type, "HURT_HEAVY")
-		# High priority: Show this even if we barked recently
-		_show_bark(target_id, line)
-		
-	# React to Death?
-	# (Already covered by Low HP lines potentially, or add a specific check here)
-	
-# --- NEW: CHECK FOR FINISHER ---
-	var victim_data = GameManager.p1_data if target_id == 1 else GameManager.p2_data
-	
-	if victim_data.current_hp <= 0:
-		_play_finisher_sequence()
-		
-		# --- ADD THIS BLOCK ---
-		# 1. Wait for the freeze-frame/drama to finish (e.g. 2 seconds)
-		# We use create_timer because the game might be in HitStop
-		await get_tree().create_timer(2.0).timeout
-		
-		# 2. Fade the color back in smoothly
-		if GlobalCinematics:
-			GlobalCinematics.reset_visuals()
-	# --------------------------------
-
-func _on_healing_received(target_id: int, amount: int):
-	var spawn_pos = _get_clash_text_pos(target_id)
-	_spawn_text(spawn_pos, "+" + str(amount), Color.GREEN)
-
-func _on_status_applied(target_id: int, status: String):
-	var spawn_pos = _get_clash_text_pos(target_id)
-	spawn_pos.y -= 40 
-	_spawn_text(spawn_pos, status, Color.YELLOW)
-
-func _spawn_text(pos: Vector2, text: String, color: Color):
-	var popup = floating_text_scene.instantiate()
-	add_child(popup)
-	popup.setup(text, color, pos)
-
-func _on_combat_log_updated(text: String):
-	if combat_log: combat_log.add_log(text)
-
-func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
-	if combat_log:
-		combat_log.add_clash_log(winner_id, p1_card, p2_card)
-		
-	apply_camera_impact(0.02, 0.0) 
-		
-	if p1_card.type == ActionData.Type.OFFENCE:
-		p1_hud.play_attack_animation(Vector2(50, 0))
-	if p2_card.type == ActionData.Type.OFFENCE:
-		p2_hud.play_attack_animation(Vector2(-50, 0))
-		
-	AudioManager.play_sfx("clash", 0.1)
-	
-	# 25% chance to bark on win (don't spam every turn)
-	if randf() < 0.25:
-		var winner_data = GameManager.p1_data if winner_id == 1 else GameManager.p2_data
-		var winner_card = p1_card if winner_id == 1 else p2_card
-		
-		var context = "WIN_OFFENCE"
-		if winner_card.type == ActionData.Type.DEFENCE:
-			context = "WIN_DEFENCE"
-			
-		var line = DialogueManager.get_reaction(winner_data.class_type, context)
-		_show_bark(winner_id, line)
-	
-func _on_log_toggled(toggled_on: bool):
-	# If true, slide to X: 12. If false, slide back off-screen to X: -400
-	var target_x = 12 if toggled_on else -400
-	
-	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
-	tween.tween_property(combat_log, "position:x", target_x, 0.4)
-	
-func play_clash_animation(p1_card: ActionData, p2_card: ActionData):
-	clash_layer.visible = true
-	left_card_display.set_card_data(p1_card)
-	right_card_display.set_card_data(p2_card)
-	
-	var card_size = Vector2(250, 350) 
-	left_card_display.custom_minimum_size = card_size
-	right_card_display.custom_minimum_size = card_size
-	
-	# Center pivots for scaling
-	left_card_display.pivot_offset = card_size / 2
-	right_card_display.pivot_offset = card_size / 2
-	
-	var center = get_viewport().get_visible_rect().size / 2
-	left_card_display.position = Vector2(-400, center.y - (card_size.y / 2))
-	right_card_display.position = Vector2(center.x * 2 + 400, center.y - (card_size.y / 2))
-	
-	# 1. THE SMASH (Accelerate inward)
-	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
-	# Target the exact middle of the screen
-	tween.tween_property(left_card_display, "position:x", center.x - (card_size.x / 2), 0.25)
-	tween.tween_property(right_card_display, "position:x", center.x - (card_size.x / 2), 0.25)
-	
-	await tween.finished
-	
-	# 2. THE IMPACT (Shake + Sound)
-	apply_camera_impact(0.1, 30.0)
-	AudioManager.play_sfx("hit_heavy", 0.1)
-	
-	# 3. THE FLASH (Create a white screen dynamically and fade it)
-	var flash = ColorRect.new()
-	flash.color = Color.WHITE
-	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
-	clash_layer.add_child(flash)
-	
-	var f_tween = create_tween()
-	f_tween.tween_property(flash, "modulate:a", 0.0, 0.4)
-	f_tween.tween_callback(flash.queue_free)
-	
-	# 4. THE RECOIL (Bounce back)
-	var bounce_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	bounce_tween.tween_property(left_card_display, "position:x", center.x - card_size.x - 20, 0.3)
-	bounce_tween.tween_property(right_card_display, "position:x", center.x + 20, 0.3)
-	
-	HitStopManager.stop_frame(0.2) 
-	await get_tree().create_timer(1.2).timeout
-	
-	clash_layer.visible = false
-	GameManager.clash_animation_finished.emit()
-
-func _on_menu_pressed():
-	var compendium = compendium_scene.instantiate()
-	compendium.is_overlay = true
-	add_child(compendium)
-
-func setup_toggles(p1_override = null, p2_override = null):
-	var container = HBoxContainer.new()
-	add_child(container)
-	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	container.position.y += 60 
-	container.add_theme_constant_override("separation", 20)
-	container.visible = false
-	container.name = "DebugContainer"
-	
-	var p1_is_human = true 
-	var p2_is_human = false
-	
-	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
-		p2_is_human = true
-	
-	if p1_override != null: p1_is_human = p1_override
-	if p2_override != null: p2_is_human = p2_override
-	
-	p1_toggle = CheckButton.new()
-	p1_toggle.text = "P1 Human"
-	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
-	p1_toggle.button_pressed = p1_is_human 
-	container.add_child(p1_toggle)
-	
-	p2_toggle = CheckButton.new()
-	p2_toggle.text = "P2 Human"
-	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
-	p2_toggle.button_pressed = p2_is_human
-	container.add_child(p2_toggle)
-
-func _log_stat_changes():
-	if not combat_log or not GameManager.p1_data or not GameManager.p2_data: return
-	
-	var p1_cur = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
-	var p2_cur = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
-	
-	if _prev_p1_stats.hp == 0 and _prev_p2_stats.hp == 0:
-		_snapshot_stats()
-		return
-	
-	var p1_diff = { "hp": p1_cur.hp - _prev_p1_stats.hp, "sp": p1_cur.sp - _prev_p1_stats.sp }
-	var p2_diff = { "hp": p2_cur.hp - _prev_p2_stats.hp, "sp": p2_cur.sp - _prev_p2_stats.sp }
-	
-	combat_log.add_round_summary(p1_diff, p2_diff, GameManager.momentum)
-	_snapshot_stats()
-
-func _snapshot_stats():
-	if GameManager.p1_data:
-		_prev_p1_stats = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
-	if GameManager.p2_data:
-		_prev_p2_stats = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
-
-func _on_wall_crush_ui(target_id: int, _dmg: int):
-	apply_camera_impact(0.05, 15.0) 
-	
-	# Shake the new MomentumTracker instead!
-	var original_x = momentum_tracker.position.x
-	var tween = create_tween()
-	var shake_dir = -10 if target_id == 1 else 10
-	
-	tween.tween_property(momentum_tracker, "position:x", original_x + shake_dir, 0.05)
-	tween.tween_property(momentum_tracker, "position:x", original_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-
-func _on_env_button_pressed():
-	env_popup.visible = not env_popup.visible
-	if env_popup.visible:
-		env_title.text = "ENVIRONMENT: " + GameManager.current_environment_name.to_upper()
-		var details = "[b]Momentum Tracker:[/b] " + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots\n"
-		env_details.text = details
-
-func _populate_equipment(p1_data: CharacterData):
-	if not equipment_grid: return
-	for child in equipment_grid.get_children():
-		child.queue_free()
-		
-	for item in p1_data.equipment:
-		var icon = TextureRect.new()
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.custom_minimum_size = Vector2(40, 40)
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		
-		if item.icon: 
-			icon.texture = item.icon
-		else: 
-			icon.texture = preload("res://icon.svg") 
-		
-		# --- FIX: Change display_name to item_name ---
-		var tip = item.item_name + "\n" + item.description + "\n"
-		tip += "-------------------\n"
-		
-		# --- FIX: Update to new unified variable names ---
-		if item.bonus_max_hp != 0: 
-			tip += "Max HP: " + ("+" if item.bonus_max_hp > 0 else "") + str(item.bonus_max_hp) + "\n"
-		if item.bonus_max_sp != 0: 
-			tip += "Max SP: " + ("+" if item.bonus_max_sp > 0 else "") + str(item.bonus_max_sp) + "\n"
-		if item.starting_sp_bonus != 0: 
-			tip += "Start SP: +" + str(item.starting_sp_bonus) + "\n"
-		if item.wall_crush_damage_bonus != 0: 
-			tip += "Wall Crush Dmg: +" + str(item.wall_crush_damage_bonus)
-		# -------------------------------------------------
-		
-		icon.mouse_entered.connect(func(): _show_equip_tooltip(tip, icon))
-		icon.mouse_exited.connect(_on_card_exited) 
-		equipment_grid.add_child(icon)
-
-func _on_inspect_pressed():
-	inspect_popup.visible = not inspect_popup.visible
-	if inspect_popup.visible:
-		inspect_btn.text = "CLOSE INSPECT"
-		_populate_enemy_deck()
-	else:
-		inspect_btn.text = "INSPECT OPPONENT"
-
-func _populate_enemy_deck():
-	for child in inspect_grid.get_children():
-		child.queue_free()
-	var p2 = GameManager.p2_data
-	if not p2: return
-	for card in p2.deck:
-		var card_disp = card_display_scene.instantiate()
-		inspect_grid.add_child(card_disp)
-		card_disp.set_card_data(card)
-		card_disp.custom_minimum_size = Vector2(180, 250)
-		card_disp.scale = Vector2(0.8, 0.8) 
-		card_disp.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
-
-# Helper to safely tween shader params
-func _set_bg_saturation(val: float):
-	if background and background.material:
-		background.material.set_shader_parameter("saturation", val)
-
-func _update_background():
-	var env_name = GameManager.current_environment_name
-	if GameManager.environment_backgrounds.has(env_name):
-		background.texture = GameManager.environment_backgrounds[env_name]
-	else:
-		print("Warning: No art found for '" + env_name + "'. Using default.")
-
-func _show_bark(player_id: int, text: String):
-	# Grab the PanelContainer
-	var bubble = p1_bark_label if player_id == 1 else p2_bark_label
-	# Grab the Label inside it and set the text
-	var text_label = bubble.get_child(0) 
-	text_label.text = text
-	
-	bubble.modulate.a = 0
-	
-	# Set pivot to the bottom-center so it scales upwards!
-	bubble.pivot_offset = Vector2(bubble.size.x / 2, bubble.size.y)
-	bubble.scale = Vector2(0.5, 0.5)
-	
-	var tween = create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(bubble, "modulate:a", 1.0, 0.2)
-	# Overshoot slightly for a bouncy pop
-	tween.tween_property(bubble, "scale", Vector2(1.1, 1.1), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	
-	# Settle back to normal size
-	tween.chain().tween_property(bubble, "scale", Vector2(1.0, 1.0), 0.1)
-	
-	# Wait, then fade out
-	tween.chain().tween_interval(1.5)
-	tween.chain().tween_property(bubble, "modulate:a", 0.0, 0.3)
-
-func _exit_tree():
-	if GlobalCinematics:
-		GlobalCinematics.reset_visuals()
-
-func _build_momentum_track():
-	# Clear out anything currently in the grid
-	for child in slot_grid.get_children():
-		child.queue_free()
-	momentum_slots.clear()
-	
-	for i in range(1, GameManager.TOTAL_MOMENTUM_SLOTS + 1):
-		var slot = Panel.new()
-		slot.custom_minimum_size = Vector2(30, 15) # Width/Height of each pip
-		
-		# Give it a custom stylebox
-		var style = StyleBoxFlat.new()
-		style.corner_radius_top_left = 2
-		style.corner_radius_top_right = 2
-		style.corner_radius_bottom_right = 2
-		style.corner_radius_bottom_left = 2
-		
-		# Set base colors and highlight the "Walls"
-		if i <= GameManager.MOMENTUM_P1_MAX:
-			style.bg_color = Color(0.1, 0.4, 0.5, 0.5) # Dim Cyan
-			if i == 1: 
-				style.border_width_left = 4 # Emphasize P1's Wall
-				style.border_color = Color.CYAN
-		else:
-			style.bg_color = Color(0.5, 0.1, 0.1, 0.5) # Dim Red
-			if i == GameManager.TOTAL_MOMENTUM_SLOTS: 
-				style.border_width_right = 4 # Emphasize P2's Wall
-				style.border_color = Color.RED
-				
-		slot.add_theme_stylebox_override("panel", style)
-		slot_grid.add_child(slot)
-		momentum_slots.append(slot)
-		
-		# Add a visual divider exactly in the middle
-		@warning_ignore("integer_division")
-		if i == GameManager.TOTAL_MOMENTUM_SLOTS / 2:
-			var div = VSeparator.new()
-			slot_grid.add_child(div)
-
-func _show_equip_tooltip(text: String, icon_node: Control):
-	if tooltip_tween and tooltip_tween.is_valid(): tooltip_tween.kill()
-	
-	tooltip_label.text = text
-	tooltip_label.visible = true
-	var target_size = tooltip_panel.get_minimum_size()
-	tooltip_panel.size = target_size 
-	
-	tooltip_panel.visible = true
-	tooltip_panel.modulate.a = 0.0 
-	
-	# --- THE FIX: POSITION BELOW THE ICON ---
-	# Calculate the bottom edge of the icon
-	var icon_bottom = icon_node.global_position.y + icon_node.size.y
-	
-	# Place the tooltip 15 pixels below the icon
-	var final_y = icon_bottom + 15
-	
-	# Start it 15 pixels HIGHER so it slides DOWN into place (like a dropdown)
-	var start_y = final_y - 15
-	
-	tooltip_panel.global_position = Vector2(icon_node.global_position.x, start_y)
-	
-	tooltip_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
-	tooltip_tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
-	tooltip_tween.tween_property(tooltip_panel, "global_position:y", final_y, 0.2)
-
-
-============================================================
-FILE: .\Scripts\ClassFactory.gd
-============================================================
-extends Node
-
-# Map Enum -> Resource Path
-var class_registry = {
-	CharacterData.ClassType.HEAVY: preload("res://Data/Classes/HeavyClass.tres"),
-	CharacterData.ClassType.PATIENT: preload("res://Data/Classes/PatientClass.tres"),
-	CharacterData.ClassType.QUICK: preload("res://Data/Classes/QuickClass.tres"),
-	CharacterData.ClassType.TECHNICAL: preload("res://Data/Classes/TechnicalClass.tres")
-}
-# --- SHARED DATA: THE SKILL TREE MAP ---
-# (Moved here so both the UI and the Enemy Generator can read it)
-const TREE_CONNECTIONS = {
-	1:[12,5], 2:[6,7], 3:[8,15], 4:[11,12], 5:[1,6], 6:[2,5,13,73], 7:[2,14,8,73], 8:[7,3],
-	9:[15,16], 10:[11,19], 11:[4,10,20], 12:[4,1,13,20], 13:[12,6,21], 14:[7,15,21],
-	15:[3,14,9,22], 16:[9,22,17], 17:[16,23], 18:[19,25], 19:[10,18,20,28], 20:[19,11,12,29],
-	21:[13,14,29,31,30], 22:[15,16,23,31], 23:[22,17,24,32], 24:[23,26], 25:[18,27], 26:[24,33],
-	27:[34,28,25,74], 28:[27,19,35], 29:[20,21,35], 30:[21], 31:[21,22,38], 32:[23,38,33],
-	33:[32,26,39,75], 34:[27,40], 35:[28,41,29,42,36], 36:[35], 37:[38], 38:[31,32,44,45,37],
-	39:[33,46], 40:[34,41,47,74], 41:[40,50,35], 42:[35,51,52], 43:[52], 44:[52,38,53],
-	45:[38,46,54], 46:[45,48,75], 47:[40,49], 48:[46,55], 49:[47,50], 50:[49,41,51,56],
-	51:[50,42,58,57], 52:[42,43,44,59,60], 53:[44,54,61,62], 54:[53,45,55,63], 55:[48,54],
-	56:[50,57], 57:[56,51,64], 58:[51,64,59,70], 59:[52,66,58], 60:[52,67,61], 61:[53,72,69],
-	62:[53,63,69], 63:[54,62], 64:[57,58], 65:[70,66], 66:[59,65,71,76], 67:[68,60,71,76],
-	68:[67,72], 69:[61,62], 70:[58,65], 71:[66,67], 72:[68,61], 73:[2,6,7], 74:[34,27,40], 75:[39,33,46], 76:[71,66,67]
-}
-
-# Also need the ID-to-Name mapping for the generator to find files
-const ID_TO_NAME_MAP = {
-	1:"Toppling Kick", 2:"Pummel", 3:"One Two", 4:"Evading Dance", 5:"Slip Behind",
-	6:"Adept Dodge", 7:"Adept Light", 8:"Hundred Hand Slap", 9:"Precise Strike", 10:"Breakout",
-	11:"Read Offence", 12:"Quick Dodge", 13:"Master Dodge", 14:"Master Light", 15:"Flying Kick",
-	16:"Vital Strike", 17:"Unassailable Stance", 18:"Strike Back", 19:"Leg Sweep", 20:"Catch",
-	21:"Drop Prone", 22:"Perfect Strike", 23:"Step Up", 24:"Go with the Flow", 25:"Prime",
-	26:"Inner Peace", 27:"Adept Reversal", 28:"Master Reversal", 29:"Untouchable Dodge",
-	30:"Ultimate Barrage", 31:"Advancing Parry", 32:"Master Positioning", 33:"Adept Positioning",
-	34:"Grab", 35:"Wind Up", 36:"Vital Point Assault", 37:"Overwhelming Aura", 38:"Parry FollowUp",
-	39:"Adjust Stance", 40:"Adept Tech", 41:"Master Tech", 42:"Crushing Block", 43:"Final Strike",
-	44:"Redirect", 45:"Master Parry", 46:"Adept Parry", 47:"Throw", 48:"Resounding Parry",
-	49:"Push", 50:"Twist Arm", 51:"Suplex", 52:"Perfect Block", 53:"Active Block",
-	54:"Retreating Defence", 55:"Resounding Counter", 56:"Read Defence", 57:"Headbutt", 58:"Lariat",
-	59:"Master Heavy", 60:"Master Block", 61:"Draining Defence", 62:"Slapping Parry", 63:"Tiring Parry",
-	64:"Roundhouse Kick", 65:"Uppercut", 66:"Adept Heavy", 67:"Adept Block", 68:"Push Kick",
-	69:"Drop Punch", 70:"Knee Crush", 71:"Drop Kick", 72:"Immovable Stance",
-	73:"Quick", 74:"Technical", 75:"Patient", 76:"Heavy"
-}
-
-const CLASS_ROOT_IDS: Array[int] = [73, 74, 75, 76]
-
-const RANK_TITLES = [
-	"Foolish",      # Level 1
-	"Weak",         # Level 2
-	"Clumsy",       # Level 3
-	"Novice",       # Level 4
-	"Beginner",     # Level 5
-	"Rookie",       # Level 6
-	"Apprentice",   # Level 7
-	"Capable",      # Level 8
-	"Competent",    # Level 9
-	"Adept",        # Level 10
-	"Seasoned",     # Level 11
-	"Expert",       # Level 12
-	"Veteran",      # Level 13
-	"Elite",        # Level 14
-	"Master",       # Level 15
-	"Grandmaster",  # Level 16
-	"Legendary",    # Level 17
-	"Mythic",       # Level 18
-	"Transcendent", # Level 19
-	"Godly"         # Level 20+
-]
-
-var art_heavy = preload("res://Art/Portraits/Heavy.png") 
-var art_patient = preload("res://Art/Portraits/Patient.png")
-var art_quick = preload("res://Art/Portraits/Quick.png")
-var art_technical = preload("res://Art/Portraits/Technical.png")
-
-const HAND_LIMIT = 8
-
-var bot_names: Array[String] = []
-
-func _ready():
-	_load_bot_names()
-
-func _load_bot_names():
-	var file_path = "res://Data/enemy_names.txt"
-	if FileAccess.file_exists(file_path):
-		var file = FileAccess.open(file_path, FileAccess.READ)
-		while not file.eof_reached():
-			var line = file.get_line().strip_edges() # Remove extra spaces/newlines
-			if line != "":
-				bot_names.append(line)
-		file.close()
-	else:
-		push_warning("Could not find enemy_names.txt! Using fallbacks.")
-		bot_names = ["Fighter A", "Fighter B", "Challenger"]
-
-# --- NEW: ENEMY GENERATOR ---
-# --- NEW: ENEMY GENERATOR ---
-func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
-	# 1. Pick a Random Class
-	var types = [
-		CharacterData.ClassType.HEAVY, 
-		CharacterData.ClassType.QUICK, 
-		CharacterData.ClassType.TECHNICAL, 
-		CharacterData.ClassType.PATIENT
-	]
-	var selected_class = types.pick_random()
-	
-	# 2. Create the Base Character
-	# This sets the BASE stats (e.g. 5 HP / 4 SP) from the Class Definition
-	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
-	
-	# --- ASSIGN RANDOM PERSONALITY ---
-	var personalities = CharacterData.AIArchetype.values()
-	bot_data.ai_archetype = personalities.pick_random()
-	
-	# Flavor: Rank Title
-	# If level is 1 or negative, default to 0 ("Foolish")
-	var title_index = 0
-	if level > 0:
-		title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
-
-	var rank_title = RANK_TITLES[title_index]
-	
-	## Flavor: Prefix
-	#var prefix = ""
-	#match bot_data.ai_archetype:
-		#CharacterData.AIArchetype.AGGRESSIVE: prefix = "Furious "
-		#CharacterData.AIArchetype.DEFENSIVE: prefix = "Guarded "
-		#CharacterData.AIArchetype.TRICKSTER: prefix = "Tricky "
-		#CharacterData.AIArchetype.BALANCED: prefix = "Steady "
-	#
-	#bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
-	
-	
-	# --- NEW: ASSIGN RANDOM NAME FROM FILE ---
-	var random_name = "Unknown"
-	if bot_names.size() > 0:
-		random_name = bot_names.pick_random()
-		
-	# Option A: Just use the name (e.g., "Spike")
-	bot_data.character_name = random_name
-	
-	# Option B: (Optional) Keep the rank title from your previous logic (e.g., "Novice Spike")
-	#bot_data.character_name = rank_title + " " + random_name
-	
-	# 3. DRAFT CARDS (Kept for gameplay variety, but ignored for stats now)
-	var cards_to_draft = level + 1
-	var owned_ids = []
-	var unlockable_options = []
-	
-	# Identify the starting Root Node
-	var root_id = 0
-	match selected_class:
-		CharacterData.ClassType.QUICK: root_id = 73
-		CharacterData.ClassType.TECHNICAL: root_id = 74
-		CharacterData.ClassType.PATIENT: root_id = 75
-		CharacterData.ClassType.HEAVY: root_id = 76
-	
-	# Init Shop
-	owned_ids.append(root_id)
-	if root_id in TREE_CONNECTIONS:
-		for neighbor in TREE_CONNECTIONS[root_id]:
-			unlockable_options.append(neighbor)
-			
-	# Draft Loop
-	for i in range(cards_to_draft):
-		if unlockable_options.is_empty(): break 
-		
-		var picked_id = unlockable_options.pick_random()
-		var card_name = ID_TO_NAME_MAP.get(picked_id)
-		
-		if card_name:
-			var new_card = find_action_resource(card_name)
-			if new_card and not _has_card(bot_data.unlocked_actions, new_card):
-				bot_data.unlocked_actions.append(new_card)
-		
-		owned_ids.append(picked_id)
-		unlockable_options.erase(picked_id)
-		
-		if picked_id in TREE_CONNECTIONS:
-			for neighbor in TREE_CONNECTIONS[picked_id]:
-				if neighbor not in owned_ids and neighbor not in unlockable_options:
-					unlockable_options.append(neighbor)
-	
-	# 4. SELECT SMART HAND
-	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions, bot_data.ai_archetype)
-	
-	# ---------------------------------------------------------
-	# 5. NEW STAT SCALING (LINEAR GROWTH - SKIPPING ZERO)
-	# ---------------------------------------------------------
-	var stat_bonus = 0
-
-# 1. Calculate the total pool of points to distribute
-	if level > 0:
-		stat_bonus = level - 1
-	else:
-		stat_bonus = level 
-
-	# 2. Distribute the bonus randomly
-	if stat_bonus > 0:
-		# Pick a random number between 0 and the total bonus for HP
-		var hp_gain = randi_range(0, stat_bonus)
-		# Whatever is left over goes to SP
-		var sp_gain = stat_bonus - hp_gain
-		
-		bot_data.max_hp += hp_gain
-		bot_data.max_sp += sp_gain
-		
-	elif stat_bonus < 0:
-		# Logic for negative levels (de-buffing enemies)
-		# We use the same random logic but for reduction
-		var hp_loss = randi_range(stat_bonus, 0) # e.g. randi_range(-2, 0)
-		var sp_loss = stat_bonus - hp_loss
-		
-		bot_data.max_hp = max(1, bot_data.max_hp + hp_loss)
-		bot_data.max_sp = max(1, bot_data.max_sp + sp_loss)
-
-	# Final safety check to ensure stats never drop to/below 0
-	bot_data.max_hp = max(1, bot_data.max_hp)
-	bot_data.max_sp = max(1, bot_data.max_sp)
-
-	# Reset current values to match new max values
-	bot_data.current_hp = bot_data.max_hp
-	bot_data.current_sp = bot_data.max_sp
-	
-	# Debug Print
-	print("\n=== ENEMY GENERATED (" + str(selected_class) + ") ===")
-	print("Level: " + str(level) + " | Title: " + rank_title)
-	print("HP: " + str(bot_data.max_hp) + " | SP: " + str(bot_data.max_sp))
-	print("==============================\n")
-	
-	return bot_data
-
-# -------------------------------------------------------------------------
-# NEW HELPERS (Needed for the above code)
-# -------------------------------------------------------------------------
-
-func _has_card(list: Array, card: ActionData) -> bool:
-	for c in list:
-		if c.display_name == card.display_name: return true
-	return false
-
-func _select_smart_hand(pool: Array[ActionData], _archetype: CharacterData.AIArchetype) -> Array[ActionData]:
-	# If we have 8 or fewer, just take them all
-	if pool.size() <= HAND_LIMIT:
-		return pool.duplicate()
-		
-	var chosen: Array[ActionData] = []
-	var remaining = pool.duplicate()
-	
-	# 1. PRIORITY: Always take Class Signatures (Non-Basic)
-	# We prioritize "cool" cards over "Basic" ones
-	for i in range(remaining.size() - 1, -1, -1):
-		var c = remaining[i]
-		if not c.is_basic:
-			chosen.append(c)
-			remaining.remove_at(i)
-			
-	# 2. PRIORITY: Fill remaining slots with Basics
-	remaining.shuffle()
-	
-	while chosen.size() < HAND_LIMIT and remaining.size() > 0:
-		chosen.append(remaining.pop_back())
-		
-	# 3. Trim down to 8 FIRST (Moved this up!)
-	if chosen.size() > HAND_LIMIT:
-		chosen.resize(HAND_LIMIT)
-
-	# 4. SAFETY: NOW Ensure at least 1 Opener
-	var has_opener = false
-	for c in chosen:
-		if c.is_opener or c.cost == 0: has_opener = true
-	
-	if not has_opener:
-		# Search the remaining pile for an opener
-		for c in remaining:
-			if c.is_opener or c.cost == 0:
-				# Swap a random card out for this opener
-				if chosen.size() > 0:
-					chosen.pop_back() 
-				chosen.append(c)
-				break
-				
-	return chosen
-
-func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
-	if node_id in TREE_CONNECTIONS:
-		for neighbor in TREE_CONNECTIONS[node_id]:
-			if neighbor not in owned and neighbor not in available:
-				available.append(neighbor)
-
-# Helper for string names
-func class_enum_to_string(type: int) -> String:
-	# --- NEW: MANUAL OVERRIDE FOR THE TUTORIAL CLASS ---
-	if type == CharacterData.ClassType.NONE:
-		return "Trainee"
-	# ---------------------------------------------------
-
-	var keys = CharacterData.ClassType.keys()
-	
-	# Safety check to make sure the integer is within the Enum's bounds
-	if type >= 0 and type < keys.size():
-		# .keys() returns an array of strings like ["HEAVY", "PATIENT", "QUICK", "TECHNICAL"]
-		# .capitalize() turns "HEAVY" into "Heavy"
-		return keys[type].capitalize()
-		
-	return "Enemy"
-	
-# Generates a fully playable CharacterData resource based on the chosen class
-func create_character(type: CharacterData.ClassType, player_name: String) -> CharacterData:
-	if not class_registry.has(type): return null
-	
-	var def: ClassDefinition = class_registry[type]
-	var char_data = CharacterData.new()
-	
-	char_data.character_name = player_name
-	char_data.class_type = type
-	
-	# 1. Base Stats from Resource
-	char_data.max_hp = def.base_hp
-	char_data.max_sp = def.base_sp
-	char_data.speed = def.base_speed
-	char_data.passive_desc = def.passive_description
-	char_data.portrait = def.portrait
-	
-	# --- NEW: COPY PASSIVES ---
-	char_data.can_pay_with_hp = def.can_pay_with_hp
-	char_data.tiring_drains_hp = def.tiring_drains_hp
-	char_data.combo_sp_recovery_rate = def.combo_sp_recovery_rate
-	char_data.has_bide_mechanic = def.has_bide_mechanic
-	char_data.has_keep_up_toggle = def.has_keep_up_toggle
-	char_data.has_technique_dropdown = def.has_technique_dropdown
-	
-	# 2. Library (Duplicate the array so we don't modify the Resource)
-	char_data.unlocked_actions = get_starting_deck(type)
-	
-	# 3. Select Hand
-	char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
-	
-	char_data.reset_stats()
-	return char_data
-
-# In ClassFactory.gd
-
-func get_starting_deck(type: CharacterData.ClassType) -> Array[ActionData]:
-	var deck: Array[ActionData] = []
-	
-	# 1. AUTO-ADD BASICS (Code handles this)
-	deck.append_array(get_basic_actions()) 
-	
-	# 2. ADD CLASS SPECIFICS (Resource handles this)
-	if class_registry.has(type):
-		var def = class_registry[type]
-		for card in def.starting_deck:
-			# Duplicate to ensure unique runtime instances
-			if card: deck.append(card.duplicate())
-			
-	return deck
-
-func create_from_preset(preset: PresetCharacter) -> CharacterData:
-	# 1. Start with the Base Class (Starters + Basic Actions)
-	var char_data = create_character(preset.class_type, preset.character_name)
-	
-	# 2. Add the Extra Skills defined in the preset
-	for skill_name in preset.extra_skills:
-		var card = find_action_resource(skill_name)
-		if card:
-			# Avoid duplicates if necessary, or allow multiples if that's your game design
-			char_data.deck.append(card)
-			char_data.unlocked_actions.append(card)
-		else:
-			printerr("Warning: Preset '" + preset.character_name + "' could not find skill: " + skill_name)
-
-	# 3. Auto-Calculate Stats based on Class Rules
-	_recalculate_stats(char_data)
-	
-	return char_data
-
-# --- HELPER: Stat Calculation Logic (Same rules as ActionTree) ---
-# ClassFactory.gd
-
-func _recalculate_stats(char_data: CharacterData):
-	# 1. Snapshot old stats before we change them
-	var old_max_hp = char_data.max_hp
-	
-	# 2. Calculate new stats
-	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions, char_data.equipment)
-	
-	char_data.max_hp = result["hp"]
-	char_data.max_sp = result["sp"]
-	
-	# --- 3. ROGUELIKE HP LOGIC ---
-	if RunManager.is_arcade_mode and RunManager.maintain_hp_enabled:
-		# Only heal them by the AMOUNT they grew (e.g., Max HP 5 -> 6 means heal 1 HP)
-		var hp_growth = char_data.max_hp - old_max_hp
-		char_data.current_hp += hp_growth
-		char_data.current_sp = char_data.max_sp # SP always resets per fight
-	else:
-		# Standard Mode: Full Heal
-		char_data.current_hp = char_data.max_hp
-		char_data.current_sp = char_data.max_sp
-
-
-# --- HELPER: Find Resource (Moved from ActionTree) ---
-func find_action_resource(action_name: String) -> ActionData:
-	var clean_name = action_name.to_lower().replace(" ", "_")
-	var filename = clean_name + ".tres"
-	
-	# Check Common folder
-	var common_path = "res://Data/Actions/" + filename
-	if ResourceLoader.exists(common_path): return load(common_path)
-		
-	# Check Class folders
-	var class_folders = ["Heavy", "Patient", "Quick", "Technical"]
-	for folder in class_folders:
-		var class_path = "res://Data/Actions/Class/" + folder + "/" + filename
-		if ResourceLoader.exists(class_path): return load(class_path)
-			
-	return null
-
-# New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
-# In ClassFactory.gd
-
-func calculate_stats_for_deck(type: CharacterData.ClassType, _deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
-	if not class_registry.has(type): return {"hp": 5, "sp": 4}
-	
-	var def: ClassDefinition = class_registry[type]
-	var final_hp = def.base_hp
-	var final_sp = def.base_sp
-	
-	# Growth loop deleted here! We just use the Base Stats.
-	
-	# Keep Equipment Logic (This is still useful!)
-	for item in equipment:
-		final_hp += item.bonus_max_hp
-		final_sp += item.bonus_max_sp
-			
-	return {"hp": max(1, final_hp), "sp": max(1, final_sp)}
-
-# NEW HELPER: Reverse lookup for Presets -> Tree Nodes
-func get_id_by_name(card_name: String) -> int:
-	for id in ID_TO_NAME_MAP:
-		if ID_TO_NAME_MAP[id] == card_name:
-			return id
-	return 0 # Not found
-
-func _simulate_draft_ids(class_type, count) -> Array:
-	var root_id = 76 # Heavy
-	match class_type:
-		CharacterData.ClassType.QUICK: root_id = 73
-		CharacterData.ClassType.TECHNICAL: root_id = 74
-		CharacterData.ClassType.PATIENT: root_id = 75
-	
-	var owned = [root_id]
-	var available = []
-	_add_neighbors_to_list(root_id, owned, available)
-	
-	var results = []
-	for i in range(count):
-		if available.is_empty(): break
-		var pick = available.pick_random()
-		results.append(pick)
-		owned.append(pick)
-		available.erase(pick)
-		_add_neighbors_to_list(pick, owned, available)
-		
-	return results
-
-# --- STARTER DECK GENERATION ---
-# --- STARTER DECK GENERATION ---
-func get_basic_actions() -> Array[ActionData]:
-	var basics: Array[ActionData] = []
-	
-	# Load the actual resource files so they have the correct Icons, IDs, and 'Is Basic' flags
-	# We use .duplicate() to ensure one player's card doesn't affect the other's
-	basics.append(load("res://Data/Actions/basic_light.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_heavy.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_technical.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_positioning.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_block.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_dodge.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_parry.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_reversal.tres").duplicate())
-	
-	return basics
-
-
-============================================================
-FILE: .\Scripts\RunManager.gd
-============================================================
-extends Node
-
-var is_arcade_mode: bool = false
-var current_level: int = 1
-var player_run_data: CharacterData
-var player_owned_tree_ids: Array[int] = [] 
-var free_unlocks_remaining: int = 0
-var active_sponsor: SponsorData = null
-var current_rerolls: int = 0
-
-var active_gym_buff: String = ""
-
-var pending_advancement: bool = false
-var pending_reward: bool = false
-
-var current_run_name: String = "Test Run" # <--- NEW
-const SAVE_DIR = "user://saves/"
-
-# --- NEW: RUN MODIFIERS ---
-var maintain_hp_enabled: bool = true
-const EQUIPMENT_DIR = "res://Data/Equipment/"
-const BOSS_DIR = "res://Data/Presets/Bosses/"
-
-# --- MAP STATE ---
-var tournament_map: Array[MapNodeData] = []
-var current_map_index: int = 0
-var leagues_completed: int = 0
-var current_enemy_data: CharacterData # The enemy we are currently fighting
-
-# --- CONFIGURATION ---
-# A standard "Cup" might be 8 steps long
-const LEAGUE_LENGTH = 10
-var is_rival_match: bool = false
-
-# --- GLOBAL META DATA ---
-const GLOBAL_SAVE_PATH = "user://global_save.tres"
-var meta_data: GlobalSaveData
-
-const BOSS_SCHEDULE = {
-	#5: "juggernaut_boss.tres",
-	#10: "grandmaster_boss.tres"
-}
-
-# ... (start_run and start_run_from_preset remain exactly the same) ...
-var next_fight_statuses: Array[String] = []
-
-# --- ADD THIS RIGHT HERE ---
-func _ready():
-	_init_global_save()
-# -------------------------
-
-# OPTION A: STANDARD RUN (Level 1, Drafting)
-func start_run(starting_class: CharacterData.ClassType):
-	is_arcade_mode = true
-	current_level = 1
-	player_run_data = ClassFactory.create_character(starting_class, "You")
-	_init_tree_root(starting_class)
-	free_unlocks_remaining = 1
-	#player_run_data.equipment.append(load("res://Data/Equipment/EnergyDrink.tres"))
-	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
-
-# OPTION B: PRESET RUN
-# 2. Preset Start (If you use Presets)
-func start_run_from_preset(preset_data: CharacterData):
-	# A. Deep Copy the preset so we don't modify the original resource
-	player_run_data = preset_data.duplicate(true)
-	
-	# B. Reset Loop State
-	current_level = 1
-	player_owned_tree_ids.clear() # Presets might need manual ID setup if you want them to use the tree later
-	
-	# C. Ensure Class Root is unlocked (so Draft works later)
-	_unlock_class_starters(player_run_data)
-	
-	# D. Route
-	print("Starting Preset Run. Loading Deck Editor...")
-	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
-
-# Helper
-func _init_tree_root(class_type: CharacterData.ClassType):
-	#player_owned_tree_ids.clear()
-	#match class_type:
-		#CharacterData.ClassType.QUICK: player_owned_tree_ids.append(73)
-		#CharacterData.ClassType.TECHNICAL: player_owned_tree_ids.append(74)
-		#CharacterData.ClassType.PATIENT: player_owned_tree_ids.append(75)
-		#CharacterData.ClassType.HEAVY: player_owned_tree_ids.append(76)
-		
-	player_owned_tree_ids.clear()
-	
-	# 1. Look up the Resource
-	if ClassFactory.class_registry.has(class_type):
-		var def = ClassFactory.class_registry[class_type]
-		
-		# 2. Read the Start Node from the File
-		if def.skill_tree_root_id != 0:
-			player_owned_tree_ids.append(def.skill_tree_root_id)
-			return
-
-	# Fallback (Safety)
-	player_owned_tree_ids.append(76)
-
-# --- UPDATED FIGHT GENERATION LOGIC ---
-func start_next_fight():
-	# 1. Setup Player Data
-	GameManager.next_match_p1_data = player_run_data
-	
-	# --- NEW: RANDOMIZE ENVIRONMENT ---
-	var envs = ["Ring", "Dojo", "Street"]
-	var selected_env = envs.pick_random()
-	GameManager.apply_environment_rules(selected_env)
-	
-	# --- NEW: TRIGGER ENVIRONMENT MUSIC ---
-	# We call this AFTER we pick the environment so the manager knows which one to play
-	if AudioManager.has_method("play_location_music"):
-		AudioManager.play_location_music(selected_env)
-	else:
-		# Fallback if you haven't updated AudioManager yet
-		AudioManager.play_music("battle_theme")
-	# -----------------------------------
-	
-	# 2. CALCULATE TARGET LEVEL
-	var raw_level = current_level
-	
-	# Apply Difficulty Modifier
-	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: raw_level -= 2
-		GameManager.Difficulty.EASY:      raw_level -= 1
-		GameManager.Difficulty.MEDIUM:    pass 
-		GameManager.Difficulty.HARD:      raw_level += 1
-	
-	# 3. DETERMINE ACTUAL LEVEL & PENALTIES
-	var final_enemy_level = raw_level
-	var stat_penalty = 0
-	
-	if raw_level < 1:
-		# If we dip below Level 1, stick to Level 1 but apply penalty.
-		# Example: Level 1 on Very Easy (-2) = Raw -1. 
-		# Penalty = 1 - (-1) = 2.
-		stat_penalty = 1 - raw_level
-		final_enemy_level = 1
-		
-	print("Generating Arcade Opponent: Difficulty ", GameManager.ai_difficulty, " -> Enemy Lv.", final_enemy_level)
-	if stat_penalty > 0:
-		print(">> UNDER-LEVEL PENALTY APPLIED: -", stat_penalty, " HP/SP")
-	
-# 4. Generate Enemy (MODIFIED FOR BOSSES)
-	var enemy: CharacterData
-	
-	# Check if the CURRENT level has a scheduled boss
-	if BOSS_SCHEDULE.has(current_level):
-		var boss_path = BOSS_DIR + BOSS_SCHEDULE[current_level]
-		var boss_preset = load(boss_path) as PresetCharacter
-		
-		# Generate the boss exactly as designed in the editor
-		enemy = ClassFactory.create_from_preset(boss_preset)
-		
-		# Bosses scale slightly with difficulty
-		if GameManager.ai_difficulty == GameManager.Difficulty.HARD:
-			enemy.max_hp += 5
-			enemy.max_sp += 1
-		elif GameManager.ai_difficulty <= GameManager.Difficulty.EASY:
-			enemy.max_hp = max(1, enemy.max_hp - 3)
-			
-		enemy.reset_stats()
-		print(">> BOSS ENCOUNTER LOADED: " + enemy.character_name)
-		
-	else:
-		# Standard Random Enemy
-		enemy = ClassFactory.create_random_enemy(final_enemy_level, GameManager.ai_difficulty)
-		
-		# 5. Apply Stats Penalty (Only for standard enemies)
-		if stat_penalty > 0:
-			enemy.max_hp = max(1, enemy.max_hp - stat_penalty)
-			enemy.max_sp = max(1, enemy.max_sp - stat_penalty)
-			enemy.reset_stats()
-			enemy.character_name += " (Weakened)"
-	
-	GameManager.next_match_p2_data = enemy
-	
-	# 6. Launch
-	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
-
-func handle_win():
-	get_tree().paused = false 
-	AudioManager.reset_audio_state()
-	print("Victory! Processing Level Up...")
-	
-	current_level += 1
-	pending_reward = true # <--- Tell the game we are owed a reward!
-	
-	save_run() # Save progress AFTER setting the flag
-	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
-
-# Helper to fetch all equipment for the draft
-func get_all_equipment() -> Array[EquipmentData]:
-	var list: Array[EquipmentData] = []
-	var dir = DirAccess.open(EQUIPMENT_DIR)
-	if dir:
-		dir.list_dir_begin()
-		var file = dir.get_next()
-		while file != "":
-			if file.ends_with(".tres") or file.ends_with(".res"):
-				var res = load(EQUIPMENT_DIR + file)
-				if res is EquipmentData:
-					list.append(res)
-			file = dir.get_next()
-	return list
-
-func handle_loss():
-	AudioManager.reset_audio_state()
-	is_arcade_mode = false
-	
-	# --- NEW: PERMADEATH DELETION ---
-	# 1. Recreate the exact filename used in save_run()
-	var safe_name = current_run_name.validate_filename() + ".tres"
-	
-	# 2. Delete it from the hard drive
-	delete_save_file(safe_name)
-	
-	# 3. Clear the run data so the game knows the run is fully dead
-	player_run_data = null
-
-# --- REWARD POOL LOGIC ---
-
-# 1. Fetch Valid Actions (The "Invisible Tree" Logic)
-func get_valid_action_rewards() -> Array[ActionData]:
-	var valid_actions: Array[ActionData] = []
-	var neighbor_ids = []
-	
-	# Look at every node we currently own
-	for owned_id in player_owned_tree_ids:
-		# Check its connections in the static Tree Map
-		if ClassFactory.TREE_CONNECTIONS.has(owned_id):
-			for neighbor in ClassFactory.TREE_CONNECTIONS[owned_id]:
-				# If we don't own it yet, it's a valid reward
-				if neighbor not in player_owned_tree_ids and neighbor not in neighbor_ids:
-					neighbor_ids.append(neighbor)
-	
-	# Convert IDs to actual Resources
-	for id in neighbor_ids:
-		var c_name = ClassFactory.ID_TO_NAME_MAP.get(id)
-		if c_name:
-			var card = ClassFactory.find_action_resource(c_name)
-			if card: valid_actions.append(card)
-			
-	return valid_actions
-
-# 2. Fetch Stat Upgrades (Generated on the fly)
-func get_stat_upgrades() -> Array[Dictionary]:
-	return [
-		{ "type": "stat", "text": "MAX HEALTH UP", "desc": "Gain +2 Max HP.", "icon": "heart", "func": func(p): p.max_hp += 2; p.current_hp += 2 },
-		{ "type": "stat", "text": "STAMINA UP", "desc": "Gain +1 Max SP.", "icon": "stamina", "func": func(p): p.max_sp += 1; p.current_sp += 1 },
-		{ "type": "stat", "text": "FULL RESTORE", "desc": "Heal to Full HP.", "icon": "heal", "func": func(p): p.current_hp = p.max_hp }
-	]
-
-# 3. Handle Reward Selection
-func apply_reward(reward):
-	# A. If it's an Action (Resource)
-	if reward is ActionData:
-		# 1. Unlock in Tree
-		var id = ClassFactory.get_id_by_name(reward.display_name)
-		if id != 0: player_owned_tree_ids.append(id)
-		
-		# 2. Add to Deck/Library
-		player_run_data.unlocked_actions.append(reward)
-		if player_run_data.deck.size() < ClassFactory.HAND_LIMIT:
-			player_run_data.deck.append(reward)
-		
-		# 3. The "Draft Heal" (Action is its own reward + tiny sustain)
-		player_run_data.current_hp = min(player_run_data.current_hp + 2, player_run_data.max_hp)
-		print("Drafted Action: " + reward.display_name + " (Healed 2 HP)")
-
-	# B. If it's Equipment (Resource)
-	elif reward is EquipmentData:
-		player_run_data.equipment.append(reward)
-		# Recalculate stats immediately to apply bonuses
-		ClassFactory._recalculate_stats(player_run_data)
-		print("Drafted Item: " + reward.item_name)
-
-	# C. If it's a Stat Upgrade (Dictionary)
-	elif reward is Dictionary and reward.has("func"):
-		reward["func"].call(player_run_data)
-		print("Drafted Upgrade: " + reward.text)
-
-	# Save/Continue
-	handle_reward_complete()
-
-# --- NEW: CENTRALIZED RUN START ---
-# 1. Standard Start (From Class Selection)
-# CHANGED: Accept the Resource (ClassStats) instead of just an int
-# Update this function
-func start_new_run(source_class: ClassDefinition, run_name: String = "New Run", sponsor: SponsorData = null):
-	current_run_name = run_name 
-	is_arcade_mode = true 
-	
-	# 1. Reset Run State
-	current_level = 1
-	player_owned_tree_ids.clear()
-	free_unlocks_remaining = 0
-	leagues_completed = 0 
-	
-	# --- NEW: SET ACTIVE SPONSOR ---
-	active_sponsor = sponsor
-	
-	# 2. Create Character Data
-	var p_data = CharacterData.new()
-	
-	p_data.class_type = source_class.class_type 
-	p_data.character_name = run_name
-	p_data.portrait = source_class.portrait
-	p_data.passive_desc = source_class.passive_description
-	
-	p_data.can_pay_with_hp = source_class.can_pay_with_hp
-	p_data.tiring_drains_hp = source_class.tiring_drains_hp
-	p_data.combo_sp_recovery_rate = source_class.combo_sp_recovery_rate
-	p_data.has_bide_mechanic = source_class.has_bide_mechanic
-	p_data.has_keep_up_toggle = source_class.has_keep_up_toggle
-	p_data.has_technique_dropdown = source_class.has_technique_dropdown
-	
-	# Set Base Stats [cite: 25]
-	p_data.max_hp = 5
-	p_data.current_hp = 5
-	p_data.max_sp = 4
-	p_data.current_sp = 4
-	
-	# --- APPLY SPONSOR MODIFIERS ---
-	if active_sponsor != null:
-		# Apply Base Stats
-		p_data.max_hp += active_sponsor.bonus_max_hp
-		p_data.max_sp += active_sponsor.bonus_max_sp
-		
-		# Apply Missing Stats
-		p_data.speed += active_sponsor.bonus_speed
-		
-		# If combo SP regen is 3, a bonus of 1 makes it 2 (faster regen)
-		if p_data.combo_sp_recovery_rate > 0:
-			p_data.combo_sp_recovery_rate = max(1, p_data.combo_sp_recovery_rate - active_sponsor.combo_sp_regen_bonus)
-		
-		# Ensure current HP/SP matches the newly buffed max
-		p_data.current_hp = p_data.max_hp
-		p_data.current_sp = p_data.max_sp
-		
-		# Apply Barrier (Temporary HP added ON TOP of max)
-		if active_sponsor.starting_barrier > 0:
-			p_data.current_hp += active_sponsor.starting_barrier
-			
-		# Grant Reroll Tokens
-		current_rerolls = active_sponsor.starting_rerolls
-		
-		# Give Starting Equipment
-		if active_sponsor.starting_equipment.size() > 0:
-			p_data.equipment.append_array(active_sponsor.starting_equipment)
-
-	# 3. LOAD STARTING DECK 
-	p_data.unlocked_actions = ClassFactory.get_starting_deck(source_class.class_type)
-	
-	# --- NEW: ADD SPONSOR CARDS TO DECK ---
-	if active_sponsor != null and active_sponsor.starting_cards.size() > 0:
-		p_data.unlocked_actions.append_array(active_sponsor.starting_cards)
-	
-	# 4. Auto-Unlock Class Starter Node
-	_unlock_class_starters(p_data, source_class)
-	
-	# 5. Fill Initial Hand
-	for action in p_data.unlocked_actions:
-		if p_data.deck.size() < ClassFactory.HAND_LIMIT:
-			p_data.deck.append(action)
-	
-	# 6. Save & Route
-	player_run_data = p_data
-	
-	generate_new_league()
-	pending_advancement = false 
-	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
-
-# --- HELPER: Unlock the first node so the Draft System has "Neighbors" to find ---
-# CHANGED: Added '= null' to make the second argument optional
-func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition = null):
-	var root_id = 0
-	
-	# Priority 1: Read from the Resource (The new, flexible way)
-	if source_class:
-		root_id = source_class.skill_tree_root_id
-	
-	# Priority 2: Fallback to defaults if Resource is missing (Safety net for Presets)
-	if root_id == 0:
-		match p_data.class_type:
-			ClassFactory.ClassType.HEAVY: root_id = 76
-			ClassFactory.ClassType.QUICK: root_id = 73
-			ClassFactory.ClassType.TECHNICAL:  root_id = 74
-			ClassFactory.ClassType.PATIENT: root_id = 75
-	
-	# --- UNLOCK LOGIC ---
-	if root_id != 0:
-		if not player_owned_tree_ids.has(root_id):
-			player_owned_tree_ids.append(root_id)
-		
-		var c_name = ClassFactory.ID_TO_NAME_MAP.get(root_id)
-		if c_name:
-			var card = ClassFactory.find_action_resource(c_name)
-			
-			# --- FIX: CHECK IF CARD EXISTS BEFORE USING IT ---
-			if card:
-				# Now it is safe to check for duplicates
-				var already_has = false
-				for c in p_data.unlocked_actions:
-					# Check c is valid too, just to be super safe
-					if c and c.display_name == card.display_name: 
-						already_has = true
-						break
-				
-				if not already_has:
-					p_data.unlocked_actions.append(card)
-			else:
-				print("ERROR: Could not find Starter Card resource for name: " + str(c_name))
-
-# --- UPDATE: REWARD ROUTING ---
-func handle_reward_complete():
-	print("Reward Claimed. Going to Deck Editor...")
-	
-	pending_reward = false       # <--- We got our reward
-	pending_advancement = true   # <--- Now we need to advance the map
-	
-	save_run() # Save AFTER the flags are updated!
-	
-	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
-
-# --- SAVE SYSTEM ---
-
-func save_run():
-	if not DirAccess.dir_exists_absolute(SAVE_DIR):
-		DirAccess.make_dir_absolute(SAVE_DIR)
-	
-	# 1. Create our Save Resource
-	var save_data = RunSaveData.new()
-	save_data.run_name = current_run_name
-	save_data.current_level = current_level
-	save_data.current_map_index = current_map_index
-	save_data.difficulty = GameManager.ai_difficulty
-	save_data.maintain_hp = maintain_hp_enabled
-	save_data.pending_advancement = pending_advancement
-	save_data.pending_reward = pending_reward
-	save_data.tree_ids = player_owned_tree_ids.duplicate()
-	save_data.player_data = player_run_data
-	
-	# We duplicate the array so we aren't saving by reference accidentally
-	save_data.map_data = tournament_map.duplicate() 
-	save_data.timestamp = Time.get_datetime_string_from_system()
-	
-	# 2. Save it as a .tres file!
-	var safe_name = current_run_name.validate_filename()
-	var file_path = SAVE_DIR + safe_name + ".tres"
-	
-	ResourceSaver.save(save_data, file_path)
-	
-	_show_save_notification()
-	print("Run saved to: " + file_path)
-
-func load_run(filename: String):
-	var path = SAVE_DIR + filename
-	if not FileAccess.file_exists(path): return
-
-	var save_data = ResourceLoader.load(path) as RunSaveData
-	if not save_data:
-		print("Error loading save file.")
-		return
-	
-	current_run_name = save_data.run_name
-	current_level = save_data.current_level
-	current_map_index = save_data.current_map_index
-	GameManager.ai_difficulty = save_data.difficulty as GameManager.Difficulty
-	maintain_hp_enabled = save_data.maintain_hp
-	player_owned_tree_ids.assign(save_data.tree_ids)
-	
-	player_run_data = save_data.player_data
-	player_run_data.character_name = current_run_name
-	
-	tournament_map.assign(save_data.map_data)
-	is_arcade_mode = true
-	
-	# --- NEW: SAFELY FETCH FLAGS ---
-	# We use .get() here so that old save files from before you added 
-	# these variables don't crash the game!
-	pending_advancement = save_data.get("pending_advancement") if save_data.get("pending_advancement") != null else false
-	pending_reward = save_data.get("pending_reward") if save_data.get("pending_reward") != null else false
-	# -------------------------------
-	
-	# --- NEW: SMART ROUTING ---
-	if pending_reward:
-		# They won the fight but quit before picking loot!
-		SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
-	elif pending_advancement:
-		# They picked loot, but haven't advanced the map yet!
-		SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
-	else:
-		# Default fallback: Put them on the map
-		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
-
-func get_save_files() -> Array:
-	var files = []
-	var dir = DirAccess.open(SAVE_DIR)
-	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
-		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".tres"): # Changed to .tres
-				files.append(file_name)
-			file_name = dir.get_next()
-	return files
-
-func peek_save_file(filename: String) -> RunSaveData:
-	var path = SAVE_DIR + filename
-	if not FileAccess.file_exists(path): return null
-	return ResourceLoader.load(path) as RunSaveData
-
-func delete_save_file(filename: String):
-	var path = SAVE_DIR + filename
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
-		print("Deleted save: " + filename)
-		
-func _show_save_notification():
-	var layer = CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-	
-	var panel = PanelContainer.new()
-	layer.add_child(panel)
-	
-	# 1. Anchor to Top-Left
-	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	
-	# 2. Set Grow Directions (Expand Right and Down from the corner)
-	panel.grow_horizontal = Control.GROW_DIRECTION_END
-	panel.grow_vertical = Control.GROW_DIRECTION_END
-	
-	# 3. Position offsets (20 pixels from the top and left edges)
-	panel.offset_left = 20
-	panel.offset_top = 20
-	
-	# --- CUSTOM THEME OVERRIDE ---
-	var custom_style = StyleBoxFlat.new()
-	custom_style.bg_color = Color(0, 0, 0, 0.8) 
-	custom_style.corner_radius_top_left = 6
-	custom_style.corner_radius_top_right = 6
-	custom_style.corner_radius_bottom_right = 6
-	custom_style.corner_radius_bottom_left = 6
-	custom_style.content_margin_left = 15
-	custom_style.content_margin_right = 15
-	custom_style.content_margin_top = 8
-	custom_style.content_margin_bottom = 8
-	
-	panel.add_theme_stylebox_override("panel", custom_style)
-	
-	# --- STYLING & TEXT ---
-	panel.modulate.a = 0.0
-	
-	var label = Label.new()
-	label.text = " GAME SAVED "
-	label.add_theme_font_size_override("font_size", 20)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	panel.add_child(label)
-	
-	# --- ANIMATION ---
-	var tween = create_tween()
-	tween.tween_property(panel, "modulate:a", 1.0, 0.5)
-	tween.tween_interval(1.5)
-	tween.tween_property(panel, "modulate:a", 0.0, 0.5)
-	tween.tween_callback(layer.queue_free)
-
-# Call this whenever Player HP changes (Heal or Damage)
-func check_danger_state():
-	if not player_run_data: return
-	
-	var hp_percent = float(player_run_data.current_hp) / float(player_run_data.max_hp)
-	
-	# If HP is 25% or lower (and alive), trigger danger
-	if player_run_data.current_hp > 0 and hp_percent <= 0.25:
-		AudioManager.set_danger_mode(true)
-	else:
-		AudioManager.set_danger_mode(false)
-
-# --- GENERATION LOGIC ---
-# --- GENERATION LOGIC ---
-# --- GENERATION LOGIC ---
-# --- GENERATION LOGIC ---
-func generate_new_league():
-	tournament_map.clear()
-	current_map_index = 0
-	
-	print("Generating League " + str(leagues_completed + 1) + "...")
-	
-	var diff_offset = 0
-	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: diff_offset = -2
-		GameManager.Difficulty.EASY:      diff_offset = -1
-		GameManager.Difficulty.MEDIUM:    diff_offset = 0
-		GameManager.Difficulty.HARD:      diff_offset = 1
-		
-	var fight_counter = 0 
-	
-	# --- NEW: PICK A RIVAL AMBUSH NODE ---
-	# Pick a random node in the middle of the run (e.g., between node 5 and 15)
-	var rival_node_index = -1
-	if active_sponsor != null and active_sponsor.rival_character_name != "":
-		rival_node_index = randi_range(5, LEAGUE_LENGTH - 4)
-		#rival_node_index = 0
-	# -------------------------------------
-	
-	for i in range(LEAGUE_LENGTH):
-		var node = MapNodeData.new()
-		var step_number = i + 1
-		var actual_progress_level = current_level + fight_counter 
-		var raw_rank = actual_progress_level + diff_offset
-		var fight_level = raw_rank if raw_rank > 0 else raw_rank - 1
-		
-		# 1. CHECK BOSS SCHEDULE
-		if BOSS_SCHEDULE.has(actual_progress_level):
-			node.type = MapNodeData.Type.BOSS
-			node.title = "RIVAL"
-			
-			var boss_path = BOSS_DIR + BOSS_SCHEDULE[actual_progress_level]
-			if ResourceLoader.exists(boss_path):
-				var boss_preset = load(boss_path) as PresetCharacter
-				node.enemy_data = ClassFactory.create_from_preset(boss_preset)
-				node.enemy_data.max_hp = max(1, node.enemy_data.max_hp + diff_offset)
-				node.enemy_data.max_sp = max(1, node.enemy_data.max_sp + diff_offset)
-				node.enemy_data.reset_stats()
-				node.enemy_data.character_name = "RIVAL: " + node.enemy_data.character_name
-			else:
-				node.enemy_data = ClassFactory.create_random_enemy(fight_level + 2, GameManager.ai_difficulty)
-			fight_counter += 1
-			
-		# 2. LEAGUE FINALS
-		elif i == LEAGUE_LENGTH - 1:
-			node.type = MapNodeData.Type.BOSS
-			node.title = "FINALS"
-			node.enemy_data = ClassFactory.create_random_enemy(fight_level + 2, GameManager.ai_difficulty)
-			node.enemy_data.character_name = "CHAMPION " + node.enemy_data.character_name
-			fight_counter += 1
-			
-		# --- NEW: 3. RIVAL GRUDGE MATCH INJECTION ---
-		elif i == rival_node_index:
-			node.type = MapNodeData.Type.BOSS # Treat them as a boss so the node is tinted
-			node.title = "HATER"
-			# Give them a slight +1 level bump before the massive Sponsor Buffs apply
-			node.enemy_data = ClassFactory.create_random_enemy(fight_level+1, GameManager.ai_difficulty)
-			# Overwrite their name so the Grudge Match logic detects them!
-			node.enemy_data.character_name = active_sponsor.rival_character_name
-			fight_counter += 1
-		# --------------------------------------------
-			
-		# 4. FIXED REST SPOTS (GYM)
-		elif randf() < 0.2 and i > 0:
-			node.type = MapNodeData.Type.GYM
-			node.title = "Training"
-			
-		# 5. STANDARD FIGHT
-		else:
-			node.type = MapNodeData.Type.FIGHT
-			node.title = "Round " + str(step_number)
-			node.enemy_data = ClassFactory.create_random_enemy(fight_level, GameManager.ai_difficulty)
-			fight_counter += 1
-			
-		node.is_locked = (i != 0)
-		tournament_map.append(node)
-	
-	save_run()
-
-# --- NAVIGATION ---
-func advance_map():
-	# Mark current node complete
-	if current_map_index < tournament_map.size():
-		tournament_map[current_map_index].is_completed = true
-		
-	current_map_index += 1
-	
-	# Check for League Victory
-	if current_map_index >= tournament_map.size():
-		handle_league_victory()
-	else:
-		# Unlock next node
-		tournament_map[current_map_index].is_locked = false
-		save_run()
-		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
-
-func handle_league_victory():
-	leagues_completed += 1
-	print("League Complete! Starting next tier...")
-	# For now, just generate the next one immediately
-	# Later, we can add a "Victory Lap" screen
-	generate_new_league()
-	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
-
-# Call this from the Deck Editor "Continue" button
-func exit_deck_editor():
-	if pending_advancement:
-		# Case: We just won a fight and grabbed rewards.
-		# Mark previous node complete and unlock the next one.
-		pending_advancement = false
-		advance_map()
-	else:
-		# Case: We just started a run, or loaded a save.
-		# The map is already ready, just go there.
-		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
-
-# Call this from your TournamentMap script when a node is clicked!
-# Inside RunManager.gd
-
-# Inside RunManager.gd
-
-func start_map_fight(node_data: MapNodeData):
-	# 1. TRACK LOCATION
-	current_map_index = RunManager.tournament_map.find(node_data)
-	
-	# 2. DUPLICATE ENEMY DATA (Critical so buffs don't permanently alter the base resource file)
-	var enemy_copy = node_data.enemy_data.duplicate(true)
-	is_rival_match = false # Reset the flag for this specific fight
-	
-	# 3. RIVALRY SYSTEM (Check for Grudge Match)
-	if active_sponsor != null and enemy_copy.character_name == active_sponsor.rival_character_name:
-		is_rival_match = true
-		
-		# Apply Grudge Match Buffs
-		enemy_copy.max_hp += active_sponsor.rival_boss_hp_buff
-		enemy_copy.current_hp = enemy_copy.max_hp
-		enemy_copy.max_sp += active_sponsor.rival_boss_sp_buff
-		enemy_copy.current_sp = enemy_copy.max_sp
-		
-		print("!!! GRUDGE MATCH INITIATED against " + enemy_copy.character_name + " !!!")
-		
-		# Apply the custom intro text if the sponsor has one
-		# Pass the custom intro to our new override variable!
-		if active_sponsor.rival_custom_intro != "":
-			GameManager.rival_intro_override = active_sponsor.rival_custom_intro
-	else:
-		GameManager.rival_intro_override = ""
-
-	# 4. SETUP PLAYER & ENEMY (CRITICAL! DO NOT REMOVE)
-	GameManager.next_match_p1_data = player_run_data
-	GameManager.next_match_p2_data = enemy_copy
-	
-	# 5. RANDOMIZE ENVIRONMENT
-	var envs = ["Ring", "Dojo", "Street"]
-	var selected_env = envs.pick_random()
-	GameManager.apply_environment_rules(selected_env)
-	
-	# 6. START MUSIC (VS SCREEN MODE)
-	if AudioManager.has_method("play_location_music"):
-		AudioManager.play_location_music(selected_env)
-		
-		# Set to Intensity 1 (Calm/Intro) for the VS Screen
-		AudioManager.set_music_intensity(0.0, 0.0)
-
-	# 7. LAUNCH VS SCREEN
-	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
-
-
-# Call this inside RunManager's _ready() function!
-func _init_global_save():
-	if ResourceLoader.exists(GLOBAL_SAVE_PATH):
-		meta_data = load(GLOBAL_SAVE_PATH) as GlobalSaveData
-	else:
-		meta_data = GlobalSaveData.new()
-		_save_global_data()
-
-func _save_global_data():
-	ResourceSaver.save(meta_data, GLOBAL_SAVE_PATH)
-
-func add_circuit_tokens(amount: int):
-	var final_amount = amount
-	
-	# Apply Sponsor Multiplier if they have one!
-	if active_sponsor != null:
-		final_amount = roundi(final_amount * active_sponsor.meta_currency_multiplier)
-		
-	meta_data.circuit_tokens += final_amount
-	print(">>> GAINED %d CIRCUIT TOKENS! (Total Bank: %d) <<<" % [final_amount, meta_data.circuit_tokens])
-	
-	_save_global_data()
-
-func wipe_global_save():
-	# 1. Create a brand new, empty save data object
-	meta_data = GlobalSaveData.new()
-	
-	# 2. Overwrite the file on the hard drive with this empty one
-	_save_global_data()
-	
-	print(">>> GLOBAL SAVE COMPLETELY WIPED <<<")
-
-# Gathers all keywords from the active Sponsor and currently equipped items
-func get_active_synergies() -> Array[String]:
-	var active_keywords: Array[String] = []
-	
-	if active_sponsor:
-		active_keywords.append_array(active_sponsor.synergy_keywords)
-		
-	if player_run_data:
-		for equip in player_run_data.equipment:
-			active_keywords.append_array(equip.synergy_keywords)
-			
-	return active_keywords
-
-
-============================================================
-FILE: .\Scripts\TestArena.gd
-============================================================
-extends Node2D
-
-@export_group("Setup")
-@export var p1_resource: CharacterData
-@export var p2_resource: CharacterData
-@export var stop_on_game_over: bool = true 
-
-@export_group("Debug Controls")
-@export var is_player_1_human: bool = true 
-@export var is_player_2_human: bool = false 
-@export var p2_debug_force_card: ActionData 
-
-# AI Memory System
-var p2_last_action_name: String = "" 
-var p1_last_action_type = null # Store ActionData.Type (0 or 1)
-var p1_last_cost: int = 0      # Track if player is tired
-
-# NEW: Preload the Game Over Screen
-var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
-var game_over_screen
-
-@onready var battle_ui = $BattleUI
-var _simulation_active: bool = true
-var _current_input_player: int = 1 
-@onready var tutorial_layer = $"../TutorialLayer" # Grabs it from the MainScene
-
-func _ready():
-# --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
-	var go_layer = CanvasLayer.new()
-	go_layer.layer = 100 # Put it above everything else
-	add_child(go_layer)
-	
-	game_over_screen = game_over_scene.instantiate()
-	game_over_screen.visible = false
-	game_over_screen.process_mode = Node.PROCESS_MODE_ALWAYS # Keep buttons active
-	go_layer.add_child(game_over_screen)
-	# ------------------------------------------------------
-	# 1. UI SETUP
-	# Since BattleUI is already in the scene tree, we just wait for it to be ready.
-	# We DO NOT instantiate() it or add_child() it again.
-	
-	# Wait one frame to ensure the UI's own _ready() has finished setting up nodes
-	await get_tree().process_frame
-	
-	# Clear the log to start fresh
-	if battle_ui.has_method("combat_log") and battle_ui.combat_log:
-		battle_ui.combat_log.clear_log()
-	elif battle_ui.get("combat_log"): # Fallback access
-		battle_ui.combat_log.clear_log()
-	
-	# 2. LOAD PLAYER RESOURCES
-	if GameManager.next_match_p1_data != null:
-		p1_resource = GameManager.next_match_p1_data
-		
-	if GameManager.next_match_p2_data != null:
-		p2_resource = GameManager.next_match_p2_data
-	
-	# 3. DETERMINE HUMAN/AI STATUS
-	is_player_1_human = true # P1 is always human
-	
-	# Logic: If Arcade Mode -> AI. If Custom Mode & P2 Toggle was Human -> Human.
-	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
-		is_player_2_human = true
-		print("TestArena: P2 set to HUMAN")
-	else:
-		is_player_2_human = false
-		print("TestArena: P2 set to AI")
-
-	# 4. CONNECT SIGNALS
-	# Note: We check if connections exist to avoid errors if _ready runs twice (rare but safe)
-	if not GameManager.state_changed.is_connected(_on_state_changed):
-		GameManager.state_changed.connect(_on_state_changed)
-		GameManager.combat_log_updated.connect(_on_log_updated)
-		GameManager.clash_resolved.connect(_on_clash_resolved)
-		GameManager.game_over.connect(_on_game_over)
-		GameManager.request_clash_animation.connect(battle_ui.play_clash_animation)
-	
-	if not battle_ui.human_selected_card.is_connected(_on_human_input_received):
-		battle_ui.human_selected_card.connect(_on_human_input_received)
-	
-	# Connect Debug Toggles
-	if not battle_ui.p1_mode_toggled.is_connected(_on_p1_mode_toggled):
-		battle_ui.p1_mode_toggled.connect(_on_p1_mode_toggled)
-		battle_ui.p2_mode_toggled.connect(_on_p2_mode_toggled)
-	
-	# 5. INITIALIZE UI ELEMENTS
-	battle_ui.load_deck(p1_resource.deck)
-	
-	print("--- INITIALIZING MATCH ---")
-	GameManager.start_combat(p1_resource, p2_resource)
-	
-	# 6. SETUP VISUALS & TOGGLES
-	battle_ui.initialize_hud(p1_resource, p2_resource)
-	
-	# Pass the calculated booleans so the checkboxes match the game state
-	battle_ui.setup_toggles(is_player_1_human, is_player_2_human)
-	
-	# 7. UPDATE NAME TAGS BASED ON DIFFICULTY
-	var diff_suffix = ""
-	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: diff_suffix = " (V)"
-		GameManager.Difficulty.EASY: diff_suffix = " (E)"
-		GameManager.Difficulty.MEDIUM: diff_suffix = " (M)"
-		GameManager.Difficulty.HARD: diff_suffix = " (H)"
-	
-	if not is_player_1_human:
-		if battle_ui.p1_hud and battle_ui.p1_hud.name_label:
-			battle_ui.p1_hud.name_label.text += diff_suffix
-			
-	if not is_player_2_human:
-		if battle_ui.p2_hud and battle_ui.p2_hud.name_label:
-			battle_ui.p2_hud.name_label.text += diff_suffix
-
-func _update_visuals():
-	battle_ui.update_all_visuals(p1_resource, p2_resource, GameManager.momentum)
-
-# --- TOGGLE LOGIC ---
-
-func _on_p1_mode_toggled(is_human: bool):
-	is_player_1_human = is_human
-	print("[DEBUG] P1 Human Mode: " + str(is_human))
-	_check_mid_turn_state_change(1, is_human)
-
-func _on_p2_mode_toggled(is_human: bool):
-	is_player_2_human = is_human
-	print("[DEBUG] P2 Human Mode: " + str(is_human))
-	_check_mid_turn_state_change(2, is_human)
-
-# Handles the case where we toggle Bot mode ON while waiting for that player
-func _check_mid_turn_state_change(player_id: int, is_human: bool):
-	# Only intervene if we are currently waiting for input from THIS player
-	if _current_input_player != player_id: return
-	
-	# Check valid states for input
-	if GameManager.current_state != GameManager.State.SELECTION and GameManager.current_state != GameManager.State.FEINT_CHECK:
-		return
-
-	# If switched TO BOT, force the bot to run immediately
-	if not is_human:
-		print(">>> TAKEOVER: Bot taking control of P" + str(player_id))
-		battle_ui.lock_ui() # Hide the human UI
-		_run_bot_turn(player_id)
-	
-	# If switched TO HUMAN, unlock the UI
-	elif is_human:
-		print(">>> TAKEOVER: Human taking control of P" + str(player_id))
-		_prepare_human_turn(player_id)
-
-# --- GAME LOOP ---
-
-func _on_state_changed(new_state):
-	if not _simulation_active: return
-
-	match new_state:
-		GameManager.State.SELECTION:
-			await get_tree().create_timer(0.5).timeout
-			_start_turn_sequence()
-			
-		GameManager.State.FEINT_CHECK:
-			await get_tree().create_timer(0.3).timeout
-			print("| --- FEINT PHASE --- |")
-			_start_feint_input()
-
-		GameManager.State.POST_CLASH:
-			# --- NEW: ADVANCE TUTORIAL ---
-			if TutorialManager.is_tutorial_active:
-				TutorialManager.advance_step()
-			# -----------------------------
-			_print_status_report()
-
-func _start_turn_sequence():
-	if is_player_1_human: _prepare_human_turn(1)
-	else:
-		print("\n| --- NEW TURN: AI P1 --- |")
-		_run_bot_turn(1)
-
-func _start_feint_input():
-	if GameManager.p1_pending_feint:
-		print("| --- WAITING FOR P1 FEINT SELECTION --- |")
-		if is_player_1_human: _prepare_human_turn(1)
-		else: _run_bot_turn(1)
-	elif GameManager.p2_pending_feint:
-		print("| --- WAITING FOR P2 FEINT SELECTION --- |")
-		if is_player_2_human: _prepare_human_turn(2)
-		else: _run_bot_turn(2)
-
-func _get_player_constraints(player_id: int) -> Dictionary:
-	# This function asks GameManager who is attacking. 
-	# Now that we fixed 'get_attacker', this will return the correct ID!
-	var attacker_id = GameManager.get_attacker()
-	var is_combo = (GameManager.current_combo_attacker != 0)
-	var mom = GameManager.momentum
-	
-	var c = {
-		"filter": null, "required_tab": null, "needs_opener": false,
-		"max_cost": 99, "opening_stat": 0, "can_use_super": false, "opportunity_stat": 0 
-	}
-	
-	# 1. Setup Limits & Stats
-	if player_id == 1:
-		c.max_cost = GameManager.p1_cost_limit
-		c.opening_stat = GameManager.p1_opening_stat
-		c.opportunity_stat = GameManager.p1_opportunity_stat 
-		
-		# SUPER CHECK (Updated for Dynamic Momentum)
-		# Checks if momentum is at P1's Wall (e.g. 1)
-		if mom == GameManager.get_wall_momentum(1) and not p1_resource.has_used_super:
-			c.can_use_super = true
-			
-		if GameManager.p1_must_opener: c.needs_opener = true
-	else:
-		c.max_cost = GameManager.p2_cost_limit
-		c.opening_stat = GameManager.p2_opening_stat
-		c.opportunity_stat = GameManager.p2_opportunity_stat 
-		
-		# SUPER CHECK (Updated for Dynamic Momentum)
-		# Checks if momentum is at P2's Wall (e.g. 8 or 12)
-		if mom == GameManager.get_wall_momentum(2) and not p2_resource.has_used_super:
-			c.can_use_super = true
-			
-		if GameManager.p2_must_opener: c.needs_opener = true
-
-	# 2. Determine Required Tab (Offence vs Defence)
-	if attacker_id != 0:
-		if attacker_id == player_id:
-			c.filter = ActionData.Type.OFFENCE
-			c.required_tab = ActionData.Type.OFFENCE
-		else:
-			c.filter = ActionData.Type.DEFENCE
-			c.required_tab = ActionData.Type.DEFENCE
-			
-	# 3. Neutral / Opener Logic
-	if mom == 0: 
-		c.needs_opener = true
-	elif attacker_id == player_id and not is_combo: 
-		# If I am attacking and NOT in a combo, I must use an opener to start one
-		c.needs_opener = true
-		
-	return c
-
-func _prepare_human_turn(player_id: int):
-	_current_input_player = player_id
-	var character = p1_resource if player_id == 1 else p2_resource
-	
-	# 1. BUILD THE UI FIRST (So the spotlight has something to look at!)
-	battle_ui.setup_passive_toggles(character)
-	battle_ui.load_deck(character.deck)
-	
-	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
-	if locked_card and GameManager.current_state == GameManager.State.SELECTION:
-		print(">>> P" + str(player_id) + " LOCKED into: " + locked_card.display_name)
-		_on_human_input_received(locked_card)
-		return
-
-	var c = _get_player_constraints(player_id)
-	var is_feinting = (GameManager.current_state == GameManager.State.FEINT_CHECK)
-	
-	if is_feinting:
-		print("[GUIDE P" + str(player_id) + "] Feint! Choose a card to combine, or 'SKIP FEINT'.")
-	else:
-		if c.required_tab == ActionData.Type.OFFENCE: print("[GUIDE P" + str(player_id) + "] Attack!")
-		elif c.required_tab == ActionData.Type.DEFENCE: print("[GUIDE P" + str(player_id) + "] Defend!")
-		else: print("[GUIDE P" + str(player_id) + "] Neutral.")
-	
-	_update_visuals() 
-	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
-	
-	# 2. MAKE THE GRID VISIBLE
-	battle_ui.unlock_for_input(
-		c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
-		c.can_use_super, c.opportunity_stat, is_feinting
-	)
-	
-	# --- THE FIX: WAIT FOR THE UI TO DRAW ---
-	# We wait two frames so Godot can calculate the exact pixel sizes 
-	# and positions of the cards before the spotlight tries to find them!
-	await get_tree().process_frame
-	await get_tree().process_frame
-	# ----------------------------------------
-	
-	# --- 3. TUTORIAL PAUSE & POPUP ---
-	if TutorialManager.is_tutorial_active and player_id == 1:
-		battle_ui.is_locked = true # Prevent clicking while reading!
-		
-		# THE FIX: If this is the very first message, wait 1 second for 
-		# the SceneLoader to finish fading the screen in before we pause!
-		if TutorialManager.current_step == 0:
-			await get_tree().create_timer(1.0).timeout
-			# We also need these two frames again just in case
-			await get_tree().process_frame
-			await get_tree().process_frame
-		
-		var tut_data = TutorialManager.get_current_data()
-		if tut_data.has("sensei_text"):
-			var highlight_str = tut_data.get("highlight", "")
-			var highlight_node: Control = null
-			
-			# Map the string to the ACTUAL node here in the Arena!
-			# --- UPGRADED TRANSLATOR ---
-			if highlight_str == "hand": 
-				highlight_node = battle_ui.button_grid
-			elif highlight_str == "momentum" or highlight_str == "wall": 
-				highlight_node = battle_ui.momentum_slider
-			
-			# NEW: Support "card:Name"
-			elif highlight_str.begins_with("card:"):
-				var target_card_name = highlight_str.replace("card:", "")
-				highlight_node = _get_button_for_card(target_card_name)
-			# ---------------------------
-			
-			tutorial_layer.show_message(tut_data["sensei_text"], highlight_node)
-			# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
-			await tutorial_layer.tutorial_message_closed
-			
-		battle_ui.is_locked = false # Re-enable clicking so they can play the card
-	# -----------------------------------
-
-func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # Updated Signature
-	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
-	
-	var action_to_submit = card
-	if card.display_name == "SKIP FEINT": action_to_submit = null
-	
-	# Pass the extra data (toggles) to GameManager
-	GameManager.player_select_action(_current_input_player, action_to_submit, extra_data)
-	
-	if GameManager.current_state == GameManager.State.SELECTION:
-		if _current_input_player == 1:
-			if is_player_2_human:
-				await get_tree().create_timer(0.2).timeout
-				_prepare_human_turn(2)
-			else: _run_bot_turn(2)
-				
-	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
-		await get_tree().create_timer(0.2).timeout
-		_start_feint_input() 
-
-func _run_bot_turn(player_id: int):
-	_current_input_player = player_id 
-	var character = p1_resource if player_id == 1 else p2_resource
-	
-	# ... (Keep your debug force and locked card checks here) ...
-
-	var c = _get_player_constraints(player_id)
-	var card: ActionData
-	
-	# --- NEW: TUTORIAL BOT HIJACK ---
-	if TutorialManager.is_tutorial_active and player_id == 2:
-		var target_card_name = TutorialManager.get_current_data().get("bot_card", "")
-		card = _find_card_by_name(character, target_card_name)
-		
-		# Fallback just in case the Sensei doesn't have the card
-		if card == null: 
-			printerr("TUTORIAL ERROR: Bot missing card " + target_card_name)
-			card = GameManager.get_struggle_action(ActionData.Type.OFFENCE)
-	else:
-		# NORMAL AI BEHAVIOR
-		card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
-	# --------------------------------
-
-	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
-	GameManager.player_select_action(player_id, card)
-	
-	if GameManager.current_state == GameManager.State.SELECTION: _handle_bot_completion(player_id)
-	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
-		await get_tree().create_timer(0.2).timeout
-		_start_feint_input()
-
-func _handle_bot_completion(player_id):
-	if player_id == 1:
-		if is_player_2_human: _prepare_human_turn(2)
-		else: _run_bot_turn(2)
-
-# TestArena.gd
-
-# TestArena.gd
-
-func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
-	var valid_options = []
-	var affordable_backups = [] 
-	
-	# A. FILTER (Same as before)
-	for card in character.deck:
-		if type_filter != null and card.type != type_filter: continue
-		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
-		if card.cost > max_cost: continue
-		if card.counter_value > 0 and my_opening < card.counter_value: continue
-		if card.is_super and not allow_super: continue
-		
-		# --- FIX: ACCOUNT FOR REPEAT COUNT COST ---
-		var effective_single_cost = max(0, card.cost - my_opportunity)
-		var total_reps = max(1, card.repeat_count)
-		var total_effective_cost = effective_single_cost * total_reps
-		
-		var can_pay = (total_effective_cost <= character.current_sp)
-		
-		if character.can_pay_with_hp:
-			if (character.current_sp + character.current_hp) > total_effective_cost:
-				can_pay = true
-				
-		if can_pay:
-			valid_options.append(card)
-		elif total_effective_cost == 0:
-			affordable_backups.append(card)
-		# ------------------------------------------
-	
-	# --- FIX: ADD STRUGGLE OPTION ---
-	# If the bot is filtering for a specific type (e.g. Defence), give it the Struggle option for that type.
-	var required_type = type_filter if type_filter != null else ActionData.Type.OFFENCE
-	var struggle = GameManager.get_struggle_action(required_type)
-	
-	# If we have NO valid deck options, or if we just want to consider saving SP, add Struggle.
-	# Adding it to 'valid_options' lets the Scoring System decide if it's a good idea.
-	valid_options.append(struggle)
-	# --------------------------------
-	
-	if valid_options.is_empty():
-		return struggle 
-
-	# B. STRATEGY
-	var best_card = valid_options[0]
-	
-	# --- NEW LOGIC START ---
-	var is_very_easy = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
-	
-	# If Very Easy: We want the LOWEST score, so start High.
-	# If Normal: We want the HIGHEST score, so start Low.
-	var best_score = 99999.0 if is_very_easy else -99999.0
-	
-	var my_id = 1 if character == p1_resource else 2
-	var opponent = p2_resource if my_id == 1 else p1_resource
-	
-	# Noise Setup
-	var noise_range = 0.0
-	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: noise_range = 0 # No noise, just pure bad decisions
-		GameManager.Difficulty.EASY: noise_range = 100.0
-		GameManager.Difficulty.MEDIUM: noise_range = 25.0
-		GameManager.Difficulty.HARD: noise_range = 2.0
-	
-	for card in valid_options:
-		var score = _score_card_utility(card, character, opponent, my_id)
-		score += randf_range(-noise_range, noise_range)
-		
-		if is_very_easy:
-			# INVERTED LOGIC: Pick the WORST score
-			if score < best_score:
-				best_score = score
-				best_card = card
-		else:
-			# STANDARD LOGIC: Pick the BEST score
-			if score > best_score:
-				best_score = score
-				best_card = card
-	
-	return best_card
-
-# 2. THE BRAIN (Assigns value to actions)
-func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
-	var score = 0.0
-	var log_parts = [] # Stores reasons like "+10 Dmg" or "-100 Repetition"
-	
-	# Weights
-	var w_dmg = 1.0; var w_def = 1.0; var w_tech = 1.0; var w_cost = 1.0
-	
-	match me.ai_archetype:
-		CharacterData.AIArchetype.AGGRESSIVE:
-			w_dmg = 1.5; w_def = 0.5; w_cost = 0.5
-		CharacterData.AIArchetype.DEFENSIVE:
-			w_dmg = 0.7; w_def = 1.5; w_cost = 1.2
-		CharacterData.AIArchetype.TRICKSTER:
-			w_dmg = 0.8; w_def = 0.8; w_tech = 1.5
-	
-	# --- 1. STRICT ANTI-REPETITION ---
-	if card.display_name == p2_last_action_name:
-		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
-			# [cite_start]FIX: For Very Easy, we pick the LOWEST score[cite: 220].
-			# To discourage repetition, we must ADD to the score so it isn't the lowest.
-			score += 100.0
-			log_parts.append("+100 (Repetition Avoidance)")
-		else:
-			# Normal Logic: We pick the HIGHEST score.
-			# Subtracting makes the AI avoid it.
-			score -= 100.0
-			log_parts.append("-100 (Repetition)")
-
-	# --- 2. TACTICAL RESPONSE ---
-	if card.type == ActionData.Type.OFFENCE:
-		# Counter Opportunities
-		var opp_opening = GameManager.p1_opening_stat if my_id == 2 else GameManager.p2_opening_stat
-		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
-			var val = 50.0 * w_tech
-			score += val
-			log_parts.append("+" + str(val) + " (Counter Opportunity)")
-		
-		# Punish Tired
-		if p1_last_cost >= 2 or (float(opp.current_sp)/max(1, opp.max_sp) < 0.3):
-			var val = card.damage * 5 * w_dmg
-			score += val
-			log_parts.append("+" + str(val) + " (Punish Tired)")
-		
-		# Break Turtles
-		if p1_last_action_type == ActionData.Type.DEFENCE:
-			if card.guard_break: 
-				score += 30 * w_tech
-				log_parts.append("+30 (Guard Break)")
-			if card.feint: 
-				score += 20 * w_tech
-				log_parts.append("+20 (Feint vs Block)")
-			
-	elif card.type == ActionData.Type.DEFENCE:
-		# Heavy Incoming
-		if p1_last_cost >= 2:
-			if card.dodge_value > 0: 
-				score += 20 * w_def
-				log_parts.append("+20 (Dodge Heavy)")
-			if card.block_value >= 4: 
-				score += 15 * w_def
-				log_parts.append("+15 (Block Heavy)")
-			
-		# Light Incoming
-		elif p1_last_cost <= 1:
-			if card.cost >= 2: 
-				var pen = 15.0 * w_cost
-				score -= pen
-				log_parts.append("-" + str(pen) + " (Overkill Def)")
-			if card.block_value > 0 and card.cost <= 1: 
-				score += 10 * w_def
-				log_parts.append("+10 (Efficient Block)")
-
-		# Fishing for Reversals
-		if opp.current_hp <= 5 and card.reversal:
-			score += 15 * w_tech
-			log_parts.append("+15 (Execute Reversal)")
-
-	# --- 3. UTILITY SCORING ---
-	
-	# Kill Instinct
-	if card.damage >= opp.current_hp: 
-		score += 1000.0
-		log_parts.append("+1000 (KILL SHOT)")
-	
-	# Survival Instinct
-	var panic = 5 if me.ai_archetype == CharacterData.AIArchetype.DEFENSIVE else 3
-	if me.current_hp < panic:
-		var s_val = (card.block_value * 10 * w_def) + (card.heal_value * 15 * w_def)
-		if card.type == ActionData.Type.DEFENCE: s_val += 20 * w_def
-		score += s_val
-		if s_val > 0: log_parts.append("+" + str(s_val) + " (Panic Mode)")
-	
-	# Logic for Struggle (display_name check)
-	if card.display_name == "Struggle":
-		# If we are low on SP, Struggle is very valuable
-		if me.current_sp <= 1:
-			score += 50.0
-			log_parts.append("+50 (Need SP)")
-		# If we are full on SP, Struggle is bad
-		elif me.current_sp >= me.max_sp:
-			score -= 50.0
-			log_parts.append("-50 (SP Full)")
-	
-	# Momentum Logic
-	var mom = GameManager.momentum
-	var winning = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
-	var losing = (my_id == 1 and mom >= 5) or (my_id == 2 and mom <= 4)
-	
-	if winning:
-		var m_val = (card.damage * 10 * w_dmg)
-		if card.type == ActionData.Type.OFFENCE: m_val += 10
-		score += m_val
-		if m_val > 0: log_parts.append("+" + str(m_val) + " (Winning Mom)")
-	elif losing:
-		var m_val = (card.fall_back_value * 10 * w_def) + (card.block_value * 5 * w_def)
-		if card.reversal: m_val += 20 * w_tech
-		score += m_val
-		if m_val > 0: log_parts.append("+" + str(m_val) + " (Losing Mom)")
-
-	# Base Stats
-	var stat_score = (card.damage * 5 * w_dmg) + (card.block_value * 5 * w_def) + (card.heal_value * 5 * w_def)
-	
-	if card.tiring > 0: stat_score += card.tiring * 5 * w_tech
-	if card.create_opening > 0: stat_score += card.create_opening * 5 * w_tech
-	if card.feint: stat_score += 10 * w_tech
-	
-	score += stat_score
-	log_parts.append("+" + str(stat_score) + " (Stats)")
-	
-	# Cost Efficiency
-	if card.cost > 0:
-		var sp_ratio = float(me.current_sp) / float(max(1, me.max_sp))
-		var scarcity = 1.0 if sp_ratio > 0.5 else 2.5
-		var c_pen = card.cost * (10 * w_cost * scarcity)
-		score -= c_pen
-		log_parts.append("-" + str(c_pen) + " (Cost)")
-
-	# --- PRINT LOG ---
-	# Format: [AI] CardName: 45.0 | Breakdown: +20 (Stats), -5 (Cost), +30 (Counter)
-	print("[AI] %s: %s | %s" % [card.display_name, str(snapped(score, 0.1)), ", ".join(log_parts)])
-
-	return score
-
-# --- LOGGING ---
-func _on_game_over(winner_id: int):
-	_update_visuals()
-	await get_tree().create_timer(1.0).timeout
-	
-	var winner_data = p1_resource if winner_id == 1 else p2_resource
-	
-	# --- FIX: ROBUST TEXT EXTRACTION ---
-	var final_log_text = "Log not found."
-	
-	# 1. Try to get the object
-	var log_node = battle_ui.get("combat_log")
-	
-	if log_node:
-		# 2. Try our new function (Best Case)
-		if log_node.has_method("get_log_text"):
-			final_log_text = log_node.get_log_text()
-			
-		# 3. Fallback: Check if it's a raw RichTextLabel
-		elif log_node is RichTextLabel:
-			final_log_text = log_node.get_parsed_text()
-			
-		# 4. Fallback: Check standard text property
-		elif "text" in log_node:
-			final_log_text = log_node.text
-			
-	print("TestArena: Log Text Length: " + str(final_log_text.length()))
-	# -----------------------------------
-
-	get_tree().paused = true 
-	game_over_screen.setup(winner_data, final_log_text) 
-	game_over_screen.visible = true
-	
-	
-func _on_clash_resolved(winner_id, p1_card, p2_card, _results): 
-	print("\n>>> Clash Winner: P" + str(winner_id))
-	_update_visuals()
-	# --- UPDATE AI MEMORY ---
-	if not is_player_2_human:
-		# 1. Remember what the Bot did (for anti-repetition)
-		if p2_card != null:
-			p2_last_action_name = p2_card.display_name
-			
-		# 2. Remember what the Human did (for counter-play)
-		if p1_card != null:
-			p1_last_action_type = p1_card.type
-			p1_last_cost = p1_card.cost
-			
-			# Reset if Human did nothing (stunned/empty)
-		else:
-			p1_last_action_type = null
-			p1_last_cost = 0
-		
-func _on_log_updated(text): print("   > " + text)
-func _print_status_report():
-	var p1 = p1_resource; var p2 = p2_resource
-	var visual = "[ "; for i in range(1, 5): visual += ("P1 " if GameManager.momentum == i else str(i) + " ")
-	visual += "| "; for i in range(5, 9): visual += ("P2 " if GameManager.momentum == i else str(i) + " ")
-	visual += "]"
-	print("\n[STATUS] P1: " + str(p1.current_hp) + "HP/" + str(p1.current_sp) + "SP  vs  P2: " + str(p2.current_hp) + "HP/" + str(p2.current_sp) + "SP")
-	print("[MOMENTUM] " + visual)
-
-func _find_card_by_name(character: CharacterData, card_name: String) -> ActionData:
-	for card in character.deck:
-		if card.display_name == card_name:
-			return card
-	return null
-
-func _get_button_for_card(card_name: String) -> Control:
-	# Look through all buttons currently in the hand
-	for btn in battle_ui.button_grid.get_children():
-		# Your CardButton.gd has a 'my_action' variable or you can check btn.text
-		if btn.get("my_action") and btn.my_action.display_name == card_name:
-			return btn
-	return null
+	# Start hidden and unpaused
+	visible = false
+	
+func _input(event):
+	if event.is_action_pressed("ui_cancel"): # Default is 'Escape' key
+		_toggle_pause()
+
+func _toggle_pause():
+	# Flip the paused state
+	var new_state = not get_tree().paused
+	get_tree().paused = new_state
+	visible = new_state
+
+func _on_resume_pressed():
+	_toggle_pause()
+
+func _on_main_menu_pressed():
+	# 1. Unpause before changing scenes (otherwise the new scene stays frozen!)
+	_toggle_pause()
+	
+	# 2. CLEANUP: Wipe game state so next match starts fresh
+	# (Similar to your ActionTree back button logic) [cite: 121]
+	GameManager.next_match_p1_data = null
+	GameManager.next_match_p2_data = null
+	GameManager.p1_data = null
+	GameManager.p2_data = null
+	
+	GameManager.editing_player_index = 1
+	GameManager.p2_is_custom = false
+	
+	# 3. Go to Menu
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 

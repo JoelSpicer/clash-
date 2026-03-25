@@ -37,6 +37,7 @@ DialogueManager="*uid://bq2klpbljl1qb"
 SettingsManager="*uid://btwusus0fp7xb"
 GlobalCinematics="*uid://dtocqu2bhppnv"
 TutorialManager="*uid://b21gr8bljy4ci"
+Pausemenu="*uid://b2sxki8ci7lvb"
 
 [display]
 

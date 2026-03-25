@@ -59,7 +59,7 @@ func _setup_quick_match_mode():
 
 func _setup_arcade_mode():
 	var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
-	
+	menu_btn.visible = false
 	if player_won:
 		title_label.text = "VICTORY!"
 		title_label.modulate = Color.GREEN
