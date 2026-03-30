@@ -12,6 +12,7 @@ rival_momentum_handicap = 2
 rival_reward_currency_bonus = 5
 synergy_keywords = Array[String](["Technical", "Quick"])
 item_name = "Vanguard Logistics"
+description = "Extra draft option, 3 reward rerolls, cash x1.2"
 extra_draft_options = 1
 starting_rerolls = 3
 meta_currency_multiplier = 1.2

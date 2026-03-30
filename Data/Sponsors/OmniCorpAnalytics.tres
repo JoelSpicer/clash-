@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SponsorData" format=3 uid="uid://0mn1c0rp4n4l"]
+
+[ext_resource type="Script" uid="uid://c45g8d8d4wjtr" path="res://Scripts/Resources/SponsorData.gd" id="1_omni"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_jmj8f"]
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="3_0ic7n"]
+
+[resource]
+script = ExtResource("1_omni")
+flavor_quote = "\"Every variable accounted for. Every outcome simulated.\""
+rival_character_name = "The Wildcard"
+rival_custom_intro = "\"Let's see your algorithm predict THIS!\""
+rival_boss_hp_buff = 2
+rival_momentum_handicap = -1
+rival_reward_currency_bonus = 15
+synergy_keywords = Array[String](["Patient", "Technical"])
+item_name = "OmniCorp Analytics"
+description = "Flawless intel. Reveals the enemy's opening move on Turn 1! +2 Starting SP and +1 Draft Option, but Supers are Disabled."
+shop_cost = 30
+starting_sp_bonus = 2
+extra_draft_options = 1
+reveal_enemy_opener = true
+disable_supers = true
+metadata/_custom_type_script = "uid://c45g8d8d4wjtr"

@@ -7,6 +7,11 @@
 [ext_resource type="Resource" uid="uid://bpk3oy5rf8g3w" path="res://Data/Classes/PatientClass.tres" id="4_xni87"]
 [ext_resource type="Resource" uid="uid://c007py27u78qj" path="res://Data/Classes/QuickClass.tres" id="5_g1jwv"]
 [ext_resource type="Resource" uid="uid://bg5ik82a2fybg" path="res://Data/Classes/TechnicalClass.tres" id="6_5qhp4"]
+[ext_resource type="Resource" uid="uid://0mn1c0rp4n4l" path="res://Data/Sponsors/OmniCorpAnalytics.tres" id="8_aa7mt"]
+[ext_resource type="Resource" uid="uid://p4nt0m5ynd1c" path="res://Data/Sponsors/PhantomSyndicate.tres" id="9_6qat5"]
+[ext_resource type="Resource" uid="uid://h1o2r3i405o6" path="res://Data/Sponsors/HorizonTech.tres" id="10_m07fg"]
+[ext_resource type="Resource" uid="uid://n1e2o3n4m5e6" path="res://Data/Sponsors/NeonMediaGroup.tres" id="11_3uypp"]
+[ext_resource type="Resource" uid="uid://1p2e3x4g5e6" path="res://Data/Sponsors/ApexGenetics.tres" id="12_mnao3"]
 
 [node name="ShopTerminal" type="Control" unique_id=2147208092]
 layout_mode = 3
@@ -16,7 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_j7gxt")
-resource_catalog = Array[Resource]([ExtResource("2_mignv"), ExtResource("3_wmux0"), ExtResource("4_wmux0"), ExtResource("4_xni87"), ExtResource("5_g1jwv"), ExtResource("6_5qhp4")])
+resource_catalog = Array[Resource]([ExtResource("2_mignv"), ExtResource("3_wmux0"), ExtResource("4_wmux0"), ExtResource("4_xni87"), ExtResource("5_g1jwv"), ExtResource("6_5qhp4"), ExtResource("8_aa7mt"), ExtResource("9_6qat5"), ExtResource("3_wmux0"), ExtResource("10_m07fg"), ExtResource("11_3uypp"), ExtResource("12_mnao3")])
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=1707480493]
 layout_mode = 1

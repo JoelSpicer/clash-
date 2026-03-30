@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="SponsorData" format=3 uid="uid://n1e2o3n4m5e6"]
+
+[ext_resource type="Script" uid="uid://c45g8d8d4wjtr" path="res://Scripts/Resources/SponsorData.gd" id="1_neon"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_xf23g"]
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="3_wioxo"]
+
+[resource]
+script = ExtResource("1_neon")
+flavor_quote = "\"Give the people a show, and we'll make you a star.\""
+rival_character_name = "The Purist"
+rival_custom_intro = "\"This is a martial art, not a circus act!\""
+rival_boss_hp_buff = 8
+rival_momentum_handicap = -1
+rival_reward_currency_bonus = 100
+synergy_keywords = Array[String](["Quick", "Utility"])
+item_name = "Neon Media Group"
+description = "Crowd favorites! Start every fight with +2 Momentum Advantage and gain a 1.5x Currency Multiplier. Suffer -3 Max HP for selling out."
+shop_cost = 25
+bonus_max_hp = -3
+momentum_start_bonus = 2
+meta_currency_multiplier = 1.5
+metadata/_custom_type_script = "uid://c45g8d8d4wjtr"

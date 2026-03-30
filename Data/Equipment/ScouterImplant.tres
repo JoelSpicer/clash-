@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EquipmentData" format=3 uid="uid://cc5gf6lvur0sd"]
+
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="1_yr1f8"]
+
+[resource]
+script = ExtResource("1_yr1f8")
+synergy_keywords = Array[String](["Tactics", "Utility", "Drafting"])
+item_name = "Scouter Implant"
+description = "Reveal the enemy's opening move and gain +1 extra draft option, but start with -1 Speed."
+shop_cost = 65
+bonus_speed = -1
+extra_draft_options = 1
+reveal_enemy_opener = true
+metadata/_custom_type_script = "uid://b3y0gojixwh16"

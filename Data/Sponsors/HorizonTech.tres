@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="SponsorData" format=3 uid="uid://h1o2r3i405o6"]
+
+[ext_resource type="Script" uid="uid://c45g8d8d4wjtr" path="res://Scripts/Resources/SponsorData.gd" id="1_horizon"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_ehlkm"]
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="3_b308l"]
+
+[resource]
+script = ExtResource("1_horizon")
+flavor_quote = "\"Flesh is weak. Let our overshields do the heavy lifting.\""
+rival_character_name = "The EMP"
+rival_custom_intro = "\"I'm going to short-circuit that fancy toy of yours.\""
+rival_boss_sp_buff = 3
+rival_reward_currency_bonus = 35
+synergy_keywords = Array[String](["Defence", "Technical"])
+item_name = "Horizon Tech"
+description = "Start every fight with 4 temporary Barrier and +3 Starting SP to fuel huge opening combos, but suffer -4 Max HP permanently."
+shop_cost = 35
+bonus_max_hp = -4
+starting_barrier = 4
+starting_sp_bonus = 3
+metadata/_custom_type_script = "uid://c45g8d8d4wjtr"

@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_0ypc4")
 item_name = "Body Armour"
-description = "+1 block, -3 Max SP"
+description = "+1 block, -3 Max HP"
 bonus_max_hp = -3
 block_modifier = 1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

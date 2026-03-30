@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EquipmentData" format=3 uid="uid://bpifdosu0b52j"]
+
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="1_yr1f8"]
+
+[resource]
+script = ExtResource("1_yr1f8")
+synergy_keywords = Array[String](["Combo", "SP", "Focus"])
+item_name = "Flow State Bandana"
+description = "+2 Combo SP Regen and +1 Starting SP, but you cannot use Supers."
+shop_cost = 50
+starting_sp_bonus = 1
+combo_sp_regen_bonus = 2
+disable_supers = true
+metadata/_custom_type_script = "uid://b3y0gojixwh16"

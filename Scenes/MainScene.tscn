@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://bwfpi53huo887"]
 
-[ext_resource type="PackedScene" uid="uid://b2sxki8ci7lvb" path="res://Scenes/Pausemenu.tscn" id="1_0iob3"]
 [ext_resource type="Script" uid="uid://xjbucvoejbts" path="res://Scripts/Resources/GameManager.gd" id="1_hpc76"]
 [ext_resource type="Script" uid="uid://xh1kg301k38w" path="res://Scripts/TestArena.gd" id="2_tr2i4"]
 [ext_resource type="Resource" uid="uid://b0kng2hirhw4q" path="res://Player1.tres" id="3_7rqgy"]
@@ -9,8 +8,6 @@
 [ext_resource type="PackedScene" uid="uid://dhwx6yjjskbn7" path="res://Scenes/BattleUI.tscn" id="8_f140w"]
 
 [node name="Node2D" type="Node2D" unique_id=1182146]
-
-[node name="PauseMenu" parent="." unique_id=1470014668 instance=ExtResource("1_0iob3")]
 
 [node name="GameManager" type="Node" parent="." unique_id=1223966320]
 script = ExtResource("1_hpc76")

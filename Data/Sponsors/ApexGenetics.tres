@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="SponsorData" format=3 uid="uid://1p2e3x4g5e6"]
+
+[ext_resource type="Script" uid="uid://c45g8d8d4wjtr" path="res://Scripts/Resources/SponsorData.gd" id="1_apex"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_mfoyv"]
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="3_ago3c"]
+
+[resource]
+script = ExtResource("1_apex")
+flavor_quote = "\"Evolve past the need for shields.\""
+rival_character_name = "The Matador"
+rival_custom_intro = "\"Mindless beast. Come, break yourself on my guard!\""
+rival_boss_hp_buff = 2
+rival_boss_sp_buff = 5
+rival_momentum_handicap = 1
+rival_reward_currency_bonus = 40
+synergy_keywords = Array[String](["Offence", "Heavy"])
+item_name = "Apex Genetics"
+description = "Pure aggression. +2 Damage Modifier and heal 4 HP after every win. However, suffer a severe -2 Block Modifier."
+shop_cost = 30
+damage_modifier = 2
+block_modifier = -2
+heal_on_win = 4
+metadata/_custom_type_script = "uid://c45g8d8d4wjtr"

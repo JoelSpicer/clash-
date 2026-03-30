@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="SponsorData" format=3 uid="uid://p4nt0m5ynd1c"]
+
+[ext_resource type="Script" uid="uid://c45g8d8d4wjtr" path="res://Scripts/Resources/SponsorData.gd" id="1_phantom"]
+[ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_utl1n"]
+[ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="3_lpif1"]
+
+[resource]
+script = ExtResource("1_phantom")
+flavor_quote = "\"Pay the toll. Reap the soul.\""
+rival_character_name = "The Sentinel"
+rival_custom_intro = "\"You'll bleed yourself dry before you scratch me.\""
+rival_boss_hp_buff = 2
+rival_boss_sp_buff = 6
+rival_reward_currency_bonus = 30
+synergy_keywords = Array[String](["Quick", "Technical"])
+item_name = "Phantom Syndicate"
+description = "+2 Speed and +2 Combo SP Regen, but suffer a massive -4 Max HP."
+shop_cost = 35
+bonus_max_hp = -4
+bonus_speed = 2
+combo_sp_regen_bonus = 2
+metadata/_custom_type_script = "uid://c45g8d8d4wjtr"
