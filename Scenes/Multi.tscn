@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://csoerqr4id5rw"]
+
+[ext_resource type="Script" uid="uid://cgxmpqpuftkr1" path="res://Scripts/Multi.gd" id="1_4uujd"]
+[ext_resource type="Script" uid="uid://cy006uvidc4y" path="res://addons/tube/tube_client.gd" id="2_vtbj1"]
+[ext_resource type="Resource" uid="uid://leixyman3akm" path="res://Scripts/Resources/my_game_context.tres" id="3_6ab4n"]
+
+[node name="Multi" type="Control" unique_id=1791998551]
+layout_mode = 3
+anchors_preset = 0
+script = ExtResource("1_4uujd")
+
+[node name="TubeClient" type="Node" parent="." unique_id=1035317788]
+script = ExtResource("2_vtbj1")
+context = ExtResource("3_6ab4n")
+metadata/_custom_type_script = "uid://cy006uvidc4y"
+
+[node name="HostButton" type="Button" parent="." unique_id=1230767126]
+layout_mode = 0
+offset_left = 265.0
+offset_top = 121.0
+offset_right = 354.0
+offset_bottom = 165.0
+text = "Host Game"
+
+[node name="RoomCodeLabel" type="Label" parent="." unique_id=158902638]
+layout_mode = 0
+offset_left = 290.0
+offset_top = 187.0
+offset_right = 330.0
+offset_bottom = 217.0
+
+[node name="JoinCodeInput" type="LineEdit" parent="." unique_id=1570718688]
+layout_mode = 0
+offset_left = 660.0
+offset_top = 151.0
+offset_right = 726.3125
+offset_bottom = 189.0
+text = "enter code"
+
+[node name="JoinButton" type="Button" parent="." unique_id=6469389]
+layout_mode = 0
+offset_left = 650.0
+offset_top = 107.0
+offset_right = 734.0
+offset_bottom = 151.0
+text = "Join Game"

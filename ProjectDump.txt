@@ -2,369 +2,2672 @@
 
 
 ============================================================
-FILE: .\Scenes\Pausemenu.tscn
+FILE: .\Scenes\BattleUI.tscn
 ============================================================
-[gd_scene format=3 uid="uid://b2sxki8ci7lvb"]
+[gd_scene format=3 uid="uid://dhwx6yjjskbn7"]
 
-[ext_resource type="Script" uid="uid://0hs2t76gkflh" path="res://Scripts/pausemenu.gd" id="1_1tmd2"]
-[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="2_8t1co"]
+[ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scripts/BattleUI.gd" id="1_d8qwt"]
+[ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
+[ext_resource type="Texture2D" uid="uid://brp5uytsj2uxh" path="res://Art/Background/1.png" id="2_sbkf8"]
+[ext_resource type="PackedScene" uid="uid://yeraw55rlx1q" path="res://Scenes/PlayerHUD.tscn" id="3_vxmu1"]
+[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="4_6eyfp"]
+[ext_resource type="PackedScene" uid="uid://bu7kfrk2ayfm6" path="res://Scenes/CombatLog.tscn" id="4_f6fb8"]
 
-[node name="PauseMenu" type="CanvasLayer" unique_id=2035227779]
-process_mode = 3
-layer = 128
-script = ExtResource("1_1tmd2")
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7l4x2"]
+content_margin_left = 12.0
+content_margin_top = 12.0
+content_margin_right = 12.0
+content_margin_bottom = 12.0
+bg_color = Color(0, 0, 0, 0.627451)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.34407574, 0.3440758, 0.34407547, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=37121750]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p2s8i"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0, 0, 0, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6eyfp"]
+content_margin_left = 25.0
+content_margin_top = 20.0
+content_margin_right = 25.0
+content_margin_bottom = 20.0
+bg_color = Color(0.06666667, 0.06666667, 0.06666667, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.26666668, 0.26666668, 0.26666668, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_size = 10
+shadow_offset = Vector2(4, 4)
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_6eyfp"]
+content_margin_left = 10.0
+content_margin_top = 10.0
+content_margin_right = 10.0
+content_margin_bottom = 10.0
+
+[node name="BattleUI" type="CanvasLayer" unique_id=356558085]
+script = ExtResource("1_d8qwt")
+
+[node name="Background" type="TextureRect" parent="." unique_id=241149758]
+show_behind_parent = true
+z_index = -200
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.5019608)
+texture = ExtResource("2_sbkf8")
+expand_mode = 1
 
-[node name="CenterContainer" type="CenterContainer" parent="." unique_id=295028026]
+[node name="ClashLayer" type="Control" parent="." unique_id=1577141681]
+visible = false
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer" unique_id=1783403641]
+[node name="ClashIcon" type="Label" parent="ClashLayer" unique_id=1589396229]
+layout_mode = 0
+offset_left = 554.0
+offset_top = 286.0
+offset_right = 594.0
+offset_bottom = 309.0
+text = "VS"
+
+[node name="LeftCard" parent="ClashLayer" unique_id=1871729934 instance=ExtResource("1_gl3jw")]
+z_index = 300
+layout_mode = 1
+
+[node name="RightCard" parent="ClashLayer" unique_id=723946398 instance=ExtResource("1_gl3jw")]
+z_index = 300
+layout_mode = 1
+
+[node name="MainLayout" type="Control" parent="." unique_id=462573134]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 15.0
+offset_right = 8.0
+offset_bottom = 15.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PreviewAnchor" type="Control" parent="MainLayout" unique_id=399922894]
+anchors_preset = 0
+offset_left = 509.0
+offset_top = 219.0
+offset_right = 549.0
+offset_bottom = 259.0
+
+[node name="PreviewCard" parent="MainLayout/PreviewAnchor" unique_id=408799389 instance=ExtResource("1_gl3jw")]
+unique_name_in_owner = true
+z_index = 1
+layout_mode = 1
+offset_left = 349.0
+offset_top = -70.0
+offset_right = 559.0
+offset_bottom = 240.0
+
+[node name="TooltipPanel" type="PanelContainer" parent="MainLayout/PreviewAnchor" unique_id=1465288981]
+z_index = 100
+layout_mode = 0
+offset_right = 30.0
+offset_bottom = 20.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_7l4x2")
+
+[node name="ToolTipLabel" type="RichTextLabel" parent="MainLayout/PreviewAnchor/TooltipPanel" unique_id=1974356343]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 15
+theme_override_font_sizes/bold_font_size = 15
+bbcode_enabled = true
+text = "testing"
+fit_content = true
+
+[node name="BottomBar" type="Panel" parent="MainLayout" unique_id=2064661816]
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -8.0
+offset_top = -165.0
+offset_right = -8.0
+offset_bottom = -15.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ContentSplit" type="HBoxContainer" parent="MainLayout/BottomBar" unique_id=214545184]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 5
+
+[node name="VSeparator" type="VSeparator" parent="MainLayout/BottomBar/ContentSplit" unique_id=726109551]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="CenterContainer/VBoxContainer" unique_id=2013240876]
+[node name="TabButtons" type="VBoxContainer" parent="MainLayout/BottomBar/ContentSplit" unique_id=129264920]
 layout_mode = 2
-theme_type_variation = &"TitleLabel"
-text = "PAUSED"
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Offence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons" unique_id=1252430173]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Offence"
+script = ExtResource("4_6eyfp")
+
+[node name="Defence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons" unique_id=2021467659]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "Defence"
+script = ExtResource("4_6eyfp")
+
+[node name="MarginContainer" type="MarginContainer" parent="MainLayout/BottomBar/ContentSplit" unique_id=911205804]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="ScrollContainer" type="ScrollContainer" parent="MainLayout/BottomBar/ContentSplit/MarginContainer" unique_id=668411547]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ButtonGrid" type="GridContainer" parent="MainLayout/BottomBar/ContentSplit/MarginContainer/ScrollContainer" unique_id=69683943]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+columns = 7
+
+[node name="P1_HUD" parent="." unique_id=2037083698 instance=ExtResource("3_vxmu1")]
+offset_left = 5.0
+offset_top = 5.0
+offset_right = 45.0
+offset_bottom = 45.0
+
+[node name="P2_HUD" parent="." unique_id=1426370563 instance=ExtResource("3_vxmu1")]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -45.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = 45.0
+grow_horizontal = 0
+
+[node name="CombatLog" parent="." unique_id=1264011144 instance=ExtResource("4_f6fb8")]
+offset_left = 12.0
+offset_top = 232.0
+offset_right = 312.0
+offset_bottom = 432.0
+
+[node name="LogToggle" type="CheckButton" parent="." unique_id=477266312]
+offset_left = 12.0
+offset_top = 201.0
+offset_right = 134.0
+offset_bottom = 238.0
+focus_mode = 0
+text = "Show Log"
+
+[node name="MenuButton" type="Button" parent="." unique_id=2121817063]
+offset_left = 1086.0
+offset_top = 599.0
+offset_right = 1138.0
+offset_bottom = 636.0
+text = "?"
+script = ExtResource("4_6eyfp")
+
+[node name="EnvButton" type="Button" parent="." unique_id=1268670440]
+visible = false
+offset_left = 337.0
+offset_top = 3.0
+offset_right = 402.0
+offset_bottom = 36.0
+theme_override_font_sizes/font_size = 12
+text = "ENV: Dojo"
+script = ExtResource("4_6eyfp")
+
+[node name="EnvPopup" type="PanelContainer" parent="." unique_id=974018881]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -35.0
+offset_right = 25.0
+offset_bottom = 35.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="VBoxContainer" type="VBoxContainer" parent="EnvPopup" unique_id=641808400]
+layout_mode = 2
+
+[node name="EnvTitle" type="Label" parent="EnvPopup/VBoxContainer" unique_id=345411818]
+layout_mode = 2
+text = "Dojo"
+
+[node name="HSeparator" type="HSeparator" parent="EnvPopup/VBoxContainer" unique_id=1640873590]
+layout_mode = 2
+
+[node name="EnvDetails" type="RichTextLabel" parent="EnvPopup/VBoxContainer" unique_id=520589283]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="CloseEnvButton" type="Button" parent="EnvPopup/VBoxContainer" unique_id=1659386676]
+layout_mode = 2
+text = "Close"
+script = ExtResource("4_6eyfp")
+
+[node name="EquipmentGrid" type="HBoxContainer" parent="." unique_id=1911301329]
+offset_left = 35.0
+offset_top = 149.0
+offset_right = 75.0
+offset_bottom = 189.0
+theme_override_constants/separation = 10
+
+[node name="InspectButton" type="Button" parent="." unique_id=810640903]
+offset_left = 976.0
+offset_top = 148.0
+offset_right = 1141.0
+offset_bottom = 179.0
+text = "INSPECT OPPONENT"
+script = ExtResource("4_6eyfp")
+
+[node name="MomentumTracker" type="VBoxContainer" parent="." unique_id=1650371928]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -20.0
+offset_right = 20.0
+offset_bottom = 40.0
+grow_horizontal = 2
+
+[node name="StatusLabel" type="Label" parent="MomentumTracker" unique_id=1355910030]
+layout_mode = 2
 horizontal_alignment = 1
 
-[node name="Button" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1812273736]
+[node name="SlotGrid" type="HBoxContainer" parent="MomentumTracker" unique_id=1896047700]
 layout_mode = 2
-text = "Resume"
-script = ExtResource("2_8t1co")
+theme_override_constants/separation = 4
+alignment = 1
 
-[node name="Button2" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1342906979]
+[node name="P1_Bark" type="PanelContainer" parent="." unique_id=1540414754]
+modulate = Color(1, 1, 1, 0)
+offset_left = 276.0
+offset_top = 434.0
+offset_right = 501.0
+offset_bottom = 470.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_p2s8i")
+
+[node name="Label" type="Label" parent="P1_Bark" unique_id=1546628747]
 layout_mode = 2
-text = "Main Menu"
-script = ExtResource("2_8t1co")
 
-[connection signal="pressed" from="CenterContainer/VBoxContainer/Button" to="." method="_on_resume_pressed"]
-[connection signal="pressed" from="CenterContainer/VBoxContainer/Button2" to="." method="_on_main_menu_pressed"]
+[node name="P2_Bark" type="PanelContainer" parent="." unique_id=469420965]
+modulate = Color(1, 1, 1, 0)
+offset_left = 724.0
+offset_top = 440.0
+offset_right = 949.0
+offset_bottom = 476.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_p2s8i")
 
+[node name="Label" type="Label" parent="P2_Bark" unique_id=872211862]
+layout_mode = 2
 
-============================================================
-FILE: .\Scripts\DeckEditScreen.gd
-============================================================
-extends Control
+[node name="InspectPopup" type="Panel" parent="." unique_id=303135880]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -300.0
+offset_right = 400.0
+offset_bottom = 300.0
+grow_horizontal = 2
+grow_vertical = 2
+pivot_offset = Vector2(400, 300)
+theme_override_styles/panel = SubResource("StyleBoxFlat_6eyfp")
 
-@onready var card_grid = $ScrollContainer/CardGrid
-@onready var count_label = $CountLabel
-@onready var fight_btn = $FightBtn
+[node name="ScrollContainer" type="ScrollContainer" parent="InspectPopup" unique_id=1456864686]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_6eyfp")
 
-var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
-var overlay_scene = preload("res://Scenes/RunStatusOverlay.tscn")
+[node name="InspectGrid" type="GridContainer" parent="InspectPopup/ScrollContainer" unique_id=254637399]
+layout_mode = 2
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 20
+columns = 4
 
-func _ready():
-	AudioManager.play_music("menu_theme")
-	# 1. Add Status Overlay
-	var overlay = overlay_scene.instantiate()
-	add_child(overlay)
-	
-	# 2. Connect Button
-	fight_btn.pressed.connect(_on_fight_pressed)
-	# NEW: Update text to reflect new flow
-	fight_btn.text = "CONTINUE"
-	# 3. Draw Grid
-	_refresh_grid()
-
-func _refresh_grid():
-	# Clear old
-	for c in card_grid.get_children():
-		c.queue_free()
-	
-	var deck = RunManager.player_run_data.deck
-	var unlocked = RunManager.player_run_data.unlocked_actions
-	
-	# Update Label
-	count_label.text = "HAND: " + str(deck.size()) + " / " + str(ClassFactory.HAND_LIMIT)
-	count_label.modulate = Color.GREEN if deck.size() == ClassFactory.HAND_LIMIT else Color.WHITE
-
-	# Draw all unlocked cards
-	for action in unlocked:
-		var wrapper = Control.new()
-		wrapper.custom_minimum_size = Vector2(180, 240) 
-		wrapper.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		
-		var disp = card_display_scene.instantiate()
-		# Add child FIRST (Safety fix we learned earlier)
-		wrapper.add_child(disp)
-		disp.set_card_data(action)
-		disp.scale = Vector2(0.75, 0.75)
-		disp.position = Vector2(10, 10)
-		disp.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		
-		# Check if Equipped
-		if RunManager.player_run_data.has_card_in_deck(action.display_name):
-			disp.modulate = Color(1, 1, 1, 1) # Bright
-			_add_equipped_badge(wrapper)
-		else:
-			disp.modulate = Color(0.5, 0.5, 0.5, 0.8) # Dim
-		
-		# Click Handling
-		wrapper.gui_input.connect(func(ev): 
-			if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
-				_toggle_card(action)
-		)
-		
-		card_grid.add_child(wrapper)
-
-func _toggle_card(action):
-	var player = RunManager.player_run_data
-	
-	if player.has_card_in_deck(action.display_name):
-		# Remove
-		player.remove_card_from_deck(action.display_name)
-		AudioManager.play_sfx("ui_back")
-	else:
-		# Add
-		if player.deck.size() < ClassFactory.HAND_LIMIT:
-			player.deck.append(action)
-			AudioManager.play_sfx("ui_click")
-		else:
-			AudioManager.play_sfx("error") # (Optional: Make sure you have an error sound!)
-			
-	_refresh_grid()
-
-func _add_equipped_badge(parent):
-	var lbl = Label.new()
-	lbl.text = "EQUIPPED"
-	lbl.add_theme_color_override("font_color", Color.GREEN)
-	lbl.position = Vector2(30, -5)
-	lbl.z_index = 5
-	parent.add_child(lbl)
-
-func _on_fight_pressed():
-	if RunManager.player_run_data.deck.size() < 1: return
-	
-	AudioManager.play_sfx("ui_confirm")
-	
-	# CHANGED: Use the new smart exit function
-	RunManager.exit_deck_editor()
+[connection signal="pressed" from="MenuButton" to="." method="_on_menu_pressed"]
 
 
 ============================================================
-FILE: .\Scripts\TournamentMap.gd
+FILE: .\Scenes\MainScene.tscn
 ============================================================
-extends Control
+[gd_scene format=3 uid="uid://bwfpi53huo887"]
 
-@onready var scroll_container = $ScrollContainer # We need reference to the ScrollView itself
-@onready var container = $ScrollContainer/HBoxContainer
+[ext_resource type="Script" uid="uid://xjbucvoejbts" path="res://Scripts/Resources/GameManager.gd" id="1_hpc76"]
+[ext_resource type="Script" uid="uid://xh1kg301k38w" path="res://Scripts/TestArena.gd" id="2_tr2i4"]
+[ext_resource type="Resource" uid="uid://b0kng2hirhw4q" path="res://Player1.tres" id="3_7rqgy"]
+[ext_resource type="PackedScene" uid="uid://bnm0vfddu8cy6" path="res://Scenes/TutorialLayer.tscn" id="3_q68mp"]
+[ext_resource type="Resource" uid="uid://p5iapbgi8mrp" path="res://Player2.tres" id="4_qxria"]
+[ext_resource type="PackedScene" uid="uid://dhwx6yjjskbn7" path="res://Scenes/BattleUI.tscn" id="8_f140w"]
 
-var node_scene = preload("res://Scenes/UI/MapNode.tscn")
+[node name="Node2D" type="Node2D" unique_id=1182146]
 
-func _ready():
-	_generate_map_visuals()
+[node name="GameManager" type="Node" parent="." unique_id=1223966320]
+script = ExtResource("1_hpc76")
 
-func _generate_map_visuals():
-	# Clear previous children
-	for child in container.get_children():
-		child.queue_free()
-	
-	var target_node_control = null # Variable to hold the node we want to look at
-	
-	# Loop through the data
-	for i in range(RunManager.tournament_map.size()):
-		var data = RunManager.tournament_map[i]
-		
-		var node_instance = node_scene.instantiate()
-		container.add_child(node_instance)
-		
-		node_instance.setup(data, i)
-		node_instance.node_clicked.connect(_on_node_clicked)
-		
-		# --- NEW: Capture the node we are currently on ---
-		if i == RunManager.current_map_index:
-			target_node_control = node_instance
+[node name="TutorialLayer" parent="." unique_id=2134579543 instance=ExtResource("3_q68mp")]
 
-	# Wait for layout to calculate sizes
-	await get_tree().process_frame
-	await get_tree().process_frame
-	
-	_draw_connections()
-	
-	# --- NEW: SCROLL TO NODE ---
-	# We do this AFTER drawing connections so the line is behind the nodes
-	if target_node_control:
-		_scroll_to_node(target_node_control)
+[node name="TestArena" type="Node2D" parent="." unique_id=2121029644]
+script = ExtResource("2_tr2i4")
+p1_resource = ExtResource("3_7rqgy")
+p2_resource = ExtResource("4_qxria")
 
-func _scroll_to_node(target: Control):
-	# 1. Calculate the center of the target node
-	# (Node Position + Half its width)
-	var node_center_x = target.position.x + (target.size.x / 2)
-	
-	# 2. Calculate the center of the screen/scroll view
-	var screen_center_x = scroll_container.size.x / 2
-	
-	# 3. Determine the scroll position
-	# We want the Node Center to be at Screen Center.
-	# So we subtract the screen half-width from the node's position.
-	var final_scroll_x = node_center_x - screen_center_x
-	
-	# 4. Animate it smoothly (The "Juice")
-	var tween = create_tween()
-	tween.set_trans(Tween.TRANS_CUBIC)
-	tween.set_ease(Tween.EASE_OUT)
-	tween.tween_property(scroll_container, "scroll_horizontal", final_scroll_x, 0.8)
-
-# --- VISUAL FLUFF: CONNECTING LINES ---
-func _draw_connections():
-	var line = Line2D.new()
-	line.width = 6 
-	line.default_color = Color(0.6, 0.6, 0.6) 
-	
-	container.add_child(line)
-	container.move_child(line, 0) # This puts the line at index 0
-	
-	for child_node in container.get_children():
-		if child_node is Control and child_node != line:
-			var center = child_node.position + (child_node.size / 2.0)
-			line.add_point(center)
-
-func _on_node_clicked(index: int):
-	# ... (Keep existing logic) ...
-	var data = RunManager.tournament_map[index]
-	match data.type:
-		MapNodeData.Type.FIGHT, MapNodeData.Type.BOSS:
-			_start_fight(data)
-		MapNodeData.Type.GYM:
-			_enter_gym(data)
-
-func _start_fight(data: MapNodeData):
-	RunManager.start_map_fight(data)
-
-func _enter_gym(_data: MapNodeData):
-	print("Entering Gym...")
-	SceneLoader.change_scene("res://Scenes/Gym.tscn")
+[node name="BattleUI" parent="TestArena" unique_id=1673586167 instance=ExtResource("8_f140w")]
 
 
 ============================================================
-FILE: .\Scripts\equipmentdraft.gd
+FILE: .\Scenes\VsScreen.tscn
 ============================================================
-extends Control
+[gd_scene format=3 uid="uid://db1jjjv5ewb8x"]
 
-@onready var item_grid = $ColorRect/ItemGrid
+[ext_resource type="Script" uid="uid://ccf5qx3faud61" path="res://Scripts/VsScreen.gd" id="1_qw5ky"]
 
-func _ready():
-	# 1. Get all available equipment
-	var all_items = RunManager.get_all_equipment()
-	all_items.shuffle() # Randomize the list
-	
-	# 2. Pick the top 3 (or fewer if you haven't made 3 items yet)
-	var options = []
-	for i in range(min(3, all_items.size())):
-		options.append(all_items[i])
-		
-	# 3. Create Buttons
-	for item in options:
-		var btn = _create_item_button(item)
-		item_grid.add_child(btn)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qw5ky"]
+content_margin_left = 15.0
+content_margin_top = 10.0
+content_margin_right = 15.0
+content_margin_bottom = 10.0
+bg_color = Color(0.06666667, 0.06666667, 0.06666667, 0.49411765)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.26666668, 0.26666668, 0.26666668, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_offset = Vector2(4, 4)
 
-func _create_item_button(item: EquipmentData) -> Button:
-	var btn = SoundButton.new()
-	btn.custom_minimum_size = Vector2(250, 350)
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	
-	# Styling
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.15, 0.15, 0.15)
-	style.set_corner_radius_all(10)
-	btn.add_theme_stylebox_override("normal", style)
-	
-	# Content Container
-	var vbox = VBoxContainer.new()
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vbox.add_theme_constant_override("separation", 10)
-	btn.add_child(vbox)
-	
-	# Icon
-	var icon = TextureRect.new()
-	icon.custom_minimum_size.y = 100
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture = item.icon if item.icon else preload("res://icon.svg")
-	vbox.add_child(icon)
-	
-	# Name
-	var name_lbl = Label.new()
-	name_lbl.text = item.item_name
-	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_lbl.add_theme_font_size_override("font_size", 24)
-	vbox.add_child(name_lbl)
-	
-	# Description
-	var desc_lbl = Label.new()
-	desc_lbl.text = item.description
-	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD
-	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(desc_lbl)
-	
-	# Click Logic
-	btn.pressed.connect(func(): _on_item_selected(item))
-	btn.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.2))
-	
-	return btn
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4bywr"]
+content_margin_left = 15.0
+content_margin_top = 10.0
+content_margin_right = 15.0
+content_margin_bottom = 10.0
+bg_color = Color(0.06666667, 0.06666667, 0.06666667, 0.49411765)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.26666668, 0.26666668, 0.26666668, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+shadow_offset = Vector2(4, 4)
 
-func _on_item_selected(item: EquipmentData):
-	AudioManager.play_sfx("ui_click")
-	print("Equipped: " + item.item_name)
-	
-	# 1. Add to inventory
-	RunManager.player_run_data.equipment.append(item)
-	
-	# 2. Recalculate stats immediately so max HP/SP increases
-	ClassFactory._recalculate_stats(RunManager.player_run_data)
-	
-	# 3. Proceed to the Action Tree for the card reward
-	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
+[node name="VsScreen" type="Control" unique_id=1731259570]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_qw5ky")
+
+[node name="Background" type="TextureRect" parent="." unique_id=814263392]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+expand_mode = 1
+
+[node name="ColorRect" type="ColorRect" parent="." unique_id=843035782]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.39215687)
+
+[node name="Content" type="Control" parent="." unique_id=288401882]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 100.0
+offset_bottom = -100.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="P1_Container" type="VBoxContainer" parent="Content" unique_id=2040645311]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 0.5
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="Content/P1_Container" unique_id=454312075]
+self_modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+
+[node name="SpeechBubble" type="Label" parent="Content/P1_Container/PanelContainer" unique_id=1298631522]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "speech"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="Content/P1_Container" unique_id=1881686358]
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+
+[node name="InfoBox" type="PanelContainer" parent="Content/P1_Container" unique_id=1951467181]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_qw5ky")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Content/P1_Container/InfoBox" unique_id=1226902194]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Content/P1_Container/InfoBox/VBoxContainer" unique_id=487469269]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+theme_override_font_sizes/font_size = 30
+text = "Player 1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ClassLabel" type="Label" parent="Content/P1_Container/InfoBox/VBoxContainer" unique_id=2022137226]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "Heavy Class"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatsRow" type="HBoxContainer" parent="Content/P1_Container/InfoBox/VBoxContainer" unique_id=65089644]
+layout_mode = 2
+alignment = 1
+
+[node name="HPLabel" type="Label" parent="Content/P1_Container/InfoBox/VBoxContainer/StatsRow" unique_id=2107463008]
+layout_mode = 2
+
+[node name="SPLabel" type="Label" parent="Content/P1_Container/InfoBox/VBoxContainer/StatsRow" unique_id=865066638]
+layout_mode = 2
+
+[node name="VsLabel" type="Label" parent="Content" unique_id=1900404297]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -58.5
+offset_top = -68.5
+offset_right = 58.5
+offset_bottom = 68.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"TitleLabel"
+theme_override_font_sizes/font_size = 100
+text = "VS"
+
+[node name="P2_Container" type="VBoxContainer" parent="Content" unique_id=819383389]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="Content/P2_Container" unique_id=145062261]
+self_modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+
+[node name="SpeechBubble" type="Label" parent="Content/P2_Container/PanelContainer" unique_id=614714463]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "speech"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Portrait" type="TextureRect" parent="Content/P2_Container" unique_id=1179981689]
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+
+[node name="InfoBox" type="PanelContainer" parent="Content/P2_Container" unique_id=2145154823]
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_4bywr")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Content/P2_Container/InfoBox" unique_id=1965623870]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Content/P2_Container/InfoBox/VBoxContainer" unique_id=1370572126]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+theme_override_font_sizes/font_size = 30
+text = "Player 2"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ClassLabel" type="Label" parent="Content/P2_Container/InfoBox/VBoxContainer" unique_id=1676200725]
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "2  Class"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StatsRow" type="HBoxContainer" parent="Content/P2_Container/InfoBox/VBoxContainer" unique_id=1711333280]
+layout_mode = 2
+alignment = 1
+
+[node name="HPLabel" type="Label" parent="Content/P2_Container/InfoBox/VBoxContainer/StatsRow" unique_id=1347204589]
+layout_mode = 2
+
+[node name="SPLabel" type="Label" parent="Content/P2_Container/InfoBox/VBoxContainer/StatsRow" unique_id=1106017276]
+layout_mode = 2
+
+[node name="ArenaLabel" type="Label" parent="." unique_id=1332158513]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -56.0
+offset_top = -158.0
+offset_right = 33.0
+offset_bottom = -86.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"TitleLabel"
+text = "Dojo"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="FlashOverlay" type="ColorRect" parent="." unique_id=1342581451]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopLetterbox" type="ColorRect" parent="." unique_id=1435023876]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 100.0
+grow_horizontal = 2
+color = Color(0, 0, 0, 1)
+
+[node name="BottomLetterbox" type="ColorRect" parent="." unique_id=1512840948]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -100.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0, 0, 0, 1)
 
 
 ============================================================
-FILE: .\Scripts\pausemenu.gd
+FILE: .\Scripts\BattleUI.gd
 ============================================================
 extends CanvasLayer
 
-@onready var background = $ColorRect # Assuming your ColorRect is named "ColorRect"
+#region vars
+signal human_selected_card(action_card, extra_data)
+signal p1_mode_toggled(is_human)
+signal p2_mode_toggled(is_human)
+
+# --- REFERENCES ---
+@onready var p1_hud = $P1_HUD 
+@onready var p2_hud = $P2_HUD
+@onready var momentum_tracker = $MomentumTracker
+@onready var status_label = $MomentumTracker/StatusLabel
+@onready var slot_grid = $MomentumTracker/SlotGrid
+var momentum_slots: Array[Panel] = [] 
+@onready var combat_log = $CombatLog
+
+@onready var button_grid = %ButtonGrid
+@onready var preview_card = %PreviewCard
+@onready var tooltip_panel = $MainLayout/PreviewAnchor/TooltipPanel
+@onready var tooltip_label = $MainLayout/PreviewAnchor/TooltipPanel/ToolTipLabel # Or whatever the exact path is now!
+var tooltip_tween: Tween # Keeps track of the animation so we don't spam it
+var preview_tween: Tween
+var preview_base_pos: Vector2
+@onready var btn_offence = %Offence        
+@onready var btn_defence = %Defence      
+@onready var equipment_grid = $EquipmentGrid
+
+@onready var log_toggle = $LogToggle 
+
+@onready var clash_layer = $ClashLayer
+@onready var left_card_display = $ClashLayer/LeftCard
+@onready var right_card_display = $ClashLayer/RightCard
+@onready var background = $Background
+
+@onready var env_button = $EnvButton
+@onready var env_popup = $EnvPopup
+@onready var env_title = $EnvPopup/VBoxContainer/EnvTitle
+@onready var env_details = $EnvPopup/VBoxContainer/EnvDetails
+@onready var close_env_button = $EnvPopup/VBoxContainer/CloseEnvButton
+@onready var inspect_btn = $InspectButton
+@onready var inspect_popup = $InspectPopup
+@onready var inspect_grid = $InspectPopup/ScrollContainer/InspectGrid
+
+@onready var p1_bark_label = $P1_Bark # Adjust path
+@onready var p2_bark_label = $P2_Bark
+
+var card_display_scene = preload("res://Scenes/CardDisplay.tscn")
+
+# --- DATA ---
+var card_button_scene = preload("res://Scenes/CardButton.tscn")
+var floating_text_scene = preload("res://Scenes/FloatingText.tscn")
+var compendium_scene = preload("res://Scenes/compendium.tscn")
+var current_deck: Array[ActionData] = []
+var current_tab = ActionData.Type.OFFENCE
+
+var _prev_p1_stats = { "hp": 0, "sp": 0 }
+var _prev_p2_stats = { "hp": 0, "sp": 0 }
+
+# State Constraints
+var current_sp_limit: int = 0 
+var current_hp_limit: int = 0
+var my_opportunity_val: int = 0
+var my_opening_value: int = 0
+var turn_cost_limit: int = 99 
+var opener_restriction: bool = false
+var super_allowed: bool = false 
+var feint_mode: bool = false 
+
+var skip_action: ActionData
+var is_locked = false
+var finisher_triggered: bool = false # PREVENTS DOUBLE TRIGGERS
+
+# Toggle Buttons
+var p1_toggle: CheckButton
+var p2_toggle: CheckButton
+
+# --- VISUALS (Passives & Juice) ---
+var rage_toggle: CheckButton
+var keep_up_toggle: CheckButton
+var tech_dropdown: OptionButton
+
+# DYNAMIC CAMERA VARIABLES
+var shake_strength: float = 0.0
+var shake_decay: float = 5.0
+var zoom_strength: float = 0.0 
+var zoom_decay: float = 5.0    
+var camera: Camera2D
+# --- PARALLAX SETTINGS ---
+var max_parallax: float = 15.0       # Slightly smaller max distance so it isn't distracting in combat
+var parallax_smoothness: float = 4.0 
+var base_bg_pos: Vector2 = Vector2.ZERO
+
+
+#endregion
 
 func _ready():
-	# Start hidden and unpaused
-	visible = false
+	process_mode = Node.PROCESS_MODE_ALWAYS 
 	
-func _input(event):
-	if event.is_action_pressed("ui_cancel"): # Default is 'Escape' key
-		_toggle_pause()
+	# --- FIX: FORCE RESET AT START OF FIGHT ---
+	# This ensures we don't inherit "Black & White" from the previous match
+	if GlobalCinematics:
+		GlobalCinematics.reset_visuals()
+	# ------------------------------------------
+	
+	# --- NEW: HARDWARE CAMERA SETUP ---
+	camera = Camera2D.new()
+	# Center the camera perfectly based on screen size
+	camera.position = get_viewport().get_visible_rect().size / 2.0
+	add_child(camera)
+	
+	# This magical checkbox tells Godot to apply the Camera's zoom and shake
+	# directly to the CanvasLayer using hardware acceleration!
+	self.follow_viewport_enabled = true
+	# ----------------------------------
+	
+	if not btn_offence or not btn_defence:
+		printerr("CRITICAL: Buttons missing in BattleUI")
+		return
+	
+	# --- NEW: GENERATE SHADER FOR BACKGROUND ---
+	# This allows us to desaturate the BG without needing a file
+	var shader = Shader.new()
+	shader.code = """
+	shader_type canvas_item;
+	uniform float saturation : hint_range(0.0, 1.0) = 1.0;
+	void fragment() {
+		vec4 tex_color = texture(TEXTURE, UV);
+		float grey = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
+		vec3 final_color = mix(vec3(grey), tex_color.rgb, saturation);
+		COLOR = vec4(final_color, tex_color.a);
+	}
+	"""
+	var mat = ShaderMaterial.new()
+	mat.shader = shader
+	if background:
+		background.material = mat
+	# -------------------------------------------
 
-func _toggle_pause():
-	# Flip the paused state
-	var new_state = not get_tree().paused
-	get_tree().paused = new_state
-	visible = new_state
+	GameManager.wall_crush_occurred.connect(_on_wall_crush_ui)
+	
 
-func _on_resume_pressed():
-	_toggle_pause()
+	GameManager.combat_log_updated.emit("Location: " + GameManager.current_environment_name + " (" + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots)")
+	
+	if clash_layer: clash_layer.visible = false
+	
+	log_toggle.button_pressed = false
+	combat_log.visible = false
+	
+	if log_toggle:
+		log_toggle.toggled.connect(_on_log_toggled)
+		combat_log.visible = log_toggle.button_pressed
+	
+	btn_offence.pressed.connect(func(): _switch_tab(ActionData.Type.OFFENCE))
+	btn_defence.pressed.connect(func(): _switch_tab(ActionData.Type.DEFENCE))
+	
+	skip_action = ActionData.new()
+	skip_action.display_name = "SKIP FEINT"
+	skip_action.description = "Stop combining and use your original action."
+	skip_action.cost = 0
+	
+	button_grid.visible = false
+	
+	preview_base_pos = preview_card.position
+	
+	preview_card.visible = false
+	if tooltip_label: tooltip_label.visible = false
+	
+	# --- ADD THIS LINE ---
+	if tooltip_panel: tooltip_panel.visible = false
+	# --------------------
+	
+	GameManager.damage_dealt.connect(_on_damage_dealt)
+	GameManager.healing_received.connect(_on_healing_received)
+	GameManager.status_applied.connect(_on_status_applied)	
+	GameManager.combat_log_updated.connect(_on_combat_log_updated)
+	GameManager.clash_resolved.connect(_on_clash_resolved_log)
+	
+	if not GameManager.state_changed.is_connected(_on_game_state_changed):
+		GameManager.state_changed.connect(_on_game_state_changed)
+	
+	await get_tree().process_frame
+	_snapshot_stats()
+	
+	_create_debug_toggles()
+	_create_passive_toggles()
+	setup_toggles()
+	
+	if env_button and env_popup:
+		env_button.pressed.connect(_on_env_button_pressed)
+		close_env_button.pressed.connect(func(): env_popup.visible = false)
+		env_details.bbcode_enabled = true
+		env_details.fit_content = true
+		env_button.text = "LOCATION: " + GameManager.current_environment_name.to_upper()
+	
+	if inspect_btn:
+		inspect_btn.pressed.connect(_on_inspect_pressed)
+	# SETUP LOG DRAWER: Start it off-screen to the left, but make it visible
+	combat_log.position.x = -400
+	combat_log.visible = true 
+	log_toggle.button_pressed = false
+	
+	_update_background()
+	
+	# (Put this right after _update_background() at the end of _ready)
+	
+	# --- SETUP PARALLAX VISUALS ---
+	await get_tree().process_frame 
+	
+	# FIX: Ask the viewport directly!
+	var screen_size = get_viewport().get_visible_rect().size
+	
+	if background:
+		background.pivot_offset = screen_size / 2.0
+		background.scale = Vector2(1.05, 1.05)
+		base_bg_pos = background.position
+	# ------------------------------
+	
+	
+# --- DYNAMIC CAMERA PROCESS ---
+# --- DYNAMIC CAMERA PROCESS ---
+func _process(delta):
+	# 1. Decay Values
+	var is_frozen = (finisher_triggered and get_tree().paused)
+	
+	if not is_frozen:
+		if shake_strength > 0:
+			shake_strength = lerpf(shake_strength, 0, shake_decay * delta)
+			if shake_strength < 0.1: shake_strength = 0
+			
+		if zoom_strength > 0:
+			zoom_strength = lerpf(zoom_strength, 0, zoom_decay * delta)
+			if zoom_strength < 0.001: zoom_strength = 0
 
-func _on_main_menu_pressed():
-	# 1. Unpause before changing scenes (otherwise the new scene stays frozen!)
-	_toggle_pause()
+	# 2. Apply to Camera2D directly (Highly Efficient)
+	if camera:
+		# Base zoom is 1.0. We zoom IN by increasing the numbers.
+		var current_zoom = 1.0 + zoom_strength
+		camera.zoom = Vector2(current_zoom, current_zoom)
+		
+		# Shake Offset
+		if shake_strength > 0:
+			camera.offset = Vector2(
+				randf_range(-shake_strength, shake_strength),
+				randf_range(-shake_strength, shake_strength)
+			)
+		else:
+			camera.offset = Vector2.ZERO
+		
+		# --- 3. APPLY PARALLAX TO BACKGROUND ---
+	if background and not is_frozen:
+		# FIX: Ask the viewport directly!
+		var screen_size = get_viewport().get_visible_rect().size
+		
+		var mouse_pos = get_viewport().get_mouse_position()
+		var center = screen_size / 2.0
+		
+		# Calculate offset
+		var offset_x = (mouse_pos.x - center.x) / center.x
+		var offset_y = (mouse_pos.y - center.y) / center.y
+		var mouse_offset = Vector2(offset_x, offset_y)
+		
+		# Apply target position
+		var target_pos = base_bg_pos - (mouse_offset * max_parallax)
+		background.position = background.position.lerp(target_pos, delta * parallax_smoothness)
+
+func apply_camera_impact(zoom_amount: float, shake_amount: float):
+	zoom_strength = max(zoom_strength, zoom_amount)
+	shake_strength = max(shake_strength, shake_amount)
+
+func _play_finisher_sequence():
+	if finisher_triggered: return
+	finisher_triggered = true
 	
-	# 2. CLEANUP: Wipe game state so next match starts fresh
-	# (Similar to your ActionTree back button logic) [cite: 121]
-	GameManager.next_match_p1_data = null
-	GameManager.next_match_p2_data = null
-	GameManager.p1_data = null
-	GameManager.p2_data = null
+	HitStopManager.stop_frame(1.5)
 	
-	GameManager.editing_player_index = 1
-	GameManager.p2_is_custom = false
+	# Visuals
+	zoom_strength = 0.45
+	shake_strength = 0.0 
 	
-	# 3. Go to Menu
-	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
+	# --- CALL GLOBAL ---
+	GlobalCinematics.apply_finisher_effect()
+
+func _on_game_state_changed(new_state):
+	if new_state == GameManager.State.POST_CLASH:
+		_log_stat_changes()
+		finisher_triggered = false
+		
+		# --- CALL GLOBAL ---
+		GlobalCinematics.reset_visuals()
+
+func _create_passive_toggles():
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	container.position.y -= 200
+	container.position.x -= 570
+	rage_toggle = CheckButton.new()
+	rage_toggle.text = "RAGE (Pay HP)"
+	rage_toggle.visible = false
+	rage_toggle.toggled.connect(func(_on): _refresh_grid())
+	container.add_child(rage_toggle)
+	
+	keep_up_toggle = CheckButton.new()
+	keep_up_toggle.text = "KEEP UP (Pay SP)"
+	keep_up_toggle.visible = false
+	container.add_child(keep_up_toggle)
+	
+	tech_dropdown = OptionButton.new()
+	tech_dropdown.add_item("Tech: None")
+	tech_dropdown.add_item("+Opener (1 SP)")
+	tech_dropdown.add_item("+Tiring 1 (1 SP)")
+	tech_dropdown.add_item("+Momentum 1 (1 SP)")
+	tech_dropdown.selected = 0
+	tech_dropdown.visible = false
+	tech_dropdown.item_selected.connect(func(_idx): _refresh_grid())
+	container.add_child(tech_dropdown)
+	
+func setup_passive_toggles(character: CharacterData):
+	rage_toggle.visible = character.can_pay_with_hp
+	keep_up_toggle.visible = character.has_keep_up_toggle
+	tech_dropdown.visible = character.has_technique_dropdown
+	tech_dropdown.selected = 0 
+	rage_toggle.button_pressed = false
+	keep_up_toggle.button_pressed = false
+
+func _create_debug_toggles():
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	container.position.y += 60 
+	container.add_theme_constant_override("separation", 20)
+	container.visible = false
+	container.name = "DebugContainer" 
+	
+	var p1_is_human = true 
+	var p2_is_human = false
+	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		p2_is_human = true
+	
+	p1_toggle = CheckButton.new()
+	p1_toggle.text = "P1 Human"
+	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
+	p1_toggle.button_pressed = p1_is_human 
+	container.add_child(p1_toggle)
+	
+	p2_toggle = CheckButton.new()
+	p2_toggle.text = "P2 Human"
+	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
+	p2_toggle.button_pressed = p2_is_human
+	container.add_child(p2_toggle)
+
+func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
+	p1_hud.setup(p1_data)
+	p2_hud.setup(p2_data)
+	p1_hud.configure_visuals(false) 
+	p2_hud.configure_visuals(true)
+	update_momentum(0)
+	
+	_populate_equipment(p1_data)
+
+func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
+	p1_hud.update_stats(p1, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat, p1.patient_buff_active)
+	p2_hud.update_stats(p2, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat, p2.patient_buff_active)
+	
+	update_momentum(momentum)
+
+func update_momentum(val: int):
+	if momentum_slots.is_empty():
+		_build_momentum_track() # Ensure it's built the first time
+		
+	# 1. Update the Text
+	var text = "NEUTRAL: " + GameManager.current_environment_name.to_upper()
+	if val > 0 and val <= GameManager.MOMENTUM_P1_MAX:
+		text = "P1 ADVANTAGE"
+	elif val > GameManager.MOMENTUM_P1_MAX:
+		text = "P2 ADVANTAGE"
+	if status_label: status_label.text = text
+
+	# 2. Update the Slots (The Juice)
+	for i in range(momentum_slots.size()):
+		var slot = momentum_slots[i]
+		var style = slot.get_theme_stylebox("panel").duplicate()
+		var slot_num = i + 1
+		
+		# Neutral State (Dim everything)
+		if val == 0:
+			style.bg_color.a = 0.3
+			slot.scale = Vector2(1.0, 1.0)
+			
+		# Active State
+		else:
+			if slot_num == val:
+				# Highlight the active slot brightly
+				style.bg_color = Color.CYAN if slot_num <= GameManager.MOMENTUM_P1_MAX else Color.RED
+				style.bg_color.a = 1.0
+				
+				# JUICE: Make the active slot "pop"
+				var tween = create_tween()
+				slot.pivot_offset = slot.size / 2
+				slot.scale = Vector2(1.3, 1.3)
+				tween.tween_property(slot, "scale", Vector2(1.0, 1.0), 0.3).set_trans(Tween.TRANS_BOUNCE)
+			else:
+				# Dim the inactive slots
+				style.bg_color = Color(0.1, 0.4, 0.5) if slot_num <= GameManager.MOMENTUM_P1_MAX else Color(0.5, 0.1, 0.1)
+				style.bg_color.a = 0.4
+				slot.scale = Vector2(1.0, 1.0) # Reset scale just in case
+
+		slot.add_theme_stylebox_override("panel", style)
+
+func load_deck(deck: Array[ActionData]):
+	current_deck = deck
+	_refresh_grid()
+
+func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
+	button_grid.visible = true 
+	is_locked = false
+	current_sp_limit = player_current_sp
+	current_hp_limit = player_current_hp
+	opener_restriction = must_be_opener
+	turn_cost_limit = max_cost 
+	my_opening_value = opening_val
+	super_allowed = can_use_super 
+	my_opportunity_val = opportunity_val 
+	feint_mode = is_feint_mode 
+	
+	# --- NEW: SPONSOR TOGGLES ---
+	if RunManager.active_sponsor:
+		# 1. Disable Supers
+		if RunManager.active_sponsor.disable_supers:
+			super_allowed = false
+			
+		# 2. Reveal Enemy Opener (Only triggers on Neutral/Start of fight)
+		if RunManager.active_sponsor.reveal_enemy_opener and GameManager.momentum == 0:
+			if GameManager.p2_action_queue:
+				_show_bark(2, "I'll open with " + GameManager.p2_action_queue.display_name + "!")
+	# ----------------------------- 
+	
+	if forced_tab != null:
+		_switch_tab(forced_tab)
+		btn_offence.disabled = (forced_tab != ActionData.Type.OFFENCE)
+		btn_defence.disabled = (forced_tab != ActionData.Type.DEFENCE)
+		btn_offence.modulate = Color.WHITE if !btn_offence.disabled else Color(0.3, 0.3, 0.3)
+		btn_defence.modulate = Color.WHITE if !btn_defence.disabled else Color(0.3, 0.3, 0.3)
+	else:
+		btn_offence.disabled = false
+		btn_defence.disabled = false
+		_switch_tab(current_tab)
+
+func lock_ui():
+	is_locked = true
+	button_grid.visible = false 
+	_on_card_exited() 
+
+func _on_card_selected(card: ActionData):
+	if is_locked: return
+	var extra_data = {
+		"rage": rage_toggle.button_pressed if rage_toggle.visible else false,
+		"keep_up": keep_up_toggle.button_pressed if keep_up_toggle.visible else false,
+		"technique": tech_dropdown.selected if tech_dropdown.visible else 0 
+	}
+	emit_signal("human_selected_card", card, extra_data)
+	lock_ui() 
+
+func _switch_tab(type):
+	current_tab = type
+	_refresh_grid()
+	if !btn_offence.disabled: btn_offence.modulate = Color.WHITE if type == ActionData.Type.OFFENCE else Color(0.6, 0.6, 0.6)
+	if !btn_defence.disabled: btn_defence.modulate = Color.WHITE if type == ActionData.Type.DEFENCE else Color(0.6, 0.6, 0.6)
+
+func _refresh_grid():
+	for child in button_grid.get_children():
+		child.queue_free()
+		
+	# 1. Standard Deck Cards
+	for card in current_deck:
+		if card == null: continue
+		if card.type != current_tab: continue 
+		
+		var final_cost = _calculate_card_cost(card)
+		var is_valid = _check_card_validity(card, final_cost)
+		
+		var btn = card_button_scene.instantiate()
+		button_grid.add_child(btn)
+		
+		btn.setup(card)
+		btn.update_cost_display(final_cost) 
+		btn.set_available(is_valid)          
+	
+		btn.card_hovered.connect(_on_card_hovered)
+		btn.card_exited.connect(_on_card_exited) 
+		btn.card_selected.connect(_on_card_selected)
+	
+	# 2. Tutorial Struggle Logic
+	var hide_struggle = false
+	if TutorialManager.is_tutorial_active:
+		var required_card_name = TutorialManager.get_current_data().get("player_card", "")
+		
+		# If the tutorial wants you to play Struggle, we only show it on the correct tab
+		if required_card_name == "Struggle":
+			# If the current tab (Offence/Defence) doesn't match the card's required type, hide it
+			# This prevents Struggle (Offence) from showing up on the Defence tab
+			pass 
+		else:
+			# If the tutorial wants any other specific card, hide Struggle everywhere
+			hide_struggle = true
+	
+	# 3. Struggle Button instantiation
+	if not feint_mode and not hide_struggle:
+		var struggle = GameManager.get_struggle_action(current_tab)
+		var s_btn = card_button_scene.instantiate()
+		button_grid.add_child(s_btn)
+		
+		s_btn.setup(struggle)
+		s_btn.update_cost_display(0)
+		s_btn.set_available(true)
+		s_btn.modulate = Color(0.9, 0.9, 0.9) 
+
+		s_btn.card_hovered.connect(_on_card_hovered)
+		s_btn.card_exited.connect(_on_card_exited)
+		s_btn.card_selected.connect(_on_card_selected)
+	
+	# 4. Skip Feint logic
+	if feint_mode:
+		skip_action.type = current_tab 
+		var skip_btn = card_button_scene.instantiate()
+		button_grid.add_child(skip_btn)
+		
+		skip_btn.setup(skip_action)
+		skip_btn.update_cost_display(0)
+		skip_btn.set_available(true)
+		skip_btn.modulate = Color(0.9, 0.9, 1.0) 
+		
+		skip_btn.card_hovered.connect(_on_card_hovered)
+		skip_btn.card_exited.connect(_on_card_exited)
+		skip_btn.card_selected.connect(_on_card_selected)
+
+func _calculate_card_cost(card: ActionData) -> int:
+	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
+	var tech_cost = 1 if tech_idx > 0 else 0
+	var base_cost = card.cost + tech_cost
+	var effective_single_cost = max(0, base_cost - my_opportunity_val)
+	var total_reps = max(1, card.repeat_count)
+	return effective_single_cost * total_reps
+
+func _check_card_validity(card: ActionData, final_cost: int) -> bool:
+	var can_afford = false
+	if rage_toggle.visible and rage_toggle.button_pressed:
+		can_afford = (current_hp_limit > final_cost)
+	else:
+		can_afford = (final_cost <= current_sp_limit)
+		
+	# --- NEW: SPONSOR FEINT COST ---
+	if feint_mode and RunManager.active_sponsor and RunManager.active_sponsor.feints_cost_hp:
+		# Allow combining SP and HP to pay for the feint
+		if (current_hp_limit + current_sp_limit) >= final_cost:
+			can_afford = true
+	# -------------------------------
+	
+	if not can_afford: return false
+
+	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
+	if tech_idx == 1 and card.type == ActionData.Type.DEFENCE:
+		return false
+
+	var effective_is_opener = card.is_opener
+	if tech_idx == 1 and card.type == ActionData.Type.OFFENCE:
+		effective_is_opener = true
+		
+	if opener_restriction and card.type == ActionData.Type.OFFENCE and not effective_is_opener:
+		return false
+
+	if card.cost > turn_cost_limit: return false
+	if card.counter_value > 0 and my_opening_value < card.counter_value: return false
+	if card.is_super and not super_allowed: return false
+	
+	# --- NEW: TUTORIAL RAILROAD ---
+	if TutorialManager.is_tutorial_active:
+		var required_card = TutorialManager.get_current_data().get("player_card", "")
+		# If this card isn't the exact one the Sensei asked for, disable it!
+		if required_card != "" and card.display_name != required_card:
+			return false
+	# ------------------------------
+	
+	return true
+
+func _on_card_hovered(card: ActionData):
+	var effective_cost = max(0, card.cost - my_opportunity_val)
+	preview_card.set_card_data(card, effective_cost)
+	
+	# --- 1. KILL OLD ANIMATIONS ---
+	if preview_tween and preview_tween.is_valid():
+		preview_tween.kill()
+		
+	# --- 2. SETUP FOR SLIDE ---
+	preview_card.visible = true
+	preview_card.modulate.a = 0.0 
+	preview_card.position.y = preview_base_pos.y + 20 # Start 20px lower
+	
+	# --- 3. ANIMATE CARD ---
+	preview_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	preview_tween.tween_property(preview_card, "modulate:a", 1.0, 0.15)
+	preview_tween.tween_property(preview_card, "position:y", preview_base_pos.y, 0.2)
+	
+	_update_tooltip_text(card)
+
+func _on_card_exited():
+	# Kill the card animation and hide it
+	if preview_tween and preview_tween.is_valid():
+		preview_tween.kill()
+	preview_card.visible = false
+	
+	# Kill the tooltip animation and hide it
+	if tooltip_tween and tooltip_tween.is_valid():
+		tooltip_tween.kill()
+	if tooltip_panel:
+		tooltip_panel.visible = false
+
+func _update_tooltip_text(card: ActionData):
+	if not tooltip_label or not tooltip_panel: return
+	
+	var active_keys = []
+	# ... (Keep all your existing 'if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")' logic exactly the same here) ...
+	if card.type == ActionData.Type.OFFENCE: active_keys.append("Offence")
+	if card.type == ActionData.Type.DEFENCE: active_keys.append("Defence")
+	if card.cost > 0: active_keys.append("Cost")
+	if card.damage > 0: active_keys.append("Damage")
+	if card.momentum_gain > 0: active_keys.append("Momentum")
+	if card.block_value > 0: active_keys.append("Block")
+	if card.dodge_value > 0: active_keys.append("Dodge")
+	if card.heal_value > 0: active_keys.append("Heal")
+	if card.recover_value > 0: active_keys.append("Recover")
+	if card.fall_back_value > 0: active_keys.append("Fall Back")
+	if card.counter_value > 0: active_keys.append("Counter")
+	if card.tiring > 0: active_keys.append("Tiring")
+	if card.is_opener: active_keys.append("Opener")
+	if card.is_super: active_keys.append("Super")
+	if card.guard_break: active_keys.append("Guard Break")
+	if card.feint: active_keys.append("Feint")
+	
+	for s in card.statuses_to_apply:
+		var s_name = s.get("name", "")
+		if s_name != "": active_keys.append(s_name)
+
+	if card.retaliate: active_keys.append("Retaliate")
+	if card.reversal: active_keys.append("Reversal")
+	if card.is_parry: active_keys.append("Parry")
+	if card.sweep: active_keys.append("Sweep")
+	if card.multi_limit > 0: active_keys.append("Multi")
+	if card.repeat_count > 1: active_keys.append("Repeat")
+	if card.create_opening > 0: active_keys.append("Create Opening")
+	if card.opportunity > 0: active_keys.append("Opportunity")
+
+	if active_keys.is_empty():
+		tooltip_panel.visible = false
+		return
+		
+	# --- 1. COLOR CODING & SPACING ---
+	var full_text = ""
+	for k in active_keys:
+		if k in GameManager.KEYWORD_DEFS:
+			full_text += "[color=#ffcc00][b]" + k + ":[/b][/color] " + GameManager.KEYWORD_DEFS[k] + "\n"
+			
+	tooltip_label.text = full_text.strip_edges()
+	
+	# --- THE FIX: MAKE THE TEXT VISIBLE SO IT TAKES UP SPACE ---
+	tooltip_label.visible = true
+	
+	# --- 2. THE SIZE FIX ---
+	# Ask Godot what the size WILL be now that new text is added AND visible
+	var target_size = tooltip_panel.get_minimum_size()
+	
+	# Force the panel to match that size immediately so the text has room to breathe
+	tooltip_panel.size = target_size 
+	
+	# --- 3. ANIMATION & MATH ---
+	if tooltip_tween and tooltip_tween.is_valid():
+		tooltip_tween.kill() 
+		
+	tooltip_panel.visible = true
+	tooltip_panel.modulate.a = 0.0 
+	
+	var padding = 20
+	var preview_bottom = preview_base_pos.y + preview_card.size.y
+	
+	# Use 'target_size' instead of 'size' for the math!
+	var final_y = preview_bottom - target_size.y - padding
+	var start_y = final_y + 15 
+	
+	tooltip_panel.position.x = preview_card.position.x - target_size.x - padding
+	tooltip_panel.position.y = start_y
+	
+	tooltip_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tooltip_tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
+	tooltip_tween.tween_property(tooltip_panel, "position:y", final_y, 0.2)
+
+func _get_clash_text_pos(target_id: int) -> Vector2:
+	var hud = p1_hud if target_id == 1 else p2_hud
+	var pos = hud.global_position + (hud.size / 2)
+	var center_offset = 100 
+	pos.y += 75
+	if target_id == 1: pos.x += center_offset
+	else: pos.x -= center_offset
+	return pos
+
+func _on_damage_dealt(target_id: int, amount: int, is_blocked: bool):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	if is_blocked: 
+		_spawn_text(spawn_pos, "BLOCKED", Color.GRAY)
+		AudioManager.play_sfx("block", 0.1)
+	else: 
+		_spawn_text(spawn_pos, str(amount), Color.RED)
+		if amount >= 5:
+			AudioManager.play_sfx("hit_heavy", 0.1)
+			apply_camera_impact(0.15, 20.0) 
+		else:
+			AudioManager.play_sfx("hit_light", 0.2) 
+			apply_camera_impact(0.05, 5.0)  
+			
+		if target_id == 1: p1_hud.play_hit_animation()
+		else: p2_hud.play_hit_animation()
+	
+	# React to heavy hits (>3 damage)
+	if amount >= 3:
+		var victim = GameManager.p1_data if target_id == 1 else GameManager.p2_data
+		var line = DialogueManager.get_reaction(victim.class_type, "HURT_HEAVY")
+		# High priority: Show this even if we barked recently
+		_show_bark(target_id, line)
+		
+	# React to Death?
+	# (Already covered by Low HP lines potentially, or add a specific check here)
+	
+# --- NEW: CHECK FOR FINISHER ---
+	var victim_data = GameManager.p1_data if target_id == 1 else GameManager.p2_data
+	
+	if victim_data.current_hp <= 0:
+		_play_finisher_sequence()
+		
+		# --- ADD THIS BLOCK ---
+		# 1. Wait for the freeze-frame/drama to finish (e.g. 2 seconds)
+		# We use create_timer because the game might be in HitStop
+		await get_tree().create_timer(2.0).timeout
+		
+		# 2. Fade the color back in smoothly
+		if GlobalCinematics:
+			GlobalCinematics.reset_visuals()
+	# --------------------------------
+
+func _on_healing_received(target_id: int, amount: int):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	_spawn_text(spawn_pos, "+" + str(amount), Color.GREEN)
+
+func _on_status_applied(target_id: int, status: String):
+	var spawn_pos = _get_clash_text_pos(target_id)
+	spawn_pos.y -= 40 
+	_spawn_text(spawn_pos, status, Color.YELLOW)
+
+func _spawn_text(pos: Vector2, text: String, color: Color):
+	var popup = floating_text_scene.instantiate()
+	add_child(popup)
+	popup.setup(text, color, pos)
+
+func _on_combat_log_updated(text: String):
+	if combat_log: combat_log.add_log(text)
+
+func _on_clash_resolved_log(winner_id, p1_card, p2_card, _log_text):
+	if combat_log:
+		combat_log.add_clash_log(winner_id, p1_card, p2_card)
+		
+	apply_camera_impact(0.02, 0.0) 
+		
+	if p1_card.type == ActionData.Type.OFFENCE:
+		p1_hud.play_attack_animation(Vector2(50, 0))
+	if p2_card.type == ActionData.Type.OFFENCE:
+		p2_hud.play_attack_animation(Vector2(-50, 0))
+		
+	AudioManager.play_sfx("clash", 0.1)
+	
+	# 25% chance to bark on win (don't spam every turn)
+	if randf() < 0.25:
+		var winner_data = GameManager.p1_data if winner_id == 1 else GameManager.p2_data
+		var winner_card = p1_card if winner_id == 1 else p2_card
+		
+		var context = "WIN_OFFENCE"
+		if winner_card.type == ActionData.Type.DEFENCE:
+			context = "WIN_DEFENCE"
+			
+		var line = DialogueManager.get_reaction(winner_data.class_type, context)
+		_show_bark(winner_id, line)
+	
+func _on_log_toggled(toggled_on: bool):
+	# If true, slide to X: 12. If false, slide back off-screen to X: -400
+	var target_x = 12 if toggled_on else -400
+	
+	var tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(combat_log, "position:x", target_x, 0.4)
+	
+func play_clash_animation(p1_card: ActionData, p2_card: ActionData):
+	clash_layer.visible = true
+	left_card_display.set_card_data(p1_card)
+	right_card_display.set_card_data(p2_card)
+	
+	var card_size = Vector2(250, 350) 
+	left_card_display.custom_minimum_size = card_size
+	right_card_display.custom_minimum_size = card_size
+	
+	# Center pivots for scaling
+	left_card_display.pivot_offset = card_size / 2
+	right_card_display.pivot_offset = card_size / 2
+	
+	var center = get_viewport().get_visible_rect().size / 2
+	left_card_display.position = Vector2(-400, center.y - (card_size.y / 2))
+	right_card_display.position = Vector2(center.x * 2 + 400, center.y - (card_size.y / 2))
+	
+	# 1. THE SMASH (Accelerate inward)
+	var tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_IN)
+	# Target the exact middle of the screen
+	tween.tween_property(left_card_display, "position:x", center.x - (card_size.x / 2), 0.25)
+	tween.tween_property(right_card_display, "position:x", center.x - (card_size.x / 2), 0.25)
+	
+	await tween.finished
+	
+	# 2. THE IMPACT (Shake + Sound)
+	apply_camera_impact(0.1, 30.0)
+	AudioManager.play_sfx("hit_heavy", 0.1)
+	
+	# 3. THE FLASH (Create a white screen dynamically and fade it)
+	var flash = ColorRect.new()
+	flash.color = Color.WHITE
+	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	clash_layer.add_child(flash)
+	
+	var f_tween = create_tween()
+	f_tween.tween_property(flash, "modulate:a", 0.0, 0.4)
+	f_tween.tween_callback(flash.queue_free)
+	
+	# 4. THE RECOIL (Bounce back)
+	var bounce_tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	bounce_tween.tween_property(left_card_display, "position:x", center.x - card_size.x - 20, 0.3)
+	bounce_tween.tween_property(right_card_display, "position:x", center.x + 20, 0.3)
+	
+	HitStopManager.stop_frame(0.2) 
+	await get_tree().create_timer(1.2).timeout
+	
+	clash_layer.visible = false
+	GameManager.clash_animation_finished.emit()
+
+func _on_menu_pressed():
+	var compendium = compendium_scene.instantiate()
+	compendium.is_overlay = true
+	add_child(compendium)
+
+func setup_toggles(p1_override = null, p2_override = null):
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	container.position.y += 60 
+	container.add_theme_constant_override("separation", 20)
+	container.visible = false
+	container.name = "DebugContainer"
+	
+	var p1_is_human = true 
+	var p2_is_human = false
+	
+	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		p2_is_human = true
+	
+	if p1_override != null: p1_is_human = p1_override
+	if p2_override != null: p2_is_human = p2_override
+	
+	p1_toggle = CheckButton.new()
+	p1_toggle.text = "P1 Human"
+	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
+	p1_toggle.button_pressed = p1_is_human 
+	container.add_child(p1_toggle)
+	
+	p2_toggle = CheckButton.new()
+	p2_toggle.text = "P2 Human"
+	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
+	p2_toggle.button_pressed = p2_is_human
+	container.add_child(p2_toggle)
+
+func _log_stat_changes():
+	if not combat_log or not GameManager.p1_data or not GameManager.p2_data: return
+	
+	var p1_cur = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
+	var p2_cur = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
+	
+	if _prev_p1_stats.hp == 0 and _prev_p2_stats.hp == 0:
+		_snapshot_stats()
+		return
+	
+	var p1_diff = { "hp": p1_cur.hp - _prev_p1_stats.hp, "sp": p1_cur.sp - _prev_p1_stats.sp }
+	var p2_diff = { "hp": p2_cur.hp - _prev_p2_stats.hp, "sp": p2_cur.sp - _prev_p2_stats.sp }
+	
+	combat_log.add_round_summary(p1_diff, p2_diff, GameManager.momentum)
+	_snapshot_stats()
+
+func _snapshot_stats():
+	if GameManager.p1_data:
+		_prev_p1_stats = { "hp": GameManager.p1_data.current_hp, "sp": GameManager.p1_data.current_sp }
+	if GameManager.p2_data:
+		_prev_p2_stats = { "hp": GameManager.p2_data.current_hp, "sp": GameManager.p2_data.current_sp }
+
+func _on_wall_crush_ui(target_id: int, _dmg: int):
+	apply_camera_impact(0.05, 15.0) 
+	
+	# Shake the new MomentumTracker instead!
+	var original_x = momentum_tracker.position.x
+	var tween = create_tween()
+	var shake_dir = -10 if target_id == 1 else 10
+	
+	tween.tween_property(momentum_tracker, "position:x", original_x + shake_dir, 0.05)
+	tween.tween_property(momentum_tracker, "position:x", original_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+
+func _on_env_button_pressed():
+	env_popup.visible = not env_popup.visible
+	if env_popup.visible:
+		env_title.text = "ENVIRONMENT: " + GameManager.current_environment_name.to_upper()
+		var details = "[b]Momentum Tracker:[/b] " + str(GameManager.TOTAL_MOMENTUM_SLOTS) + " Slots\n"
+		env_details.text = details
+
+func _populate_equipment(p1_data: CharacterData):
+	if not equipment_grid: return
+	for child in equipment_grid.get_children():
+		child.queue_free()
+		
+	for item in p1_data.equipment:
+		var icon = TextureRect.new()
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.custom_minimum_size = Vector2(40, 40)
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		
+		if item.icon: 
+			icon.texture = item.icon
+		else: 
+			icon.texture = preload("res://icon.svg") 
+		
+		# --- FIX: Change display_name to item_name ---
+		var tip = item.item_name + "\n" + item.description + "\n"
+		tip += "-------------------\n"
+		
+		# --- FIX: Update to new unified variable names ---
+		if item.bonus_max_hp != 0: 
+			tip += "Max HP: " + ("+" if item.bonus_max_hp > 0 else "") + str(item.bonus_max_hp) + "\n"
+		if item.bonus_max_sp != 0: 
+			tip += "Max SP: " + ("+" if item.bonus_max_sp > 0 else "") + str(item.bonus_max_sp) + "\n"
+		if item.starting_sp_bonus != 0: 
+			tip += "Start SP: +" + str(item.starting_sp_bonus) + "\n"
+		if item.wall_crush_damage_bonus != 0: 
+			tip += "Wall Crush Dmg: +" + str(item.wall_crush_damage_bonus)
+		# -------------------------------------------------
+		
+		icon.mouse_entered.connect(func(): _show_equip_tooltip(tip, icon))
+		icon.mouse_exited.connect(_on_card_exited) 
+		equipment_grid.add_child(icon)
+
+func _on_inspect_pressed():
+	inspect_popup.visible = not inspect_popup.visible
+	if inspect_popup.visible:
+		inspect_btn.text = "CLOSE INSPECT"
+		_populate_enemy_deck()
+	else:
+		inspect_btn.text = "INSPECT OPPONENT"
+
+func _populate_enemy_deck():
+	for child in inspect_grid.get_children():
+		child.queue_free()
+	var p2 = GameManager.p2_data
+	if not p2: return
+	for card in p2.deck:
+		var card_disp = card_display_scene.instantiate()
+		inspect_grid.add_child(card_disp)
+		card_disp.set_card_data(card)
+		card_disp.custom_minimum_size = Vector2(180, 250)
+		card_disp.scale = Vector2(0.8, 0.8) 
+		card_disp.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+
+# Helper to safely tween shader params
+func _set_bg_saturation(val: float):
+	if background and background.material:
+		background.material.set_shader_parameter("saturation", val)
+
+func _update_background():
+	var env_name = GameManager.current_environment_name
+	if GameManager.environment_backgrounds.has(env_name):
+		background.texture = GameManager.environment_backgrounds[env_name]
+	else:
+		print("Warning: No art found for '" + env_name + "'. Using default.")
+
+func _show_bark(player_id: int, text: String):
+	# Grab the PanelContainer
+	var bubble = p1_bark_label if player_id == 1 else p2_bark_label
+	# Grab the Label inside it and set the text
+	var text_label = bubble.get_child(0) 
+	text_label.text = text
+	
+	bubble.modulate.a = 0
+	
+	# Set pivot to the bottom-center so it scales upwards!
+	bubble.pivot_offset = Vector2(bubble.size.x / 2, bubble.size.y)
+	bubble.scale = Vector2(0.5, 0.5)
+	
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(bubble, "modulate:a", 1.0, 0.2)
+	# Overshoot slightly for a bouncy pop
+	tween.tween_property(bubble, "scale", Vector2(1.1, 1.1), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	
+	# Settle back to normal size
+	tween.chain().tween_property(bubble, "scale", Vector2(1.0, 1.0), 0.1)
+	
+	# Wait, then fade out
+	tween.chain().tween_interval(1.5)
+	tween.chain().tween_property(bubble, "modulate:a", 0.0, 0.3)
+
+func _exit_tree():
+	if GlobalCinematics:
+		GlobalCinematics.reset_visuals()
+
+func _build_momentum_track():
+	# Clear out anything currently in the grid
+	for child in slot_grid.get_children():
+		child.queue_free()
+	momentum_slots.clear()
+	
+	for i in range(1, GameManager.TOTAL_MOMENTUM_SLOTS + 1):
+		var slot = Panel.new()
+		slot.custom_minimum_size = Vector2(30, 15) # Width/Height of each pip
+		
+		# Give it a custom stylebox
+		var style = StyleBoxFlat.new()
+		style.corner_radius_top_left = 2
+		style.corner_radius_top_right = 2
+		style.corner_radius_bottom_right = 2
+		style.corner_radius_bottom_left = 2
+		
+		# Set base colors and highlight the "Walls"
+		if i <= GameManager.MOMENTUM_P1_MAX:
+			style.bg_color = Color(0.1, 0.4, 0.5, 0.5) # Dim Cyan
+			if i == 1: 
+				style.border_width_left = 4 # Emphasize P1's Wall
+				style.border_color = Color.CYAN
+		else:
+			style.bg_color = Color(0.5, 0.1, 0.1, 0.5) # Dim Red
+			if i == GameManager.TOTAL_MOMENTUM_SLOTS: 
+				style.border_width_right = 4 # Emphasize P2's Wall
+				style.border_color = Color.RED
+				
+		slot.add_theme_stylebox_override("panel", style)
+		slot_grid.add_child(slot)
+		momentum_slots.append(slot)
+		
+		# Add a visual divider exactly in the middle
+		@warning_ignore("integer_division")
+		if i == GameManager.TOTAL_MOMENTUM_SLOTS / 2:
+			var div = VSeparator.new()
+			slot_grid.add_child(div)
+
+func _show_equip_tooltip(text: String, icon_node: Control):
+	if tooltip_tween and tooltip_tween.is_valid(): tooltip_tween.kill()
+	
+	tooltip_label.text = text
+	tooltip_label.visible = true
+	var target_size = tooltip_panel.get_minimum_size()
+	tooltip_panel.size = target_size 
+	
+	tooltip_panel.visible = true
+	tooltip_panel.modulate.a = 0.0 
+	
+	# --- THE FIX: POSITION BELOW THE ICON ---
+	# Calculate the bottom edge of the icon
+	var icon_bottom = icon_node.global_position.y + icon_node.size.y
+	
+	# Place the tooltip 15 pixels below the icon
+	var final_y = icon_bottom + 15
+	
+	# Start it 15 pixels HIGHER so it slides DOWN into place (like a dropdown)
+	var start_y = final_y - 15
+	
+	tooltip_panel.global_position = Vector2(icon_node.global_position.x, start_y)
+	
+	tooltip_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	tooltip_tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
+	tooltip_tween.tween_property(tooltip_panel, "global_position:y", final_y, 0.2)
+
+
+============================================================
+FILE: .\Scripts\TestArena.gd
+============================================================
+extends Node2D
+
+@export_group("Setup")
+@export var p1_resource: CharacterData
+@export var p2_resource: CharacterData
+@export var stop_on_game_over: bool = true 
+
+@export_group("Debug Controls")
+@export var is_player_1_human: bool = true 
+@export var is_player_2_human: bool = false 
+@export var p2_debug_force_card: ActionData 
+
+# AI Memory System
+var p2_last_action_name: String = "" 
+var p1_last_action_type = null # Store ActionData.Type (0 or 1)
+var p1_last_cost: int = 0      # Track if player is tired
+
+# NEW: Preload the Game Over Screen
+var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
+var game_over_screen
+
+@onready var battle_ui = $BattleUI
+var _simulation_active: bool = true
+var _current_input_player: int = 1 
+@onready var tutorial_layer = $"../TutorialLayer" # Grabs it from the MainScene
+
+func _ready():
+# --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
+	var go_layer = CanvasLayer.new()
+	go_layer.layer = 100 # Put it above everything else
+	add_child(go_layer)
+	
+	game_over_screen = game_over_scene.instantiate()
+	game_over_screen.visible = false
+	game_over_screen.process_mode = Node.PROCESS_MODE_ALWAYS # Keep buttons active
+	go_layer.add_child(game_over_screen)
+	# ------------------------------------------------------
+	# 1. UI SETUP
+	# Since BattleUI is already in the scene tree, we just wait for it to be ready.
+	# We DO NOT instantiate() it or add_child() it again.
+	
+	# Wait one frame to ensure the UI's own _ready() has finished setting up nodes
+	await get_tree().process_frame
+	
+	# Clear the log to start fresh
+	if battle_ui.has_method("combat_log") and battle_ui.combat_log:
+		battle_ui.combat_log.clear_log()
+	elif battle_ui.get("combat_log"): # Fallback access
+		battle_ui.combat_log.clear_log()
+	
+	# 2. LOAD PLAYER RESOURCES
+	if GameManager.next_match_p1_data != null:
+		p1_resource = GameManager.next_match_p1_data
+		
+	if GameManager.next_match_p2_data != null:
+		p2_resource = GameManager.next_match_p2_data
+	
+	# 3. DETERMINE HUMAN/AI STATUS
+	is_player_1_human = true # P1 is always human
+	
+	# Logic: If Arcade Mode -> AI. If Custom Mode & P2 Toggle was Human -> Human.
+	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		is_player_2_human = true
+		print("TestArena: P2 set to HUMAN")
+	else:
+		is_player_2_human = false
+		print("TestArena: P2 set to AI")
+
+	# 4. CONNECT SIGNALS
+	# Note: We check if connections exist to avoid errors if _ready runs twice (rare but safe)
+	if not GameManager.state_changed.is_connected(_on_state_changed):
+		GameManager.state_changed.connect(_on_state_changed)
+		GameManager.combat_log_updated.connect(_on_log_updated)
+		GameManager.clash_resolved.connect(_on_clash_resolved)
+		GameManager.game_over.connect(_on_game_over)
+		GameManager.request_clash_animation.connect(battle_ui.play_clash_animation)
+	
+	if not battle_ui.human_selected_card.is_connected(_on_human_input_received):
+		battle_ui.human_selected_card.connect(_on_human_input_received)
+	
+	# Connect Debug Toggles
+	if not battle_ui.p1_mode_toggled.is_connected(_on_p1_mode_toggled):
+		battle_ui.p1_mode_toggled.connect(_on_p1_mode_toggled)
+		battle_ui.p2_mode_toggled.connect(_on_p2_mode_toggled)
+	
+	# 5. INITIALIZE UI ELEMENTS
+	battle_ui.load_deck(p1_resource.deck)
+	
+	print("--- INITIALIZING MATCH ---")
+	GameManager.start_combat(p1_resource, p2_resource)
+	
+	# 6. SETUP VISUALS & TOGGLES
+	battle_ui.initialize_hud(p1_resource, p2_resource)
+	
+	# Pass the calculated booleans so the checkboxes match the game state
+	battle_ui.setup_toggles(is_player_1_human, is_player_2_human)
+	
+	# 7. UPDATE NAME TAGS BASED ON DIFFICULTY
+	var diff_suffix = ""
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.VERY_EASY: diff_suffix = " (V)"
+		GameManager.Difficulty.EASY: diff_suffix = " (E)"
+		GameManager.Difficulty.MEDIUM: diff_suffix = " (M)"
+		GameManager.Difficulty.HARD: diff_suffix = " (H)"
+	
+	if not is_player_1_human:
+		if battle_ui.p1_hud and battle_ui.p1_hud.name_label:
+			battle_ui.p1_hud.name_label.text += diff_suffix
+			
+	if not is_player_2_human:
+		if battle_ui.p2_hud and battle_ui.p2_hud.name_label:
+			battle_ui.p2_hud.name_label.text += diff_suffix
+
+func _update_visuals():
+	battle_ui.update_all_visuals(p1_resource, p2_resource, GameManager.momentum)
+
+# --- TOGGLE LOGIC ---
+
+func _on_p1_mode_toggled(is_human: bool):
+	is_player_1_human = is_human
+	print("[DEBUG] P1 Human Mode: " + str(is_human))
+	_check_mid_turn_state_change(1, is_human)
+
+func _on_p2_mode_toggled(is_human: bool):
+	is_player_2_human = is_human
+	print("[DEBUG] P2 Human Mode: " + str(is_human))
+	_check_mid_turn_state_change(2, is_human)
+
+# Handles the case where we toggle Bot mode ON while waiting for that player
+func _check_mid_turn_state_change(player_id: int, is_human: bool):
+	# Only intervene if we are currently waiting for input from THIS player
+	if _current_input_player != player_id: return
+	
+	# Check valid states for input
+	if GameManager.current_state != GameManager.State.SELECTION and GameManager.current_state != GameManager.State.FEINT_CHECK:
+		return
+
+	# If switched TO BOT, force the bot to run immediately
+	if not is_human:
+		print(">>> TAKEOVER: Bot taking control of P" + str(player_id))
+		battle_ui.lock_ui() # Hide the human UI
+		_run_bot_turn(player_id)
+	
+	# If switched TO HUMAN, unlock the UI
+	elif is_human:
+		print(">>> TAKEOVER: Human taking control of P" + str(player_id))
+		_prepare_human_turn(player_id)
+
+# --- GAME LOOP ---
+
+func _on_state_changed(new_state):
+	if not _simulation_active: return
+
+	match new_state:
+		GameManager.State.SELECTION:
+			await get_tree().create_timer(0.5).timeout
+			_start_turn_sequence()
+			
+		GameManager.State.FEINT_CHECK:
+			await get_tree().create_timer(0.3).timeout
+			print("| --- FEINT PHASE --- |")
+			_start_feint_input()
+
+		GameManager.State.POST_CLASH:
+			# --- NEW: ADVANCE TUTORIAL ---
+			if TutorialManager.is_tutorial_active:
+				TutorialManager.advance_step()
+			# -----------------------------
+			_print_status_report()
+
+func _start_turn_sequence():
+	if is_player_1_human: _prepare_human_turn(1)
+	else:
+		print("\n| --- NEW TURN: AI P1 --- |")
+		_run_bot_turn(1)
+
+func _start_feint_input():
+	if GameManager.p1_pending_feint:
+		print("| --- WAITING FOR P1 FEINT SELECTION --- |")
+		if is_player_1_human: _prepare_human_turn(1)
+		else: _run_bot_turn(1)
+	elif GameManager.p2_pending_feint:
+		print("| --- WAITING FOR P2 FEINT SELECTION --- |")
+		if is_player_2_human: _prepare_human_turn(2)
+		else: _run_bot_turn(2)
+
+func _get_player_constraints(player_id: int) -> Dictionary:
+	# This function asks GameManager who is attacking. 
+	# Now that we fixed 'get_attacker', this will return the correct ID!
+	var attacker_id = GameManager.get_attacker()
+	var is_combo = (GameManager.current_combo_attacker != 0)
+	var mom = GameManager.momentum
+	
+	var c = {
+		"filter": null, "required_tab": null, "needs_opener": false,
+		"max_cost": 99, "opening_stat": 0, "can_use_super": false, "opportunity_stat": 0 
+	}
+	
+	# 1. Setup Limits & Stats
+	if player_id == 1:
+		c.max_cost = GameManager.p1_cost_limit
+		c.opening_stat = GameManager.p1_opening_stat
+		c.opportunity_stat = GameManager.p1_opportunity_stat 
+		
+		# SUPER CHECK (Updated for Dynamic Momentum)
+		# Checks if momentum is at P1's Wall (e.g. 1)
+		if mom == GameManager.get_wall_momentum(1) and not p1_resource.has_used_super:
+			c.can_use_super = true
+			
+		if GameManager.p1_must_opener: c.needs_opener = true
+	else:
+		c.max_cost = GameManager.p2_cost_limit
+		c.opening_stat = GameManager.p2_opening_stat
+		c.opportunity_stat = GameManager.p2_opportunity_stat 
+		
+		# SUPER CHECK (Updated for Dynamic Momentum)
+		# Checks if momentum is at P2's Wall (e.g. 8 or 12)
+		if mom == GameManager.get_wall_momentum(2) and not p2_resource.has_used_super:
+			c.can_use_super = true
+			
+		if GameManager.p2_must_opener: c.needs_opener = true
+
+	# 2. Determine Required Tab (Offence vs Defence)
+	if attacker_id != 0:
+		if attacker_id == player_id:
+			c.filter = ActionData.Type.OFFENCE
+			c.required_tab = ActionData.Type.OFFENCE
+		else:
+			c.filter = ActionData.Type.DEFENCE
+			c.required_tab = ActionData.Type.DEFENCE
+			
+	# 3. Neutral / Opener Logic
+	if mom == 0: 
+		c.needs_opener = true
+	elif attacker_id == player_id and not is_combo: 
+		# If I am attacking and NOT in a combo, I must use an opener to start one
+		c.needs_opener = true
+		
+	return c
+
+func _prepare_human_turn(player_id: int):
+	_current_input_player = player_id
+	var character = p1_resource if player_id == 1 else p2_resource
+	
+	# 1. BUILD THE UI FIRST (So the spotlight has something to look at!)
+	battle_ui.setup_passive_toggles(character)
+	battle_ui.load_deck(character.deck)
+	
+	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
+	if locked_card and GameManager.current_state == GameManager.State.SELECTION:
+		print(">>> P" + str(player_id) + " LOCKED into: " + locked_card.display_name)
+		_on_human_input_received(locked_card)
+		return
+
+	var c = _get_player_constraints(player_id)
+	var is_feinting = (GameManager.current_state == GameManager.State.FEINT_CHECK)
+	
+	if is_feinting:
+		print("[GUIDE P" + str(player_id) + "] Feint! Choose a card to combine, or 'SKIP FEINT'.")
+	else:
+		if c.required_tab == ActionData.Type.OFFENCE: print("[GUIDE P" + str(player_id) + "] Attack!")
+		elif c.required_tab == ActionData.Type.DEFENCE: print("[GUIDE P" + str(player_id) + "] Defend!")
+		else: print("[GUIDE P" + str(player_id) + "] Neutral.")
+	
+	_update_visuals() 
+	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
+	
+	# 2. MAKE THE GRID VISIBLE
+	battle_ui.unlock_for_input(
+		c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
+		c.can_use_super, c.opportunity_stat, is_feinting
+	)
+	
+	# --- THE FIX: WAIT FOR THE UI TO DRAW ---
+	# We wait two frames so Godot can calculate the exact pixel sizes 
+	# and positions of the cards before the spotlight tries to find them!
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# ----------------------------------------
+	
+	# --- 3. TUTORIAL PAUSE & POPUP ---
+	if TutorialManager.is_tutorial_active and player_id == 1:
+		battle_ui.is_locked = true # Prevent clicking while reading!
+		
+		# THE FIX: If this is the very first message, wait 1 second for 
+		# the SceneLoader to finish fading the screen in before we pause!
+		if TutorialManager.current_step == 0:
+			await get_tree().create_timer(1.0).timeout
+			# We also need these two frames again just in case
+			await get_tree().process_frame
+			await get_tree().process_frame
+		
+		var tut_data = TutorialManager.get_current_data()
+		if tut_data.has("sensei_text"):
+			var highlight_str = tut_data.get("highlight", "")
+			var highlight_node: Control = null
+			
+			# Map the string to the ACTUAL node here in the Arena!
+			# --- UPGRADED TRANSLATOR ---
+			if highlight_str == "hand": 
+				highlight_node = battle_ui.button_grid
+			elif highlight_str == "momentum" or highlight_str == "wall": 
+				highlight_node = battle_ui.momentum_slider
+			
+			# NEW: Support "card:Name"
+			elif highlight_str.begins_with("card:"):
+				var target_card_name = highlight_str.replace("card:", "")
+				highlight_node = _get_button_for_card(target_card_name)
+			# ---------------------------
+			
+			tutorial_layer.show_message(tut_data["sensei_text"], highlight_node)
+			# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
+			await tutorial_layer.tutorial_message_closed
+			
+		battle_ui.is_locked = false # Re-enable clicking so they can play the card
+	# -----------------------------------
+
+func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # Updated Signature
+	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
+	
+	var action_to_submit = card
+	if card.display_name == "SKIP FEINT": action_to_submit = null
+	
+	# Pass the extra data (toggles) to GameManager
+	GameManager.player_select_action(_current_input_player, action_to_submit, extra_data)
+	
+	if GameManager.current_state == GameManager.State.SELECTION:
+		if _current_input_player == 1:
+			if is_player_2_human:
+				await get_tree().create_timer(0.2).timeout
+				_prepare_human_turn(2)
+			else: _run_bot_turn(2)
+				
+	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
+		await get_tree().create_timer(0.2).timeout
+		_start_feint_input() 
+
+func _run_bot_turn(player_id: int):
+	_current_input_player = player_id 
+	var character = p1_resource if player_id == 1 else p2_resource
+	
+	# ... (Keep your debug force and locked card checks here) ...
+
+	var c = _get_player_constraints(player_id)
+	var card: ActionData
+	
+	# --- NEW: TUTORIAL BOT HIJACK ---
+	if TutorialManager.is_tutorial_active and player_id == 2:
+		var target_card_name = TutorialManager.get_current_data().get("bot_card", "")
+		card = _find_card_by_name(character, target_card_name)
+		
+		# Fallback just in case the Sensei doesn't have the card
+		if card == null: 
+			printerr("TUTORIAL ERROR: Bot missing card " + target_card_name)
+			card = GameManager.get_struggle_action(ActionData.Type.OFFENCE)
+	else:
+		# NORMAL AI BEHAVIOR
+		card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
+	# --------------------------------
+
+	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
+	GameManager.player_select_action(player_id, card)
+	
+	if GameManager.current_state == GameManager.State.SELECTION: _handle_bot_completion(player_id)
+	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
+		await get_tree().create_timer(0.2).timeout
+		_start_feint_input()
+
+func _handle_bot_completion(player_id):
+	if player_id == 1:
+		if is_player_2_human: _prepare_human_turn(2)
+		else: _run_bot_turn(2)
+
+# TestArena.gd
+
+# TestArena.gd
+
+func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
+	var valid_options = []
+	var affordable_backups = [] 
+	
+	# A. FILTER (Same as before)
+	for card in character.deck:
+		if type_filter != null and card.type != type_filter: continue
+		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
+		if card.cost > max_cost: continue
+		if card.counter_value > 0 and my_opening < card.counter_value: continue
+		if card.is_super and not allow_super: continue
+		
+		# --- FIX: ACCOUNT FOR REPEAT COUNT COST ---
+		var effective_single_cost = max(0, card.cost - my_opportunity)
+		var total_reps = max(1, card.repeat_count)
+		var total_effective_cost = effective_single_cost * total_reps
+		
+		var can_pay = (total_effective_cost <= character.current_sp)
+		
+		if character.can_pay_with_hp:
+			if (character.current_sp + character.current_hp) > total_effective_cost:
+				can_pay = true
+				
+		if can_pay:
+			valid_options.append(card)
+		elif total_effective_cost == 0:
+			affordable_backups.append(card)
+		# ------------------------------------------
+	
+	# --- FIX: ADD STRUGGLE OPTION ---
+	# If the bot is filtering for a specific type (e.g. Defence), give it the Struggle option for that type.
+	var required_type = type_filter if type_filter != null else ActionData.Type.OFFENCE
+	var struggle = GameManager.get_struggle_action(required_type)
+	
+	# If we have NO valid deck options, or if we just want to consider saving SP, add Struggle.
+	# Adding it to 'valid_options' lets the Scoring System decide if it's a good idea.
+	valid_options.append(struggle)
+	# --------------------------------
+	
+	if valid_options.is_empty():
+		return struggle 
+
+	# B. STRATEGY
+	var best_card = valid_options[0]
+	
+	# --- NEW LOGIC START ---
+	var is_very_easy = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
+	
+	# If Very Easy: We want the LOWEST score, so start High.
+	# If Normal: We want the HIGHEST score, so start Low.
+	var best_score = 99999.0 if is_very_easy else -99999.0
+	
+	var my_id = 1 if character == p1_resource else 2
+	var opponent = p2_resource if my_id == 1 else p1_resource
+	
+	# Noise Setup
+	var noise_range = 0.0
+	match GameManager.ai_difficulty:
+		GameManager.Difficulty.VERY_EASY: noise_range = 0 # No noise, just pure bad decisions
+		GameManager.Difficulty.EASY: noise_range = 100.0
+		GameManager.Difficulty.MEDIUM: noise_range = 25.0
+		GameManager.Difficulty.HARD: noise_range = 2.0
+	
+	for card in valid_options:
+		var score = _score_card_utility(card, character, opponent, my_id)
+		score += randf_range(-noise_range, noise_range)
+		
+		if is_very_easy:
+			# INVERTED LOGIC: Pick the WORST score
+			if score < best_score:
+				best_score = score
+				best_card = card
+		else:
+			# STANDARD LOGIC: Pick the BEST score
+			if score > best_score:
+				best_score = score
+				best_card = card
+	
+	return best_card
+
+# 2. THE BRAIN (Assigns value to actions)
+func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
+	var score = 0.0
+	var log_parts = [] # Stores reasons like "+10 Dmg" or "-100 Repetition"
+	
+	# Weights
+	var w_dmg = 1.0; var w_def = 1.0; var w_tech = 1.0; var w_cost = 1.0
+	
+	match me.ai_archetype:
+		CharacterData.AIArchetype.AGGRESSIVE:
+			w_dmg = 1.5; w_def = 0.5; w_cost = 0.5
+		CharacterData.AIArchetype.DEFENSIVE:
+			w_dmg = 0.7; w_def = 1.5; w_cost = 1.2
+		CharacterData.AIArchetype.TRICKSTER:
+			w_dmg = 0.8; w_def = 0.8; w_tech = 1.5
+	
+	# --- 1. STRICT ANTI-REPETITION ---
+	if card.display_name == p2_last_action_name:
+		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
+			# [cite_start]FIX: For Very Easy, we pick the LOWEST score[cite: 220].
+			# To discourage repetition, we must ADD to the score so it isn't the lowest.
+			score += 100.0
+			log_parts.append("+100 (Repetition Avoidance)")
+		else:
+			# Normal Logic: We pick the HIGHEST score.
+			# Subtracting makes the AI avoid it.
+			score -= 100.0
+			log_parts.append("-100 (Repetition)")
+
+	# --- 2. TACTICAL RESPONSE ---
+	if card.type == ActionData.Type.OFFENCE:
+		# Counter Opportunities
+		var opp_opening = GameManager.p1_opening_stat if my_id == 2 else GameManager.p2_opening_stat
+		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
+			var val = 50.0 * w_tech
+			score += val
+			log_parts.append("+" + str(val) + " (Counter Opportunity)")
+		
+		# Punish Tired
+		if p1_last_cost >= 2 or (float(opp.current_sp)/max(1, opp.max_sp) < 0.3):
+			var val = card.damage * 5 * w_dmg
+			score += val
+			log_parts.append("+" + str(val) + " (Punish Tired)")
+		
+		# Break Turtles
+		if p1_last_action_type == ActionData.Type.DEFENCE:
+			if card.guard_break: 
+				score += 30 * w_tech
+				log_parts.append("+30 (Guard Break)")
+			if card.feint: 
+				score += 20 * w_tech
+				log_parts.append("+20 (Feint vs Block)")
+			
+	elif card.type == ActionData.Type.DEFENCE:
+		# Heavy Incoming
+		if p1_last_cost >= 2:
+			if card.dodge_value > 0: 
+				score += 20 * w_def
+				log_parts.append("+20 (Dodge Heavy)")
+			if card.block_value >= 4: 
+				score += 15 * w_def
+				log_parts.append("+15 (Block Heavy)")
+			
+		# Light Incoming
+		elif p1_last_cost <= 1:
+			if card.cost >= 2: 
+				var pen = 15.0 * w_cost
+				score -= pen
+				log_parts.append("-" + str(pen) + " (Overkill Def)")
+			if card.block_value > 0 and card.cost <= 1: 
+				score += 10 * w_def
+				log_parts.append("+10 (Efficient Block)")
+
+		# Fishing for Reversals
+		if opp.current_hp <= 5 and card.reversal:
+			score += 15 * w_tech
+			log_parts.append("+15 (Execute Reversal)")
+
+	# --- 3. UTILITY SCORING ---
+	
+	# Kill Instinct
+	if card.damage >= opp.current_hp: 
+		score += 1000.0
+		log_parts.append("+1000 (KILL SHOT)")
+	
+	# Survival Instinct
+	var panic = 5 if me.ai_archetype == CharacterData.AIArchetype.DEFENSIVE else 3
+	if me.current_hp < panic:
+		var s_val = (card.block_value * 10 * w_def) + (card.heal_value * 15 * w_def)
+		if card.type == ActionData.Type.DEFENCE: s_val += 20 * w_def
+		score += s_val
+		if s_val > 0: log_parts.append("+" + str(s_val) + " (Panic Mode)")
+	
+	# Logic for Struggle (display_name check)
+	if card.display_name == "Struggle":
+		# If we are low on SP, Struggle is very valuable
+		if me.current_sp <= 1:
+			score += 50.0
+			log_parts.append("+50 (Need SP)")
+		# If we are full on SP, Struggle is bad
+		elif me.current_sp >= me.max_sp:
+			score -= 50.0
+			log_parts.append("-50 (SP Full)")
+	
+	# Momentum Logic
+	var mom = GameManager.momentum
+	var winning = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
+	var losing = (my_id == 1 and mom >= 5) or (my_id == 2 and mom <= 4)
+	
+	if winning:
+		var m_val = (card.damage * 10 * w_dmg)
+		if card.type == ActionData.Type.OFFENCE: m_val += 10
+		score += m_val
+		if m_val > 0: log_parts.append("+" + str(m_val) + " (Winning Mom)")
+	elif losing:
+		var m_val = (card.fall_back_value * 10 * w_def) + (card.block_value * 5 * w_def)
+		if card.reversal: m_val += 20 * w_tech
+		score += m_val
+		if m_val > 0: log_parts.append("+" + str(m_val) + " (Losing Mom)")
+
+	# Base Stats
+	var stat_score = (card.damage * 5 * w_dmg) + (card.block_value * 5 * w_def) + (card.heal_value * 5 * w_def)
+	
+	if card.tiring > 0: stat_score += card.tiring * 5 * w_tech
+	if card.create_opening > 0: stat_score += card.create_opening * 5 * w_tech
+	if card.feint: stat_score += 10 * w_tech
+	
+	score += stat_score
+	log_parts.append("+" + str(stat_score) + " (Stats)")
+	
+	# Cost Efficiency
+	if card.cost > 0:
+		var sp_ratio = float(me.current_sp) / float(max(1, me.max_sp))
+		var scarcity = 1.0 if sp_ratio > 0.5 else 2.5
+		var c_pen = card.cost * (10 * w_cost * scarcity)
+		score -= c_pen
+		log_parts.append("-" + str(c_pen) + " (Cost)")
+
+	# --- PRINT LOG ---
+	# Format: [AI] CardName: 45.0 | Breakdown: +20 (Stats), -5 (Cost), +30 (Counter)
+	print("[AI] %s: %s | %s" % [card.display_name, str(snapped(score, 0.1)), ", ".join(log_parts)])
+
+	return score
+
+# --- LOGGING ---
+func _on_game_over(winner_id: int):
+	_update_visuals()
+	await get_tree().create_timer(1.0).timeout
+	
+	var winner_data = p1_resource if winner_id == 1 else p2_resource
+	
+	# --- FIX: ROBUST TEXT EXTRACTION ---
+	var final_log_text = "Log not found."
+	
+	# 1. Try to get the object
+	var log_node = battle_ui.get("combat_log")
+	
+	if log_node:
+		# 2. Try our new function (Best Case)
+		if log_node.has_method("get_log_text"):
+			final_log_text = log_node.get_log_text()
+			
+		# 3. Fallback: Check if it's a raw RichTextLabel
+		elif log_node is RichTextLabel:
+			final_log_text = log_node.get_parsed_text()
+			
+		# 4. Fallback: Check standard text property
+		elif "text" in log_node:
+			final_log_text = log_node.text
+			
+	print("TestArena: Log Text Length: " + str(final_log_text.length()))
+	# -----------------------------------
+
+	get_tree().paused = true 
+	game_over_screen.setup(winner_data, final_log_text) 
+	game_over_screen.visible = true
+	
+	
+func _on_clash_resolved(winner_id, p1_card, p2_card, _results): 
+	print("\n>>> Clash Winner: P" + str(winner_id))
+	_update_visuals()
+	# --- UPDATE AI MEMORY ---
+	if not is_player_2_human:
+		# 1. Remember what the Bot did (for anti-repetition)
+		if p2_card != null:
+			p2_last_action_name = p2_card.display_name
+			
+		# 2. Remember what the Human did (for counter-play)
+		if p1_card != null:
+			p1_last_action_type = p1_card.type
+			p1_last_cost = p1_card.cost
+			
+			# Reset if Human did nothing (stunned/empty)
+		else:
+			p1_last_action_type = null
+			p1_last_cost = 0
+		
+func _on_log_updated(text): print("   > " + text)
+func _print_status_report():
+	var p1 = p1_resource; var p2 = p2_resource
+	var visual = "[ "; for i in range(1, 5): visual += ("P1 " if GameManager.momentum == i else str(i) + " ")
+	visual += "| "; for i in range(5, 9): visual += ("P2 " if GameManager.momentum == i else str(i) + " ")
+	visual += "]"
+	print("\n[STATUS] P1: " + str(p1.current_hp) + "HP/" + str(p1.current_sp) + "SP  vs  P2: " + str(p2.current_hp) + "HP/" + str(p2.current_sp) + "SP")
+	print("[MOMENTUM] " + visual)
+
+func _find_card_by_name(character: CharacterData, card_name: String) -> ActionData:
+	for card in character.deck:
+		if card.display_name == card_name:
+			return card
+	return null
+
+func _get_button_for_card(card_name: String) -> Control:
+	# Look through all buttons currently in the hand
+	for btn in battle_ui.button_grid.get_children():
+		# Your CardButton.gd has a 'my_action' variable or you can check btn.text
+		if btn.get("my_action") and btn.my_action.display_name == card_name:
+			return btn
+	return null
+
+
+============================================================
+FILE: .\Scripts\VsScreen.gd
+============================================================
+extends Control
+
+@onready var background = $Background
+@onready var content = $Content
+
+# --- NEW CINEMATIC NODES ---
+@onready var flash_overlay = $FlashOverlay
+@onready var top_bar = $TopLetterbox
+@onready var bottom_bar = $BottomLetterbox
+
+# --- PLAYER 1 NODES ---
+@onready var p1_container = $Content/P1_Container
+@onready var p1_portrait = $Content/P1_Container/Portrait
+@onready var p1_name = $Content/P1_Container/InfoBox/VBoxContainer/NameLabel
+@onready var p1_class = $Content/P1_Container/InfoBox/VBoxContainer/ClassLabel
+@onready var p1_hp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
+@onready var p1_sp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
+@onready var p1_bubble = $Content/P1_Container/PanelContainer/SpeechBubble
+
+# --- PLAYER 2 NODES ---
+@onready var p2_container = $Content/P2_Container
+@onready var p2_portrait = $Content/P2_Container/Portrait
+@onready var p2_name = $Content/P2_Container/InfoBox/VBoxContainer/NameLabel
+@onready var p2_class = $Content/P2_Container/InfoBox/VBoxContainer/ClassLabel
+@onready var p2_hp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
+@onready var p2_sp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
+@onready var p2_bubble = $Content/P2_Container/PanelContainer/SpeechBubble
+
+@onready var vs_label = $Content/VsLabel
+@onready var arena_label = $ArenaLabel
+
+# --- PARALLAX SETTINGS ---
+var max_parallax: float = 20.0       # A good middle ground between menu and combat
+var parallax_smoothness: float = 4.0 
+var base_bg_pos: Vector2 = Vector2.ZERO
+
+func _ready():
+	# 1. Hide things before setup
+	p1_bubble.visible_ratio = 0.0 # Typewriter reset
+	p2_bubble.visible_ratio = 0.0
+	p1_bubble.get_parent().modulate.a = 0.0 # Reserve space, but make invisible
+	p2_bubble.get_parent().modulate.a = 0.0
+	flash_overlay.modulate.a = 0.0
+	
+	_setup_visuals()
+	
+	if has_node("P1_Name_Label"):
+		$P1_Name_Label.text = GameManager.next_match_p1_data.character_name
+		
+	if has_node("P2_Name_Label"):
+		$P2_Name_Label.text = GameManager.next_match_p2_data.character_name
+	
+	# Wait a frame to let Godot calculate the new Anchors
+	await get_tree().process_frame
+	
+	# --- SETUP PARALLAX VISUALS ---
+	if background:
+		var screen_size = get_viewport_rect().size
+		background.pivot_offset = screen_size / 2.0
+		background.scale = Vector2(1.05, 1.05)
+		base_bg_pos = background.position
+	# ------------------------------
+	
+	_play_intro_animation()
+	
+	# The intro takes about 4 seconds total, load fight after 5
+	await get_tree().create_timer(7.0).timeout
+	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+
+func _setup_visuals():
+	var env_name = GameManager.current_environment_name
+	if GameManager.environment_backgrounds.has(env_name):
+		background.texture = GameManager.environment_backgrounds[env_name]
+	arena_label.text = "- " + env_name.to_upper() + " -"
+
+	var p1 = GameManager.next_match_p1_data
+	var p2 = GameManager.next_match_p2_data
+	
+	if RunManager.is_arcade_mode and RunManager.player_run_data:
+		p1 = RunManager.player_run_data
+
+	# -- Player 1 Data --
+	if p1:
+		if p1.portrait: p1_portrait.texture = p1.portrait
+		p1_name.text = p1.character_name
+		p1_class.text = CharacterData.ClassType.keys()[p1.class_type] if p1.class_type >= 0 else "UNKNOWN"
+		p1_hp.text = "HP: " + str(p1.max_hp)
+		p1_sp.text = "SP: " + str(p1.max_sp)
+
+	# -- Player 2 Data --
+	if p2:
+		if p2.portrait:
+			p2_portrait.texture = p2.portrait
+			p2_portrait.flip_h = true 
+		p2_name.text = p2.character_name
+		
+		if p2.character_name == "THE JUGGERNAUT": 
+			p2_class.text = "BOSS"
+			p2_class.modulate = Color.RED
+		else:
+			p2_class.text = CharacterData.ClassType.keys()[p2.class_type] if p2.class_type >= 0 else "UNKNOWN"
+		
+		p2_hp.text = "HP: " + str(p2.max_hp)
+		p2_sp.text = "SP: " + str(p2.max_sp)
+
+func _play_intro_animation():
+	var screen_w = get_viewport_rect().size.x
+	
+	# Reset states
+	vs_label.scale = Vector2.ZERO
+	p1_container.position.x = -p1_container.size.x
+	p2_container.position.x = screen_w
+	
+	# Push letterboxes offscreen initially
+	top_bar.position.y = -100
+	bottom_bar.position.y = get_viewport_rect().size.y
+	
+	# --- PHASE 1: THE CRASH ---
+	var tween = create_tween().set_parallel(true)
+	tween.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
+	
+	# Characters slide in
+	tween.tween_property(p1_container, "position:x", 0, 0.8)
+	tween.tween_property(p2_container, "position:x", screen_w / 2, 0.8)
+	
+	# Cinematic bars slide in
+	tween.tween_property(top_bar, "position:y", 0, 0.8)
+	tween.tween_property(bottom_bar, "position:y", get_viewport_rect().size.y - 100, 0.8)
+	
+	# --- PHASE 2: IMPACT & FLASH (At 0.8s) ---
+	tween.set_parallel(false) # Sequence mode
+	tween.tween_interval(0.8)
+	
+	tween.tween_callback(func():
+		AudioManager.play_sfx("hit_heavy")
+		_shake_content(15.0, 0.5)
+		
+		# Flash White
+		var flash_tween = create_tween()
+		flash_overlay.modulate.a = 1.0
+		flash_tween.tween_property(flash_overlay, "modulate:a", 0.0, 0.5)
+	)
+	
+	# Pop the VS Label immediately after impact
+	tween.tween_property(vs_label, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_ELASTIC)
+	
+	# --- PHASE 3: DIALOGUE FETCH ---
+	var p1_data = GameManager.next_match_p1_data
+	var p2_data = GameManager.next_match_p2_data
+	var banter = DialogueManager.get_intro_banter(p1_data, p2_data)
+	
+	p1_bubble.text = banter["p1"]
+	
+	# --- NEW: RIVAL DIALOGUE OVERRIDE ---
+	if GameManager.rival_intro_override != "":
+		p2_bubble.text = GameManager.rival_intro_override
+	else:
+		p2_bubble.text = banter["p2"]
+	# ------------------------------------
+	
+	# --- PHASE 4: TYPEWRITER SEQUENCE ---
+	
+	# Player 1 Speaks
+	tween.tween_interval(0.2)
+	# Fade in the background panel smoothly
+	tween.tween_property(p1_bubble.get_parent(), "modulate:a", 1.0, 0.2) 
+	tween.tween_callback(func():
+		AudioManager.play_sfx("ui_click") # Typewriter sound
+	)
+	tween.tween_property(p1_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
+	
+	# Player 2 Speaks
+	tween.tween_interval(0.5)
+	# Fade in the background panel smoothly
+	tween.tween_property(p2_bubble.get_parent(), "modulate:a", 1.0, 0.2)
+	tween.tween_callback(func():
+		AudioManager.play_sfx("ui_click")
+	)
+	tween.tween_property(p2_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
+
+# Camera Shake effect for the Content layer
+func _shake_content(intensity: float, duration: float):
+	var original_pos = content.position
+	var shake_tween = create_tween()
+	
+	shake_tween.tween_method(func(val):
+		var offset = Vector2(randf_range(-val, val), randf_range(-val, val))
+		content.position = original_pos + offset
+	, intensity, 0.0, duration)
+	
+	shake_tween.tween_callback(func(): content.position = original_pos)
+
+func _process(delta):
+	# --- APPLY PARALLAX TO BACKGROUND ---
+	if background:
+		var screen_size = get_viewport_rect().size
+		var mouse_pos = get_viewport().get_mouse_position()
+		var center = screen_size / 2.0
+		
+		# Calculate offset
+		var offset_x = (mouse_pos.x - center.x) / center.x
+		var offset_y = (mouse_pos.y - center.y) / center.y
+		var mouse_offset = Vector2(offset_x, offset_y)
+		
+		# Apply target position
+		var target_pos = base_bg_pos - (mouse_offset * max_parallax)
+		background.position = background.position.lerp(target_pos, delta * parallax_smoothness)
 

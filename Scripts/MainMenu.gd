@@ -293,4 +293,4 @@ func _on_quit_pressed():
 	get_tree().quit()
 
 func _on_compendium_pressed():
-	SceneLoader.change_scene("res://Scenes/compendium.tscn")
+	SceneLoader.change_scene("res://Scenes/Multi.tscn")
