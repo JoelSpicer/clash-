@@ -63,19 +63,26 @@ func _on_peer_connected(peer_id):
 # The @rpc tag allows this function to be triggered over the internet.
 # "authority" means only the Host can call it. "call_local" means the Host also runs it on their own machine.
 @rpc("authority", "call_local", "reliable")
+
+
 func start_match():
 	print("Loading presets and starting the match!")
 	
-	# 1. Load your preset resources (Make sure the file paths match your project exactly!)
-	# Assuming you saved them in res://Presets/ for this example
-	var p1_preset = load("res://Presets/Kaiji_Akagi_Lv6.tres")
-	var p2_preset = load("res://Presets/Crash_Johnson_Lv6.tres")
+	# 1. Load your Preset blueprints
+	var p1_preset = load("res://Data/Presets/Kaiji_Akagi_Lv6.tres")
+	var p2_preset = load("res://Data/Presets/Crash_Johnson_Lv6.tres")
 	
-	# 2. Assign them to the GameManager so TestArena picks them up
-	GameManager.next_match_p1_data = p1_preset
-	GameManager.next_match_p2_data = p2_preset
+	# 2. Use your ClassFactory to turn the blueprints into real CharacterData!
+	# IMPORTANT: Change "create_from_preset" to whatever the actual function 
+	# name is inside your ClassFactory.gd script! 
+	var p1_data = ClassFactory.create_from_preset(p1_preset)
+	var p2_data = ClassFactory.create_from_preset(p2_preset)
 	
-	# 3. Change the scene to the arena
+	# 3. Assign the fully-built characters to the GameManager
+	GameManager.next_match_p1_data = p1_data
+	GameManager.next_match_p2_data = p2_data
+	
+	# 4. Jump into the arena
 	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
 	
 func _on_error_raised(code, message):

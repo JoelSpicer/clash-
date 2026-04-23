@@ -18,6 +18,7 @@ var p1_last_cost: int = 0      # Track if player is tired
 # NEW: Preload the Game Over Screen
 var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
 var game_over_screen
+var local_player_id: int = 1 # Defaults to 1, but changes based on network
 
 @onready var battle_ui = $BattleUI
 var _simulation_active: bool = true
@@ -55,16 +56,33 @@ func _ready():
 	if GameManager.next_match_p2_data != null:
 		p2_resource = GameManager.next_match_p2_data
 	
-	# 3. DETERMINE HUMAN/AI STATUS
-	is_player_1_human = true # P1 is always human
+	## 3. DETERMINE HUMAN/AI STATUS
+	#is_player_1_human = true # P1 is always human
+	#
+	## Logic: If Arcade Mode -> AI. If Custom Mode & P2 Toggle was Human -> Human.
+	#if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		#is_player_2_human = true
+		#print("TestArena: P2 set to HUMAN")
+	#else:
+		#is_player_2_human = false
+		#print("TestArena: P2 set to AI")
+		
+	# 3. DETERMINE HUMAN/AI STATUS & NETWORK ID
+	is_player_1_human = true 
+	is_player_2_human = false
+	local_player_id = 1 # Default for solo play
 	
-	# Logic: If Arcade Mode -> AI. If Custom Mode & P2 Toggle was Human -> Human.
-	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
-		is_player_2_human = true
-		print("TestArena: P2 set to HUMAN")
-	else:
-		is_player_2_human = false
-		print("TestArena: P2 set to AI")
+	# If we are connected to a network session, override the settings!
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+		is_player_2_human = true # Both players are human now
+		if multiplayer.is_server():
+			local_player_id = 1 # The Host controls Player 1
+		else:
+			local_player_id = 2 # The Client controls Player 2
+			
+		print("--- MULTIPLAYER ENGAGED! I am Player ", local_player_id, " ---")
+	elif not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		is_player_2_human = true # Local split-keyboard mode
 
 	# 4. CONNECT SIGNALS
 	# Note: We check if connections exist to avoid errors if _ready runs twice (rare but safe)
@@ -265,75 +283,103 @@ func _prepare_human_turn(player_id: int):
 	_update_visuals() 
 	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
 	
-	# 2. MAKE THE GRID VISIBLE
-	battle_ui.unlock_for_input(
-		c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
-		c.can_use_super, c.opportunity_stat, is_feinting
-	)
-	
-	# --- THE FIX: WAIT FOR THE UI TO DRAW ---
-	# We wait two frames so Godot can calculate the exact pixel sizes 
-	# and positions of the cards before the spotlight tries to find them!
-	await get_tree().process_frame
-	await get_tree().process_frame
-	# ----------------------------------------
-	
-	# --- 3. TUTORIAL PAUSE & POPUP ---
-	if TutorialManager.is_tutorial_active and player_id == 1:
-		battle_ui.is_locked = true # Prevent clicking while reading!
+	# 2. MAKE THE GRID VISIBLE (But only if it's MY turn!)
+	if player_id == local_player_id:
+		battle_ui.unlock_for_input(
+			c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
+			c.can_use_super, c.opportunity_stat, is_feinting
+		)
 		
-		# THE FIX: If this is the very first message, wait 1 second for 
-		# the SceneLoader to finish fading the screen in before we pause!
-		if TutorialManager.current_step == 0:
-			await get_tree().create_timer(1.0).timeout
-			# We also need these two frames again just in case
-			await get_tree().process_frame
-			await get_tree().process_frame
+		# --- THE FIX: WAIT FOR THE UI TO DRAW ---
+		# We wait two frames so Godot can calculate the exact pixel sizes 
+		# and positions of the cards before the spotlight tries to find them!
+		await get_tree().process_frame
+		await get_tree().process_frame
+		# ----------------------------------------
 		
-		var tut_data = TutorialManager.get_current_data()
-		if tut_data.has("sensei_text"):
-			var highlight_str = tut_data.get("highlight", "")
-			var highlight_node: Control = null
+		# --- 3. TUTORIAL PAUSE & POPUP ---
+		if TutorialManager.is_tutorial_active and player_id == 1:
+			battle_ui.is_locked = true # Prevent clicking while reading!
 			
-			# Map the string to the ACTUAL node here in the Arena!
-			# --- UPGRADED TRANSLATOR ---
-			if highlight_str == "hand": 
-				highlight_node = battle_ui.button_grid
-			elif highlight_str == "momentum" or highlight_str == "wall": 
-				highlight_node = battle_ui.momentum_slider
+			# THE FIX: If this is the very first message, wait 1 second for 
+			# the SceneLoader to finish fading the screen in before we pause!
+			if TutorialManager.current_step == 0:
+				await get_tree().create_timer(1.0).timeout
+				# We also need these two frames again just in case
+				await get_tree().process_frame
+				await get_tree().process_frame
 			
-			# NEW: Support "card:Name"
-			elif highlight_str.begins_with("card:"):
-				var target_card_name = highlight_str.replace("card:", "")
-				highlight_node = _get_button_for_card(target_card_name)
-			# ---------------------------
-			
-			tutorial_layer.show_message(tut_data["sensei_text"], highlight_node)
-			# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
-			await tutorial_layer.tutorial_message_closed
-			
-		battle_ui.is_locked = false # Re-enable clicking so they can play the card
-	# -----------------------------------
+			var tut_data = TutorialManager.get_current_data()
+			if tut_data.has("sensei_text"):
+				var highlight_str = tut_data.get("highlight", "")
+				var highlight_node: Control = null
+				
+				# Map the string to the ACTUAL node here in the Arena!
+				# --- UPGRADED TRANSLATOR ---
+				if highlight_str == "hand": 
+					highlight_node = battle_ui.button_grid
+				elif highlight_str == "momentum" or highlight_str == "wall": 
+					highlight_node = battle_ui.momentum_slider
+				
+				# NEW: Support "card:Name"
+				elif highlight_str.begins_with("card:"):
+					var target_card_name = highlight_str.replace("card:", "")
+					highlight_node = _get_button_for_card(target_card_name)
+				# ---------------------------
+				
+				tutorial_layer.show_message(tut_data["sensei_text"], highlight_node)
+				# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
+				await tutorial_layer.tutorial_message_closed
+				
+			battle_ui.is_locked = false # Re-enable clicking so they can play the card
+		# -----------------------------------
+	else:
+		# It is the opponent's turn. Lock our screen.
+		battle_ui.lock_ui()
+		print("Waiting for Opponent to choose...")
 
-func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # Updated Signature
-	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
+func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): 
+	# Extract the name of the card to send over the internet safely
+	var card_name = ""
+	if card != null:
+		card_name = card.display_name
+		
+	# Call the network function on ALL connected computers (including ours)
+	rpc("receive_network_input", _current_input_player, card_name, extra_data)
+
+@rpc("any_peer", "call_local", "reliable")
+func receive_network_input(player_id: int, card_name: String, extra_data: Dictionary):
+	print(">>> NETWORK RECEIVED: P", player_id, " COMMITTED: ", card_name)
 	
-	var action_to_submit = card
-	if card.display_name == "SKIP FEINT": action_to_submit = null
+	var character = p1_resource if player_id == 1 else p2_resource
+	var action_to_submit = null
 	
-	# Pass the extra data (toggles) to GameManager
-	GameManager.player_select_action(_current_input_player, action_to_submit, extra_data)
+	# Convert the String name back into the actual ActionData Resource
+	if card_name == "SKIP FEINT":
+		action_to_submit = null
+	elif card_name == "Struggle":
+		# Figure out which struggle to give them
+		var is_offence = (GameManager.get_attacker() == player_id)
+		var type = ActionData.Type.OFFENCE if is_offence else ActionData.Type.DEFENCE
+		action_to_submit = GameManager.get_struggle_action(type)
+	elif card_name != "":
+		action_to_submit = _find_card_by_name(character, card_name)
+
+	# Submit it to the GameManager on BOTH computers at the exact same time
+	GameManager.player_select_action(player_id, action_to_submit, extra_data)
 	
+	# Advance the turn state
 	if GameManager.current_state == GameManager.State.SELECTION:
-		if _current_input_player == 1:
+		if player_id == 1:
 			if is_player_2_human:
 				await get_tree().create_timer(0.2).timeout
 				_prepare_human_turn(2)
-			else: _run_bot_turn(2)
+			else: 
+				_run_bot_turn(2)
 				
 	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
 		await get_tree().create_timer(0.2).timeout
-		_start_feint_input() 
+		_start_feint_input()
 
 func _run_bot_turn(player_id: int):
 	_current_input_player = player_id 
