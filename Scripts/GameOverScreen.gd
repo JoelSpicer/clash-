@@ -2,7 +2,7 @@ extends Control
 
 @onready var title_label = $Panel/MarginContainer/VBoxContainer/TitleLabel
 @onready var winner_label = $Panel/MarginContainer/VBoxContainer/WinnerLabel
-@onready var main_btn = $Panel/MarginContainer/VBoxContainer/RematchButton # Check if this matches your scene (RematchBtn vs RematchButton)
+@onready var main_btn = $Panel/MarginContainer/VBoxContainer/RematchButton
 @onready var menu_btn = $Panel/MarginContainer/VBoxContainer/MenuButton
 @onready var panel = $Panel
 @onready var view_btn = $Panel/MarginContainer/VBoxContainer/ViewBtn
@@ -10,7 +10,7 @@ extends Control
 var winner_data: CharacterData = null
 var match_log_text: String = ""
 
-# -- NEW: Code-generated Log Window --
+# -- Code-generated Log Window --
 var log_popup: Panel = null
 var log_label: RichTextLabel = null
 
@@ -35,14 +35,12 @@ func setup(data: CharacterData, log_text: String = ""):
 	winner_data = data
 	match_log_text = log_text
 	
-	# DEBUG: Check if text is actually arriving
 	if log_text == "":
 		print("GameOverScreen: WARNING - log_text is empty!")
 		match_log_text = "[center]No log data recorded.[/center]"
 	else:
 		print("GameOverScreen: Log text received. Length: " + str(log_text.length()))
 
-	# Populate the log label
 	if log_label:
 		log_label.text = match_log_text
 		
@@ -55,7 +53,12 @@ func setup(data: CharacterData, log_text: String = ""):
 		_setup_quick_match_mode()
 
 func _setup_quick_match_mode():
-	main_btn.text = "REMATCH"
+	# --- NEW: Multiplayer check ---
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+		main_btn.text = "REMATCH (SYNC)"
+		menu_btn.text = "DISCONNECT"
+	else:
+		main_btn.text = "REMATCH"
 
 func _setup_arcade_mode():
 	var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
@@ -67,9 +70,7 @@ func _setup_arcade_mode():
 	else:
 		title_label.text = "RUN ENDED"
 		title_label.modulate = Color.RED
-		main_btn.text = "FINISH RUN" # Changed from "TRY AGAIN"
-		
-		# Hide the redundant Main Menu button so they only have one way out
+		main_btn.text = "FINISH RUN" 
 		menu_btn.visible = false
 
 func _on_main_action():
@@ -82,49 +83,77 @@ func _on_main_action():
 		if player_won:
 			RunManager.handle_win()
 		else:
-			# --- NEW: TRIGGER PERMADEATH ---
 			RunManager.handle_loss() 
-			# -------------------------------
-			
 			get_tree().paused = false 
 			SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 			
 	# 2. QUICK MATCH LOGIC
 	else:
-		AudioManager.reset_audio_state()
-		get_tree().paused = false
-		SceneLoader.reload_current_scene()
+		# --- NEW: Network Rematch Trigger ---
+		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+			# Tell BOTH computers to run the rematch function
+			rpc("network_rematch")
+		else:
+			AudioManager.reset_audio_state()
+			get_tree().paused = false
+			SceneLoader.reload_current_scene()
 
 func _on_menu_pressed():
 	AudioManager.play_sfx("ui_back")
-	
-	# --- FIX START ---
 	AudioManager.reset_audio_state()
-	# -----------------
 	
 	if RunManager.player_run_data:
 		RunManager.player_run_data = null 
 	
+	# --- NEW: Network Quit Trigger ---
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+		# If one person leaves, tell BOTH computers to disconnect
+		rpc("network_quit")
+	else:
+		get_tree().paused = false
+		SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
+
+# ==========================================
+# --- NETWORK RPC FUNCTIONS ---
+# ==========================================
+
+# "any_peer" means either the Host or the Client can click the button
+# "call_local" means the person who clicks it also runs the code locally
+@rpc("any_peer", "call_local", "reliable")
+func network_rematch():
+	print("Network Rematch Initiated!")
+	AudioManager.reset_audio_state()
 	get_tree().paused = false
-	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
+	# Using change_scene_to_file is safer than reload_current_scene for syncing
+	SceneLoader.change_scene("res://Scenes/MainScene.tscn") 
+
+@rpc("any_peer", "call_local", "reliable")
+func network_quit():
+	print("Network Disconnect Initiated!")
+	AudioManager.reset_audio_state()
+	get_tree().paused = false
+	
+	# Destroy the multiplayer connection safely on both machines
+	multiplayer.multiplayer_peer = null
+	
+	# Return to your lobby scene (Change this to MainMenu.tscn if you prefer!)
+	SceneLoader.change_scene("res://Scenes/Multi.tscn") 
+
+# ==========================================
 
 func _on_view_pressed():
 	AudioManager.play_sfx("ui_click")
 	log_popup.visible = not log_popup.visible
 
 func _build_log_window():
-	# 1. Create the Popup Panel
 	log_popup = Panel.new()
 	log_popup.visible = false
-	log_popup.mouse_filter = Control.MOUSE_FILTER_STOP # Blocks clicks
+	log_popup.mouse_filter = Control.MOUSE_FILTER_STOP
 	
-	# Size and Position (Centered)
 	log_popup.custom_minimum_size = Vector2(600, 400)
 	log_popup.size = Vector2(600, 400)
-	# Center it on screen
 	log_popup.position = (get_viewport_rect().size / 2) - (Vector2(600, 400) / 2)
 	
-	# Style: Dark Overlay with Border
 	var style = StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.1, 0.95)
 	style.set_border_width_all(2)
@@ -134,27 +163,23 @@ func _build_log_window():
 	
 	add_child(log_popup)
 	
-	# 2. FIX: Add an "X" Close Button inside the popup
 	var close_btn = Button.new()
 	close_btn.text = "X"
-	close_btn.position = Vector2(560, 10) # Top right corner
+	close_btn.position = Vector2(560, 10)
 	close_btn.size = Vector2(30, 30)
-	close_btn.pressed.connect(_on_view_pressed) # Re-use the toggle function
+	close_btn.pressed.connect(_on_view_pressed)
 	log_popup.add_child(close_btn)
 	
-	# 3. Create Scroll Container
 	var scroll = ScrollContainer.new()
-	scroll.position = Vector2(20, 50) # Below the close button
-	scroll.size = Vector2(560, 330) # Fill remaining space
+	scroll.position = Vector2(20, 50)
+	scroll.size = Vector2(560, 330)
 	log_popup.add_child(scroll)
 	
-	# 4. Create Text Label
 	log_label = RichTextLabel.new()
 	log_label.bbcode_enabled = true
-	# FIX: These flags ensure the label expands to hold the text
 	log_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL 
 	log_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	log_label.fit_content = true # CRITICAL: Allows scrolling to work
+	log_label.fit_content = true
 	log_label.text = "Loading log..."
 	
 	scroll.add_child(log_label)
