@@ -16,31 +16,38 @@ metadata/_custom_type_script = "uid://cy006uvidc4y"
 
 [node name="HostButton" type="Button" parent="." unique_id=1230767126]
 layout_mode = 0
-offset_left = 265.0
-offset_top = 121.0
-offset_right = 354.0
-offset_bottom = 165.0
+offset_left = 227.0
+offset_top = 101.0
+offset_right = 316.0
+offset_bottom = 145.0
 text = "Host Game"
 
 [node name="RoomCodeLabel" type="Label" parent="." unique_id=158902638]
 layout_mode = 0
-offset_left = 290.0
-offset_top = 187.0
-offset_right = 330.0
-offset_bottom = 217.0
+offset_left = 253.0
+offset_top = 163.0
+offset_right = 293.0
+offset_bottom = 193.0
 
 [node name="JoinCodeInput" type="LineEdit" parent="." unique_id=1570718688]
 layout_mode = 0
 offset_left = 660.0
 offset_top = 151.0
-offset_right = 726.3125
+offset_right = 873.0
 offset_bottom = 189.0
 text = "enter code"
 
 [node name="JoinButton" type="Button" parent="." unique_id=6469389]
 layout_mode = 0
-offset_left = 650.0
-offset_top = 107.0
-offset_right = 734.0
-offset_bottom = 151.0
+offset_left = 723.0
+offset_top = 105.0
+offset_right = 807.0
+offset_bottom = 149.0
 text = "Join Game"
+
+[node name="CharacterDropdown" type="OptionButton" parent="." unique_id=1270775143]
+layout_mode = 0
+offset_left = 445.0
+offset_top = 365.0
+offset_right = 659.0
+offset_bottom = 409.0

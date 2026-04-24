@@ -97,4 +97,4 @@ script = ExtResource("3_8saeu")
 
 [node name="CompendiumButton" type="Button" parent="VBoxContainer" unique_id=1013796748]
 layout_mode = 2
-text = "How to Play"
+text = "Online Multiplayer ALPHA"
