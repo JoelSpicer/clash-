@@ -106,6 +106,9 @@ var temp_p1_preset: Resource = null
 var temp_p2_preset: Resource = null
 
 var rival_intro_override: String = ""
+# Add these to your GameManager script
+var p1_network_id: int = 0
+var p2_network_id: int = 0
 #endregion
 
 # ==============================================================================
@@ -237,7 +240,7 @@ func reset_combat():
 	if AudioManager:
 		AudioManager.set_music_intensity(1.0, 2.0)
 	# -----------------------------------------------
-	change_state(State.SELECTION)
+	#change_state(State.SELECTION)
 
 func get_attacker() -> int:
 	if current_combo_attacker != 0: return current_combo_attacker
@@ -250,6 +253,15 @@ func get_attacker() -> int:
 # ==============================================================================
 
 func change_state(new_state: State):
+	# --- DEBUG HEARTBEAT ---
+	var my_role = "Referee (Server)"
+	if multiplayer.has_multiplayer_peer():
+		var my_id = multiplayer.get_unique_id()
+		if my_id == p1_network_id: my_role = "Player 1"
+		elif my_id == p2_network_id: my_role = "Player 2"
+		
+	print("⏱️ [STATE SYNC] ", my_role, " entering state: ", State.keys()[new_state])
+	# -----------------------
 	current_state = new_state
 	emit_signal("state_changed", current_state)
 	

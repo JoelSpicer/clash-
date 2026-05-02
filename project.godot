@@ -38,6 +38,7 @@ SettingsManager="*uid://btwusus0fp7xb"
 GlobalCinematics="*uid://dtocqu2bhppnv"
 TutorialManager="*uid://b21gr8bljy4ci"
 Pausemenu="*uid://b2sxki8ci7lvb"
+NetworkManager="*uid://cj8nqhd3l1wr"
 
 [display]
 

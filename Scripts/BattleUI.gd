@@ -412,6 +412,13 @@ func load_deck(deck: Array[ActionData]):
 	_refresh_grid()
 
 func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
+	
+	# --- NEW: If I am the invisible server, ignore this command completely! ---
+	if multiplayer.is_server() or OS.get_cmdline_args().has("--server"):
+		return
+	# --------------------------------------------------------------------------
+	
+	
 	button_grid.visible = true 
 	is_locked = false
 	current_sp_limit = player_current_sp
@@ -471,6 +478,18 @@ func _refresh_grid():
 	for child in button_grid.get_children():
 		child.queue_free()
 		
+	# --- FIX: Stop the server from building a UI, but let clients proceed ---
+	if multiplayer.is_server() or OS.get_cmdline_args().has("--server"):
+		return
+		
+	# Safety check to prevent Nil errors
+	if current_deck == null or current_deck.is_empty():
+		return
+	# ----------------------------------------------------------------------
+	
+	# 1. Standard Deck Cards
+	for card in current_deck:
+		if card == null: continue
 	# 1. Standard Deck Cards
 	for card in current_deck:
 		if card == null: continue

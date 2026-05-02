@@ -20,13 +20,16 @@ var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
 var game_over_screen
 var local_player_id: int = 1 # Defaults to 1, but changes based on network
 
+# NEW: Server Memory for incoming card selections
+var server_received_inputs: Dictionary = {}
+
 @onready var battle_ui = $BattleUI
 var _simulation_active: bool = true
 var _current_input_player: int = 1 
 @onready var tutorial_layer = $"../TutorialLayer" # Grabs it from the MainScene
 
 func _ready():
-# --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
+	# --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
 	var go_layer = CanvasLayer.new()
 	go_layer.layer = 100 # Put it above everything else
 	add_child(go_layer)
@@ -36,10 +39,8 @@ func _ready():
 	game_over_screen.process_mode = Node.PROCESS_MODE_ALWAYS # Keep buttons active
 	go_layer.add_child(game_over_screen)
 	# ------------------------------------------------------
-	# 1. UI SETUP
-	# Since BattleUI is already in the scene tree, we just wait for it to be ready.
-	# We DO NOT instantiate() it or add_child() it again.
 	
+	# 1. UI SETUP
 	# Wait one frame to ensure the UI's own _ready() has finished setting up nodes
 	await get_tree().process_frame
 	
@@ -55,37 +56,39 @@ func _ready():
 		
 	if GameManager.next_match_p2_data != null:
 		p2_resource = GameManager.next_match_p2_data
-	
-	## 3. DETERMINE HUMAN/AI STATUS
-	#is_player_1_human = true # P1 is always human
-	#
-	## Logic: If Arcade Mode -> AI. If Custom Mode & P2 Toggle was Human -> Human.
-	#if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
-		#is_player_2_human = true
-		#print("TestArena: P2 set to HUMAN")
-	#else:
-		#is_player_2_human = false
-		#print("TestArena: P2 set to AI")
 		
 	# 3. DETERMINE HUMAN/AI STATUS & NETWORK ID
 	is_player_1_human = true 
 	is_player_2_human = false
 	local_player_id = 1 # Default for solo play
 	
+	# We grab the ID once up here so we can use it throughout the function
+	var my_id = 1 
+	if multiplayer.has_multiplayer_peer():
+		my_id = multiplayer.get_unique_id()
+	
 	# If we are connected to a network session, override the settings!
 	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
 		is_player_2_human = true # Both players are human now
-		if multiplayer.is_server():
-			local_player_id = 1 # The Host controls Player 1
-		else:
-			local_player_id = 2 # The Client controls Player 2
+		
+		# --- THE FIX: IDENTIFY BASED ON NETWORK IDs ---
+		if my_id == GameManager.p1_network_id:
+			local_player_id = 1
+			print("--- MULTIPLAYER ENGAGED! I am Player 1 ---")
 			
-		print("--- MULTIPLAYER ENGAGED! I am Player ", local_player_id, " ---")
+		elif my_id == GameManager.p2_network_id:
+			local_player_id = 2
+			print("--- MULTIPLAYER ENGAGED! I am Player 2 ---")
+			
+		else:
+			local_player_id = 0 # The dedicated server
+			print("--- MULTIPLAYER ENGAGED! I am the Referee ---")
+		# ----------------------------------------------
+			
 	elif not RunManager.is_arcade_mode and GameManager.p2_is_custom:
 		is_player_2_human = true # Local split-keyboard mode
 
 	# 4. CONNECT SIGNALS
-	# Note: We check if connections exist to avoid errors if _ready runs twice (rare but safe)
 	if not GameManager.state_changed.is_connected(_on_state_changed):
 		GameManager.state_changed.connect(_on_state_changed)
 		GameManager.combat_log_updated.connect(_on_log_updated)
@@ -96,24 +99,43 @@ func _ready():
 	if not battle_ui.human_selected_card.is_connected(_on_human_input_received):
 		battle_ui.human_selected_card.connect(_on_human_input_received)
 	
-	# Connect Debug Toggles
 	if not battle_ui.p1_mode_toggled.is_connected(_on_p1_mode_toggled):
 		battle_ui.p1_mode_toggled.connect(_on_p1_mode_toggled)
 		battle_ui.p2_mode_toggled.connect(_on_p2_mode_toggled)
 	
 	# 5. INITIALIZE UI ELEMENTS
-	battle_ui.load_deck(p1_resource.deck)
+	# --- FIX: Give the UI the correct deck based on our Network ID ---
+	if my_id == GameManager.p1_network_id:
+		battle_ui.load_deck(p1_resource.deck) 
+	elif my_id == GameManager.p2_network_id:
+		battle_ui.load_deck(p2_resource.deck) 
+	else:
+		# If you are testing solo (offline), default to Player 1's deck
+		battle_ui.load_deck(p1_resource.deck)
+	# -----------------------------------------------------------------
 	
 	print("--- INITIALIZING MATCH ---")
-	GameManager.start_combat(p1_resource, p2_resource)
+	
+	# We prepare the stats, but we DO NOT let start_combat() change the state yet!
+	GameManager.p1_data = p1_resource
+	GameManager.p2_data = p2_resource
+	GameManager.reset_combat() 
 	
 	# 6. SETUP VISUALS & TOGGLES
 	battle_ui.initialize_hud(p1_resource, p2_resource)
-	
-	# Pass the calculated booleans so the checkboxes match the game state
 	battle_ui.setup_toggles(is_player_1_human, is_player_2_human)
 	
-	# 7. UPDATE NAME TAGS BASED ON DIFFICULTY
+	# 7. THE SYNC FIX!
+	# Tell the server we are done building our UI and are ready to play
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+		if not multiplayer.is_server():
+			print("Waiting for opponent to load the arena...")
+			NetworkManager.rpc_id(1, "client_finished_loading")
+	else:
+		# If we are offline/local, just start immediately
+		GameManager.change_state(GameManager.State.SELECTION)
+	
+	# 8. UPDATE NAME TAGS BASED ON DIFFICULTY
 	var diff_suffix = ""
 	match GameManager.ai_difficulty:
 		GameManager.Difficulty.VERY_EASY: diff_suffix = " (V)"
@@ -168,6 +190,12 @@ func _check_mid_turn_state_change(player_id: int, is_human: bool):
 
 func _on_state_changed(new_state):
 	if not _simulation_active: return
+	
+	# --- THE SAFETY NET: Check the funnel whenever the Server arrives at a decision phase ---
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		if new_state == GameManager.State.SELECTION or new_state == GameManager.State.FEINT_CHECK:
+			_check_server_funnel()
+	# ----------------------------------------------------------------------------------------
 
 	match new_state:
 		GameManager.State.SELECTION:
@@ -187,20 +215,32 @@ func _on_state_changed(new_state):
 			_print_status_report()
 
 func _start_turn_sequence():
-	if is_player_1_human: _prepare_human_turn(1)
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+		# ONLINE: Both players take their turns at the exact same time!
+		if local_player_id == 1 or local_player_id == 2:
+			_prepare_human_turn(local_player_id)
 	else:
-		print("\n| --- NEW TURN: AI P1 --- |")
-		_run_bot_turn(1)
+		# OFFLINE: Sequential turns (P1 goes, then P2)
+		if is_player_1_human: _prepare_human_turn(1)
+		else:
+			print("\n| --- NEW TURN: AI P1 --- |")
+			_run_bot_turn(1)
 
 func _start_feint_input():
 	if GameManager.p1_pending_feint:
 		print("| --- WAITING FOR P1 FEINT SELECTION --- |")
-		if is_player_1_human: _prepare_human_turn(1)
-		else: _run_bot_turn(1)
+		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+			if local_player_id == 1: _prepare_human_turn(1)
+		else:
+			if is_player_1_human: _prepare_human_turn(1)
+			else: _run_bot_turn(1)
 	elif GameManager.p2_pending_feint:
 		print("| --- WAITING FOR P2 FEINT SELECTION --- |")
-		if is_player_2_human: _prepare_human_turn(2)
-		else: _run_bot_turn(2)
+		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+			if local_player_id == 2: _prepare_human_turn(2)
+		else:
+			if is_player_2_human: _prepare_human_turn(2)
+			else: _run_bot_turn(2)
 
 func _get_player_constraints(player_id: int) -> Dictionary:
 	# This function asks GameManager who is attacking. 
@@ -338,48 +378,81 @@ func _prepare_human_turn(player_id: int):
 		battle_ui.lock_ui()
 		print("Waiting for Opponent to choose...")
 
-func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): 
-	# Extract the name of the card to send over the internet safely
+func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}):
 	var card_name = ""
 	if card != null:
 		card_name = card.display_name
 		
-	# Call the network function on ALL connected computers (including ours)
-	rpc("receive_network_input", _current_input_player, card_name, extra_data)
+	# --- SYNC FIX: Route all input to the invisible referee! ---
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		rpc_id(1, "server_receive_input", _current_input_player, card_name, extra_data)
+	else:
+		# Offline fallback
+		server_receive_input(_current_input_player, card_name, extra_data)
 
 @rpc("any_peer", "call_local", "reliable")
-func receive_network_input(player_id: int, card_name: String, extra_data: Dictionary):
-	print(">>> NETWORK RECEIVED: P", player_id, " COMMITTED: ", card_name)
+func server_receive_input(player_id: int, card_name: String, extra_data: Dictionary):
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
+		
+	var str_id = str(player_id)
+	server_received_inputs[str_id] = { "card": card_name, "extra": extra_data }
+	print("📥 [SERVER FUNNEL] Received P", player_id)
 	
-	var character = p1_resource if player_id == 1 else p2_resource
-	var action_to_submit = null
+	# Ask the funnel if we have what we need
+	_check_server_funnel()
 	
-	# Convert the String name back into the actual ActionData Resource
-	if card_name == "SKIP FEINT":
-		action_to_submit = null
-	elif card_name == "Struggle":
-		# Figure out which struggle to give them
-		var is_offence = (GameManager.get_attacker() == player_id)
-		var type = ActionData.Type.OFFENCE if is_offence else ActionData.Type.DEFENCE
-		action_to_submit = GameManager.get_struggle_action(type)
-	elif card_name != "":
-		action_to_submit = _find_card_by_name(character, card_name)
-
-	# Submit it to the GameManager on BOTH computers at the exact same time
-	GameManager.player_select_action(player_id, action_to_submit, extra_data)
-	
-	# Advance the turn state
-	if GameManager.current_state == GameManager.State.SELECTION:
+	# OFFLINE FALLBACK
+	if not multiplayer.has_multiplayer_peer() or multiplayer.get_peers().size() == 0:
 		if player_id == 1:
 			if is_player_2_human:
 				await get_tree().create_timer(0.2).timeout
 				_prepare_human_turn(2)
-			else: 
+			else:
 				_run_bot_turn(2)
-				
+
+func _check_server_funnel():
+	var inputs_ready = false
+	
+	if GameManager.current_state == GameManager.State.SELECTION:
+		# Standard Turn: We absolutely need BOTH inputs
+		if server_received_inputs.has("1") and server_received_inputs.has("2"): 
+			inputs_ready = true
+			
 	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
-		await get_tree().create_timer(0.2).timeout
-		_start_feint_input()
+		var is_ready = true
+		if GameManager.p1_pending_feint and not server_received_inputs.has("1"): is_ready = false
+		if GameManager.p2_pending_feint and not server_received_inputs.has("2"): is_ready = false
+		inputs_ready = is_ready
+		
+	if inputs_ready:
+		print("🚀 [SERVER FUNNEL] Ready! Blasting to clients...")
+		rpc("client_execute_turn", server_received_inputs.duplicate())
+		server_received_inputs.clear()
+
+@rpc("authority", "call_local", "reliable")
+func client_execute_turn(inputs: Dictionary):
+	print(">>> NETWORK SYNC: Executing Turn Data!")
+	
+	# --- THE FIX: Safely grab the data using String keys (with int fallback just in case) ---
+	var p1_data = inputs.get("1", inputs.get(1))
+	if p1_data != null:
+		var action = _get_action_to_submit(1, p1_data.card)
+		GameManager.player_select_action(1, action, p1_data.extra)
+		
+	var p2_data = inputs.get("2", inputs.get(2))
+	if p2_data != null:
+		var action = _get_action_to_submit(2, p2_data.card)
+		GameManager.player_select_action(2, action, p2_data.extra)
+
+func _get_action_to_submit(player_id: int, card_name: String) -> ActionData:
+	if card_name == "SKIP FEINT" or card_name == "": return null
+	var character = p1_resource if player_id == 1 else p2_resource
+	if card_name == "Struggle":
+		var is_offence = (GameManager.get_attacker() == player_id)
+		var type = ActionData.Type.OFFENCE if is_offence else ActionData.Type.DEFENCE
+		return GameManager.get_struggle_action(type)
+	return _find_card_by_name(character, card_name)
 
 func _run_bot_turn(player_id: int):
 	_current_input_player = player_id 
@@ -405,17 +478,9 @@ func _run_bot_turn(player_id: int):
 	# --------------------------------
 
 	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
-	GameManager.player_select_action(player_id, card)
+	server_receive_input(player_id, card.display_name, {})
 	
-	if GameManager.current_state == GameManager.State.SELECTION: _handle_bot_completion(player_id)
-	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
-		await get_tree().create_timer(0.2).timeout
-		_start_feint_input()
 
-func _handle_bot_completion(player_id):
-	if player_id == 1:
-		if is_player_2_human: _prepare_human_turn(2)
-		else: _run_bot_turn(2)
 
 # TestArena.gd
 
