@@ -2,21 +2,28 @@ extends Node
 
 var peer = WebSocketMultiplayerPeer.new()
 const PORT = 8080
-const SERVER_URL = "ws://localhost:8080" 
+# --- FIX 1: POINT TO YOUR ORACLE IP ---
+const SERVER_URL = "ws://84.8.149.50:8080" 
 
-# Server Memory: { peer_id : character_file_path }
+# Server Memory
 var server_players: Dictionary = {}
-
-# Server Memory: tracks if players have finished loading the arena
 var players_ready_for_match: Dictionary = {}
 
 func _ready():
-	if OS.get_cmdline_args().has("--server"):
+	# --- FIX 2: AUTO-DETECTION FOR CLOUD ENVIRONMENT ---
+	var is_headless = DisplayServer.get_name() == "headless"
+	var has_server_arg = OS.get_cmdline_args().has("--server")
+	
+	if is_headless or has_server_arg:
+		print("🤖 SERVER DETECTED (Headless: ", is_headless, ")")
+		# We wait 1 second to ensure the engine has fully initialized 
+		# before opening the network socket.
+		await get_tree().create_timer(1.0).timeout
 		start_server()
 
 # --- SERVER LOGIC ---
 func start_server():
-	print("Starting dedicated WebSocket server on port ", PORT)
+	print("🚀 Starting dedicated WebSocket server on port ", PORT)
 	var error = peer.create_server(PORT)
 	if error == OK:
 		multiplayer.multiplayer_peer = peer
@@ -35,12 +42,22 @@ func _on_peer_disconnected(id):
 
 # --- CLIENT LOGIC ---
 func join_server():
-	print("Connecting to the central server...")
+	# 1. SAFETY: Check if we are already connected or connecting
+	if peer.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED:
+		print("⚠️ Connection already in progress. Ignoring duplicate request.")
+		return
+
+	print("Connecting to the central server at: ", SERVER_URL)
 	var error = peer.create_client(SERVER_URL)
+	
 	if error == OK:
 		multiplayer.multiplayer_peer = peer
-		# NEW: Let the client know if the server kicks them
-		multiplayer.server_disconnected.connect(_on_kicked_by_server)
+		
+		# 2. SAFETY: Only connect the signal if it's not already connected
+		if not multiplayer.server_disconnected.is_connected(_on_kicked_by_server):
+			multiplayer.server_disconnected.connect(_on_kicked_by_server)
+	else:
+		printerr("❌ Could not create client. Error code: ", error)
 
 func _on_kicked_by_server():
 	printerr("🚨 [CLIENT ALERT] The server closed our connection! We were dropped.")
