@@ -2,12 +2,13 @@ extends Node
 
 var peer = WebSocketMultiplayerPeer.new()
 const PORT = 8080
-# --- FIX 1: POINT TO YOUR ORACLE IP ---
-const SERVER_URL = "ws://84.8.149.50:8080" 
-
+# IMPORTANT: Use 'wss' (secure) and remove the :8080 port!
+# Nginx listens on the standard secure port (443) and forwards it for you.
+const SERVER_URL = "wss://clashmulti.crushingboredom.fun"
 # Server Memory
 var server_players: Dictionary = {}
 var players_ready_for_match: Dictionary = {}
+var anim_ready_players: Dictionary = {}
 
 func _ready():
 	# --- FIX 2: AUTO-DETECTION FOR CLOUD ENVIRONMENT ---
@@ -131,3 +132,23 @@ func client_finished_loading():
 func begin_combat_phase():
 	print("Network: Sync complete. Starting combat!")
 	GameManager.change_state(GameManager.State.SELECTION)
+
+@rpc("any_peer", "call_remote", "reliable")
+func report_animation_done():
+	if not multiplayer.is_server():
+		return
+		
+	var sender_id = multiplayer.get_remote_sender_id()
+	anim_ready_players[sender_id] = true
+	print("Server: Player ", sender_id, " finished watching the clash animation.")
+	
+	# If both phones/PCs are done animating, tell them to move forward!
+	if anim_ready_players.size() == 2:
+		anim_ready_players.clear()
+		rpc("approve_state_advance")
+
+@rpc("authority", "call_local", "reliable")
+func approve_state_advance():
+	# Flip the flag BEFORE emitting, in case someone is slightly behind
+	GameManager._is_sync_approved = true
+	GameManager.emit_signal("sync_advance_approved")

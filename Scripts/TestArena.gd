@@ -434,16 +434,14 @@ func _check_server_funnel():
 func client_execute_turn(inputs: Dictionary):
 	print(">>> NETWORK SYNC: Executing Turn Data!")
 	
-	# --- THE FIX: Safely grab the data using String keys (with int fallback just in case) ---
-	var p1_data = inputs.get("1", inputs.get(1))
-	if p1_data != null:
-		var action = _get_action_to_submit(1, p1_data.card)
-		GameManager.player_select_action(1, action, p1_data.extra)
+	# Safely iterate through the keys, whether Godot sent them as Strings or Ints
+	for key in inputs.keys():
+		var p_id = int(str(key))
+		var data = inputs[key]
 		
-	var p2_data = inputs.get("2", inputs.get(2))
-	if p2_data != null:
-		var action = _get_action_to_submit(2, p2_data.card)
-		GameManager.player_select_action(2, action, p2_data.extra)
+		if data != null:
+			var action = _get_action_to_submit(p_id, data.card)
+			GameManager.player_select_action(p_id, action, data.extra)
 
 func _get_action_to_submit(player_id: int, card_name: String) -> ActionData:
 	if card_name == "SKIP FEINT" or card_name == "": return null

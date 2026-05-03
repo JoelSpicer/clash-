@@ -9,10 +9,10 @@ script = ExtResource("1_4uujd")
 
 [node name="HostButton" type="Button" parent="." unique_id=1230767126]
 layout_mode = 0
-offset_left = 227.0
-offset_top = 101.0
-offset_right = 316.0
-offset_bottom = 145.0
+offset_left = 31.0
+offset_top = 24.0
+offset_right = 120.0
+offset_bottom = 68.0
 text = "Host Game"
 
 [node name="RoomCodeLabel" type="Label" parent="." unique_id=158902638]
@@ -24,23 +24,32 @@ offset_bottom = 193.0
 
 [node name="JoinCodeInput" type="LineEdit" parent="." unique_id=1570718688]
 layout_mode = 0
-offset_left = 660.0
-offset_top = 151.0
-offset_right = 873.0
-offset_bottom = 189.0
+offset_left = 4.0
+offset_top = 78.0
+offset_right = 217.0
+offset_bottom = 116.0
 text = "enter code"
 
 [node name="JoinButton" type="Button" parent="." unique_id=6469389]
 layout_mode = 0
-offset_left = 723.0
-offset_top = 105.0
-offset_right = 807.0
-offset_bottom = 149.0
-text = "Join Game"
+offset_left = 407.0
+offset_top = 241.0
+offset_right = 691.0
+offset_bottom = 335.0
+text = "Search for Match"
 
 [node name="CharacterDropdown" type="OptionButton" parent="." unique_id=1270775143]
 layout_mode = 0
+offset_left = 441.0
+offset_top = 405.0
+offset_right = 655.0
+offset_bottom = 449.0
+
+[node name="Label" type="Label" parent="." unique_id=1974609296]
+layout_mode = 0
 offset_left = 445.0
-offset_top = 365.0
-offset_right = 659.0
-offset_bottom = 409.0
+offset_top = 374.0
+offset_right = 652.0
+offset_bottom = 404.0
+text = "Select Character"
+horizontal_alignment = 1

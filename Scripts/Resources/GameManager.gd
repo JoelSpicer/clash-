@@ -40,7 +40,7 @@ signal status_applied(target_id: int, status_name: String)
 signal request_clash_animation(p1_card, p2_card)
 signal clash_animation_finished
 signal wall_crush_occurred(player_id, damage_amount)
-
+signal sync_advance_approved
 
 # --- CONFIGURATION ---
 var TOTAL_MOMENTUM_SLOTS: int = 8 
@@ -109,6 +109,7 @@ var rival_intro_override: String = ""
 # Add these to your GameManager script
 var p1_network_id: int = 0
 var p2_network_id: int = 0
+var _is_sync_approved: bool = false
 #endregion
 
 # ==============================================================================
@@ -319,9 +320,24 @@ func player_select_action(player_id: int, action: ActionData, extra_data: Dictio
 # ==============================================================================
 
 func _enter_reveal_phase():
+	# Reset the safety flag at the start of the phase
+	_is_sync_approved = false 
+	
 	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
 	emit_signal("request_clash_animation", p1_action_queue, p2_action_queue)
+	
+	# Wait for local visual animation to finish
 	await self.clash_animation_finished
+	
+	# --- NETWORK SYNC CHECK ---
+	if multiplayer.has_multiplayer_peer():
+		if not multiplayer.is_server():
+			NetworkManager.rpc_id(1, "report_animation_done")
+			
+		# SAFETY: Only wait if the signal hasn't already been fired!
+		if not _is_sync_approved:
+			await self.sync_advance_approved
+	# -----------------------------
 	
 	p1_pending_feint = p1_action_queue.feint
 	p2_pending_feint = p2_action_queue.feint
@@ -330,7 +346,7 @@ func _enter_reveal_phase():
 		change_state(State.FEINT_CHECK)
 	else:
 		change_state(State.RESOLUTION)
-
+		
 func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 	if secondary_action == null:
 		emit_signal("combat_log_updated", "P" + str(player_id) + " skips Feint combination.")

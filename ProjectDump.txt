@@ -2,695 +2,6 @@
 
 
 ============================================================
-FILE: .\Scenes\BattleUI.tscn
-============================================================
-[gd_scene format=3 uid="uid://dhwx6yjjskbn7"]
-
-[ext_resource type="Script" uid="uid://c1y00yy82bfx8" path="res://Scripts/BattleUI.gd" id="1_d8qwt"]
-[ext_resource type="PackedScene" uid="uid://nnqjc4grjsyg" path="res://Scenes/CardDisplay.tscn" id="1_gl3jw"]
-[ext_resource type="Texture2D" uid="uid://brp5uytsj2uxh" path="res://Art/Background/1.png" id="2_sbkf8"]
-[ext_resource type="PackedScene" uid="uid://yeraw55rlx1q" path="res://Scenes/PlayerHUD.tscn" id="3_vxmu1"]
-[ext_resource type="Script" uid="uid://bbvo786h2peys" path="res://Scripts/SoundButton.gd" id="4_6eyfp"]
-[ext_resource type="PackedScene" uid="uid://bu7kfrk2ayfm6" path="res://Scenes/CombatLog.tscn" id="4_f6fb8"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_7l4x2"]
-content_margin_left = 12.0
-content_margin_top = 12.0
-content_margin_right = 12.0
-content_margin_bottom = 12.0
-bg_color = Color(0, 0, 0, 0.627451)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.34407574, 0.3440758, 0.34407547, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_p2s8i"]
-content_margin_left = 8.0
-content_margin_top = 8.0
-content_margin_right = 8.0
-content_margin_bottom = 8.0
-bg_color = Color(1, 1, 1, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(0, 0, 0, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_6eyfp"]
-content_margin_left = 25.0
-content_margin_top = 20.0
-content_margin_right = 25.0
-content_margin_bottom = 20.0
-bg_color = Color(0.06666667, 0.06666667, 0.06666667, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.26666668, 0.26666668, 0.26666668, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-shadow_size = 10
-shadow_offset = Vector2(4, 4)
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_6eyfp"]
-content_margin_left = 10.0
-content_margin_top = 10.0
-content_margin_right = 10.0
-content_margin_bottom = 10.0
-
-[node name="BattleUI" type="CanvasLayer" unique_id=356558085]
-script = ExtResource("1_d8qwt")
-
-[node name="Background" type="TextureRect" parent="." unique_id=241149758]
-show_behind_parent = true
-z_index = -200
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-texture = ExtResource("2_sbkf8")
-expand_mode = 1
-
-[node name="ClashLayer" type="Control" parent="." unique_id=1577141681]
-visible = false
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="ClashIcon" type="Label" parent="ClashLayer" unique_id=1589396229]
-layout_mode = 0
-offset_left = 554.0
-offset_top = 286.0
-offset_right = 594.0
-offset_bottom = 309.0
-text = "VS"
-
-[node name="LeftCard" parent="ClashLayer" unique_id=1871729934 instance=ExtResource("1_gl3jw")]
-z_index = 300
-layout_mode = 1
-
-[node name="RightCard" parent="ClashLayer" unique_id=723946398 instance=ExtResource("1_gl3jw")]
-z_index = 300
-layout_mode = 1
-
-[node name="MainLayout" type="Control" parent="." unique_id=462573134]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 15.0
-offset_right = 8.0
-offset_bottom = 15.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="PreviewAnchor" type="Control" parent="MainLayout" unique_id=399922894]
-anchors_preset = 0
-offset_left = 509.0
-offset_top = 219.0
-offset_right = 549.0
-offset_bottom = 259.0
-
-[node name="PreviewCard" parent="MainLayout/PreviewAnchor" unique_id=408799389 instance=ExtResource("1_gl3jw")]
-unique_name_in_owner = true
-z_index = 1
-layout_mode = 1
-offset_left = 349.0
-offset_top = -70.0
-offset_right = 559.0
-offset_bottom = 240.0
-
-[node name="TooltipPanel" type="PanelContainer" parent="MainLayout/PreviewAnchor" unique_id=1465288981]
-z_index = 100
-layout_mode = 0
-offset_right = 30.0
-offset_bottom = 20.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_7l4x2")
-
-[node name="ToolTipLabel" type="RichTextLabel" parent="MainLayout/PreviewAnchor/TooltipPanel" unique_id=1974356343]
-custom_minimum_size = Vector2(250, 0)
-layout_mode = 2
-theme_override_font_sizes/normal_font_size = 15
-theme_override_font_sizes/bold_font_size = 15
-bbcode_enabled = true
-text = "testing"
-fit_content = true
-
-[node name="BottomBar" type="Panel" parent="MainLayout" unique_id=2064661816]
-custom_minimum_size = Vector2(0, 150)
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -8.0
-offset_top = -165.0
-offset_right = -8.0
-offset_bottom = -15.0
-grow_horizontal = 2
-grow_vertical = 0
-
-[node name="ContentSplit" type="HBoxContainer" parent="MainLayout/BottomBar" unique_id=214545184]
-layout_mode = 1
-anchors_preset = -1
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 5
-
-[node name="VSeparator" type="VSeparator" parent="MainLayout/BottomBar/ContentSplit" unique_id=726109551]
-layout_mode = 2
-
-[node name="TabButtons" type="VBoxContainer" parent="MainLayout/BottomBar/ContentSplit" unique_id=129264920]
-layout_mode = 2
-theme_override_constants/separation = 4
-alignment = 1
-
-[node name="Offence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons" unique_id=1252430173]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 50)
-layout_mode = 2
-text = "Offence"
-script = ExtResource("4_6eyfp")
-
-[node name="Defence" type="Button" parent="MainLayout/BottomBar/ContentSplit/TabButtons" unique_id=2021467659]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(100, 50)
-layout_mode = 2
-text = "Defence"
-script = ExtResource("4_6eyfp")
-
-[node name="MarginContainer" type="MarginContainer" parent="MainLayout/BottomBar/ContentSplit" unique_id=911205804]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="ScrollContainer" type="ScrollContainer" parent="MainLayout/BottomBar/ContentSplit/MarginContainer" unique_id=668411547]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ButtonGrid" type="GridContainer" parent="MainLayout/BottomBar/ContentSplit/MarginContainer/ScrollContainer" unique_id=69683943]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-columns = 7
-
-[node name="P1_HUD" parent="." unique_id=2037083698 instance=ExtResource("3_vxmu1")]
-offset_left = 5.0
-offset_top = 5.0
-offset_right = 45.0
-offset_bottom = 45.0
-
-[node name="P2_HUD" parent="." unique_id=1426370563 instance=ExtResource("3_vxmu1")]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -45.0
-offset_top = 5.0
-offset_right = -5.0
-offset_bottom = 45.0
-grow_horizontal = 0
-
-[node name="CombatLog" parent="." unique_id=1264011144 instance=ExtResource("4_f6fb8")]
-offset_left = 12.0
-offset_top = 232.0
-offset_right = 312.0
-offset_bottom = 432.0
-
-[node name="LogToggle" type="CheckButton" parent="." unique_id=477266312]
-offset_left = 12.0
-offset_top = 201.0
-offset_right = 134.0
-offset_bottom = 238.0
-focus_mode = 0
-text = "Show Log"
-
-[node name="MenuButton" type="Button" parent="." unique_id=2121817063]
-offset_left = 1086.0
-offset_top = 599.0
-offset_right = 1138.0
-offset_bottom = 636.0
-text = "?"
-script = ExtResource("4_6eyfp")
-
-[node name="EnvButton" type="Button" parent="." unique_id=1268670440]
-visible = false
-offset_left = 337.0
-offset_top = 3.0
-offset_right = 402.0
-offset_bottom = 36.0
-theme_override_font_sizes/font_size = 12
-text = "ENV: Dojo"
-script = ExtResource("4_6eyfp")
-
-[node name="EnvPopup" type="PanelContainer" parent="." unique_id=974018881]
-visible = false
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -25.0
-offset_top = -35.0
-offset_right = 25.0
-offset_bottom = 35.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-
-[node name="VBoxContainer" type="VBoxContainer" parent="EnvPopup" unique_id=641808400]
-layout_mode = 2
-
-[node name="EnvTitle" type="Label" parent="EnvPopup/VBoxContainer" unique_id=345411818]
-layout_mode = 2
-text = "Dojo"
-
-[node name="HSeparator" type="HSeparator" parent="EnvPopup/VBoxContainer" unique_id=1640873590]
-layout_mode = 2
-
-[node name="EnvDetails" type="RichTextLabel" parent="EnvPopup/VBoxContainer" unique_id=520589283]
-layout_mode = 2
-bbcode_enabled = true
-
-[node name="CloseEnvButton" type="Button" parent="EnvPopup/VBoxContainer" unique_id=1659386676]
-layout_mode = 2
-text = "Close"
-script = ExtResource("4_6eyfp")
-
-[node name="EquipmentGrid" type="HBoxContainer" parent="." unique_id=1911301329]
-offset_left = 35.0
-offset_top = 149.0
-offset_right = 75.0
-offset_bottom = 189.0
-theme_override_constants/separation = 10
-
-[node name="InspectButton" type="Button" parent="." unique_id=810640903]
-offset_left = 976.0
-offset_top = 148.0
-offset_right = 1141.0
-offset_bottom = 179.0
-text = "INSPECT OPPONENT"
-script = ExtResource("4_6eyfp")
-
-[node name="MomentumTracker" type="VBoxContainer" parent="." unique_id=1650371928]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -20.0
-offset_right = 20.0
-offset_bottom = 40.0
-grow_horizontal = 2
-
-[node name="StatusLabel" type="Label" parent="MomentumTracker" unique_id=1355910030]
-layout_mode = 2
-horizontal_alignment = 1
-
-[node name="SlotGrid" type="HBoxContainer" parent="MomentumTracker" unique_id=1896047700]
-layout_mode = 2
-theme_override_constants/separation = 4
-alignment = 1
-
-[node name="P1_Bark" type="PanelContainer" parent="." unique_id=1540414754]
-modulate = Color(1, 1, 1, 0)
-offset_left = 276.0
-offset_top = 434.0
-offset_right = 501.0
-offset_bottom = 470.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_p2s8i")
-
-[node name="Label" type="Label" parent="P1_Bark" unique_id=1546628747]
-layout_mode = 2
-
-[node name="P2_Bark" type="PanelContainer" parent="." unique_id=469420965]
-modulate = Color(1, 1, 1, 0)
-offset_left = 724.0
-offset_top = 440.0
-offset_right = 949.0
-offset_bottom = 476.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_p2s8i")
-
-[node name="Label" type="Label" parent="P2_Bark" unique_id=872211862]
-layout_mode = 2
-
-[node name="InspectPopup" type="Panel" parent="." unique_id=303135880]
-visible = false
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -400.0
-offset_top = -300.0
-offset_right = 400.0
-offset_bottom = 300.0
-grow_horizontal = 2
-grow_vertical = 2
-pivot_offset = Vector2(400, 300)
-theme_override_styles/panel = SubResource("StyleBoxFlat_6eyfp")
-
-[node name="ScrollContainer" type="ScrollContainer" parent="InspectPopup" unique_id=1456864686]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/panel = SubResource("StyleBoxEmpty_6eyfp")
-
-[node name="InspectGrid" type="GridContainer" parent="InspectPopup/ScrollContainer" unique_id=254637399]
-layout_mode = 2
-theme_override_constants/h_separation = 20
-theme_override_constants/v_separation = 20
-columns = 4
-
-[connection signal="pressed" from="MenuButton" to="." method="_on_menu_pressed"]
-
-
-============================================================
-FILE: .\Scenes\MainScene.tscn
-============================================================
-[gd_scene format=3 uid="uid://bwfpi53huo887"]
-
-[ext_resource type="Script" uid="uid://xjbucvoejbts" path="res://Scripts/Resources/GameManager.gd" id="1_hpc76"]
-[ext_resource type="Script" uid="uid://xh1kg301k38w" path="res://Scripts/TestArena.gd" id="2_tr2i4"]
-[ext_resource type="Resource" uid="uid://b0kng2hirhw4q" path="res://Player1.tres" id="3_7rqgy"]
-[ext_resource type="PackedScene" uid="uid://bnm0vfddu8cy6" path="res://Scenes/TutorialLayer.tscn" id="3_q68mp"]
-[ext_resource type="Resource" uid="uid://p5iapbgi8mrp" path="res://Player2.tres" id="4_qxria"]
-[ext_resource type="PackedScene" uid="uid://dhwx6yjjskbn7" path="res://Scenes/BattleUI.tscn" id="8_f140w"]
-
-[node name="Node2D" type="Node2D" unique_id=1182146]
-
-[node name="GameManager" type="Node" parent="." unique_id=1223966320]
-script = ExtResource("1_hpc76")
-
-[node name="TutorialLayer" parent="." unique_id=2134579543 instance=ExtResource("3_q68mp")]
-
-[node name="TestArena" type="Node2D" parent="." unique_id=2121029644]
-script = ExtResource("2_tr2i4")
-p1_resource = ExtResource("3_7rqgy")
-p2_resource = ExtResource("4_qxria")
-
-[node name="BattleUI" parent="TestArena" unique_id=1673586167 instance=ExtResource("8_f140w")]
-
-
-============================================================
-FILE: .\Scenes\VsScreen.tscn
-============================================================
-[gd_scene format=3 uid="uid://db1jjjv5ewb8x"]
-
-[ext_resource type="Script" uid="uid://ccf5qx3faud61" path="res://Scripts/VsScreen.gd" id="1_qw5ky"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qw5ky"]
-content_margin_left = 15.0
-content_margin_top = 10.0
-content_margin_right = 15.0
-content_margin_bottom = 10.0
-bg_color = Color(0.06666667, 0.06666667, 0.06666667, 0.49411765)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.26666668, 0.26666668, 0.26666668, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-shadow_offset = Vector2(4, 4)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4bywr"]
-content_margin_left = 15.0
-content_margin_top = 10.0
-content_margin_right = 15.0
-content_margin_bottom = 10.0
-bg_color = Color(0.06666667, 0.06666667, 0.06666667, 0.49411765)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.26666668, 0.26666668, 0.26666668, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
-shadow_offset = Vector2(4, 4)
-
-[node name="VsScreen" type="Control" unique_id=1731259570]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_qw5ky")
-
-[node name="Background" type="TextureRect" parent="." unique_id=814263392]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-expand_mode = 1
-
-[node name="ColorRect" type="ColorRect" parent="." unique_id=843035782]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0, 0, 0, 0.39215687)
-
-[node name="Content" type="Control" parent="." unique_id=288401882]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = 100.0
-offset_bottom = -100.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="P1_Container" type="VBoxContainer" parent="Content" unique_id=2040645311]
-layout_mode = 1
-anchors_preset = -1
-anchor_right = 0.5
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 3
-
-[node name="PanelContainer" type="PanelContainer" parent="Content/P1_Container" unique_id=454312075]
-self_modulate = Color(1, 1, 1, 0)
-layout_mode = 2
-
-[node name="SpeechBubble" type="Label" parent="Content/P1_Container/PanelContainer" unique_id=1298631522]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 2
-theme_override_constants/shadow_outline_size = 2
-theme_override_font_sizes/font_size = 20
-text = "speech"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Portrait" type="TextureRect" parent="Content/P1_Container" unique_id=1881686358]
-layout_mode = 2
-size_flags_vertical = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="InfoBox" type="PanelContainer" parent="Content/P1_Container" unique_id=1951467181]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_qw5ky")
-
-[node name="VBoxContainer" type="VBoxContainer" parent="Content/P1_Container/InfoBox" unique_id=1226902194]
-layout_mode = 2
-
-[node name="NameLabel" type="Label" parent="Content/P1_Container/InfoBox/VBoxContainer" unique_id=487469269]
-layout_mode = 2
-theme_type_variation = &"TitleLabel"
-theme_override_font_sizes/font_size = 30
-text = "Player 1"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ClassLabel" type="Label" parent="Content/P1_Container/InfoBox/VBoxContainer" unique_id=2022137226]
-layout_mode = 2
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 20
-text = "Heavy Class"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="StatsRow" type="HBoxContainer" parent="Content/P1_Container/InfoBox/VBoxContainer" unique_id=65089644]
-layout_mode = 2
-alignment = 1
-
-[node name="HPLabel" type="Label" parent="Content/P1_Container/InfoBox/VBoxContainer/StatsRow" unique_id=2107463008]
-layout_mode = 2
-
-[node name="SPLabel" type="Label" parent="Content/P1_Container/InfoBox/VBoxContainer/StatsRow" unique_id=865066638]
-layout_mode = 2
-
-[node name="VsLabel" type="Label" parent="Content" unique_id=1900404297]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -58.5
-offset_top = -68.5
-offset_right = 58.5
-offset_bottom = 68.5
-grow_horizontal = 2
-grow_vertical = 2
-theme_type_variation = &"TitleLabel"
-theme_override_font_sizes/font_size = 100
-text = "VS"
-
-[node name="P2_Container" type="VBoxContainer" parent="Content" unique_id=819383389]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.5
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-size_flags_horizontal = 3
-
-[node name="PanelContainer" type="PanelContainer" parent="Content/P2_Container" unique_id=145062261]
-self_modulate = Color(1, 1, 1, 0)
-layout_mode = 2
-
-[node name="SpeechBubble" type="Label" parent="Content/P2_Container/PanelContainer" unique_id=614714463]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 2
-theme_override_constants/shadow_outline_size = 2
-theme_override_font_sizes/font_size = 20
-text = "speech"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Portrait" type="TextureRect" parent="Content/P2_Container" unique_id=1179981689]
-layout_mode = 2
-size_flags_vertical = 3
-expand_mode = 1
-stretch_mode = 5
-
-[node name="InfoBox" type="PanelContainer" parent="Content/P2_Container" unique_id=2145154823]
-layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_4bywr")
-
-[node name="VBoxContainer" type="VBoxContainer" parent="Content/P2_Container/InfoBox" unique_id=1965623870]
-layout_mode = 2
-
-[node name="NameLabel" type="Label" parent="Content/P2_Container/InfoBox/VBoxContainer" unique_id=1370572126]
-layout_mode = 2
-theme_type_variation = &"TitleLabel"
-theme_override_font_sizes/font_size = 30
-text = "Player 2"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ClassLabel" type="Label" parent="Content/P2_Container/InfoBox/VBoxContainer" unique_id=1676200725]
-layout_mode = 2
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 2
-theme_override_font_sizes/font_size = 20
-text = "2  Class"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="StatsRow" type="HBoxContainer" parent="Content/P2_Container/InfoBox/VBoxContainer" unique_id=1711333280]
-layout_mode = 2
-alignment = 1
-
-[node name="HPLabel" type="Label" parent="Content/P2_Container/InfoBox/VBoxContainer/StatsRow" unique_id=1347204589]
-layout_mode = 2
-
-[node name="SPLabel" type="Label" parent="Content/P2_Container/InfoBox/VBoxContainer/StatsRow" unique_id=1106017276]
-layout_mode = 2
-
-[node name="ArenaLabel" type="Label" parent="." unique_id=1332158513]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -56.0
-offset_top = -158.0
-offset_right = 33.0
-offset_bottom = -86.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_type_variation = &"TitleLabel"
-text = "Dojo"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="FlashOverlay" type="ColorRect" parent="." unique_id=1342581451]
-modulate = Color(1, 1, 1, 0)
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-
-[node name="TopLetterbox" type="ColorRect" parent="." unique_id=1435023876]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 100.0
-grow_horizontal = 2
-color = Color(0, 0, 0, 1)
-
-[node name="BottomLetterbox" type="ColorRect" parent="." unique_id=1512840948]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -100.0
-grow_horizontal = 2
-grow_vertical = 0
-color = Color(0, 0, 0, 1)
-
-
-============================================================
 FILE: .\Scripts\BattleUI.gd
 ============================================================
 extends CanvasLayer
@@ -1107,6 +418,13 @@ func load_deck(deck: Array[ActionData]):
 	_refresh_grid()
 
 func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
+	
+	# --- NEW: If I am the invisible server, ignore this command completely! ---
+	if multiplayer.is_server() or OS.get_cmdline_args().has("--server"):
+		return
+	# --------------------------------------------------------------------------
+	
+	
 	button_grid.visible = true 
 	is_locked = false
 	current_sp_limit = player_current_sp
@@ -1166,6 +484,18 @@ func _refresh_grid():
 	for child in button_grid.get_children():
 		child.queue_free()
 		
+	# --- FIX: Stop the server from building a UI, but let clients proceed ---
+	if multiplayer.is_server() or OS.get_cmdline_args().has("--server"):
+		return
+		
+	# Safety check to prevent Nil errors
+	if current_deck == null or current_deck.is_empty():
+		return
+	# ----------------------------------------------------------------------
+	
+	# 1. Standard Deck Cards
+	for card in current_deck:
+		if card == null: continue
 	# 1. Standard Deck Cards
 	for card in current_deck:
 		if card == null: continue
@@ -1780,6 +1110,1348 @@ func _show_equip_tooltip(text: String, icon_node: Control):
 
 
 ============================================================
+FILE: .\Scripts\Multi.gd
+============================================================
+extends Control
+
+@onready var host_button = $HostButton
+@onready var room_code_label = $RoomCodeLabel
+@onready var join_code_input = $JoinCodeInput
+@onready var join_button = $JoinButton
+@onready var character_dropdown = $CharacterDropdown 
+
+var character_roster: Array[String] = []
+
+func _ready():
+	host_button.hide()
+	join_code_input.hide()
+	room_code_label.hide()
+	
+	join_button.text = "Find Match"
+	join_button.pressed.connect(_on_join_pressed)
+	
+	multiplayer.connected_to_server.connect(_on_connected_to_server)
+	multiplayer.connection_failed.connect(_on_connection_failed)
+	multiplayer.server_disconnected.connect(_on_server_disconnected)
+	
+	_load_presets_from_folder()
+	
+	if OS.get_cmdline_args().has("--server"):
+		hide_lobby_ui()
+
+func _load_presets_from_folder():
+	if not character_dropdown: return
+	character_dropdown.clear()
+	character_roster.clear()
+	
+	var path = "res://Data/Presets"
+	var dir = DirAccess.open(path)
+	
+	if dir:
+		var files = dir.get_files()
+		for file in files:
+			var clean_file = file.replace(".remap", "")
+			if clean_file.ends_with(".tres") or clean_file.ends_with(".res"):
+				var full_path = path + "/" + clean_file
+				var preset = load(full_path) as PresetCharacter
+				
+				if preset:
+					character_roster.append(full_path)
+					var drop_text = preset.character_name + " (Lv." + str(preset.level) + ")"
+					character_dropdown.add_item(drop_text)
+	else:
+		printerr("ERROR: Could not open directory: " + path)
+
+func _on_join_pressed():
+	print("Attempting to connect to the server...")
+	NetworkManager.join_server()
+
+func hide_lobby_ui():
+	join_button.hide()
+	character_dropdown.hide()
+
+# ==========================================
+# --- NATIVE MULTIPLAYER SIGNALS ---
+# ==========================================
+
+func _on_connected_to_server():
+	print("Boom! We successfully joined the server!")
+	hide_lobby_ui()
+	
+	# Grab the exact file path of the chosen character
+	var my_char_path = character_roster[character_dropdown.selected]
+	
+	# Ask our immortal NetworkManager to send the RPC to the Server
+	NetworkManager.rpc_id(1, "register_player_character", my_char_path)
+
+func _on_connection_failed():
+	print("ERROR: Could not reach the server. Is it running?")
+
+func _on_server_disconnected():
+	print("ERROR: The server closed the connection.")
+
+
+============================================================
+FILE: .\Scripts\NetworkManager.gd
+============================================================
+extends Node
+
+var peer = WebSocketMultiplayerPeer.new()
+const PORT = 8080
+# IMPORTANT: Use 'wss' (secure) and remove the :8080 port!
+# Nginx listens on the standard secure port (443) and forwards it for you.
+const SERVER_URL = "wss://clashmulti.crushingboredom.fun"
+# Server Memory
+var server_players: Dictionary = {}
+var players_ready_for_match: Dictionary = {}
+
+func _ready():
+	# --- FIX 2: AUTO-DETECTION FOR CLOUD ENVIRONMENT ---
+	var is_headless = DisplayServer.get_name() == "headless"
+	var has_server_arg = OS.get_cmdline_args().has("--server")
+	
+	if is_headless or has_server_arg:
+		print("🤖 SERVER DETECTED (Headless: ", is_headless, ")")
+		# We wait 1 second to ensure the engine has fully initialized 
+		# before opening the network socket.
+		await get_tree().create_timer(1.0).timeout
+		start_server()
+
+# --- SERVER LOGIC ---
+func start_server():
+	print("🚀 Starting dedicated WebSocket server on port ", PORT)
+	var error = peer.create_server(PORT)
+	if error == OK:
+		multiplayer.multiplayer_peer = peer
+		multiplayer.peer_connected.connect(_on_peer_connected)
+		multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+	else:
+		print("Failed to start server!")
+
+func _on_peer_connected(id):
+	print("SERVER: A new fighter joined! Their ID is: ", id)
+
+func _on_peer_disconnected(id):
+	printerr("🚨 [SERVER ALERT] Peer ", id, " suddenly disconnected from the WebSocket!")
+	if server_players.has(id):
+		server_players.erase(id)
+
+# --- CLIENT LOGIC ---
+func join_server():
+	# 1. SAFETY: Check if we are already connected or connecting
+	if peer.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED:
+		print("⚠️ Connection already in progress. Ignoring duplicate request.")
+		return
+
+	print("Connecting to the central server at: ", SERVER_URL)
+	var error = peer.create_client(SERVER_URL)
+	
+	if error == OK:
+		multiplayer.multiplayer_peer = peer
+		
+		# 2. SAFETY: Only connect the signal if it's not already connected
+		if not multiplayer.server_disconnected.is_connected(_on_kicked_by_server):
+			multiplayer.server_disconnected.connect(_on_kicked_by_server)
+	else:
+		printerr("❌ Could not create client. Error code: ", error)
+
+func _on_kicked_by_server():
+	printerr("🚨 [CLIENT ALERT] The server closed our connection! We were dropped.")
+
+# ==========================================
+# --- IMMORTAL NETWORK HANDSHAKE ---
+# ==========================================
+
+# 1. Clients call this function, but ONLY the Server executes it.
+@rpc("any_peer", "call_remote", "reliable")
+func register_player_character(char_file_path: String):
+	if not multiplayer.is_server():
+		return
+		
+	var sender_id = multiplayer.get_remote_sender_id()
+	server_players[sender_id] = char_file_path
+	print("Server: Player ", sender_id, " locked in: ", char_file_path)
+	
+	if server_players.size() == 2:
+		var peer_ids = server_players.keys()
+		var p1_id = peer_ids[0]
+		var p2_id = peer_ids[1]
+		
+		var p1_path = server_players[p1_id]
+		var p2_path = server_players[p2_id]
+		
+		# Tell EVERYONE to start the match, passing the exact file paths!
+		rpc("start_match", p1_path, p2_path, p1_id, p2_id)
+
+# 2. The Server triggers this on all connected machines simultaneously
+@rpc("authority", "call_local", "reliable")
+func start_match(p1_path: String, p2_path: String, p1_id: int, p2_id: int):
+	print("Match starting! Loading characters safely...")
+	
+	# Save identities
+	GameManager.p1_network_id = p1_id
+	GameManager.p2_network_id = p2_id
+	
+	# Load directly from the file path sent by the server
+	var p1_preset = load(p1_path)
+	var p2_preset = load(p2_path)
+	
+	GameManager.next_match_p1_data = ClassFactory.create_from_preset(p1_preset)
+	GameManager.next_match_p2_data = ClassFactory.create_from_preset(p2_preset)
+	
+	# Change the scene safely because NetworkManager won't be deleted!
+	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+	
+	
+	# ==========================================
+# --- SCENE LOAD SYNC ---
+# ==========================================
+
+# 1. Clients call this when their Arena finishes loading
+@rpc("any_peer", "call_remote", "reliable")
+func client_finished_loading():
+	if not multiplayer.is_server():
+		return
+		
+	var sender_id = multiplayer.get_remote_sender_id()
+	players_ready_for_match[sender_id] = true
+	print("Server: Player ", sender_id, " is in the arena and ready!")
+	
+	# If both players have loaded the scene, tell them to draw their cards!
+	if players_ready_for_match.size() == 2:
+		print("Server: Both players are loaded! Starting Combat State...")
+		rpc("begin_combat_phase")
+
+# 2. The Server tells the clients to officially start the game
+@rpc("authority", "call_local", "reliable")
+func begin_combat_phase():
+	print("Network: Sync complete. Starting combat!")
+	GameManager.change_state(GameManager.State.SELECTION)
+
+
+============================================================
+FILE: .\Scripts\Resources\GameManager.gd
+============================================================
+extends Node
+
+#region vars
+const KEYWORD_DEFS = {
+	"Block": "Reduce incoming damage by X",
+	"Cost": "lose X stamina",
+	"Counter": "You must have used an action with Create Opening X or higher in the previous clash",
+	"Create Opening": "Your opponent’s next action cannot have a Cost trait higher than X",
+	"Damage": "Reduce your opponent’s health by X",
+	"Defence": "Can only be used on the defensive. This action gains the Recover 1 trait.",
+	"Feint": "In addition to the action’s listed traits, it gains all the traits of another action that you can use. That action can be chosen after actions are revealed",
+	"Dodge": "You ignore the effects of your opponent’s action if its total stamina cost is X or below",
+	"Fall Back": "Lose X momentum",
+	"Guard Break": "Ignore the ‘Block X’ trait of your opponent’s action",
+	"Heal": "Gain X HP",
+	"Injure": "Your opponent must lose 1 HP every clash after this until you use an action with the Recover X, Heal X or Fall Back X traits, or the combat ends",
+	"Momentum": "Gain X momentum",
+	"Multi": "After this action, you may use any other action that has a Cost trait of X or below, and that does not have the multi X trait. This action interacts with your opponent’s previous action. If your opponent’s action would end your combo, you do not get to use this trait. In addition, moves with this trait can be used to start a combo",
+	"Offence": "Can only be used on the offensive. If you are reduced to 0SP, your combo ends",
+	"Opener": "Only actions with this trait can be used to start a combo",
+	"Opportunity": "Increase your next actions momentum by X, and reduce its stamina cost by X",
+	"Parry": "Your action steals the Momentum X trait of your opponent’s action. If this causes the momentum tracker to move in your direction, your opponent’s action has no affect on you, and your opponent’s next action must have the Opener trait",
+	"Recover": "Gain X stamina",
+	"Repeat": "After this action, use the same action again, ignoring the Repeat X trait. This must continue X times. This action interacts with your opponent’s chosen action as normal",
+	"Retaliate": "Your opponent takes the same damage as they dealt to you in the previous clash",
+	"Reversal": "If the momentum tracker moves closer to your side from this clash, the current combo ends and you take the offence, even if you do not have the momentum advantage. This applies even in the inital clash",
+	"Super": "This action can only be used when the momentum tracker has reached the end of your side. You can only use an action with this trait once per combat",
+	"Sweep": "This action affects all opponents you are in combat with",
+	"Tiring": "Cause the opponent to lose X Stamina"
+}
+
+# --- SIGNALS ---
+signal state_changed(new_state)
+signal clash_resolved(winner_id, log_text)
+signal combat_log_updated(text)
+signal game_over(winner_id)
+signal damage_dealt(target_id: int, amount: int, is_blocked: bool)
+signal healing_received(target_id: int, amount: int)
+signal status_applied(target_id: int, status_name: String)
+signal request_clash_animation(p1_card, p2_card)
+signal clash_animation_finished
+signal wall_crush_occurred(player_id, damage_amount)
+
+
+# --- CONFIGURATION ---
+var TOTAL_MOMENTUM_SLOTS: int = 8 
+var current_environment_name: String = "Dojo"
+var environment_backgrounds: Dictionary = {}
+# --- DYNAMIC CALCULATIONS ---
+var MOMENTUM_P1_MAX: int = 4
+var MOMENTUM_P2_START: int = 5
+
+# --- STATE MACHINE ---
+enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
+var current_state = State.SETUP
+var temp_p1_class_selection: int = 0
+var temp_p2_class_selection: int = 0 
+var editing_player_index: int = 1    
+var p2_is_custom: bool = false       
+enum Difficulty { VERY_EASY, EASY, MEDIUM, HARD }
+var ai_difficulty: Difficulty = Difficulty.MEDIUM 
+var attacker_override: int = 0 
+
+# --- PERSISTENT GAME SETUP ---
+var next_match_p1_data: CharacterData
+var next_match_p2_data: CharacterData
+
+# --- CORE DATA ---
+var p1_data: CharacterData
+var p2_data: CharacterData
+var priority_player: int = 1 
+var momentum: int = 0 
+var current_combo_attacker: int = 0
+
+# --- TURN CONSTRAINTS ---
+var p1_cost_limit: int = 99; var p2_cost_limit: int = 99
+var p1_opening_stat: int = 0; var p2_opening_stat: int = 0
+var p1_opportunity_stat: int = 0; var p2_opportunity_stat: int = 0
+var p1_must_opener: bool = false; var p2_must_opener: bool = false
+
+## --- STATUS EFFECTS ---
+#var p1_is_injured: bool = false
+#var p2_is_injured: bool = false
+
+# --- TURN STATE ---
+var p1_action_queue: ActionData
+var p2_action_queue: ActionData
+var p1_locked_card: ActionData = null
+var p2_locked_card: ActionData = null
+
+# --- FEINT HELPERS ---
+var p1_pending_feint: bool = false
+var p2_pending_feint: bool = false
+
+# --- PASSIVES ---
+var p1_rage_active: bool = false
+var p2_rage_active: bool = false
+var p1_keep_up_active: bool = false
+var p2_keep_up_active: bool = false
+
+var p1_gym_block_bonus: int = 0
+
+var temp_p1_name: String = ""
+var temp_p2_name: String = ""
+var temp_p1_preset: Resource = null
+var temp_p2_preset: Resource = null
+
+var rival_intro_override: String = ""
+# Add these to your GameManager script
+var p1_network_id: int = 0
+var p2_network_id: int = 0
+#endregion
+
+# ==============================================================================
+# INITIALIZATION
+# ==============================================================================
+
+func _ready():
+	
+	_load_backgrounds()
+	
+	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
+	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
+	
+	print("--- GAME MANAGER READY ---")
+	print("Momentum Config: Total=", TOTAL_MOMENTUM_SLOTS, " | P1_Max=", MOMENTUM_P1_MAX, " | P2_Start=", MOMENTUM_P2_START)
+	
+	priority_player = 1
+	momentum = 0
+
+func start_combat(p1: CharacterData, p2: CharacterData):
+	p1_data = p1
+	p2_data = p2
+	reset_combat()
+
+func reset_combat():
+	# --- 1. RESET STATS ---
+	# Check if P1 should maintain HP (for runs/tournaments)
+	var p1_maintain = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
+	p1_data.reset_stats(p1_maintain) 
+	
+	# P2 (The Enemy) always resets to full
+	p2_data.reset_stats(false)
+	
+	# --- 2. INJECT EVENT STATUSES ---
+	if RunManager.is_arcade_mode:
+		for s in RunManager.next_fight_statuses:
+			p1_data.statuses[s] = 1
+		RunManager.next_fight_statuses.clear() # Clear so it doesn't happen next fight
+	
+	# --- 3. RESET COMBAT VARIABLES ---
+	momentum = 0 
+	current_combo_attacker = 0
+	p1_locked_card = null; p2_locked_card = null
+	
+	p1_cost_limit = 99; p2_cost_limit = 99
+	p1_opening_stat = 0; p2_opening_stat = 0
+	p1_opportunity_stat = 0; p2_opportunity_stat = 0
+	p1_must_opener = false; p2_must_opener = false
+	p1_pending_feint = false; p2_pending_feint = false
+	
+	p1_rage_active = false; p2_rage_active = false
+	p1_keep_up_active = false; p2_keep_up_active = false
+	
+	# --- 4. APPLY PLAYER EQUIPMENT & SPONSOR BONUSES ---
+	var total_momentum_bonus = 0
+	var p1_speed_bonus = 0
+	
+	var all_p1_modifiers: Array[BaseModifierData] = []
+	if RunManager.player_run_data:
+		all_p1_modifiers.append_array(RunManager.player_run_data.equipment)
+	if RunManager.active_sponsor:
+		all_p1_modifiers.append(RunManager.active_sponsor)
+		
+	for mod in all_p1_modifiers:
+		# SP Bonus
+		p1_data.current_sp += mod.starting_sp_bonus
+		
+		# Barrier
+		if mod.starting_barrier > 0:
+			p1_data.current_hp += mod.starting_barrier
+			print("Modifier Barrier Applied: +%d HP" % mod.starting_barrier)
+			
+		# Momentum & Speed
+		total_momentum_bonus += mod.momentum_start_bonus
+		p1_speed_bonus += mod.bonus_speed
+
+	# Apply Rival Handicap if active
+	if RunManager.is_rival_match and RunManager.active_sponsor:
+		total_momentum_bonus -= RunManager.active_sponsor.rival_momentum_handicap
+		print("Rival Handicap Applied! Momentum shifted by " + str(RunManager.active_sponsor.rival_momentum_handicap))
+	# ----------------------------------------------------
+		
+	# --- 5. APPLY MOMENTUM STARTING POSITION ---
+	# If we have a bonus, we skip the "0" (Neutral) state and start on our side.
+	# MOMENTUM_P1_MAX is the "front line". Subscripting moves it closer to the enemy wall (1).
+	if total_momentum_bonus > 0:
+		momentum = MOMENTUM_P1_MAX - (total_momentum_bonus - 1)
+		# Clamp so we don't accidentally glitch past the wall (1)
+		momentum = clampi(momentum, 1, MOMENTUM_P1_MAX)
+		print(">> Head Start! Momentum set to: " + str(momentum))
+		
+	# --- 6. APPLY ENEMY EQUIPMENT BONUSES ---
+	for item in p2_data.equipment:
+		p2_data.current_sp += item.starting_sp_bonus
+	
+# --- 7. APPLY GYM BUFFS ---
+	p1_gym_block_bonus = 0 # <-- Reset it every fight!
+	
+	if RunManager.active_gym_buff != "":
+		print("Applying Gym Buff: " + RunManager.active_gym_buff)
+		
+		if RunManager.active_gym_buff == "iron_stance":
+			# --- UPDATED: Grant +1 Global Block ---
+			p1_gym_block_bonus = 1
+			print(">> Iron Stance: +1 Global Block")
+			
+		elif RunManager.active_gym_buff == "exploit_weakness":
+			# Reduce enemy starting HP by 20%
+			var damage = max(1, roundi(p2_data.max_hp * 0.2))
+			p2_data.current_hp -= damage
+			print(">> Exploit Weakness: Enemy took " + str(damage) + " dmg")
+			
+		# IMPORTANT: Clear the buff so it doesn't apply to the NEXT fight too
+		RunManager.active_gym_buff = ""
+	
+	# --- 8. CALCULATE PRIORITY (SPEED TIES) ---
+	var p1_final_speed = p1_data.speed + p1_speed_bonus
+	var p2_final_speed = p2_data.speed
+	
+	if p1_final_speed > p2_final_speed: 
+		priority_player = 1
+	elif p2_final_speed > p1_final_speed: 
+		priority_player = 2
+	else: 
+		priority_player = randi_range(1, 2)
+		
+	print("\n>>> COMBAT RESET! Starting from Initial Clash (Neutral) <<<")
+	# --- NEW: FADE TO BATTLE INTENSITY (Layer 2) ---
+	if AudioManager:
+		AudioManager.set_music_intensity(1.0, 2.0)
+	# -----------------------------------------------
+	#change_state(State.SELECTION)
+
+func get_attacker() -> int:
+	if current_combo_attacker != 0: return current_combo_attacker
+	if attacker_override != 0: return attacker_override
+	if momentum == 0: return 0 
+	return 1 if momentum <= MOMENTUM_P1_MAX else 2
+
+# ==============================================================================
+# STATE MACHINE
+# ==============================================================================
+
+func change_state(new_state: State):
+	# --- DEBUG HEARTBEAT ---
+	var my_role = "Referee (Server)"
+	if multiplayer.has_multiplayer_peer():
+		var my_id = multiplayer.get_unique_id()
+		if my_id == p1_network_id: my_role = "Player 1"
+		elif my_id == p2_network_id: my_role = "Player 2"
+		
+	print("⏱️ [STATE SYNC] ", my_role, " entering state: ", State.keys()[new_state])
+	# -----------------------
+	current_state = new_state
+	emit_signal("state_changed", current_state)
+	
+	match current_state:
+		State.SELECTION:
+			if p1_locked_card: player_select_action(1, p1_locked_card)
+			if p2_locked_card: player_select_action(2, p2_locked_card)
+		State.REVEAL:
+			_enter_reveal_phase()
+		State.FEINT_CHECK:
+			pass 
+		State.RESOLUTION:
+			resolve_clash()
+
+func player_select_action(player_id: int, action: ActionData, extra_data: Dictionary = {}):
+	# 1. Process the Action based on Technique
+	var final_action = action
+	var tech_idx = extra_data.get("technique", 0)
+	
+	# Only modify if a technique was actually selected AND action is not null (Skip)
+	if action != null and tech_idx > 0:
+		final_action = action.duplicate() 
+		final_action.cost += 1 
+		
+		match tech_idx:
+			1: # Opener
+				if final_action.type == ActionData.Type.OFFENCE:
+					final_action.is_opener = true
+					final_action.display_name += "+" 
+			2: # Tiring
+				final_action.tiring += 1
+				final_action.display_name += "+"
+			3: # Momentum
+				final_action.momentum_gain += 1
+				final_action.display_name += "+"
+	
+	# 2. Standard Logic
+	if player_id == 1:
+		p1_action_queue = final_action
+		p1_rage_active = extra_data.get("rage", false)
+		p1_keep_up_active = extra_data.get("keep_up", false)
+	else:
+		p2_action_queue = final_action
+		p2_rage_active = extra_data.get("rage", false)
+		p2_keep_up_active = extra_data.get("keep_up", false)
+		
+	if current_state == State.SELECTION:
+		if p1_action_queue and p2_action_queue:
+			change_state(State.REVEAL)
+	elif current_state == State.FEINT_CHECK:
+		_handle_feint_selection(player_id, final_action)
+
+# ==============================================================================
+# FEINT MECHANICS
+# ==============================================================================
+
+func _enter_reveal_phase():
+	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
+	emit_signal("request_clash_animation", p1_action_queue, p2_action_queue)
+	await self.clash_animation_finished
+	
+	p1_pending_feint = p1_action_queue.feint
+	p2_pending_feint = p2_action_queue.feint
+
+	if p1_pending_feint or p2_pending_feint:
+		change_state(State.FEINT_CHECK)
+	else:
+		change_state(State.RESOLUTION)
+
+func _handle_feint_selection(player_id: int, secondary_action: ActionData):
+	if secondary_action == null:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " skips Feint combination.")
+		_clear_feint_flag(player_id)
+		_check_feint_completion()
+		return
+
+	var base_card = p1_action_queue if player_id == 1 else p2_action_queue
+	var character = p1_data if player_id == 1 else p2_data
+	
+	var total_cost = base_card.cost + secondary_action.cost
+	var opp_val = _get_opportunity_value(player_id)
+	var effective_total = max(0, total_cost - opp_val)
+	
+	var combined_card = _combine_actions(base_card, secondary_action)
+	var total_reps = max(1, combined_card.repeat_count)
+	var total_required = effective_total * total_reps
+	
+	var can_afford = false
+	if character.current_sp >= total_required:
+		can_afford = true
+	elif character.class_type == CharacterData.ClassType.HEAVY and (character.current_sp + character.current_hp) > total_required:
+		can_afford = true 
+		
+	if can_afford:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined_card.display_name)
+		if player_id == 1: p1_action_queue = combined_card
+		else: p2_action_queue = combined_card
+	else:
+		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint. Action applies normally.")
+	
+	_clear_feint_flag(player_id)
+	_check_feint_completion()
+
+func _clear_feint_flag(player_id):
+	if player_id == 1: p1_pending_feint = false
+	else: p2_pending_feint = false
+
+func _check_feint_completion():
+	if not p1_pending_feint and not p2_pending_feint:
+		change_state(State.RESOLUTION)
+
+func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
+	var new_card = base.duplicate()
+	new_card.display_name = base.display_name + " + " + sec.display_name
+	
+	new_card.cost += sec.cost
+	new_card.damage += sec.damage
+	new_card.block_value += sec.block_value
+	new_card.dodge_value += sec.dodge_value
+	new_card.momentum_gain += sec.momentum_gain
+	new_card.heal_value += sec.heal_value
+	new_card.recover_value += sec.recover_value
+	new_card.fall_back_value += sec.fall_back_value
+	new_card.tiring += sec.tiring
+	new_card.create_opening += sec.create_opening
+	new_card.multi_limit += sec.multi_limit
+	new_card.opportunity += sec.opportunity
+	
+	new_card.counter_value = max(new_card.counter_value, sec.counter_value) 
+	new_card.repeat_count = max(new_card.repeat_count, sec.repeat_count)
+	
+	if sec.guard_break: new_card.guard_break = true
+	if sec.retaliate: new_card.retaliate = true
+	if sec.is_parry: new_card.is_parry = true
+	if sec.is_super: new_card.is_super = true
+	if sec.is_opener: new_card.is_opener = true
+	
+# --- OLD CODE (Caused Error) ---
+	# var combined_statuses = []
+	# combined_statuses.append_array(base.statuses_to_apply)
+	# for s in sec.statuses_to_apply:
+	# 	combined_statuses.append(s.duplicate(true)) 
+	# new_card.statuses_to_apply = combined_statuses
+	
+	# --- NEW FIXED CODE ---
+	# 1. Clear whatever statuses the base card had (we will rebuild it)
+	new_card.statuses_to_apply.clear()
+	
+	# 2. Add Base Statuses
+	for s in base.statuses_to_apply:
+		new_card.statuses_to_apply.append(s.duplicate(true))
+		
+	# 3. Add Secondary Statuses
+	for s in sec.statuses_to_apply:
+		new_card.statuses_to_apply.append(s.duplicate(true))
+	
+	new_card.feint = false 
+	return new_card
+
+# ==============================================================================
+# RESOLUTION LOGIC
+# ==============================================================================
+
+func resolve_clash():
+	attacker_override = 0
+	
+	# Duplicate to ensure we don't modify the original resource
+	p1_action_queue = p1_action_queue.duplicate()
+	p2_action_queue = p2_action_queue.duplicate()
+	
+	_handle_patient_passive(1, p1_action_queue)
+	_handle_patient_passive(2, p2_action_queue)
+	
+	var winner_id = 0
+	
+	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
+	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
+	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
+	elif p2_action_queue.cost < p1_action_queue.cost: winner_id = 2
+	else:
+		emit_signal("combat_log_updated", "Tie! Priority Token Used.")
+		winner_id = priority_player
+		swap_priority()
+
+	emit_signal("clash_resolved", winner_id, p1_action_queue, p2_action_queue, "Clash Winner: P" + str(winner_id))
+	
+	var is_initial_clash = (momentum == 0)
+	
+	# --- SMART COMBO RESET ---
+	# If P1 wins with Offence...
+	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE:
+		# Check if they were ALREADY comboing. If not (e.g., previous turn was neutral or 0 SP break), start at 1.
+		if current_combo_attacker != 1: p1_data.combo_action_count = 1
+		else: p1_data.combo_action_count += 1
+	else:
+		p1_data.combo_action_count = 0
+
+	# Same for P2
+	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE:
+		if current_combo_attacker != 2: p2_data.combo_action_count = 1
+		else: p2_data.combo_action_count += 1
+	else:
+		p2_data.combo_action_count = 0
+	# ------------------------------
+	
+	# --- PHASE 0: PAY COSTS ---
+	var p1_started_injured = has_status(1, "Injured")
+	var p2_started_injured = has_status(2, "Injured")
+	
+	var p1_active = _pay_cost(1, p1_action_queue)
+	var p2_active = _pay_cost(2, p2_action_queue)
+
+	if p1_active and p1_action_queue.is_super:
+		p1_data.has_used_super = true
+		emit_signal("combat_log_updated", ">> P1 unleashes their Ultimate Art!")
+	if p2_active and p2_action_queue.is_super:
+		p2_data.has_used_super = true
+		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
+
+	# --- PHASE 1: SELF EFFECTS ---
+	if p1_active: _apply_phase_1_self_effects(1, p1_action_queue)
+	if p2_active: _apply_phase_1_self_effects(2, p2_action_queue)
+
+	# --- MOMENTUM CALCULATION ---
+	
+	# A. Dodge Checks
+	var p1_is_dodged = false; var p2_is_dodged = false
+	var p1_total_cost = p1_action_queue.cost * max(1, p1_action_queue.repeat_count)
+	var p2_total_cost = p2_action_queue.cost * max(1, p2_action_queue.repeat_count)
+	
+	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_total_cost: p1_is_dodged = true
+	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_total_cost: p2_is_dodged = true
+	
+	# B. Push/Pull Base Values
+	var p1_parries = (p1_active and p1_action_queue.is_parry)
+	var p2_parries = (p2_active and p2_action_queue.is_parry)
+	
+	var p1_single_gain = p1_action_queue.momentum_gain + _get_opportunity_value(1)
+	var p2_single_gain = p2_action_queue.momentum_gain + _get_opportunity_value(2)
+	
+	var p1_total_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
+	var p2_total_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
+	
+	var p1_stolen = p2_single_gain if p1_parries else 0
+	var p2_stolen = p1_single_gain if p2_parries else 0
+	
+	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
+	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
+	
+	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
+	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
+	
+	# --- STRICT PARRY SUCCESS CHECK ---
+	# Parry only triggers if (My Gain + Stolen Gain) is strictly greater than My Fall Back.
+	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
+	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
+	
+	var p1_parry_success = (p1_parries and p1_net_gain > 0)
+	var p2_parry_success = (p2_parries and p2_net_gain > 0)
+	# ---------------------------------------	
+	
+	# --- WALL CRUSH CHECK ---
+	if p1_fb > 0 and momentum >= TOTAL_MOMENTUM_SLOTS:
+		_apply_wall_crush(1, p1_fb)
+		p1_fb = 0 
+		
+	if p2_fb > 0 and momentum <= 1:
+		_apply_wall_crush(2, p2_fb)
+		p2_fb = 0 
+	# ------------------------------
+	
+
+
+	# Calculate the final combined movement for the UI tracker
+	var p1_contribution = p1_total_gain
+	if p2_parries: p1_contribution -= p1_single_gain
+	if p1_is_dodged: p1_contribution = 0
+	
+	var p2_contribution = p2_total_gain
+	if p1_parries: p2_contribution -= p2_single_gain
+	if p2_is_dodged: p2_contribution = 0
+	
+	var p1_final_push = p1_contribution + p1_stolen
+	var p2_final_push = p2_contribution + p2_stolen
+	
+	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
+	
+	# --- PHASE 2: COMBAT EFFECTS ---
+	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
+	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
+	
+	var p2_immune_or_dodged = p2_parry_success or p1_is_dodged
+	var p1_immune_or_dodged = p1_parry_success or p2_is_dodged
+	
+	if p1_active: p1_results = _apply_phase_2_combat_effects(1, 2, p1_action_queue, p2_action_queue, p2_immune_or_dodged)
+	if p2_active: p2_results = _apply_phase_2_combat_effects(2, 1, p2_action_queue, p1_action_queue, p1_immune_or_dodged)
+	
+	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue, p1_parry_success, p2_parry_success)
+	
+	if p1_results["fatal"] or p2_results["fatal"]:
+		_handle_death(winner_id)
+		return 
+	
+	# --- PHASE 3: APPLY MOMENTUM & REVERSAL ---
+	var p1_reversed = (p1_active and p1_action_queue.reversal and delta < 0)
+	var p2_reversed = (p2_active and p2_action_queue.reversal and delta > 0)
+
+	if is_initial_clash:
+		momentum = MOMENTUM_P1_MAX if winner_id == 1 else MOMENTUM_P2_START
+		print("DEBUG: Initial Clash Winner: P", winner_id, " | Set Mom: ", momentum)
+		
+		if p1_reversed:
+			attacker_override = 1
+			emit_signal("combat_log_updated", ">> P1 Reverses! Seizing Offence.")
+		elif p2_reversed:
+			attacker_override = 2
+			emit_signal("combat_log_updated", ">> P2 Reverses! Seizing Offence.")
+			
+	else:
+		momentum = clamp_momentum(momentum + delta)
+		
+		if p1_reversed:
+			attacker_override = 1
+			emit_signal("combat_log_updated", ">> P1 REVERSAL SUCCESSFUL!")
+		elif p2_reversed:
+			attacker_override = 2
+			emit_signal("combat_log_updated", ">> P2 REVERSAL SUCCESSFUL!")
+
+	# --- CLEANUP ---
+	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
+	_check_reversal_state() 
+	_handle_locks(winner_id)
+	
+	# --- NEW: UPDATE MUSIC INTENSITY ---
+	_update_dynamic_music()
+	# -----------------------------------
+
+	p1_action_queue = null
+	p2_action_queue = null
+	
+	if p1_data.current_hp <= 0 or p2_data.current_hp <= 0:
+		_handle_death(winner_id)
+		return
+	
+	
+	change_state(State.POST_CLASH)
+	change_state(State.SELECTION)
+
+# ==============================================================================
+# PHASE IMPLEMENTATIONS
+# ==============================================================================
+
+func _apply_wall_crush(player_id: int, amount: int):
+	var character = p1_data if player_id == 1 else p2_data
+	
+	# --- NEW: CHECK IF ATTACKER HAS SPIKED CLEATS ---
+	var attacker_data = p2_data if player_id == 1 else p1_data
+	var final_amount = amount
+	for item in attacker_data.equipment:
+		final_amount += item.wall_crush_damage_bonus
+	# ------------------------------------------------
+	
+	# --- NEW: EMIT SIGNAL ---
+	emit_signal("wall_crush_occurred", player_id, final_amount)
+	# ------------------------
+	
+	emit_signal("combat_log_updated", ">> P" + str(player_id) + " CRUSHED against the wall!")
+	
+	if character.current_sp >= final_amount:
+		character.current_sp -= final_amount
+		emit_signal("combat_log_updated", "   Lost " + str(final_amount) + " SP to hold ground.")
+	else:
+		var sp_paid = character.current_sp
+		var hp_damage = final_amount - sp_paid
+		
+		character.current_sp = 0
+		character.current_hp -= hp_damage
+		
+		emit_signal("combat_log_updated", "   Lost " + str(sp_paid) + " SP and took " + str(hp_damage) + " HP DAMAGE!")
+		emit_signal("damage_dealt", player_id, hp_damage, false)
+
+func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
+	var character = p1_data if owner_id == 1 else p2_data
+	var total_hits = max(1, my_card.repeat_count)
+	
+	if character.combo_sp_recovery_rate > 0:
+		if character.combo_action_count > 0 and (character.combo_action_count % character.combo_sp_recovery_rate == 0):
+			character.current_sp = min(character.current_sp + 1, character.max_sp)
+			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
+	
+	for i in range(total_hits):
+		var actual_recover = my_card.recover_value
+		if my_card.type == ActionData.Type.DEFENCE: actual_recover += 1
+		
+		if actual_recover > 0: 
+			character.current_sp = min(character.current_sp + actual_recover, character.max_sp)
+			
+		if my_card.heal_value > 0: 
+			character.current_hp = min(character.current_hp + my_card.heal_value, character.max_hp)
+			emit_signal("healing_received", owner_id, my_card.heal_value)
+
+		if my_card.heal_value > 0 or my_card.fall_back_value > 0:
+			if has_status(owner_id, "Injured"):
+				remove_status(owner_id, "Injured")
+				emit_signal("combat_log_updated", ">> P" + str(owner_id) + " cures Injury!")
+
+func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool) -> Dictionary:
+	var character = p1_data if owner_id == 1 else p2_data
+	var target = p2_data if owner_id == 1 else p1_data
+	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
+	
+	if target_is_immune:
+		emit_signal("combat_log_updated", "P" + str(owner_id) + " attack NULLIFIED (Dodge/Parry)!")
+		emit_signal("status_applied", owner_id, "MISS")
+		emit_signal("status_applied", target_id, "DODGED")
+		return result
+
+	# --- 1. CALCULATE EQUIPMENT & SPONSOR PASSIVES ---
+	var dmg_mod = 0
+	var attacker_block_mod = 0 
+	var defender_block_mod = 0
+	var thorns_dmg = 0
+	
+	# Gather Attacker Mods
+	var attacker_mods: Array[BaseModifierData] = []
+	attacker_mods.append_array(character.equipment) # <-- Safely appends the items
+	if owner_id == 1 and RunManager.active_sponsor:
+		attacker_mods.append(RunManager.active_sponsor)
+		
+	for mod in attacker_mods:
+		dmg_mod += mod.damage_modifier
+		attacker_block_mod += mod.block_modifier
+		
+	# Gather Defender Mods
+	var defender_mods: Array[BaseModifierData] = []
+	defender_mods.append_array(target.equipment) # <-- Safely appends the items
+	if target_id == 1 and RunManager.active_sponsor:
+		defender_mods.append(RunManager.active_sponsor)
+		
+	for mod in defender_mods:
+		defender_block_mod += mod.block_modifier
+		thorns_dmg += mod.thorns
+		
+	# Apply Gym Buffs independently so they aren't lost!
+	if owner_id == 1:
+		attacker_block_mod += p1_gym_block_bonus
+	elif target_id == 1:
+		defender_block_mod += p1_gym_block_bonus
+	# ----------------------------------------------------------
+	var total_hits = max(1, my_card.repeat_count)
+	for i in range(total_hits):
+		
+		# --- 2. APPLY OFFENSIVE / DEFENSIVE MODIFIERS ---
+		var total_damage = max(0, my_card.damage + dmg_mod)
+		var enemy_block = enemy_card.block_value + defender_block_mod
+		
+		if my_card.guard_break: 
+			enemy_block = 0
+			
+		var net_damage = max(0, total_damage - enemy_block)
+		
+		# --- 3. TIRING (SP DRAIN) ---
+		if my_card.tiring > 0:
+			if target.tiring_drains_hp and target.current_sp < my_card.tiring:
+				var drain_amount = my_card.tiring
+				var sp_avail = target.current_sp
+				var hp_cost = drain_amount - sp_avail
+				target.current_sp = 0
+				target.current_hp -= hp_cost
+				emit_signal("combat_log_updated", ">> Rage! P" + str(target_id) + " takes " + str(hp_cost) + " HP dmg instead of SP.")
+				emit_signal("damage_dealt", target_id, hp_cost, false)
+			else:
+				target.current_sp = max(0, target.current_sp - my_card.tiring)
+				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
+		
+		# --- 4. STATUSES ---
+		for effect in my_card.statuses_to_apply:
+			var s_name = effect.get("name", "Unknown")
+			var s_val = effect.get("amount", 1)
+			var is_self = effect.get("self", false)
+			var dest_id = owner_id if is_self else target_id
+			
+			if not has_status(dest_id, s_name):
+				apply_status(dest_id, s_name, s_val)
+
+		# --- 5. OPENINGS / OPPORTUNITY ---
+		if my_card.create_opening > 0:
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
+			result["opening"] = my_card.create_opening
+		
+		if my_card.opportunity > 0:
+			result["opportunity"] = my_card.opportunity
+
+		# --- 6. APPLY DAMAGE AND THORNS ---
+		if net_damage > 0:
+			target.current_hp -= net_damage
+			emit_signal("damage_dealt", target_id, net_damage, false)
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
+			
+			# Trigger Thorns if the attack connects
+			if thorns_dmg > 0:
+				character.current_hp -= thorns_dmg
+				emit_signal("damage_dealt", owner_id, thorns_dmg, false)
+				emit_signal("combat_log_updated", ">> Spikes! P" + str(owner_id) + " took " + str(thorns_dmg) + " Thorns damage!")
+				
+				# Check if attacker died from Thorns
+				if character.current_hp <= 0:
+					result["fatal"] = true
+					return result
+					
+		elif total_damage > 0:
+			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
+			emit_signal("damage_dealt", target_id, 0, true)
+
+		# --- 7. RETALIATE (REFLECT DAMAGE) ---
+		if total_damage > 0 and enemy_card.retaliate:
+			var raw_recoil = total_damage
+			# Notice the attacker's equipment block modifier applies to incoming reflect damage!
+			var self_block = my_card.block_value + my_card.dodge_value + attacker_block_mod 
+			var net_recoil = max(0, raw_recoil - self_block)
+			
+			if net_recoil > 0:
+				character.current_hp -= net_recoil
+				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
+				
+				# Check if attacker died from Retaliate
+				if character.current_hp <= 0:
+					result["fatal"] = true
+					return result
+			else:
+				emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
+
+		# --- 8. FATALITY CHECK ---
+		if target.current_hp <= 0:
+			result["fatal"] = true
+			return result
+			
+	RunManager.check_danger_state()		
+	return result
+
+# ==============================================================================
+# HELPER FUNCTIONS
+# ==============================================================================
+
+func _calculate_projected_momentum(player_id: int, card: ActionData, is_active: bool) -> int:
+	if not is_active: return 0
+	var opp_val = _get_opportunity_value(player_id)
+	var single_gain = card.momentum_gain + opp_val
+	var total_gain = single_gain * max(1, card.repeat_count)
+	return total_gain
+
+func _get_opportunity_value(player_id: int) -> int:
+	return p1_opportunity_stat if player_id == 1 else p2_opportunity_stat
+
+func _pay_cost(player_id: int, card: ActionData) -> bool:
+	var character = p1_data if player_id == 1 else p2_data
+	var is_free = (p1_locked_card != null if player_id == 1 else p2_locked_card != null)
+	var rage_is_on = (p1_rage_active if player_id == 1 else p2_rage_active)
+	
+	var raw_cost = card.cost
+	var opp_val = _get_opportunity_value(player_id)
+	var effective_single_cost = max(0, raw_cost - opp_val)
+	var total_reps = max(1, card.repeat_count)
+	var total_cost = effective_single_cost * total_reps
+	
+	if is_free: total_cost = 0
+	
+	if rage_is_on and character.can_pay_with_hp:
+		if character.current_hp > total_cost:
+			character.current_hp -= total_cost
+			emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
+			emit_signal("damage_dealt", player_id, total_cost, false)
+			return true
+		else:
+			emit_signal("combat_log_updated", ">> RAGE failed! Not enough HP.")
+			return false
+	
+	if character.current_sp >= total_cost:
+		character.current_sp -= total_cost
+		return true
+	else:
+		if character.can_pay_with_hp:
+			if (character.current_sp + character.current_hp) > total_cost:
+				var sp_avail = character.current_sp
+				var hp_cost = total_cost - sp_avail
+				character.current_sp = 0
+				character.current_hp -= hp_cost
+				emit_signal("combat_log_updated", ">> Rage! P" + str(player_id) + " pays " + str(hp_cost) + " HP for action.")
+				emit_signal("damage_dealt", player_id, hp_cost, false)
+				return true
+		
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
+		return false
+
+# Change arguments from '_p1_started_injured' to 'p1_started_injured' (remove underscores)
+func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
+	# We iterate through players to apply End-of-Turn effects
+	for id in [1, 2]:
+		var player = p1_data if id == 1 else p2_data
+		var started_injured = p1_started_injured if id == 1 else p2_started_injured
+		
+		# Check every status this player has
+		for s_name in player.statuses.keys():
+			match s_name:
+				"Injured":
+					if started_injured:
+						player.current_hp -= 1
+						emit_signal("combat_log_updated", ">> P" + str(id) + " suffers Injury damage!")
+						emit_signal("damage_dealt", id, 1, false)
+				"Poison":
+					# EXAMPLE: Future proofing!
+					var stacks = player.statuses["Poison"]
+					player.current_hp -= stacks
+					emit_signal("combat_log_updated", ">> P" + str(id) + " takes Poison dmg!")
+					# Decay poison?
+					# player.statuses["Poison"] -= 1
+					
+		if player.current_hp <= 0:
+			_handle_death(winner_id)
+			return
+
+func _handle_death(winner_id):
+	var game_winner = 0
+	if p1_data.current_hp > 0: game_winner = 1
+	elif p2_data.current_hp > 0: game_winner = 2
+	else: game_winner = winner_id 
+	
+	# --- NEW: HEAL ON WIN (EQUIPMENT) ---
+	if game_winner == 1 and RunManager.player_run_data:
+		var heal_amt = 0
+		for eq in RunManager.player_run_data.equipment:
+			heal_amt += eq.heal_on_win
+		
+		if heal_amt > 0:
+			# Apply healing, making sure not to exceed Max HP
+			p1_data.current_hp = min(p1_data.current_hp + heal_amt, p1_data.max_hp)
+			
+			emit_signal("combat_log_updated", ">> Victory Sustain! Recovered " + str(heal_amt) + " HP.")
+			print("Victory Heal: +%d HP" % heal_amt)
+	# ------------------------------------
+	
+	emit_signal("game_over", game_winner)
+	
+	# REMOVED: reset_combat() 
+	# We want the stats to stay at 0 so the player can see the final board state.
+
+func _check_reversal_state():
+	var active_attacker = get_attacker()
+	
+	if attacker_override != 0:
+		current_combo_attacker = attacker_override 
+		if attacker_override == 1: p2_must_opener = true
+		else: p1_must_opener = true
+		return
+
+	if active_attacker != 0:
+		var att_data = p1_data if active_attacker == 1 else p2_data
+		if att_data.current_sp <= 0:
+			emit_signal("combat_log_updated", ">> Attacker Out of SP. Combo Ends.")
+			current_combo_attacker = 0 
+		else:
+			current_combo_attacker = active_attacker
+	else:
+		current_combo_attacker = 0
+
+func _handle_locks(winner_id):
+	p1_locked_card = null; p2_locked_card = null
+	var winner_card = p1_action_queue if winner_id == 1 else p2_action_queue
+	var loser_card_obj = p2_action_queue if winner_id == 1 else p1_action_queue 
+	if winner_card.multi_limit > 0:
+		emit_signal("combat_log_updated", "Multi Triggered! Loser Locked.")
+		if winner_id == 1: p2_locked_card = loser_card_obj
+		else: p1_locked_card = loser_card_obj
+
+func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bool, p2_parry_win: bool):
+	var next_p1_limit = 99; var next_p2_limit = 99
+	var next_p1_opening = 0; var next_p2_opening = 0
+	p1_must_opener = false; p2_must_opener = false
+	
+	if p1_res["opening"] > 0:
+		next_p2_limit = min(next_p2_limit, p1_res["opening"]) 
+		next_p1_opening = p1_res["opening"] 
+	if p2_res["opening"] > 0:
+		next_p1_limit = min(next_p1_limit, p2_res["opening"])
+		next_p2_opening = p2_res["opening"]
+	
+	if p1_card.multi_limit > 0: next_p1_limit = min(next_p1_limit, p1_card.multi_limit)
+	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
+		
+	if p1_parry_win:
+		p2_must_opener = true
+		emit_signal("combat_log_updated", ">> P2 is unbalanced! Must use Opener next turn.")
+	if p2_parry_win:
+		p1_must_opener = true
+		emit_signal("combat_log_updated", ">> P1 is unbalanced! Must use Opener next turn.")
+
+	p1_cost_limit = next_p1_limit
+	p2_cost_limit = next_p2_limit
+	p1_opening_stat = next_p1_opening
+	p2_opening_stat = next_p2_opening
+
+	p1_opportunity_stat = p1_res["opportunity"]
+	p2_opportunity_stat = p2_res["opportunity"]
+	
+	if p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity.")
+	if p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity.")
+
+func swap_priority():
+	priority_player = 3 - priority_player
+
+func get_player(id: int) -> CharacterData:
+	return p1_data if id == 1 else p2_data
+
+func get_opponent(id: int) -> CharacterData:
+	return p2_data if id == 1 else p1_data
+
+func is_p1_attacker() -> bool:
+	if attacker_override == 1: return true
+	if attacker_override == 2: return false
+	if momentum == 0: return true
+	return momentum <= MOMENTUM_P1_MAX
+
+func clamp_momentum(val: int) -> int:
+	return clampi(val, 1, TOTAL_MOMENTUM_SLOTS)
+
+func get_advantage_momentum(player_id: int) -> int:
+	if player_id == 1:
+		return max(1, MOMENTUM_P1_MAX - 1)
+	else:
+		return min(TOTAL_MOMENTUM_SLOTS, MOMENTUM_P2_START + 1)
+
+func get_wall_momentum(player_id: int) -> int:
+	if player_id == 1: return 1
+	else: return TOTAL_MOMENTUM_SLOTS
+
+func apply_environment_rules(env_type: String):
+	current_environment_name = env_type
+	match env_type:
+		"Ring": TOTAL_MOMENTUM_SLOTS = 6
+		"Dojo": TOTAL_MOMENTUM_SLOTS = 8
+		"Street": TOTAL_MOMENTUM_SLOTS = 10
+		_: TOTAL_MOMENTUM_SLOTS = 8 
+			
+	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
+	MOMENTUM_P2_START = MOMENTUM_P1_MAX + 1
+	
+	print(">>> ENVIRONMENT SET: " + env_type + " (Momentum: " + str(TOTAL_MOMENTUM_SLOTS) + ")")
+
+func _handle_patient_passive(player_id: int, card: ActionData):
+	var character = p1_data if player_id == 1 else p2_data
+	if not character.has_bide_mechanic: return
+	var consumed_buff = false
+	
+	if character.patient_buff_active:
+		card.damage += 1
+		character.patient_buff_active = false 
+		consumed_buff = true
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " BIDE Unleashed! (+1 Dmg)")
+		
+	var total_fb = card.fall_back_value
+	if total_fb > 0 and not consumed_buff:
+		character.patient_buff_active = true
+		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Bides their time... (Next Action Buffed)")
+
+func get_struggle_action(force_type: ActionData.Type) -> ActionData:
+	var action = ActionData.new()
+	action.display_name = "Struggle"
+	action.is_struggle = true
+	action.description = "Offence, Defence, Recover 1, Fall Back 2"
+	action.type = force_type
+	action.cost = 0
+	
+	# Stats: Recover 1, Fall Back 1
+	# Note: Defence actions naturally get +1 Recover in the rules, 
+	# so Struggle (Def) will actually recover 2 SP, which makes sense (catching breath).
+	action.recover_value = 1 
+	action.fall_back_value = 2
+	
+	return action
+
+func apply_status(target_id: int, status_name: String, value: int = 1):
+	var target = p1_data if target_id == 1 else p2_data
+	
+	# Logic: If already exists, you might want to stack it or refresh it.
+	# For "Injured", it's just a binary state (1), so overwriting is fine.
+	target.statuses[status_name] = value
+	
+	emit_signal("status_applied", target_id, status_name)
+	emit_signal("combat_log_updated", ">> P" + str(target_id) + " gained status: " + status_name)
+
+func has_status(target_id: int, status_name: String) -> bool:
+	var target = p1_data if target_id == 1 else p2_data
+	return target.statuses.has(status_name)
+
+func remove_status(target_id: int, status_name: String):
+	var target = p1_data if target_id == 1 else p2_data
+	if target.statuses.has(status_name):
+		target.statuses.erase(status_name)
+		emit_signal("status_applied", target_id, "CURED") # Generic cure msg
+
+func _load_backgrounds():
+	var path = "res://Art/Background/"
+	var dir = DirAccess.open(path)
+	
+	if dir:
+		dir.list_dir_begin()
+		var file_name = dir.get_next()
+		
+		while file_name != "":
+			if not dir.current_is_dir():
+				# EXPORT FIX: Strip the .import or .remap extensions Godot adds during export
+				var clean_name = file_name.replace(".import", "").replace(".remap", "")
+				
+				if clean_name.ends_with(".png") or clean_name.ends_with(".jpg"):
+					var key = clean_name.get_basename()
+					
+					# Make sure we don't load the same file twice 
+					if not environment_backgrounds.has(key):
+						# load() expects the original clean name!
+						environment_backgrounds[key] = load(path + clean_name)
+						print(">> Loaded Environment Art: " + key)
+			
+			file_name = dir.get_next()
+	else:
+		print("ERROR: Could not find 'res://Art/Background/' folder.")
+
+# --- NEW: DYNAMIC MUSIC LOGIC ---
+# Inside GameManager.gd
+
+# Inside GameManager.gd -> _update_dynamic_music()
+
+func _update_dynamic_music():
+	if p1_data.max_hp <= 0: return
+	
+	var hp_percent = float(p1_data.current_hp) / float(p1_data.max_hp)
+	
+	if hp_percent <= 0.33:
+		# --- LAST STAND MODE ---
+		# 1. Audio: Drop intensity to Layer 2
+		AudioManager.set_music_intensity(0.5, 1.5) 
+		
+		# 2. Visual: Increase Vignette (Tunnel Vision)
+		if GlobalCinematics.has_method("set_danger_vignette"):
+			GlobalCinematics.set_danger_vignette(true)
+			
+	else:
+		# --- NORMAL MODE ---
+		# 1. Audio: Full Intensity
+		AudioManager.set_music_intensity(1.0, 2.0)
+		
+		# 2. Visual: Reset Vignette
+		if GlobalCinematics.has_method("set_danger_vignette"):
+			GlobalCinematics.set_danger_vignette(false)
+
+
+============================================================
 FILE: .\Scripts\TestArena.gd
 ============================================================
 extends Node2D
@@ -1802,6 +2474,10 @@ var p1_last_cost: int = 0      # Track if player is tired
 # NEW: Preload the Game Over Screen
 var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
 var game_over_screen
+var local_player_id: int = 1 # Defaults to 1, but changes based on network
+
+# NEW: Server Memory for incoming card selections
+var server_received_inputs: Dictionary = {}
 
 @onready var battle_ui = $BattleUI
 var _simulation_active: bool = true
@@ -1809,7 +2485,7 @@ var _current_input_player: int = 1
 @onready var tutorial_layer = $"../TutorialLayer" # Grabs it from the MainScene
 
 func _ready():
-# --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
+	# --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
 	var go_layer = CanvasLayer.new()
 	go_layer.layer = 100 # Put it above everything else
 	add_child(go_layer)
@@ -1819,10 +2495,8 @@ func _ready():
 	game_over_screen.process_mode = Node.PROCESS_MODE_ALWAYS # Keep buttons active
 	go_layer.add_child(game_over_screen)
 	# ------------------------------------------------------
-	# 1. UI SETUP
-	# Since BattleUI is already in the scene tree, we just wait for it to be ready.
-	# We DO NOT instantiate() it or add_child() it again.
 	
+	# 1. UI SETUP
 	# Wait one frame to ensure the UI's own _ready() has finished setting up nodes
 	await get_tree().process_frame
 	
@@ -1838,20 +2512,39 @@ func _ready():
 		
 	if GameManager.next_match_p2_data != null:
 		p2_resource = GameManager.next_match_p2_data
+		
+	# 3. DETERMINE HUMAN/AI STATUS & NETWORK ID
+	is_player_1_human = true 
+	is_player_2_human = false
+	local_player_id = 1 # Default for solo play
 	
-	# 3. DETERMINE HUMAN/AI STATUS
-	is_player_1_human = true # P1 is always human
+	# We grab the ID once up here so we can use it throughout the function
+	var my_id = 1 
+	if multiplayer.has_multiplayer_peer():
+		my_id = multiplayer.get_unique_id()
 	
-	# Logic: If Arcade Mode -> AI. If Custom Mode & P2 Toggle was Human -> Human.
-	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
-		is_player_2_human = true
-		print("TestArena: P2 set to HUMAN")
-	else:
-		is_player_2_human = false
-		print("TestArena: P2 set to AI")
+	# If we are connected to a network session, override the settings!
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+		is_player_2_human = true # Both players are human now
+		
+		# --- THE FIX: IDENTIFY BASED ON NETWORK IDs ---
+		if my_id == GameManager.p1_network_id:
+			local_player_id = 1
+			print("--- MULTIPLAYER ENGAGED! I am Player 1 ---")
+			
+		elif my_id == GameManager.p2_network_id:
+			local_player_id = 2
+			print("--- MULTIPLAYER ENGAGED! I am Player 2 ---")
+			
+		else:
+			local_player_id = 0 # The dedicated server
+			print("--- MULTIPLAYER ENGAGED! I am the Referee ---")
+		# ----------------------------------------------
+			
+	elif not RunManager.is_arcade_mode and GameManager.p2_is_custom:
+		is_player_2_human = true # Local split-keyboard mode
 
 	# 4. CONNECT SIGNALS
-	# Note: We check if connections exist to avoid errors if _ready runs twice (rare but safe)
 	if not GameManager.state_changed.is_connected(_on_state_changed):
 		GameManager.state_changed.connect(_on_state_changed)
 		GameManager.combat_log_updated.connect(_on_log_updated)
@@ -1862,24 +2555,43 @@ func _ready():
 	if not battle_ui.human_selected_card.is_connected(_on_human_input_received):
 		battle_ui.human_selected_card.connect(_on_human_input_received)
 	
-	# Connect Debug Toggles
 	if not battle_ui.p1_mode_toggled.is_connected(_on_p1_mode_toggled):
 		battle_ui.p1_mode_toggled.connect(_on_p1_mode_toggled)
 		battle_ui.p2_mode_toggled.connect(_on_p2_mode_toggled)
 	
 	# 5. INITIALIZE UI ELEMENTS
-	battle_ui.load_deck(p1_resource.deck)
+	# --- FIX: Give the UI the correct deck based on our Network ID ---
+	if my_id == GameManager.p1_network_id:
+		battle_ui.load_deck(p1_resource.deck) 
+	elif my_id == GameManager.p2_network_id:
+		battle_ui.load_deck(p2_resource.deck) 
+	else:
+		# If you are testing solo (offline), default to Player 1's deck
+		battle_ui.load_deck(p1_resource.deck)
+	# -----------------------------------------------------------------
 	
 	print("--- INITIALIZING MATCH ---")
-	GameManager.start_combat(p1_resource, p2_resource)
+	
+	# We prepare the stats, but we DO NOT let start_combat() change the state yet!
+	GameManager.p1_data = p1_resource
+	GameManager.p2_data = p2_resource
+	GameManager.reset_combat() 
 	
 	# 6. SETUP VISUALS & TOGGLES
 	battle_ui.initialize_hud(p1_resource, p2_resource)
-	
-	# Pass the calculated booleans so the checkboxes match the game state
 	battle_ui.setup_toggles(is_player_1_human, is_player_2_human)
 	
-	# 7. UPDATE NAME TAGS BASED ON DIFFICULTY
+	# 7. THE SYNC FIX!
+	# Tell the server we are done building our UI and are ready to play
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+		if not multiplayer.is_server():
+			print("Waiting for opponent to load the arena...")
+			NetworkManager.rpc_id(1, "client_finished_loading")
+	else:
+		# If we are offline/local, just start immediately
+		GameManager.change_state(GameManager.State.SELECTION)
+	
+	# 8. UPDATE NAME TAGS BASED ON DIFFICULTY
 	var diff_suffix = ""
 	match GameManager.ai_difficulty:
 		GameManager.Difficulty.VERY_EASY: diff_suffix = " (V)"
@@ -1934,6 +2646,12 @@ func _check_mid_turn_state_change(player_id: int, is_human: bool):
 
 func _on_state_changed(new_state):
 	if not _simulation_active: return
+	
+	# --- THE SAFETY NET: Check the funnel whenever the Server arrives at a decision phase ---
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		if new_state == GameManager.State.SELECTION or new_state == GameManager.State.FEINT_CHECK:
+			_check_server_funnel()
+	# ----------------------------------------------------------------------------------------
 
 	match new_state:
 		GameManager.State.SELECTION:
@@ -1953,20 +2671,32 @@ func _on_state_changed(new_state):
 			_print_status_report()
 
 func _start_turn_sequence():
-	if is_player_1_human: _prepare_human_turn(1)
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+		# ONLINE: Both players take their turns at the exact same time!
+		if local_player_id == 1 or local_player_id == 2:
+			_prepare_human_turn(local_player_id)
 	else:
-		print("\n| --- NEW TURN: AI P1 --- |")
-		_run_bot_turn(1)
+		# OFFLINE: Sequential turns (P1 goes, then P2)
+		if is_player_1_human: _prepare_human_turn(1)
+		else:
+			print("\n| --- NEW TURN: AI P1 --- |")
+			_run_bot_turn(1)
 
 func _start_feint_input():
 	if GameManager.p1_pending_feint:
 		print("| --- WAITING FOR P1 FEINT SELECTION --- |")
-		if is_player_1_human: _prepare_human_turn(1)
-		else: _run_bot_turn(1)
+		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+			if local_player_id == 1: _prepare_human_turn(1)
+		else:
+			if is_player_1_human: _prepare_human_turn(1)
+			else: _run_bot_turn(1)
 	elif GameManager.p2_pending_feint:
 		print("| --- WAITING FOR P2 FEINT SELECTION --- |")
-		if is_player_2_human: _prepare_human_turn(2)
-		else: _run_bot_turn(2)
+		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+			if local_player_id == 2: _prepare_human_turn(2)
+		else:
+			if is_player_2_human: _prepare_human_turn(2)
+			else: _run_bot_turn(2)
 
 func _get_player_constraints(player_id: int) -> Dictionary:
 	# This function asks GameManager who is attacking. 
@@ -2049,75 +2779,136 @@ func _prepare_human_turn(player_id: int):
 	_update_visuals() 
 	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
 	
-	# 2. MAKE THE GRID VISIBLE
-	battle_ui.unlock_for_input(
-		c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
-		c.can_use_super, c.opportunity_stat, is_feinting
-	)
-	
-	# --- THE FIX: WAIT FOR THE UI TO DRAW ---
-	# We wait two frames so Godot can calculate the exact pixel sizes 
-	# and positions of the cards before the spotlight tries to find them!
-	await get_tree().process_frame
-	await get_tree().process_frame
-	# ----------------------------------------
-	
-	# --- 3. TUTORIAL PAUSE & POPUP ---
-	if TutorialManager.is_tutorial_active and player_id == 1:
-		battle_ui.is_locked = true # Prevent clicking while reading!
+	# 2. MAKE THE GRID VISIBLE (But only if it's MY turn!)
+	if player_id == local_player_id:
+		battle_ui.unlock_for_input(
+			c.required_tab, character.current_sp, character.current_hp, c.needs_opener, c.max_cost, c.opening_stat,
+			c.can_use_super, c.opportunity_stat, is_feinting
+		)
 		
-		# THE FIX: If this is the very first message, wait 1 second for 
-		# the SceneLoader to finish fading the screen in before we pause!
-		if TutorialManager.current_step == 0:
-			await get_tree().create_timer(1.0).timeout
-			# We also need these two frames again just in case
-			await get_tree().process_frame
-			await get_tree().process_frame
+		# --- THE FIX: WAIT FOR THE UI TO DRAW ---
+		# We wait two frames so Godot can calculate the exact pixel sizes 
+		# and positions of the cards before the spotlight tries to find them!
+		await get_tree().process_frame
+		await get_tree().process_frame
+		# ----------------------------------------
 		
-		var tut_data = TutorialManager.get_current_data()
-		if tut_data.has("sensei_text"):
-			var highlight_str = tut_data.get("highlight", "")
-			var highlight_node: Control = null
+		# --- 3. TUTORIAL PAUSE & POPUP ---
+		if TutorialManager.is_tutorial_active and player_id == 1:
+			battle_ui.is_locked = true # Prevent clicking while reading!
 			
-			# Map the string to the ACTUAL node here in the Arena!
-			# --- UPGRADED TRANSLATOR ---
-			if highlight_str == "hand": 
-				highlight_node = battle_ui.button_grid
-			elif highlight_str == "momentum" or highlight_str == "wall": 
-				highlight_node = battle_ui.momentum_slider
+			# THE FIX: If this is the very first message, wait 1 second for 
+			# the SceneLoader to finish fading the screen in before we pause!
+			if TutorialManager.current_step == 0:
+				await get_tree().create_timer(1.0).timeout
+				# We also need these two frames again just in case
+				await get_tree().process_frame
+				await get_tree().process_frame
 			
-			# NEW: Support "card:Name"
-			elif highlight_str.begins_with("card:"):
-				var target_card_name = highlight_str.replace("card:", "")
-				highlight_node = _get_button_for_card(target_card_name)
-			# ---------------------------
-			
-			tutorial_layer.show_message(tut_data["sensei_text"], highlight_node)
-			# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
-			await tutorial_layer.tutorial_message_closed
-			
-		battle_ui.is_locked = false # Re-enable clicking so they can play the card
-	# -----------------------------------
+			var tut_data = TutorialManager.get_current_data()
+			if tut_data.has("sensei_text"):
+				var highlight_str = tut_data.get("highlight", "")
+				var highlight_node: Control = null
+				
+				# Map the string to the ACTUAL node here in the Arena!
+				# --- UPGRADED TRANSLATOR ---
+				if highlight_str == "hand": 
+					highlight_node = battle_ui.button_grid
+				elif highlight_str == "momentum" or highlight_str == "wall": 
+					highlight_node = battle_ui.momentum_slider
+				
+				# NEW: Support "card:Name"
+				elif highlight_str.begins_with("card:"):
+					var target_card_name = highlight_str.replace("card:", "")
+					highlight_node = _get_button_for_card(target_card_name)
+				# ---------------------------
+				
+				tutorial_layer.show_message(tut_data["sensei_text"], highlight_node)
+				# PAUSE EXECUTION UNTIL THE PLAYER CLICKS CONTINUE
+				await tutorial_layer.tutorial_message_closed
+				
+			battle_ui.is_locked = false # Re-enable clicking so they can play the card
+		# -----------------------------------
+	else:
+		# It is the opponent's turn. Lock our screen.
+		battle_ui.lock_ui()
+		print("Waiting for Opponent to choose...")
 
-func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}): # Updated Signature
-	print(">>> P" + str(_current_input_player) + " COMMITTED: " + card.display_name)
+func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}):
+	var card_name = ""
+	if card != null:
+		card_name = card.display_name
+		
+	# --- SYNC FIX: Route all input to the invisible referee! ---
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		rpc_id(1, "server_receive_input", _current_input_player, card_name, extra_data)
+	else:
+		# Offline fallback
+		server_receive_input(_current_input_player, card_name, extra_data)
+
+@rpc("any_peer", "call_local", "reliable")
+func server_receive_input(player_id: int, card_name: String, extra_data: Dictionary):
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
+		
+	var str_id = str(player_id)
+	server_received_inputs[str_id] = { "card": card_name, "extra": extra_data }
+	print("📥 [SERVER FUNNEL] Received P", player_id)
 	
-	var action_to_submit = card
-	if card.display_name == "SKIP FEINT": action_to_submit = null
+	# Ask the funnel if we have what we need
+	_check_server_funnel()
 	
-	# Pass the extra data (toggles) to GameManager
-	GameManager.player_select_action(_current_input_player, action_to_submit, extra_data)
-	
-	if GameManager.current_state == GameManager.State.SELECTION:
-		if _current_input_player == 1:
+	# OFFLINE FALLBACK
+	if not multiplayer.has_multiplayer_peer() or multiplayer.get_peers().size() == 0:
+		if player_id == 1:
 			if is_player_2_human:
 				await get_tree().create_timer(0.2).timeout
 				_prepare_human_turn(2)
-			else: _run_bot_turn(2)
-				
+			else:
+				_run_bot_turn(2)
+
+func _check_server_funnel():
+	var inputs_ready = false
+	
+	if GameManager.current_state == GameManager.State.SELECTION:
+		# Standard Turn: We absolutely need BOTH inputs
+		if server_received_inputs.has("1") and server_received_inputs.has("2"): 
+			inputs_ready = true
+			
 	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
-		await get_tree().create_timer(0.2).timeout
-		_start_feint_input() 
+		var is_ready = true
+		if GameManager.p1_pending_feint and not server_received_inputs.has("1"): is_ready = false
+		if GameManager.p2_pending_feint and not server_received_inputs.has("2"): is_ready = false
+		inputs_ready = is_ready
+		
+	if inputs_ready:
+		print("🚀 [SERVER FUNNEL] Ready! Blasting to clients...")
+		rpc("client_execute_turn", server_received_inputs.duplicate())
+		server_received_inputs.clear()
+
+@rpc("authority", "call_local", "reliable")
+func client_execute_turn(inputs: Dictionary):
+	print(">>> NETWORK SYNC: Executing Turn Data!")
+	
+	# --- THE FIX: Safely grab the data using String keys (with int fallback just in case) ---
+	var p1_data = inputs.get("1", inputs.get(1))
+	if p1_data != null:
+		var action = _get_action_to_submit(1, p1_data.card)
+		GameManager.player_select_action(1, action, p1_data.extra)
+		
+	var p2_data = inputs.get("2", inputs.get(2))
+	if p2_data != null:
+		var action = _get_action_to_submit(2, p2_data.card)
+		GameManager.player_select_action(2, action, p2_data.extra)
+
+func _get_action_to_submit(player_id: int, card_name: String) -> ActionData:
+	if card_name == "SKIP FEINT" or card_name == "": return null
+	var character = p1_resource if player_id == 1 else p2_resource
+	if card_name == "Struggle":
+		var is_offence = (GameManager.get_attacker() == player_id)
+		var type = ActionData.Type.OFFENCE if is_offence else ActionData.Type.DEFENCE
+		return GameManager.get_struggle_action(type)
+	return _find_card_by_name(character, card_name)
 
 func _run_bot_turn(player_id: int):
 	_current_input_player = player_id 
@@ -2143,17 +2934,9 @@ func _run_bot_turn(player_id: int):
 	# --------------------------------
 
 	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
-	GameManager.player_select_action(player_id, card)
+	server_receive_input(player_id, card.display_name, {})
 	
-	if GameManager.current_state == GameManager.State.SELECTION: _handle_bot_completion(player_id)
-	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
-		await get_tree().create_timer(0.2).timeout
-		_start_feint_input()
 
-func _handle_bot_completion(player_id):
-	if player_id == 1:
-		if is_player_2_human: _prepare_human_turn(2)
-		else: _run_bot_turn(2)
 
 # TestArena.gd
 
@@ -2458,216 +3241,4 @@ func _get_button_for_card(card_name: String) -> Control:
 		if btn.get("my_action") and btn.my_action.display_name == card_name:
 			return btn
 	return null
-
-
-============================================================
-FILE: .\Scripts\VsScreen.gd
-============================================================
-extends Control
-
-@onready var background = $Background
-@onready var content = $Content
-
-# --- NEW CINEMATIC NODES ---
-@onready var flash_overlay = $FlashOverlay
-@onready var top_bar = $TopLetterbox
-@onready var bottom_bar = $BottomLetterbox
-
-# --- PLAYER 1 NODES ---
-@onready var p1_container = $Content/P1_Container
-@onready var p1_portrait = $Content/P1_Container/Portrait
-@onready var p1_name = $Content/P1_Container/InfoBox/VBoxContainer/NameLabel
-@onready var p1_class = $Content/P1_Container/InfoBox/VBoxContainer/ClassLabel
-@onready var p1_hp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
-@onready var p1_sp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
-@onready var p1_bubble = $Content/P1_Container/PanelContainer/SpeechBubble
-
-# --- PLAYER 2 NODES ---
-@onready var p2_container = $Content/P2_Container
-@onready var p2_portrait = $Content/P2_Container/Portrait
-@onready var p2_name = $Content/P2_Container/InfoBox/VBoxContainer/NameLabel
-@onready var p2_class = $Content/P2_Container/InfoBox/VBoxContainer/ClassLabel
-@onready var p2_hp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
-@onready var p2_sp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
-@onready var p2_bubble = $Content/P2_Container/PanelContainer/SpeechBubble
-
-@onready var vs_label = $Content/VsLabel
-@onready var arena_label = $ArenaLabel
-
-# --- PARALLAX SETTINGS ---
-var max_parallax: float = 20.0       # A good middle ground between menu and combat
-var parallax_smoothness: float = 4.0 
-var base_bg_pos: Vector2 = Vector2.ZERO
-
-func _ready():
-	# 1. Hide things before setup
-	p1_bubble.visible_ratio = 0.0 # Typewriter reset
-	p2_bubble.visible_ratio = 0.0
-	p1_bubble.get_parent().modulate.a = 0.0 # Reserve space, but make invisible
-	p2_bubble.get_parent().modulate.a = 0.0
-	flash_overlay.modulate.a = 0.0
-	
-	_setup_visuals()
-	
-	if has_node("P1_Name_Label"):
-		$P1_Name_Label.text = GameManager.next_match_p1_data.character_name
-		
-	if has_node("P2_Name_Label"):
-		$P2_Name_Label.text = GameManager.next_match_p2_data.character_name
-	
-	# Wait a frame to let Godot calculate the new Anchors
-	await get_tree().process_frame
-	
-	# --- SETUP PARALLAX VISUALS ---
-	if background:
-		var screen_size = get_viewport_rect().size
-		background.pivot_offset = screen_size / 2.0
-		background.scale = Vector2(1.05, 1.05)
-		base_bg_pos = background.position
-	# ------------------------------
-	
-	_play_intro_animation()
-	
-	# The intro takes about 4 seconds total, load fight after 5
-	await get_tree().create_timer(7.0).timeout
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
-
-func _setup_visuals():
-	var env_name = GameManager.current_environment_name
-	if GameManager.environment_backgrounds.has(env_name):
-		background.texture = GameManager.environment_backgrounds[env_name]
-	arena_label.text = "- " + env_name.to_upper() + " -"
-
-	var p1 = GameManager.next_match_p1_data
-	var p2 = GameManager.next_match_p2_data
-	
-	if RunManager.is_arcade_mode and RunManager.player_run_data:
-		p1 = RunManager.player_run_data
-
-	# -- Player 1 Data --
-	if p1:
-		if p1.portrait: p1_portrait.texture = p1.portrait
-		p1_name.text = p1.character_name
-		p1_class.text = CharacterData.ClassType.keys()[p1.class_type] if p1.class_type >= 0 else "UNKNOWN"
-		p1_hp.text = "HP: " + str(p1.max_hp)
-		p1_sp.text = "SP: " + str(p1.max_sp)
-
-	# -- Player 2 Data --
-	if p2:
-		if p2.portrait:
-			p2_portrait.texture = p2.portrait
-			p2_portrait.flip_h = true 
-		p2_name.text = p2.character_name
-		
-		if p2.character_name == "THE JUGGERNAUT": 
-			p2_class.text = "BOSS"
-			p2_class.modulate = Color.RED
-		else:
-			p2_class.text = CharacterData.ClassType.keys()[p2.class_type] if p2.class_type >= 0 else "UNKNOWN"
-		
-		p2_hp.text = "HP: " + str(p2.max_hp)
-		p2_sp.text = "SP: " + str(p2.max_sp)
-
-func _play_intro_animation():
-	var screen_w = get_viewport_rect().size.x
-	
-	# Reset states
-	vs_label.scale = Vector2.ZERO
-	p1_container.position.x = -p1_container.size.x
-	p2_container.position.x = screen_w
-	
-	# Push letterboxes offscreen initially
-	top_bar.position.y = -100
-	bottom_bar.position.y = get_viewport_rect().size.y
-	
-	# --- PHASE 1: THE CRASH ---
-	var tween = create_tween().set_parallel(true)
-	tween.set_trans(Tween.TRANS_EXPO).set_ease(Tween.EASE_OUT)
-	
-	# Characters slide in
-	tween.tween_property(p1_container, "position:x", 0, 0.8)
-	tween.tween_property(p2_container, "position:x", screen_w / 2, 0.8)
-	
-	# Cinematic bars slide in
-	tween.tween_property(top_bar, "position:y", 0, 0.8)
-	tween.tween_property(bottom_bar, "position:y", get_viewport_rect().size.y - 100, 0.8)
-	
-	# --- PHASE 2: IMPACT & FLASH (At 0.8s) ---
-	tween.set_parallel(false) # Sequence mode
-	tween.tween_interval(0.8)
-	
-	tween.tween_callback(func():
-		AudioManager.play_sfx("hit_heavy")
-		_shake_content(15.0, 0.5)
-		
-		# Flash White
-		var flash_tween = create_tween()
-		flash_overlay.modulate.a = 1.0
-		flash_tween.tween_property(flash_overlay, "modulate:a", 0.0, 0.5)
-	)
-	
-	# Pop the VS Label immediately after impact
-	tween.tween_property(vs_label, "scale", Vector2.ONE, 0.5).set_trans(Tween.TRANS_ELASTIC)
-	
-	# --- PHASE 3: DIALOGUE FETCH ---
-	var p1_data = GameManager.next_match_p1_data
-	var p2_data = GameManager.next_match_p2_data
-	var banter = DialogueManager.get_intro_banter(p1_data, p2_data)
-	
-	p1_bubble.text = banter["p1"]
-	
-	# --- NEW: RIVAL DIALOGUE OVERRIDE ---
-	if GameManager.rival_intro_override != "":
-		p2_bubble.text = GameManager.rival_intro_override
-	else:
-		p2_bubble.text = banter["p2"]
-	# ------------------------------------
-	
-	# --- PHASE 4: TYPEWRITER SEQUENCE ---
-	
-	# Player 1 Speaks
-	tween.tween_interval(0.2)
-	# Fade in the background panel smoothly
-	tween.tween_property(p1_bubble.get_parent(), "modulate:a", 1.0, 0.2) 
-	tween.tween_callback(func():
-		AudioManager.play_sfx("ui_click") # Typewriter sound
-	)
-	tween.tween_property(p1_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
-	
-	# Player 2 Speaks
-	tween.tween_interval(0.5)
-	# Fade in the background panel smoothly
-	tween.tween_property(p2_bubble.get_parent(), "modulate:a", 1.0, 0.2)
-	tween.tween_callback(func():
-		AudioManager.play_sfx("ui_click")
-	)
-	tween.tween_property(p2_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
-
-# Camera Shake effect for the Content layer
-func _shake_content(intensity: float, duration: float):
-	var original_pos = content.position
-	var shake_tween = create_tween()
-	
-	shake_tween.tween_method(func(val):
-		var offset = Vector2(randf_range(-val, val), randf_range(-val, val))
-		content.position = original_pos + offset
-	, intensity, 0.0, duration)
-	
-	shake_tween.tween_callback(func(): content.position = original_pos)
-
-func _process(delta):
-	# --- APPLY PARALLAX TO BACKGROUND ---
-	if background:
-		var screen_size = get_viewport_rect().size
-		var mouse_pos = get_viewport().get_mouse_position()
-		var center = screen_size / 2.0
-		
-		# Calculate offset
-		var offset_x = (mouse_pos.x - center.x) / center.x
-		var offset_y = (mouse_pos.y - center.y) / center.y
-		var mouse_offset = Vector2(offset_x, offset_y)
-		
-		# Apply target position
-		var target_pos = base_bg_pos - (mouse_offset * max_parallax)
-		background.position = background.position.lerp(target_pos, delta * parallax_smoothness)
 
