@@ -22,6 +22,10 @@ const TUTORIAL_TEXTS = [
 	{
 		"title": "COMPENDIUM",
 		"text": "Your ultimate knowledge base. Review the core rules of combat, look up what specific traits do, and browse the entire library of available Action cards."
+	},
+	{
+		"title": "MULTIPLAYER",
+		"text": "Fight your friends online with preset characters, if Joel has the server running!"
 	}
 ]
 
@@ -68,7 +72,12 @@ func _ready():
 			"title": "COMPENDIUM",
 			"scene_path": "res://Scenes/compendium.tscn", 
 			"bg_path": "res://Art/Background/Street.png"
-		}
+		},
+		{
+			"title": "MULTIPLAYER",
+			"scene_path": "res://Scenes/Multi.tscn", 
+			"bg_path": "res://Art/Background/Ring.png"
+		},
 	]
 	
 	btn_left.pressed.connect(func(): _change_slide(-1))

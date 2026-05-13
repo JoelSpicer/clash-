@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="PresetCharacter" format=3 uid="uid://l6jcv430fr1u"]
+
+[ext_resource type="Script" uid="uid://l0hennmoy7yn" path="res://Scripts/Resources/PresetCharacter.gd" id="1_x2rs0"]
+
+[resource]
+script = ExtResource("1_x2rs0")
+character_name = "Basic Bob (Technical)"
+class_type = 3
+description = "Only the basics"
+metadata/_custom_type_script = "uid://l0hennmoy7yn"

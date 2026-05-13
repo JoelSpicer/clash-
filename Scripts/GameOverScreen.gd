@@ -89,10 +89,10 @@ func _on_main_action():
 			
 	# 2. QUICK MATCH LOGIC
 	else:
-		# --- NEW: Network Rematch Trigger ---
-		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
-			# Tell BOTH computers to run the rematch function
-			rpc("network_rematch")
+		# --- NEW: Dedicated Server Rematch Trigger ---
+		if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+			# For now, return to the lobby to guarantee a clean slate on the server
+			NetworkManager.rpc_id(1, "request_server_reset")
 		else:
 			AudioManager.reset_audio_state()
 			get_tree().paused = false
@@ -105,41 +105,14 @@ func _on_menu_pressed():
 	if RunManager.player_run_data:
 		RunManager.player_run_data = null 
 	
-	# --- NEW: Network Quit Trigger ---
-	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
-		# If one person leaves, tell BOTH computers to disconnect
-		rpc("network_quit")
+	# --- NEW: Dedicated Server Quit Trigger ---
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		# Ask the server to wipe its memory and send everyone back to the lobby
+		NetworkManager.rpc_id(1, "request_server_reset")
 	else:
 		get_tree().paused = false
 		SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
-# ==========================================
-# --- NETWORK RPC FUNCTIONS ---
-# ==========================================
-
-# "any_peer" means either the Host or the Client can click the button
-# "call_local" means the person who clicks it also runs the code locally
-@rpc("any_peer", "call_local", "reliable")
-func network_rematch():
-	print("Network Rematch Initiated!")
-	AudioManager.reset_audio_state()
-	get_tree().paused = false
-	# Using change_scene_to_file is safer than reload_current_scene for syncing
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn") 
-
-@rpc("any_peer", "call_local", "reliable")
-func network_quit():
-	print("Network Disconnect Initiated!")
-	AudioManager.reset_audio_state()
-	get_tree().paused = false
-	
-	# Destroy the multiplayer connection safely on both machines
-	multiplayer.multiplayer_peer = null
-	
-	# Return to your lobby scene (Change this to MainMenu.tscn if you prefer!)
-	SceneLoader.change_scene("res://Scenes/Multi.tscn") 
-
-# ==========================================
 
 func _on_view_pressed():
 	AudioManager.play_sfx("ui_click")

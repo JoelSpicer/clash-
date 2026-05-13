@@ -814,9 +814,23 @@ func _on_log_toggled(toggled_on: bool):
 	tween.tween_property(combat_log, "position:x", target_x, 0.4)
 	
 func play_clash_animation(p1_card: ActionData, p2_card: ActionData):
+
 	clash_layer.visible = true
-	left_card_display.set_card_data(p1_card)
-	right_card_display.set_card_data(p2_card)
+	
+	# THE FIX: Only set data if the card actually exists!
+	if p1_card != null: 
+		left_card_display.set_card_data(p1_card)
+		left_card_display.visible = true
+	else:
+		left_card_display.visible = false
+		
+	if p2_card != null: 
+		right_card_display.set_card_data(p2_card)
+		right_card_display.visible = true
+	else:
+		right_card_display.visible = false
+	
+	# ... (Keep the rest of your card_size, tweening, and hitstop logic the same) ...
 	
 	var card_size = Vector2(250, 350) 
 	left_card_display.custom_minimum_size = card_size

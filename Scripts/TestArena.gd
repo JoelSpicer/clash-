@@ -190,28 +190,28 @@ func _check_mid_turn_state_change(player_id: int, is_human: bool):
 
 func _on_state_changed(new_state):
 	if not _simulation_active: return
-	
-	# --- THE SAFETY NET: Check the funnel whenever the Server arrives at a decision phase ---
-	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		if new_state == GameManager.State.SELECTION or new_state == GameManager.State.FEINT_CHECK:
-			_check_server_funnel()
-	# ----------------------------------------------------------------------------------------
 
 	match new_state:
 		GameManager.State.SELECTION:
 			await get_tree().create_timer(0.5).timeout
 			_start_turn_sequence()
 			
+			# THE FIX: Only check the funnel AFTER the turn sequence has fully started!
+			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+				_check_server_funnel()
+				
 		GameManager.State.FEINT_CHECK:
 			await get_tree().create_timer(0.3).timeout
 			print("| --- FEINT PHASE --- |")
 			_start_feint_input()
+			
+			# THE FIX: Only check the funnel AFTER the feint sequence has fully started!
+			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+				_check_server_funnel()
 
 		GameManager.State.POST_CLASH:
-			# --- NEW: ADVANCE TUTORIAL ---
 			if TutorialManager.is_tutorial_active:
 				TutorialManager.advance_step()
-			# -----------------------------
 			_print_status_report()
 
 func _start_turn_sequence():
@@ -432,16 +432,19 @@ func _check_server_funnel():
 
 @rpc("authority", "call_local", "reliable")
 func client_execute_turn(inputs: Dictionary):
-	print(">>> NETWORK SYNC: Executing Turn Data!")
+	print(">>> NETWORK SYNC: Executing Turn Data Deterministically!")
 	
-	# Safely iterate through the keys, whether Godot sent them as Strings or Ints
-	for key in inputs.keys():
-		var p_id = int(str(key))
-		var data = inputs[key]
+	# 1. STRICT ORDER: Always process Player 1, then Player 2. 
+	# Do not trust the Dictionary keys() order!
+	for p_id in [1, 2]:
+		var str_id = str(p_id)
 		
-		if data != null:
-			var action = _get_action_to_submit(p_id, data.card)
-			GameManager.player_select_action(p_id, action, data.extra)
+		if inputs.has(str_id):
+			var data = inputs[str_id]
+			
+			if data != null:
+				var action = _get_action_to_submit(p_id, data.card)
+				GameManager.player_select_action(p_id, action, data.extra)
 
 func _get_action_to_submit(player_id: int, card_name: String) -> ActionData:
 	if card_name == "SKIP FEINT" or card_name == "": return null
