@@ -215,6 +215,10 @@ func _ready():
 		base_bg_pos = background.position
 	# ------------------------------
 	
+	# --- NEW: SHOW MULTIPLAYER IDENTITY ---
+	_show_player_identity_flash()
+	
+	
 	
 # --- DYNAMIC CAMERA PROCESS ---
 # --- DYNAMIC CAMERA PROCESS ---
@@ -998,9 +1002,24 @@ func _on_inspect_pressed():
 func _populate_enemy_deck():
 	for child in inspect_grid.get_children():
 		child.queue_free()
-	var p2 = GameManager.p2_data
-	if not p2: return
-	for card in p2.deck:
+		
+	# 1. Default to Player 2 (For Offline/Arcade Mode)
+	var opponent_data = GameManager.p2_data
+	
+	# 2. Multiplayer Override: If I am Player 2, look at Player 1 instead!
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
+		# Don't run this check on the headless server
+		if not multiplayer.is_server():
+			var my_id = multiplayer.get_unique_id()
+			if my_id == GameManager.p2_network_id:
+				opponent_data = GameManager.p1_data
+	
+	# 3. Safety check
+	if not opponent_data: 
+		return
+		
+	# 4. Populate the UI with the correct opponent's deck
+	for card in opponent_data.deck:
 		var card_disp = card_display_scene.instantiate()
 		inspect_grid.add_child(card_disp)
 		card_disp.set_card_data(card)
@@ -1115,3 +1134,61 @@ func _show_equip_tooltip(text: String, icon_node: Control):
 	tooltip_tween = create_tween().set_parallel(true).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	tooltip_tween.tween_property(tooltip_panel, "modulate:a", 1.0, 0.15)
 	tooltip_tween.tween_property(tooltip_panel, "global_position:y", final_y, 0.2)
+
+# ==========================================
+# --- MULTIPLAYER IDENTITY INDICATOR ---
+# ==========================================
+func _show_player_identity_flash():
+	# 1. Safety Checks: Only show this in an active online match (not offline/arcade)
+	if not multiplayer.has_multiplayer_peer() or multiplayer.get_peers().size() == 0:
+		return
+		
+	# The headless server doesn't have eyes, so it doesn't need to see this!
+	if multiplayer.is_server() or OS.get_cmdline_args().has("--server"):
+		return
+		
+	# 2. Figure out who we are by comparing our unique connection ID to the GameManager
+	var my_id = multiplayer.get_unique_id()
+	var is_p1 = (my_id == GameManager.p1_network_id)
+	
+	# 3. Create a massive label entirely through code
+	var flash_label = Label.new()
+	flash_label.text = "YOU ARE PLAYER 1\n(LEFT SIDE)" if is_p1 else "YOU ARE PLAYER 2\n(RIGHT SIDE)"
+	
+	# Center the text alignment
+	flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	flash_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	
+	# Make it look good (Big, Colored, with a Black Outline)
+	flash_label.add_theme_font_size_override("font_size", 64)
+	flash_label.add_theme_color_override("font_color", Color.CYAN if is_p1 else Color.RED)
+	flash_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	flash_label.add_theme_constant_override("outline_size", 12)
+	
+	# Make the label take up the whole screen so the text automatically centers perfectly
+	flash_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	
+	# Add it to the screen (on top of the background, but under the clash layer)
+	add_child(flash_label)
+	move_child(flash_label, 1) 
+	
+	# 4. Animate it! (Pop in, wait, fade out, then delete itself)
+	var tween = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	
+	# Start tiny and invisible
+	flash_label.scale = Vector2(0.5, 0.5)
+	flash_label.modulate.a = 0.0
+	flash_label.pivot_offset = get_viewport().get_visible_rect().size / 2.0
+	
+	# Pop in
+	tween.tween_property(flash_label, "scale", Vector2(1.0, 1.0), 0.4)
+	tween.parallel().tween_property(flash_label, "modulate:a", 1.0, 0.2)
+	
+	# Wait 2.5 seconds so they can read it
+	tween.tween_interval(2.5)
+	
+	# Fade out smoothly
+	tween.tween_property(flash_label, "modulate:a", 0.0, 0.5)
+	
+	# Delete the node from the game to free up memory
+	tween.tween_callback(flash_label.queue_free)

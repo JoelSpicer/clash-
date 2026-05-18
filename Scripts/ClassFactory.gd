@@ -308,7 +308,7 @@ func class_enum_to_string(type: int) -> String:
 	return "Enemy"
 	
 # Generates a fully playable CharacterData resource based on the chosen class
-func create_character(type: CharacterData.ClassType, player_name: String) -> CharacterData:
+func create_character(type: CharacterData.ClassType, player_name: String, bypass_deck_limit: bool = false) -> CharacterData:
 	if not class_registry.has(type): return null
 	
 	var def: ClassDefinition = class_registry[type]
@@ -324,7 +324,7 @@ func create_character(type: CharacterData.ClassType, player_name: String) -> Cha
 	char_data.passive_desc = def.passive_description
 	char_data.portrait = def.portrait
 	
-	# --- NEW: COPY PASSIVES ---
+	# --- COPY PASSIVES ---
 	char_data.can_pay_with_hp = def.can_pay_with_hp
 	char_data.tiring_drains_hp = def.tiring_drains_hp
 	char_data.combo_sp_recovery_rate = def.combo_sp_recovery_rate
@@ -335,8 +335,13 @@ func create_character(type: CharacterData.ClassType, player_name: String) -> Cha
 	# 2. Library (Duplicate the array so we don't modify the Resource)
 	char_data.unlocked_actions = get_starting_deck(type)
 	
-	# 3. Select Hand
-	char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
+	# --- 3. SELECT HAND (WITH MULTIPLAYER OVERRIDE) ---
+	if bypass_deck_limit:
+		# Give them absolutely everything in their library
+		char_data.deck = char_data.unlocked_actions.duplicate()
+	else:
+		# Standard 8-card cull for Bots/Arcade enemies
+		char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
 	
 	char_data.reset_stats()
 	return char_data
@@ -358,17 +363,19 @@ func get_starting_deck(type: CharacterData.ClassType) -> Array[ActionData]:
 			
 	return deck
 
-func create_from_preset(preset: PresetCharacter) -> CharacterData:
-	# 1. Start with the Base Class (Starters + Basic Actions)
-	var char_data = create_character(preset.class_type, preset.character_name)
+func create_from_preset(preset: PresetCharacter, bypass_deck_limit: bool = false) -> CharacterData:
+	# 1. Start with the Base Class, passing our limit override!
+	var char_data = create_character(preset.class_type, preset.character_name, bypass_deck_limit)
 	
 	# 2. Add the Extra Skills defined in the preset
 	for skill_name in preset.extra_skills:
 		var card = find_action_resource(skill_name)
 		if card:
-			# Avoid duplicates if necessary, or allow multiples if that's your game design
-			char_data.deck.append(card)
-			char_data.unlocked_actions.append(card)
+			# Safety check: Only append it if they don't already have it
+			if not _has_card(char_data.deck, card):
+				char_data.deck.append(card)
+			if not _has_card(char_data.unlocked_actions, card):
+				char_data.unlocked_actions.append(card)
 		else:
 			printerr("Warning: Preset '" + preset.character_name + "' could not find skill: " + skill_name)
 

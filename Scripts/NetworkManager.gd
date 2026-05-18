@@ -21,17 +21,23 @@ var anim_ready_players: Array[int] = []
 #endregion
 
 #region Initialization
+var heartbeat_timer: Timer
+
 func _ready() -> void:
-	# AUTO-DETECTION: Check if we are running on the Oracle Cloud
 	var is_headless: bool = DisplayServer.get_name() == "headless"
 	var has_server_arg: bool = OS.get_cmdline_args().has("--server")
 	
 	if is_headless or has_server_arg:
 		print("🤖 SERVER DETECTED (Headless: ", is_headless, ")")
-		# We wait 1 second to ensure Godot has fully initialized all background modules 
-		# before opening the network gate to the internet.
 		await get_tree().create_timer(1.0).timeout
 		start_server()
+
+	# --- NEW: THE NETWORK HEARTBEAT ---
+	heartbeat_timer = Timer.new()
+	heartbeat_timer.wait_time = 3.0 # Pulse every 3 seconds
+	heartbeat_timer.autostart = true
+	heartbeat_timer.timeout.connect(_send_heartbeat)
+	add_child(heartbeat_timer)
 #endregion
 
 #region Dedicated Server Logic
@@ -101,6 +107,10 @@ func join_server() -> void:
 func _on_kicked_by_server() -> void:
 	printerr("🚨 [CLIENT ALERT] The server closed our connection!")
 	_disconnect_local_peer()
+	
+	# --- THE STRANDED FIX ---
+	# If we lose connection, we MUST leave the Arena!
+	get_tree().change_scene_to_file("res://Scenes/Multi.tscn")
 #endregion
 
 #region Matchmaking Handshake
@@ -141,8 +151,9 @@ func start_match(p1_path: String, p2_path: String, p1_id: int, p2_id: int) -> vo
 	var p1_preset: Resource = load(p1_path)
 	var p2_preset: Resource = load(p2_path)
 	
-	GameManager.next_match_p1_data = ClassFactory.create_from_preset(p1_preset)
-	GameManager.next_match_p2_data = ClassFactory.create_from_preset(p2_preset)
+	# --- THE OVERRIDE: Pass 'true' to completely bypass the 8-card cull limit ---
+	GameManager.next_match_p1_data = ClassFactory.create_from_preset(p1_preset, true)
+	GameManager.next_match_p2_data = ClassFactory.create_from_preset(p2_preset, true)
 	
 	# Change the scene to the Arena
 	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
@@ -255,3 +266,18 @@ func _disconnect_local_peer() -> void:
 		peer.close()
 	multiplayer.multiplayer_peer = null
 #endregion
+
+# ==========================================
+# --- ANTI-IDLE HEARTBEAT ---
+# ==========================================
+
+func _send_heartbeat() -> void:
+	# Only clients need to pulse the server to keep the internet tunnel alive
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		if peer.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
+			rpc_id(1, "network_keep_alive")
+
+# We use "unreliable" so it doesn't slow down actual game traffic
+@rpc("any_peer", "call_remote", "unreliable")
+func network_keep_alive() -> void:
+	pass # The server does absolutely nothing. Receiving the packet is enough to reset the idle timer!
