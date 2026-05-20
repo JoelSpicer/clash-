@@ -363,8 +363,8 @@ func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	_populate_equipment(p1_data)
 
 func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int):
-	p1_hud.update_stats(p1, GameManager.p1_opportunity_stat, GameManager.p1_opening_stat, p1.patient_buff_active)
-	p2_hud.update_stats(p2, GameManager.p2_opportunity_stat, GameManager.p2_opening_stat, p2.patient_buff_active)
+	p1_hud.update_stats(p1, GameManager.state.p1_opportunity_stat, GameManager.state.p1_opening_stat, p1.patient_buff_active)
+	p2_hud.update_stats(p2, GameManager.state.p2_opportunity_stat, GameManager.state.p2_opening_stat, p2.patient_buff_active)
 	
 	update_momentum(momentum)
 
@@ -417,10 +417,10 @@ func load_deck(deck: Array[ActionData]):
 
 func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int, must_be_opener: bool = false, max_cost: int = 99, opening_val: int = 0, can_use_super: bool = false, opportunity_val: int = 0, is_feint_mode: bool = false):
 	
-	# --- NEW: If I am the invisible server, ignore this command completely! ---
-	if multiplayer.is_server() or OS.get_cmdline_args().has("--server"):
+	# --- FIXED: Only abort if we are TRULY the headless cloud server ---
+	if OS.get_cmdline_args().has("--server") or DisplayServer.get_name() == "headless":
 		return
-	# --------------------------------------------------------------------------
+		#---------------
 	
 	
 	button_grid.visible = true 
@@ -441,9 +441,9 @@ func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int
 			super_allowed = false
 			
 		# 2. Reveal Enemy Opener (Only triggers on Neutral/Start of fight)
-		if RunManager.active_sponsor.reveal_enemy_opener and GameManager.momentum == 0:
-			if GameManager.p2_action_queue:
-				_show_bark(2, "I'll open with " + GameManager.p2_action_queue.display_name + "!")
+		if RunManager.active_sponsor.reveal_enemy_opener and GameManager.state.momentum == 0:
+			if GameManager.state.p2_action_queue:
+				_show_bark(2, "I'll open with " + GameManager.state.p2_action_queue.display_name + "!")
 	# ----------------------------- 
 	
 	if forced_tab != null:
@@ -482,8 +482,8 @@ func _refresh_grid():
 	for child in button_grid.get_children():
 		child.queue_free()
 		
-	# --- FIX: Stop the server from building a UI, but let clients proceed ---
-	if multiplayer.is_server() or OS.get_cmdline_args().has("--server"):
+	# --- FIXED: Only abort if we are TRULY the headless cloud server ---
+	if OS.get_cmdline_args().has("--server") or DisplayServer.get_name() == "headless":
 		return
 		
 	# Safety check to prevent Nil errors
@@ -929,7 +929,7 @@ func _log_stat_changes():
 	var p1_diff = { "hp": p1_cur.hp - _prev_p1_stats.hp, "sp": p1_cur.sp - _prev_p1_stats.sp }
 	var p2_diff = { "hp": p2_cur.hp - _prev_p2_stats.hp, "sp": p2_cur.sp - _prev_p2_stats.sp }
 	
-	combat_log.add_round_summary(p1_diff, p2_diff, GameManager.momentum)
+	combat_log.add_round_summary(p1_diff, p2_diff, GameManager.state.momentum)
 	_snapshot_stats()
 
 func _snapshot_stats():

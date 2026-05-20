@@ -196,9 +196,9 @@ func _on_clash_resolved(_winner_id, _p1_card, _p2_card, _log_info):
 	
 	# 2. CHECK FOR SUPER MOVES (Visual Juiciness)
 	# We peek at the GameManager to see if a Super was used
-	if GameManager.p1_action_queue and GameManager.p1_action_queue.is_super:
+	if GameManager.state.p1_action_queue and GameManager.state.p1_action_queue.is_super:
 		_trigger_super_visuals(1)
-	if GameManager.p2_action_queue and GameManager.p2_action_queue.is_super:
+	if GameManager.state.p2_action_queue and GameManager.state.p2_action_queue.is_super:
 		_trigger_super_visuals(2)
 
 func _trigger_super_visuals(player_id: int):

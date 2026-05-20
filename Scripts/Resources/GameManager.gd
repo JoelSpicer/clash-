@@ -1,6 +1,46 @@
 extends Node
 
 #region vars
+
+# ==========================================
+# --- 1. THE DISPOSABLE MATCH CONTAINER ---
+# ==========================================
+class MatchState:
+	var momentum: int = 0
+	var current_combo_attacker: int = 0
+	var attacker_override: int = 0
+	var priority_player: int = 1
+	
+	var p1_cost_limit: int = 99
+	var p2_cost_limit: int = 99
+	var p1_opening_stat: int = 0
+	var p2_opening_stat: int = 0
+	var p1_opportunity_stat: int = 0
+	var p2_opportunity_stat: int = 0
+	
+	var p1_must_opener: bool = false
+	var p2_must_opener: bool = false
+	var p1_pending_feint: bool = false
+	var p2_pending_feint: bool = false
+	
+	var p1_rage_active: bool = false
+	var p2_rage_active: bool = false
+	var p1_keep_up_active: bool = false
+	var p2_keep_up_active: bool = false
+	
+	var p1_gym_block_bonus: int = 0
+	
+	var p1_locked_card: ActionData = null
+	var p2_locked_card: ActionData = null
+	
+	var p1_action_queue: ActionData = null
+	var p2_action_queue: ActionData = null
+
+# ==========================================
+# --- 2. ACTIVE STATE ---
+# ==========================================
+var state: MatchState = MatchState.new()
+
 const KEYWORD_DEFS = {
 	"Block": "Reduce incoming damage by X",
 	"Cost": "lose X stamina",
@@ -46,7 +86,6 @@ signal sync_advance_approved
 var TOTAL_MOMENTUM_SLOTS: int = 8 
 var current_environment_name: String = "Dojo"
 var environment_backgrounds: Dictionary = {}
-# --- DYNAMIC CALCULATIONS ---
 var MOMENTUM_P1_MAX: int = 4
 var MOMENTUM_P2_START: int = 5
 
@@ -59,7 +98,6 @@ var editing_player_index: int = 1
 var p2_is_custom: bool = false       
 enum Difficulty { VERY_EASY, EASY, MEDIUM, HARD }
 var ai_difficulty: Difficulty = Difficulty.MEDIUM 
-var attacker_override: int = 0 
 
 # --- PERSISTENT GAME SETUP ---
 var next_match_p1_data: CharacterData
@@ -68,45 +106,14 @@ var next_match_p2_data: CharacterData
 # --- CORE DATA ---
 var p1_data: CharacterData
 var p2_data: CharacterData
-var priority_player: int = 1 
-var momentum: int = 0 
-var current_combo_attacker: int = 0
-
-# --- TURN CONSTRAINTS ---
-var p1_cost_limit: int = 99; var p2_cost_limit: int = 99
-var p1_opening_stat: int = 0; var p2_opening_stat: int = 0
-var p1_opportunity_stat: int = 0; var p2_opportunity_stat: int = 0
-var p1_must_opener: bool = false; var p2_must_opener: bool = false
-
-## --- STATUS EFFECTS ---
-#var p1_is_injured: bool = false
-#var p2_is_injured: bool = false
-
-# --- TURN STATE ---
-var p1_action_queue: ActionData
-var p2_action_queue: ActionData
-var p1_locked_card: ActionData = null
-var p2_locked_card: ActionData = null
-
-# --- FEINT HELPERS ---
-var p1_pending_feint: bool = false
-var p2_pending_feint: bool = false
-
-# --- PASSIVES ---
-var p1_rage_active: bool = false
-var p2_rage_active: bool = false
-var p1_keep_up_active: bool = false
-var p2_keep_up_active: bool = false
-
-var p1_gym_block_bonus: int = 0
 
 var temp_p1_name: String = ""
 var temp_p2_name: String = ""
 var temp_p1_preset: Resource = null
 var temp_p2_preset: Resource = null
-
 var rival_intro_override: String = ""
-# Add these to your GameManager script
+
+# --- NETWORK VARS ---
 var p1_network_id: int = 0
 var p2_network_id: int = 0
 var _is_sync_approved: bool = false
@@ -117,7 +124,6 @@ var _is_sync_approved: bool = false
 # ==============================================================================
 
 func _ready():
-	
 	_load_backgrounds()
 	
 	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
@@ -125,9 +131,6 @@ func _ready():
 	
 	print("--- GAME MANAGER READY ---")
 	print("Momentum Config: Total=", TOTAL_MOMENTUM_SLOTS, " | P1_Max=", MOMENTUM_P1_MAX, " | P2_Start=", MOMENTUM_P2_START)
-	
-	priority_player = 1
-	momentum = 0
 
 func start_combat(p1: CharacterData, p2: CharacterData):
 	p1_data = p1
@@ -136,32 +139,18 @@ func start_combat(p1: CharacterData, p2: CharacterData):
 
 func reset_combat():
 	# --- 1. RESET STATS ---
-	# Check if P1 should maintain HP (for runs/tournaments)
 	var p1_maintain = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
 	p1_data.reset_stats(p1_maintain) 
-	
-	# P2 (The Enemy) always resets to full
 	p2_data.reset_stats(false)
 	
 	# --- 2. INJECT EVENT STATUSES ---
 	if RunManager.is_arcade_mode:
 		for s in RunManager.next_fight_statuses:
 			p1_data.statuses[s] = 1
-		RunManager.next_fight_statuses.clear() # Clear so it doesn't happen next fight
+		RunManager.next_fight_statuses.clear()
 	
-	# --- 3. RESET COMBAT VARIABLES ---
-	momentum = 0 
-	current_combo_attacker = 0
-	p1_locked_card = null; p2_locked_card = null
-	
-	p1_cost_limit = 99; p2_cost_limit = 99
-	p1_opening_stat = 0; p2_opening_stat = 0
-	p1_opportunity_stat = 0; p2_opportunity_stat = 0
-	p1_must_opener = false; p2_must_opener = false
-	p1_pending_feint = false; p2_pending_feint = false
-	
-	p1_rage_active = false; p2_rage_active = false
-	p1_keep_up_active = false; p2_keep_up_active = false
+	# --- 3. THE MAGIC RESET ---
+	state = MatchState.new()
 	
 	# --- 4. APPLY PLAYER EQUIPMENT & SPONSOR BONUSES ---
 	var total_momentum_bonus = 0
@@ -174,55 +163,38 @@ func reset_combat():
 		all_p1_modifiers.append(RunManager.active_sponsor)
 		
 	for mod in all_p1_modifiers:
-		# SP Bonus
 		p1_data.current_sp += mod.starting_sp_bonus
-		
-		# Barrier
 		if mod.starting_barrier > 0:
 			p1_data.current_hp += mod.starting_barrier
 			print("Modifier Barrier Applied: +%d HP" % mod.starting_barrier)
 			
-		# Momentum & Speed
 		total_momentum_bonus += mod.momentum_start_bonus
 		p1_speed_bonus += mod.bonus_speed
 
-	# Apply Rival Handicap if active
 	if RunManager.is_rival_match and RunManager.active_sponsor:
 		total_momentum_bonus -= RunManager.active_sponsor.rival_momentum_handicap
 		print("Rival Handicap Applied! Momentum shifted by " + str(RunManager.active_sponsor.rival_momentum_handicap))
-	# ----------------------------------------------------
 		
 	# --- 5. APPLY MOMENTUM STARTING POSITION ---
-	# If we have a bonus, we skip the "0" (Neutral) state and start on our side.
-	# MOMENTUM_P1_MAX is the "front line". Subscripting moves it closer to the enemy wall (1).
 	if total_momentum_bonus > 0:
-		momentum = MOMENTUM_P1_MAX - (total_momentum_bonus - 1)
-		# Clamp so we don't accidentally glitch past the wall (1)
-		momentum = clampi(momentum, 1, MOMENTUM_P1_MAX)
-		print(">> Head Start! Momentum set to: " + str(momentum))
+		state.momentum = MOMENTUM_P1_MAX - (total_momentum_bonus - 1)
+		state.momentum = clampi(state.momentum, 1, MOMENTUM_P1_MAX)
+		print(">> Head Start! Momentum set to: " + str(state.momentum))
 		
 	# --- 6. APPLY ENEMY EQUIPMENT BONUSES ---
 	for item in p2_data.equipment:
 		p2_data.current_sp += item.starting_sp_bonus
 	
-# --- 7. APPLY GYM BUFFS ---
-	p1_gym_block_bonus = 0 # <-- Reset it every fight!
-	
+	# --- 7. APPLY GYM BUFFS ---
 	if RunManager.active_gym_buff != "":
 		print("Applying Gym Buff: " + RunManager.active_gym_buff)
-		
 		if RunManager.active_gym_buff == "iron_stance":
-			# --- UPDATED: Grant +1 Global Block ---
-			p1_gym_block_bonus = 1
+			state.p1_gym_block_bonus = 1
 			print(">> Iron Stance: +1 Global Block")
-			
 		elif RunManager.active_gym_buff == "exploit_weakness":
-			# Reduce enemy starting HP by 20%
 			var damage = max(1, roundi(p2_data.max_hp * 0.2))
 			p2_data.current_hp -= damage
 			print(">> Exploit Weakness: Enemy took " + str(damage) + " dmg")
-			
-		# IMPORTANT: Clear the buff so it doesn't apply to the NEXT fight too
 		RunManager.active_gym_buff = ""
 	
 	# --- 8. CALCULATE PRIORITY (SPEED TIES) ---
@@ -230,31 +202,27 @@ func reset_combat():
 	var p2_final_speed = p2_data.speed
 	
 	if p1_final_speed > p2_final_speed: 
-		priority_player = 1
+		state.priority_player = 1
 	elif p2_final_speed > p1_final_speed: 
-		priority_player = 2
+		state.priority_player = 2
 	else: 
-		priority_player = randi_range(1, 2)
+		state.priority_player = randi_range(1, 2)
 		
 	print("\n>>> COMBAT RESET! Starting from Initial Clash (Neutral) <<<")
-	# --- NEW: FADE TO BATTLE INTENSITY (Layer 2) ---
 	if AudioManager:
 		AudioManager.set_music_intensity(1.0, 2.0)
-	# -----------------------------------------------
-	#change_state(State.SELECTION)
 
 func get_attacker() -> int:
-	if current_combo_attacker != 0: return current_combo_attacker
-	if attacker_override != 0: return attacker_override
-	if momentum == 0: return 0 
-	return 1 if momentum <= MOMENTUM_P1_MAX else 2
+	if state.current_combo_attacker != 0: return state.current_combo_attacker
+	if state.attacker_override != 0: return state.attacker_override
+	if state.momentum == 0: return 0 
+	return 1 if state.momentum <= MOMENTUM_P1_MAX else 2
 
 # ==============================================================================
 # STATE MACHINE
 # ==============================================================================
 
 func change_state(new_state: State):
-	# --- DEBUG HEARTBEAT ---
 	var my_role = "Referee (Server)"
 	if multiplayer.has_multiplayer_peer():
 		var my_id = multiplayer.get_unique_id()
@@ -262,14 +230,14 @@ func change_state(new_state: State):
 		elif my_id == p2_network_id: my_role = "Player 2"
 		
 	print("⏱️ [STATE SYNC] ", my_role, " entering state: ", State.keys()[new_state])
-	# -----------------------
+	
 	current_state = new_state
 	emit_signal("state_changed", current_state)
 	
 	match current_state:
 		State.SELECTION:
-			if p1_locked_card: player_select_action(1, p1_locked_card)
-			if p2_locked_card: player_select_action(2, p2_locked_card)
+			if state.p1_locked_card: player_select_action(1, state.p1_locked_card)
+			if state.p2_locked_card: player_select_action(2, state.p2_locked_card)
 		State.REVEAL:
 			_enter_reveal_phase()
 		State.FEINT_CHECK:
@@ -278,39 +246,36 @@ func change_state(new_state: State):
 			resolve_clash()
 
 func player_select_action(player_id: int, action: ActionData, extra_data: Dictionary = {}):
-	# 1. Process the Action based on Technique
 	var final_action = action
 	var tech_idx = extra_data.get("technique", 0)
 	
-	# Only modify if a technique was actually selected AND action is not null (Skip)
 	if action != null and tech_idx > 0:
 		final_action = action.duplicate() 
 		final_action.cost += 1 
 		
 		match tech_idx:
-			1: # Opener
+			1: 
 				if final_action.type == ActionData.Type.OFFENCE:
 					final_action.is_opener = true
 					final_action.display_name += "+" 
-			2: # Tiring
+			2: 
 				final_action.tiring += 1
 				final_action.display_name += "+"
-			3: # Momentum
+			3: 
 				final_action.momentum_gain += 1
 				final_action.display_name += "+"
 	
-	# 2. Standard Logic
 	if player_id == 1:
-		p1_action_queue = final_action
-		p1_rage_active = extra_data.get("rage", false)
-		p1_keep_up_active = extra_data.get("keep_up", false)
+		state.p1_action_queue = final_action
+		state.p1_rage_active = extra_data.get("rage", false)
+		state.p1_keep_up_active = extra_data.get("keep_up", false)
 	else:
-		p2_action_queue = final_action
-		p2_rage_active = extra_data.get("rage", false)
-		p2_keep_up_active = extra_data.get("keep_up", false)
+		state.p2_action_queue = final_action
+		state.p2_rage_active = extra_data.get("rage", false)
+		state.p2_keep_up_active = extra_data.get("keep_up", false)
 		
 	if current_state == State.SELECTION:
-		if p1_action_queue and p2_action_queue:
+		if state.p1_action_queue and state.p2_action_queue:
 			change_state(State.REVEAL)
 	elif current_state == State.FEINT_CHECK:
 		_handle_feint_selection(player_id, final_action)
@@ -320,29 +285,28 @@ func player_select_action(player_id: int, action: ActionData, extra_data: Dictio
 # ==============================================================================
 
 func _enter_reveal_phase():
-	# Reset the safety flag at the start of the phase
 	_is_sync_approved = false 
 	
-	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + p1_action_queue.display_name + " | P2 chose " + p2_action_queue.display_name)
-	emit_signal("request_clash_animation", p1_action_queue, p2_action_queue)
+	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + state.p1_action_queue.display_name + " | P2 chose " + state.p2_action_queue.display_name)
+	emit_signal("request_clash_animation", state.p1_action_queue, state.p2_action_queue)
 	
-	# Wait for local visual animation to finish
-	await self.clash_animation_finished
+	# --- 1. HEADLESS SERVER FIX (Skip Visual Await) ---
+	if not (multiplayer.is_server() and DisplayServer.get_name() == "headless"):
+		await self.clash_animation_finished
 	
-	# --- NETWORK SYNC CHECK ---
-	if multiplayer.has_multiplayer_peer():
+	# --- 2. NETWORK SYNC CHECK (FIXED) ---
+	# We must ensure there are actually connected peers, otherwise Arcade mode freezes here!
+	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
 		if not multiplayer.is_server():
 			NetworkManager.rpc_id(1, "report_animation_done")
 			
-		# SAFETY: Only wait if the signal hasn't already been fired!
 		if not _is_sync_approved:
 			await self.sync_advance_approved
-	# -----------------------------
 	
-	p1_pending_feint = p1_action_queue.feint
-	p2_pending_feint = p2_action_queue.feint
+	state.p1_pending_feint = state.p1_action_queue.feint
+	state.p2_pending_feint = state.p2_action_queue.feint
 
-	if p1_pending_feint or p2_pending_feint:
+	if state.p1_pending_feint or state.p2_pending_feint:
 		change_state(State.FEINT_CHECK)
 	else:
 		change_state(State.RESOLUTION)
@@ -354,7 +318,7 @@ func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 		_check_feint_completion()
 		return
 
-	var base_card = p1_action_queue if player_id == 1 else p2_action_queue
+	var base_card = state.p1_action_queue if player_id == 1 else state.p2_action_queue
 	var character = p1_data if player_id == 1 else p2_data
 	
 	var total_cost = base_card.cost + secondary_action.cost
@@ -373,8 +337,8 @@ func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 		
 	if can_afford:
 		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined_card.display_name)
-		if player_id == 1: p1_action_queue = combined_card
-		else: p2_action_queue = combined_card
+		if player_id == 1: state.p1_action_queue = combined_card
+		else: state.p2_action_queue = combined_card
 	else:
 		emit_signal("combat_log_updated", "P" + str(player_id) + " not enough SP for Feint. Action applies normally.")
 	
@@ -382,11 +346,11 @@ func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 	_check_feint_completion()
 
 func _clear_feint_flag(player_id):
-	if player_id == 1: p1_pending_feint = false
-	else: p2_pending_feint = false
+	if player_id == 1: state.p1_pending_feint = false
+	else: state.p2_pending_feint = false
 
 func _check_feint_completion():
-	if not p1_pending_feint and not p2_pending_feint:
+	if not state.p1_pending_feint and not state.p2_pending_feint:
 		change_state(State.RESOLUTION)
 
 func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
@@ -415,22 +379,9 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	if sec.is_super: new_card.is_super = true
 	if sec.is_opener: new_card.is_opener = true
 	
-# --- OLD CODE (Caused Error) ---
-	# var combined_statuses = []
-	# combined_statuses.append_array(base.statuses_to_apply)
-	# for s in sec.statuses_to_apply:
-	# 	combined_statuses.append(s.duplicate(true)) 
-	# new_card.statuses_to_apply = combined_statuses
-	
-	# --- NEW FIXED CODE ---
-	# 1. Clear whatever statuses the base card had (we will rebuild it)
 	new_card.statuses_to_apply.clear()
-	
-	# 2. Add Base Statuses
 	for s in base.statuses_to_apply:
 		new_card.statuses_to_apply.append(s.duplicate(true))
-		
-	# 3. Add Secondary Statuses
 	for s in sec.statuses_to_apply:
 		new_card.statuses_to_apply.append(s.duplicate(true))
 	
@@ -442,116 +393,96 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 # ==============================================================================
 
 func resolve_clash():
-	attacker_override = 0
+	state.attacker_override = 0
 	
-	# Duplicate to ensure we don't modify the original resource
-	p1_action_queue = p1_action_queue.duplicate()
-	p2_action_queue = p2_action_queue.duplicate()
+	state.p1_action_queue = state.p1_action_queue.duplicate()
+	state.p2_action_queue = state.p2_action_queue.duplicate()
 	
-	_handle_patient_passive(1, p1_action_queue)
-	_handle_patient_passive(2, p2_action_queue)
+	_handle_patient_passive(1, state.p1_action_queue)
+	_handle_patient_passive(2, state.p2_action_queue)
 	
 	var winner_id = 0
 	
-	if p1_action_queue.type == ActionData.Type.OFFENCE and p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
-	elif p2_action_queue.type == ActionData.Type.OFFENCE and p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
-	elif p1_action_queue.cost < p2_action_queue.cost: winner_id = 1
-	elif p2_action_queue.cost < p1_action_queue.cost: winner_id = 2
+	if state.p1_action_queue.type == ActionData.Type.OFFENCE and state.p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
+	elif state.p2_action_queue.type == ActionData.Type.OFFENCE and state.p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
+	elif state.p1_action_queue.cost < state.p2_action_queue.cost: winner_id = 1
+	elif state.p2_action_queue.cost < state.p1_action_queue.cost: winner_id = 2
 	else:
 		emit_signal("combat_log_updated", "Tie! Priority Token Used.")
-		winner_id = priority_player
+		winner_id = state.priority_player
 		swap_priority()
 
-	emit_signal("clash_resolved", winner_id, p1_action_queue, p2_action_queue, "Clash Winner: P" + str(winner_id))
+	emit_signal("clash_resolved", winner_id, state.p1_action_queue, state.p2_action_queue, "Clash Winner: P" + str(winner_id))
 	
-	var is_initial_clash = (momentum == 0)
+	var is_initial_clash = (state.momentum == 0)
 	
-	# --- SMART COMBO RESET ---
-	# If P1 wins with Offence...
-	if winner_id == 1 and p1_action_queue.type == ActionData.Type.OFFENCE:
-		# Check if they were ALREADY comboing. If not (e.g., previous turn was neutral or 0 SP break), start at 1.
-		if current_combo_attacker != 1: p1_data.combo_action_count = 1
+	if winner_id == 1 and state.p1_action_queue.type == ActionData.Type.OFFENCE:
+		if state.current_combo_attacker != 1: p1_data.combo_action_count = 1
 		else: p1_data.combo_action_count += 1
 	else:
 		p1_data.combo_action_count = 0
 
-	# Same for P2
-	if winner_id == 2 and p2_action_queue.type == ActionData.Type.OFFENCE:
-		if current_combo_attacker != 2: p2_data.combo_action_count = 1
+	if winner_id == 2 and state.p2_action_queue.type == ActionData.Type.OFFENCE:
+		if state.current_combo_attacker != 2: p2_data.combo_action_count = 1
 		else: p2_data.combo_action_count += 1
 	else:
 		p2_data.combo_action_count = 0
-	# ------------------------------
 	
-	# --- PHASE 0: PAY COSTS ---
 	var p1_started_injured = has_status(1, "Injured")
 	var p2_started_injured = has_status(2, "Injured")
 	
-	var p1_active = _pay_cost(1, p1_action_queue)
-	var p2_active = _pay_cost(2, p2_action_queue)
+	var p1_active = _pay_cost(1, state.p1_action_queue)
+	var p2_active = _pay_cost(2, state.p2_action_queue)
 
-	if p1_active and p1_action_queue.is_super:
+	if p1_active and state.p1_action_queue.is_super:
 		p1_data.has_used_super = true
 		emit_signal("combat_log_updated", ">> P1 unleashes their Ultimate Art!")
-	if p2_active and p2_action_queue.is_super:
+	if p2_active and state.p2_action_queue.is_super:
 		p2_data.has_used_super = true
 		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
 
-	# --- PHASE 1: SELF EFFECTS ---
-	if p1_active: _apply_phase_1_self_effects(1, p1_action_queue)
-	if p2_active: _apply_phase_1_self_effects(2, p2_action_queue)
+	if p1_active: _apply_phase_1_self_effects(1, state.p1_action_queue)
+	if p2_active: _apply_phase_1_self_effects(2, state.p2_action_queue)
 
-	# --- MOMENTUM CALCULATION ---
-	
-	# A. Dodge Checks
 	var p1_is_dodged = false; var p2_is_dodged = false
-	var p1_total_cost = p1_action_queue.cost * max(1, p1_action_queue.repeat_count)
-	var p2_total_cost = p2_action_queue.cost * max(1, p2_action_queue.repeat_count)
+	var p1_total_cost = state.p1_action_queue.cost * max(1, state.p1_action_queue.repeat_count)
+	var p2_total_cost = state.p2_action_queue.cost * max(1, state.p2_action_queue.repeat_count)
 	
-	if p2_active and p2_action_queue.dodge_value > 0 and p2_action_queue.dodge_value >= p1_total_cost: p1_is_dodged = true
-	if p1_active and p1_action_queue.dodge_value > 0 and p1_action_queue.dodge_value >= p2_total_cost: p2_is_dodged = true
+	if p2_active and state.p2_action_queue.dodge_value > 0 and state.p2_action_queue.dodge_value >= p1_total_cost: p1_is_dodged = true
+	if p1_active and state.p1_action_queue.dodge_value > 0 and state.p1_action_queue.dodge_value >= p2_total_cost: p2_is_dodged = true
 	
-	# B. Push/Pull Base Values
-	var p1_parries = (p1_active and p1_action_queue.is_parry)
-	var p2_parries = (p2_active and p2_action_queue.is_parry)
+	var p1_parries = (p1_active and state.p1_action_queue.is_parry)
+	var p2_parries = (p2_active and state.p2_action_queue.is_parry)
 	
-	var p1_single_gain = p1_action_queue.momentum_gain + _get_opportunity_value(1)
-	var p2_single_gain = p2_action_queue.momentum_gain + _get_opportunity_value(2)
+	var p1_single_gain = state.p1_action_queue.momentum_gain + _get_opportunity_value(1)
+	var p2_single_gain = state.p2_action_queue.momentum_gain + _get_opportunity_value(2)
 	
-	var p1_total_gain = _calculate_projected_momentum(1, p1_action_queue, p1_active)
-	var p2_total_gain = _calculate_projected_momentum(2, p2_action_queue, p2_active)
+	var p1_total_gain = _calculate_projected_momentum(1, state.p1_action_queue, p1_active)
+	var p2_total_gain = _calculate_projected_momentum(2, state.p2_action_queue, p2_active)
 	
 	var p1_stolen = p2_single_gain if p1_parries else 0
 	var p2_stolen = p1_single_gain if p2_parries else 0
 	
-	var p1_reps = max(1, p1_action_queue.repeat_count) if p1_active else 1
-	var p2_reps = max(1, p2_action_queue.repeat_count) if p2_active else 1
+	var p1_reps = max(1, state.p1_action_queue.repeat_count) if p1_active else 1
+	var p2_reps = max(1, state.p2_action_queue.repeat_count) if p2_active else 1
 	
-	var p1_fb = (p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
-	var p2_fb = (p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
+	var p1_fb = (state.p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
+	var p2_fb = (state.p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
 	
-	# --- STRICT PARRY SUCCESS CHECK ---
-	# Parry only triggers if (My Gain + Stolen Gain) is strictly greater than My Fall Back.
 	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
 	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
 	
 	var p1_parry_success = (p1_parries and p1_net_gain > 0)
 	var p2_parry_success = (p2_parries and p2_net_gain > 0)
-	# ---------------------------------------	
 	
-	# --- WALL CRUSH CHECK ---
-	if p1_fb > 0 and momentum >= TOTAL_MOMENTUM_SLOTS:
+	if p1_fb > 0 and state.momentum >= TOTAL_MOMENTUM_SLOTS:
 		_apply_wall_crush(1, p1_fb)
 		p1_fb = 0 
 		
-	if p2_fb > 0 and momentum <= 1:
+	if p2_fb > 0 and state.momentum <= 1:
 		_apply_wall_crush(2, p2_fb)
 		p2_fb = 0 
-	# ------------------------------
-	
 
-
-	# Calculate the final combined movement for the UI tracker
 	var p1_contribution = p1_total_gain
 	if p2_parries: p1_contribution -= p1_single_gain
 	if p1_is_dodged: p1_contribution = 0
@@ -565,63 +496,55 @@ func resolve_clash():
 	
 	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
 	
-	# --- PHASE 2: COMBAT EFFECTS ---
 	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
 	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
 	var p2_immune_or_dodged = p2_parry_success or p1_is_dodged
 	var p1_immune_or_dodged = p1_parry_success or p2_is_dodged
 	
-	if p1_active: p1_results = _apply_phase_2_combat_effects(1, 2, p1_action_queue, p2_action_queue, p2_immune_or_dodged)
-	if p2_active: p2_results = _apply_phase_2_combat_effects(2, 1, p2_action_queue, p1_action_queue, p1_immune_or_dodged)
+	if p1_active: p1_results = _apply_phase_2_combat_effects(1, 2, state.p1_action_queue, state.p2_action_queue, p2_immune_or_dodged)
+	if p2_active: p2_results = _apply_phase_2_combat_effects(2, 1, state.p2_action_queue, state.p1_action_queue, p1_immune_or_dodged)
 	
-	_update_turn_constraints(p1_results, p2_results, p1_action_queue, p2_action_queue, p1_parry_success, p2_parry_success)
+	_update_turn_constraints(p1_results, p2_results, state.p1_action_queue, state.p2_action_queue, p1_parry_success, p2_parry_success)
 	
 	if p1_results["fatal"] or p2_results["fatal"]:
 		_handle_death(winner_id)
 		return 
 	
-	# --- PHASE 3: APPLY MOMENTUM & REVERSAL ---
-	var p1_reversed = (p1_active and p1_action_queue.reversal and delta < 0)
-	var p2_reversed = (p2_active and p2_action_queue.reversal and delta > 0)
+	var p1_reversed = (p1_active and state.p1_action_queue.reversal and delta < 0)
+	var p2_reversed = (p2_active and state.p2_action_queue.reversal and delta > 0)
 
 	if is_initial_clash:
-		momentum = MOMENTUM_P1_MAX if winner_id == 1 else MOMENTUM_P2_START
-		print("DEBUG: Initial Clash Winner: P", winner_id, " | Set Mom: ", momentum)
+		state.momentum = MOMENTUM_P1_MAX if winner_id == 1 else MOMENTUM_P2_START
+		print("DEBUG: Initial Clash Winner: P", winner_id, " | Set Mom: ", state.momentum)
 		
 		if p1_reversed:
-			attacker_override = 1
+			state.attacker_override = 1
 			emit_signal("combat_log_updated", ">> P1 Reverses! Seizing Offence.")
 		elif p2_reversed:
-			attacker_override = 2
+			state.attacker_override = 2
 			emit_signal("combat_log_updated", ">> P2 Reverses! Seizing Offence.")
-			
 	else:
-		momentum = clamp_momentum(momentum + delta)
+		state.momentum = clamp_momentum(state.momentum + delta)
 		
 		if p1_reversed:
-			attacker_override = 1
+			state.attacker_override = 1
 			emit_signal("combat_log_updated", ">> P1 REVERSAL SUCCESSFUL!")
 		elif p2_reversed:
-			attacker_override = 2
+			state.attacker_override = 2
 			emit_signal("combat_log_updated", ">> P2 REVERSAL SUCCESSFUL!")
 
-	# --- CLEANUP ---
 	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
 	_check_reversal_state() 
 	_handle_locks(winner_id)
-	
-	# --- NEW: UPDATE MUSIC INTENSITY ---
 	_update_dynamic_music()
-	# -----------------------------------
 
-	p1_action_queue = null
-	p2_action_queue = null
+	state.p1_action_queue = null
+	state.p2_action_queue = null
 	
 	if p1_data.current_hp <= 0 or p2_data.current_hp <= 0:
 		_handle_death(winner_id)
 		return
-	
 	
 	change_state(State.POST_CLASH)
 	change_state(State.SELECTION)
@@ -632,18 +555,13 @@ func resolve_clash():
 
 func _apply_wall_crush(player_id: int, amount: int):
 	var character = p1_data if player_id == 1 else p2_data
-	
-	# --- NEW: CHECK IF ATTACKER HAS SPIKED CLEATS ---
 	var attacker_data = p2_data if player_id == 1 else p1_data
 	var final_amount = amount
+	
 	for item in attacker_data.equipment:
 		final_amount += item.wall_crush_damage_bonus
-	# ------------------------------------------------
 	
-	# --- NEW: EMIT SIGNAL ---
 	emit_signal("wall_crush_occurred", player_id, final_amount)
-	# ------------------------
-	
 	emit_signal("combat_log_updated", ">> P" + str(player_id) + " CRUSHED against the wall!")
 	
 	if character.current_sp >= final_amount:
@@ -695,15 +613,13 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		emit_signal("status_applied", target_id, "DODGED")
 		return result
 
-	# --- 1. CALCULATE EQUIPMENT & SPONSOR PASSIVES ---
 	var dmg_mod = 0
 	var attacker_block_mod = 0 
 	var defender_block_mod = 0
 	var thorns_dmg = 0
 	
-	# Gather Attacker Mods
 	var attacker_mods: Array[BaseModifierData] = []
-	attacker_mods.append_array(character.equipment) # <-- Safely appends the items
+	attacker_mods.append_array(character.equipment) 
 	if owner_id == 1 and RunManager.active_sponsor:
 		attacker_mods.append(RunManager.active_sponsor)
 		
@@ -711,9 +627,8 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		dmg_mod += mod.damage_modifier
 		attacker_block_mod += mod.block_modifier
 		
-	# Gather Defender Mods
 	var defender_mods: Array[BaseModifierData] = []
-	defender_mods.append_array(target.equipment) # <-- Safely appends the items
+	defender_mods.append_array(target.equipment)
 	if target_id == 1 and RunManager.active_sponsor:
 		defender_mods.append(RunManager.active_sponsor)
 		
@@ -721,16 +636,13 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		defender_block_mod += mod.block_modifier
 		thorns_dmg += mod.thorns
 		
-	# Apply Gym Buffs independently so they aren't lost!
 	if owner_id == 1:
-		attacker_block_mod += p1_gym_block_bonus
+		attacker_block_mod += state.p1_gym_block_bonus
 	elif target_id == 1:
-		defender_block_mod += p1_gym_block_bonus
-	# ----------------------------------------------------------
+		defender_block_mod += state.p1_gym_block_bonus
+		
 	var total_hits = max(1, my_card.repeat_count)
 	for i in range(total_hits):
-		
-		# --- 2. APPLY OFFENSIVE / DEFENSIVE MODIFIERS ---
 		var total_damage = max(0, my_card.damage + dmg_mod)
 		var enemy_block = enemy_card.block_value + defender_block_mod
 		
@@ -739,7 +651,6 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 			
 		var net_damage = max(0, total_damage - enemy_block)
 		
-		# --- 3. TIRING (SP DRAIN) ---
 		if my_card.tiring > 0:
 			if target.tiring_drains_hp and target.current_sp < my_card.tiring:
 				var drain_amount = my_card.tiring
@@ -753,7 +664,6 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 				target.current_sp = max(0, target.current_sp - my_card.tiring)
 				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
 		
-		# --- 4. STATUSES ---
 		for effect in my_card.statuses_to_apply:
 			var s_name = effect.get("name", "Unknown")
 			var s_val = effect.get("amount", 1)
@@ -763,7 +673,6 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 			if not has_status(dest_id, s_name):
 				apply_status(dest_id, s_name, s_val)
 
-		# --- 5. OPENINGS / OPPORTUNITY ---
 		if my_card.create_opening > 0:
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " creates an Opening! (Lvl " + str(my_card.create_opening) + ")")
 			result["opening"] = my_card.create_opening
@@ -771,19 +680,16 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		if my_card.opportunity > 0:
 			result["opportunity"] = my_card.opportunity
 
-		# --- 6. APPLY DAMAGE AND THORNS ---
 		if net_damage > 0:
 			target.current_hp -= net_damage
 			emit_signal("damage_dealt", target_id, net_damage, false)
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
 			
-			# Trigger Thorns if the attack connects
 			if thorns_dmg > 0:
 				character.current_hp -= thorns_dmg
 				emit_signal("damage_dealt", owner_id, thorns_dmg, false)
 				emit_signal("combat_log_updated", ">> Spikes! P" + str(owner_id) + " took " + str(thorns_dmg) + " Thorns damage!")
 				
-				# Check if attacker died from Thorns
 				if character.current_hp <= 0:
 					result["fatal"] = true
 					return result
@@ -792,10 +698,8 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
 			emit_signal("damage_dealt", target_id, 0, true)
 
-		# --- 7. RETALIATE (REFLECT DAMAGE) ---
 		if total_damage > 0 and enemy_card.retaliate:
 			var raw_recoil = total_damage
-			# Notice the attacker's equipment block modifier applies to incoming reflect damage!
 			var self_block = my_card.block_value + my_card.dodge_value + attacker_block_mod 
 			var net_recoil = max(0, raw_recoil - self_block)
 			
@@ -803,14 +707,12 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 				character.current_hp -= net_recoil
 				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
 				
-				# Check if attacker died from Retaliate
 				if character.current_hp <= 0:
 					result["fatal"] = true
 					return result
 			else:
 				emit_signal("combat_log_updated", ">> RETALIATE! Reflected damage blocked by P" + str(owner_id) + ".")
 
-		# --- 8. FATALITY CHECK ---
 		if target.current_hp <= 0:
 			result["fatal"] = true
 			return result
@@ -830,12 +732,12 @@ func _calculate_projected_momentum(player_id: int, card: ActionData, is_active: 
 	return total_gain
 
 func _get_opportunity_value(player_id: int) -> int:
-	return p1_opportunity_stat if player_id == 1 else p2_opportunity_stat
+	return state.p1_opportunity_stat if player_id == 1 else state.p2_opportunity_stat
 
 func _pay_cost(player_id: int, card: ActionData) -> bool:
 	var character = p1_data if player_id == 1 else p2_data
-	var is_free = (p1_locked_card != null if player_id == 1 else p2_locked_card != null)
-	var rage_is_on = (p1_rage_active if player_id == 1 else p2_rage_active)
+	var is_free = (state.p1_locked_card != null if player_id == 1 else state.p2_locked_card != null)
+	var rage_is_on = (state.p1_rage_active if player_id == 1 else state.p2_rage_active)
 	
 	var raw_cost = card.cost
 	var opp_val = _get_opportunity_value(player_id)
@@ -872,14 +774,11 @@ func _pay_cost(player_id: int, card: ActionData) -> bool:
 		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
 		return false
 
-# Change arguments from '_p1_started_injured' to 'p1_started_injured' (remove underscores)
 func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
-	# We iterate through players to apply End-of-Turn effects
 	for id in [1, 2]:
 		var player = p1_data if id == 1 else p2_data
 		var started_injured = p1_started_injured if id == 1 else p2_started_injured
 		
-		# Check every status this player has
 		for s_name in player.statuses.keys():
 			match s_name:
 				"Injured":
@@ -888,12 +787,9 @@ func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
 						emit_signal("combat_log_updated", ">> P" + str(id) + " suffers Injury damage!")
 						emit_signal("damage_dealt", id, 1, false)
 				"Poison":
-					# EXAMPLE: Future proofing!
 					var stacks = player.statuses["Poison"]
 					player.current_hp -= stacks
 					emit_signal("combat_log_updated", ">> P" + str(id) + " takes Poison dmg!")
-					# Decay poison?
-					# player.statuses["Poison"] -= 1
 					
 		if player.current_hp <= 0:
 			_handle_death(winner_id)
@@ -905,57 +801,50 @@ func _handle_death(winner_id):
 	elif p2_data.current_hp > 0: game_winner = 2
 	else: game_winner = winner_id 
 	
-	# --- NEW: HEAL ON WIN (EQUIPMENT) ---
 	if game_winner == 1 and RunManager.player_run_data:
 		var heal_amt = 0
 		for eq in RunManager.player_run_data.equipment:
 			heal_amt += eq.heal_on_win
 		
 		if heal_amt > 0:
-			# Apply healing, making sure not to exceed Max HP
 			p1_data.current_hp = min(p1_data.current_hp + heal_amt, p1_data.max_hp)
-			
 			emit_signal("combat_log_updated", ">> Victory Sustain! Recovered " + str(heal_amt) + " HP.")
 			print("Victory Heal: +%d HP" % heal_amt)
-	# ------------------------------------
-	
+			
 	emit_signal("game_over", game_winner)
-	
-	# REMOVED: reset_combat() 
-	# We want the stats to stay at 0 so the player can see the final board state.
 
 func _check_reversal_state():
 	var active_attacker = get_attacker()
 	
-	if attacker_override != 0:
-		current_combo_attacker = attacker_override 
-		if attacker_override == 1: p2_must_opener = true
-		else: p1_must_opener = true
+	if state.attacker_override != 0:
+		state.current_combo_attacker = state.attacker_override 
+		if state.attacker_override == 1: state.p2_must_opener = true
+		else: state.p1_must_opener = true
 		return
 
 	if active_attacker != 0:
 		var att_data = p1_data if active_attacker == 1 else p2_data
 		if att_data.current_sp <= 0:
 			emit_signal("combat_log_updated", ">> Attacker Out of SP. Combo Ends.")
-			current_combo_attacker = 0 
+			state.current_combo_attacker = 0 
 		else:
-			current_combo_attacker = active_attacker
+			state.current_combo_attacker = active_attacker
 	else:
-		current_combo_attacker = 0
+		state.current_combo_attacker = 0
 
 func _handle_locks(winner_id):
-	p1_locked_card = null; p2_locked_card = null
-	var winner_card = p1_action_queue if winner_id == 1 else p2_action_queue
-	var loser_card_obj = p2_action_queue if winner_id == 1 else p1_action_queue 
+	state.p1_locked_card = null; state.p2_locked_card = null
+	var winner_card = state.p1_action_queue if winner_id == 1 else state.p2_action_queue
+	var loser_card_obj = state.p2_action_queue if winner_id == 1 else state.p1_action_queue 
 	if winner_card.multi_limit > 0:
 		emit_signal("combat_log_updated", "Multi Triggered! Loser Locked.")
-		if winner_id == 1: p2_locked_card = loser_card_obj
-		else: p1_locked_card = loser_card_obj
+		if winner_id == 1: state.p2_locked_card = loser_card_obj
+		else: state.p1_locked_card = loser_card_obj
 
 func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bool, p2_parry_win: bool):
 	var next_p1_limit = 99; var next_p2_limit = 99
 	var next_p1_opening = 0; var next_p2_opening = 0
-	p1_must_opener = false; p2_must_opener = false
+	state.p1_must_opener = false; state.p2_must_opener = false
 	
 	if p1_res["opening"] > 0:
 		next_p2_limit = min(next_p2_limit, p1_res["opening"]) 
@@ -968,25 +857,25 @@ func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bo
 	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
 		
 	if p1_parry_win:
-		p2_must_opener = true
+		state.p2_must_opener = true
 		emit_signal("combat_log_updated", ">> P2 is unbalanced! Must use Opener next turn.")
 	if p2_parry_win:
-		p1_must_opener = true
+		state.p1_must_opener = true
 		emit_signal("combat_log_updated", ">> P1 is unbalanced! Must use Opener next turn.")
 
-	p1_cost_limit = next_p1_limit
-	p2_cost_limit = next_p2_limit
-	p1_opening_stat = next_p1_opening
-	p2_opening_stat = next_p2_opening
+	state.p1_cost_limit = next_p1_limit
+	state.p2_cost_limit = next_p2_limit
+	state.p1_opening_stat = next_p1_opening
+	state.p2_opening_stat = next_p2_opening
 
-	p1_opportunity_stat = p1_res["opportunity"]
-	p2_opportunity_stat = p2_res["opportunity"]
+	state.p1_opportunity_stat = p1_res["opportunity"]
+	state.p2_opportunity_stat = p2_res["opportunity"]
 	
-	if p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity.")
-	if p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity.")
+	if state.p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity.")
+	if state.p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity.")
 
 func swap_priority():
-	priority_player = 3 - priority_player
+	state.priority_player = 3 - state.priority_player
 
 func get_player(id: int) -> CharacterData:
 	return p1_data if id == 1 else p2_data
@@ -995,10 +884,10 @@ func get_opponent(id: int) -> CharacterData:
 	return p2_data if id == 1 else p1_data
 
 func is_p1_attacker() -> bool:
-	if attacker_override == 1: return true
-	if attacker_override == 2: return false
-	if momentum == 0: return true
-	return momentum <= MOMENTUM_P1_MAX
+	if state.attacker_override == 1: return true
+	if state.attacker_override == 2: return false
+	if state.momentum == 0: return true
+	return state.momentum <= MOMENTUM_P1_MAX
 
 func clamp_momentum(val: int) -> int:
 	return clampi(val, 1, TOTAL_MOMENTUM_SLOTS)
@@ -1049,22 +938,13 @@ func get_struggle_action(force_type: ActionData.Type) -> ActionData:
 	action.description = "Offence, Defence, Recover 1, Fall Back 2"
 	action.type = force_type
 	action.cost = 0
-	
-	# Stats: Recover 1, Fall Back 1
-	# Note: Defence actions naturally get +1 Recover in the rules, 
-	# so Struggle (Def) will actually recover 2 SP, which makes sense (catching breath).
 	action.recover_value = 1 
 	action.fall_back_value = 2
-	
 	return action
 
 func apply_status(target_id: int, status_name: String, value: int = 1):
 	var target = p1_data if target_id == 1 else p2_data
-	
-	# Logic: If already exists, you might want to stack it or refresh it.
-	# For "Injured", it's just a binary state (1), so overwriting is fine.
 	target.statuses[status_name] = value
-	
 	emit_signal("status_applied", target_id, status_name)
 	emit_signal("combat_log_updated", ">> P" + str(target_id) + " gained status: " + status_name)
 
@@ -1076,7 +956,7 @@ func remove_status(target_id: int, status_name: String):
 	var target = p1_data if target_id == 1 else p2_data
 	if target.statuses.has(status_name):
 		target.statuses.erase(status_name)
-		emit_signal("status_applied", target_id, "CURED") # Generic cure msg
+		emit_signal("status_applied", target_id, "CURED")
 
 func _load_backgrounds():
 	var path = "res://Art/Background/"
@@ -1088,15 +968,10 @@ func _load_backgrounds():
 		
 		while file_name != "":
 			if not dir.current_is_dir():
-				# EXPORT FIX: Strip the .import or .remap extensions Godot adds during export
 				var clean_name = file_name.replace(".import", "").replace(".remap", "")
-				
 				if clean_name.ends_with(".png") or clean_name.ends_with(".jpg"):
 					var key = clean_name.get_basename()
-					
-					# Make sure we don't load the same file twice 
 					if not environment_backgrounds.has(key):
-						# load() expects the original clean name!
 						environment_backgrounds[key] = load(path + clean_name)
 						print(">> Loaded Environment Art: " + key)
 			
@@ -1104,30 +979,16 @@ func _load_backgrounds():
 	else:
 		print("ERROR: Could not find 'res://Art/Background/' folder.")
 
-# --- NEW: DYNAMIC MUSIC LOGIC ---
-# Inside GameManager.gd
-
-# Inside GameManager.gd -> _update_dynamic_music()
-
 func _update_dynamic_music():
 	if p1_data.max_hp <= 0: return
 	
 	var hp_percent = float(p1_data.current_hp) / float(p1_data.max_hp)
 	
 	if hp_percent <= 0.33:
-		# --- LAST STAND MODE ---
-		# 1. Audio: Drop intensity to Layer 2
 		AudioManager.set_music_intensity(0.5, 1.5) 
-		
-		# 2. Visual: Increase Vignette (Tunnel Vision)
 		if GlobalCinematics.has_method("set_danger_vignette"):
 			GlobalCinematics.set_danger_vignette(true)
-			
 	else:
-		# --- NORMAL MODE ---
-		# 1. Audio: Full Intensity
 		AudioManager.set_music_intensity(1.0, 2.0)
-		
-		# 2. Visual: Reset Vignette
 		if GlobalCinematics.has_method("set_danger_vignette"):
 			GlobalCinematics.set_danger_vignette(false)

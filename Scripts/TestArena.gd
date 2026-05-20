@@ -152,7 +152,7 @@ func _ready():
 			battle_ui.p2_hud.name_label.text += diff_suffix
 
 func _update_visuals():
-	battle_ui.update_all_visuals(p1_resource, p2_resource, GameManager.momentum)
+	battle_ui.update_all_visuals(p1_resource, p2_resource, GameManager.state.momentum)
 
 # --- TOGGLE LOGIC ---
 
@@ -227,14 +227,14 @@ func _start_turn_sequence():
 			_run_bot_turn(1)
 
 func _start_feint_input():
-	if GameManager.p1_pending_feint:
+	if GameManager.state.p1_pending_feint:
 		print("| --- WAITING FOR P1 FEINT SELECTION --- |")
 		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
 			if local_player_id == 1: _prepare_human_turn(1)
 		else:
 			if is_player_1_human: _prepare_human_turn(1)
 			else: _run_bot_turn(1)
-	elif GameManager.p2_pending_feint:
+	elif GameManager.state.p2_pending_feint:
 		print("| --- WAITING FOR P2 FEINT SELECTION --- |")
 		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
 			if local_player_id == 2: _prepare_human_turn(2)
@@ -246,8 +246,8 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 	# This function asks GameManager who is attacking. 
 	# Now that we fixed 'get_attacker', this will return the correct ID!
 	var attacker_id = GameManager.get_attacker()
-	var is_combo = (GameManager.current_combo_attacker != 0)
-	var mom = GameManager.momentum
+	var is_combo = (GameManager.state.current_combo_attacker != 0)
+	var mom = GameManager.state.momentum
 	
 	var c = {
 		"filter": null, "required_tab": null, "needs_opener": false,
@@ -256,27 +256,27 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 	
 	# 1. Setup Limits & Stats
 	if player_id == 1:
-		c.max_cost = GameManager.p1_cost_limit
-		c.opening_stat = GameManager.p1_opening_stat
-		c.opportunity_stat = GameManager.p1_opportunity_stat 
+		c.max_cost = GameManager.state.p1_cost_limit
+		c.opening_stat = GameManager.state.p1_opening_stat
+		c.opportunity_stat = GameManager.state.p1_opportunity_stat 
 		
 		# SUPER CHECK (Updated for Dynamic Momentum)
 		# Checks if momentum is at P1's Wall (e.g. 1)
 		if mom == GameManager.get_wall_momentum(1) and not p1_resource.has_used_super:
 			c.can_use_super = true
 			
-		if GameManager.p1_must_opener: c.needs_opener = true
+		if GameManager.state.p1_must_opener: c.needs_opener = true
 	else:
-		c.max_cost = GameManager.p2_cost_limit
-		c.opening_stat = GameManager.p2_opening_stat
-		c.opportunity_stat = GameManager.p2_opportunity_stat 
+		c.max_cost = GameManager.state.p2_cost_limit
+		c.opening_stat = GameManager.state.p2_opening_stat
+		c.opportunity_stat = GameManager.state.p2_opportunity_stat 
 		
 		# SUPER CHECK (Updated for Dynamic Momentum)
 		# Checks if momentum is at P2's Wall (e.g. 8 or 12)
 		if mom == GameManager.get_wall_momentum(2) and not p2_resource.has_used_super:
 			c.can_use_super = true
 			
-		if GameManager.p2_must_opener: c.needs_opener = true
+		if GameManager.state.p2_must_opener: c.needs_opener = true
 
 	# 2. Determine Required Tab (Offence vs Defence)
 	if attacker_id != 0:
@@ -304,7 +304,7 @@ func _prepare_human_turn(player_id: int):
 	battle_ui.setup_passive_toggles(character)
 	battle_ui.load_deck(character.deck)
 	
-	var locked_card = GameManager.p1_locked_card if player_id == 1 else GameManager.p2_locked_card
+	var locked_card = GameManager.state.p1_locked_card if player_id == 1 else GameManager.state.p2_locked_card
 	if locked_card and GameManager.current_state == GameManager.State.SELECTION:
 		print(">>> P" + str(player_id) + " LOCKED into: " + locked_card.display_name)
 		_on_human_input_received(locked_card)
@@ -421,8 +421,8 @@ func _check_server_funnel():
 			
 	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
 		var is_ready = true
-		if GameManager.p1_pending_feint and not server_received_inputs.has("1"): is_ready = false
-		if GameManager.p2_pending_feint and not server_received_inputs.has("2"): is_ready = false
+		if GameManager.state.p1_pending_feint and not server_received_inputs.has("1"): is_ready = false
+		if GameManager.state.p2_pending_feint and not server_received_inputs.has("2"): is_ready = false
 		inputs_ready = is_ready
 		
 	if inputs_ready:
@@ -599,7 +599,7 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 	# --- 2. TACTICAL RESPONSE ---
 	if card.type == ActionData.Type.OFFENCE:
 		# Counter Opportunities
-		var opp_opening = GameManager.p1_opening_stat if my_id == 2 else GameManager.p2_opening_stat
+		var opp_opening = GameManager.state.p1_opening_stat if my_id == 2 else GameManager.state.p2_opening_stat
 		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
 			var val = 50.0 * w_tech
 			score += val
@@ -672,7 +672,7 @@ func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData
 			log_parts.append("-50 (SP Full)")
 	
 	# Momentum Logic
-	var mom = GameManager.momentum
+	var mom = GameManager.state.momentum
 	var winning = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
 	var losing = (my_id == 1 and mom >= 5) or (my_id == 2 and mom <= 4)
 	
@@ -767,8 +767,8 @@ func _on_clash_resolved(winner_id, p1_card, p2_card, _results):
 func _on_log_updated(text): print("   > " + text)
 func _print_status_report():
 	var p1 = p1_resource; var p2 = p2_resource
-	var visual = "[ "; for i in range(1, 5): visual += ("P1 " if GameManager.momentum == i else str(i) + " ")
-	visual += "| "; for i in range(5, 9): visual += ("P2 " if GameManager.momentum == i else str(i) + " ")
+	var visual = "[ "; for i in range(1, 5): visual += ("P1 " if GameManager.state.momentum == i else str(i) + " ")
+	visual += "| "; for i in range(5, 9): visual += ("P2 " if GameManager.state.momentum == i else str(i) + " ")
 	visual += "]"
 	print("\n[STATUS] P1: " + str(p1.current_hp) + "HP/" + str(p1.current_sp) + "SP  vs  P2: " + str(p2.current_hp) + "HP/" + str(p2.current_sp) + "SP")
 	print("[MOMENTUM] " + visual)

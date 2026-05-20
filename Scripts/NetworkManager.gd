@@ -245,8 +245,8 @@ func return_to_lobby() -> void:
 	_disconnect_local_peer()
 	
 	# 2. Reset leftover GameManager states so the next match doesn't break
-	GameManager.current_combo_attacker = 0
-	GameManager.momentum = 0
+	# 2. Reset leftover GameManager states so the next match starts fresh
+	GameManager.state = GameManager.MatchState.new()
 	
 	# 3. Load the Multiplayer Lobby Scene
 	get_tree().change_scene_to_file("res://Scenes/Multi.tscn")
@@ -281,3 +281,4 @@ func _send_heartbeat() -> void:
 @rpc("any_peer", "call_remote", "unreliable")
 func network_keep_alive() -> void:
 	pass # The server does absolutely nothing. Receiving the packet is enough to reset the idle timer!
+#test
