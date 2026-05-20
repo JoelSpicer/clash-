@@ -7,6 +7,7 @@
 export.cfg
 export_credentials.cfg
 
+
 # Imported translations (automatically generated from CSV files)
 *.translation
 
@@ -15,5 +16,4 @@ export_credentials.cfg
 data_*/
 mono_crash.*.json
 /addons
-
-/Audio
+Audio
