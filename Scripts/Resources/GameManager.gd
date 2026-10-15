@@ -451,89 +451,106 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 # RESOLUTION LOGIC
 # ==============================================================================
 
-func resolve_clash():
+### ==============================================================================
+### RESOLUTION LOGIC (GDScript 2.0 Modernized)
+### ==============================================================================
+
+func resolve_clash() -> void:
 	state.attacker_override = 0
-	
+
 	state.p1_action_queue = state.p1_action_queue.duplicate()
 	state.p2_action_queue = state.p2_action_queue.duplicate()
-	
+
 	_handle_patient_passive(1, state.p1_action_queue)
 	_handle_patient_passive(2, state.p2_action_queue)
-	
-	var winner_id = 0
-	
-	if state.p1_action_queue.type == ActionData.Type.OFFENCE and state.p2_action_queue.type == ActionData.Type.DEFENCE: winner_id = 1
-	elif state.p2_action_queue.type == ActionData.Type.OFFENCE and state.p1_action_queue.type == ActionData.Type.DEFENCE: winner_id = 2
-	elif state.p1_action_queue.cost < state.p2_action_queue.cost: winner_id = 1
-	elif state.p2_action_queue.cost < state.p1_action_queue.cost: winner_id = 2
+
+	var winner_id: int = 0
+
+	if state.p1_action_queue.type == ActionData.Type.OFFENCE and state.p2_action_queue.type == ActionData.Type.DEFENCE: 
+		winner_id = 1
+	elif state.p2_action_queue.type == ActionData.Type.OFFENCE and state.p1_action_queue.type == ActionData.Type.DEFENCE: 
+		winner_id = 2
+	elif state.p1_action_queue.cost < state.p2_action_queue.cost: 
+		winner_id = 1
+	elif state.p2_action_queue.cost < state.p1_action_queue.cost: 
+		winner_id = 2
 	else:
-		emit_signal("combat_log_updated", "Tie! Priority Token Used.")
+		combat_log_updated.emit("Tie! Priority Token Used.")
 		winner_id = state.priority_player
 		swap_priority()
 
-	emit_signal("clash_resolved", winner_id, state.p1_action_queue, state.p2_action_queue, "Clash Winner: P" + str(winner_id))
-	
-	var is_initial_clash = (state.momentum == 0)
-	
+	var log_text: String = "Clash Winner: P" + str(winner_id)
+	clash_resolved.emit(winner_id, state.p1_action_queue, state.p2_action_queue, {"log_text": log_text})
+
+	var is_initial_clash: bool = (state.momentum == 0)
+
 	if winner_id == 1 and state.p1_action_queue.type == ActionData.Type.OFFENCE:
-		if state.current_combo_attacker != 1: p1_data.combo_action_count = 1
-		else: p1_data.combo_action_count += 1
+		if state.current_combo_attacker != 1: 
+			p1_data.combo_action_count = 1
+		else: 
+			p1_data.combo_action_count += 1
 	else:
 		p1_data.combo_action_count = 0
 
 	if winner_id == 2 and state.p2_action_queue.type == ActionData.Type.OFFENCE:
-		if state.current_combo_attacker != 2: p2_data.combo_action_count = 1
-		else: p2_data.combo_action_count += 1
+		if state.current_combo_attacker != 2: 
+			p2_data.combo_action_count = 1
+		else: 
+			p2_data.combo_action_count += 1
 	else:
 		p2_data.combo_action_count = 0
-	
-	var p1_started_injured = has_status(1, "Injured")
-	var p2_started_injured = has_status(2, "Injured")
-	
-	var p1_active = _pay_cost(1, state.p1_action_queue)
-	var p2_active = _pay_cost(2, state.p2_action_queue)
+
+	var p1_started_injured: bool = has_status(1, "Injured")
+	var p2_started_injured: bool = has_status(2, "Injured")
+
+	var p1_active: bool = _pay_cost(1, state.p1_action_queue)
+	var p2_active: bool = _pay_cost(2, state.p2_action_queue)
 
 	if p1_active and state.p1_action_queue.is_super:
 		p1_data.has_used_super = true
-		emit_signal("combat_log_updated", ">> P1 unleashes their Ultimate Art!")
+		combat_log_updated.emit(">> P1 unleashes their Ultimate Art!")
 	if p2_active and state.p2_action_queue.is_super:
 		p2_data.has_used_super = true
-		emit_signal("combat_log_updated", ">> P2 unleashes their Ultimate Art!")
+		combat_log_updated.emit(">> P2 unleashes their Ultimate Art!")
 
 	if p1_active: _apply_phase_1_self_effects(1, state.p1_action_queue)
 	if p2_active: _apply_phase_1_self_effects(2, state.p2_action_queue)
 
-	var p1_is_dodged = false; var p2_is_dodged = false
-	var p1_total_cost = state.p1_action_queue.cost * max(1, state.p1_action_queue.repeat_count)
-	var p2_total_cost = state.p2_action_queue.cost * max(1, state.p2_action_queue.repeat_count)
+	var p1_is_dodged: bool = false
+	var p2_is_dodged: bool = false
 	
-	if p2_active and state.p2_action_queue.dodge_value > 0 and state.p2_action_queue.dodge_value >= p1_total_cost: p1_is_dodged = true
-	if p1_active and state.p1_action_queue.dodge_value > 0 and state.p1_action_queue.dodge_value >= p2_total_cost: p2_is_dodged = true
+	var p1_reps: int = max(1, state.p1_action_queue.repeat_count) if p1_active else 1
+	var p2_reps: int = max(1, state.p2_action_queue.repeat_count) if p2_active else 1
 	
-	var p1_parries = (p1_active and state.p1_action_queue.is_parry)
-	var p2_parries = (p2_active and state.p2_action_queue.is_parry)
-	
-	var p1_single_gain = state.p1_action_queue.momentum_gain + _get_opportunity_value(1)
-	var p2_single_gain = state.p2_action_queue.momentum_gain + _get_opportunity_value(2)
-	
-	var p1_total_gain = _calculate_projected_momentum(1, state.p1_action_queue, p1_active)
-	var p2_total_gain = _calculate_projected_momentum(2, state.p2_action_queue, p2_active)
-	
-	var p1_stolen = p2_single_gain if p1_parries else 0
-	var p2_stolen = p1_single_gain if p2_parries else 0
-	
-	var p1_reps = max(1, state.p1_action_queue.repeat_count) if p1_active else 1
-	var p2_reps = max(1, state.p2_action_queue.repeat_count) if p2_active else 1
-	
-	var p1_fb = (state.p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
-	var p2_fb = (state.p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
-	
-	var p1_net_gain = p1_total_gain + p1_stolen - p1_fb
-	var p2_net_gain = p2_total_gain + p2_stolen - p2_fb
-	
-	var p1_parry_success = (p1_parries and p1_net_gain > 0)
-	var p2_parry_success = (p2_parries and p2_net_gain > 0)
-	
+	var p1_total_cost: int = state.p1_action_queue.cost * p1_reps
+	var p2_total_cost: int = state.p2_action_queue.cost * p2_reps
+
+	if p2_active and state.p2_action_queue.dodge_value > 0 and state.p2_action_queue.dodge_value >= p1_total_cost: 
+		p1_is_dodged = true
+	if p1_active and state.p1_action_queue.dodge_value > 0 and state.p1_action_queue.dodge_value >= p2_total_cost: 
+		p2_is_dodged = true
+
+	var p1_parries: bool = (p1_active and state.p1_action_queue.is_parry)
+	var p2_parries: bool = (p2_active and state.p2_action_queue.is_parry)
+
+	var p1_single_gain: int = state.p1_action_queue.momentum_gain + _get_opportunity_value(1)
+	var p2_single_gain: int = state.p2_action_queue.momentum_gain + _get_opportunity_value(2)
+
+	var p1_total_gain: int = _calculate_projected_momentum(1, state.p1_action_queue, p1_active)
+	var p2_total_gain: int = _calculate_projected_momentum(2, state.p2_action_queue, p2_active)
+
+	var p1_stolen: int = p2_single_gain if p1_parries else 0
+	var p2_stolen: int = p1_single_gain if p2_parries else 0
+
+	var p1_fb: int = (state.p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
+	var p2_fb: int = (state.p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
+
+	var p1_net_gain: int = p1_total_gain + p1_stolen - p1_fb
+	var p2_net_gain: int = p2_total_gain + p2_stolen - p2_fb
+
+	var p1_parry_success: bool = (p1_parries and p1_net_gain > 0)
+	var p2_parry_success: bool = (p2_parries and p2_net_gain > 0)
+
 	if p1_fb > 0 and state.momentum >= TOTAL_MOMENTUM_SLOTS:
 		_apply_wall_crush(1, p1_fb)
 		p1_fb = 0 
@@ -542,36 +559,38 @@ func resolve_clash():
 		_apply_wall_crush(2, p2_fb)
 		p2_fb = 0 
 
-	var p1_contribution = p1_total_gain
+	var p1_contribution: int = p1_total_gain
 	if p2_parries: p1_contribution -= p1_single_gain
 	if p1_is_dodged: p1_contribution = 0
-	
-	var p2_contribution = p2_total_gain
+
+	var p2_contribution: int = p2_total_gain
 	if p1_parries: p2_contribution -= p2_single_gain
 	if p2_is_dodged: p2_contribution = 0
-	
-	var p1_final_push = p1_contribution + p1_stolen
-	var p2_final_push = p2_contribution + p2_stolen
-	
-	var delta = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
-	
-	var p1_results = { "fatal": false, "opening": 0, "opportunity": 0 }
-	var p2_results = { "fatal": false, "opening": 0, "opportunity": 0 }
-	
-	var p2_immune_or_dodged = p2_parry_success or p1_is_dodged
-	var p1_immune_or_dodged = p1_parry_success or p2_is_dodged
-	
-	if p1_active: p1_results = _apply_phase_2_combat_effects(1, 2, state.p1_action_queue, state.p2_action_queue, p2_immune_or_dodged)
-	if p2_active: p2_results = _apply_phase_2_combat_effects(2, 1, state.p2_action_queue, state.p1_action_queue, p1_immune_or_dodged)
-	
+
+	var p1_final_push: int = p1_contribution + p1_stolen
+	var p2_final_push: int = p2_contribution + p2_stolen
+
+	var delta: int = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
+
+	var p1_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
+	var p2_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
+
+	var p2_immune_or_dodged: bool = p2_parry_success or p1_is_dodged
+	var p1_immune_or_dodged: bool = p1_parry_success or p2_is_dodged
+
+	if p1_active: 
+		p1_results = _apply_phase_2_combat_effects(1, 2, state.p1_action_queue, state.p2_action_queue, p2_immune_or_dodged)
+	if p2_active: 
+		p2_results = _apply_phase_2_combat_effects(2, 1, state.p2_action_queue, state.p1_action_queue, p1_immune_or_dodged)
+
 	_update_turn_constraints(p1_results, p2_results, state.p1_action_queue, state.p2_action_queue, p1_parry_success, p2_parry_success)
-	
-	if p1_results["fatal"] or p2_results["fatal"]:
+
+	if p1_results.get("fatal", false) or p2_results.get("fatal", false):
 		_handle_death(winner_id)
 		return 
-	
-	var p1_reversed = (p1_active and state.p1_action_queue.reversal and delta < 0)
-	var p2_reversed = (p2_active and state.p2_action_queue.reversal and delta > 0)
+
+	var p1_reversed: bool = (p1_active and state.p1_action_queue.reversal and delta < 0)
+	var p2_reversed: bool = (p2_active and state.p2_action_queue.reversal and delta > 0)
 
 	if is_initial_clash:
 		state.momentum = MOMENTUM_P1_MAX if winner_id == 1 else MOMENTUM_P2_START
@@ -579,19 +598,19 @@ func resolve_clash():
 		
 		if p1_reversed:
 			state.attacker_override = 1
-			emit_signal("combat_log_updated", ">> P1 Reverses! Seizing Offence.")
+			combat_log_updated.emit(">> P1 Reverses! Seizing Offence.")
 		elif p2_reversed:
 			state.attacker_override = 2
-			emit_signal("combat_log_updated", ">> P2 Reverses! Seizing Offence.")
+			combat_log_updated.emit(">> P2 Reverses! Seizing Offence.")
 	else:
 		state.momentum = clamp_momentum(state.momentum + delta)
 		
 		if p1_reversed:
 			state.attacker_override = 1
-			emit_signal("combat_log_updated", ">> P1 REVERSAL SUCCESSFUL!")
+			combat_log_updated.emit(">> P1 REVERSAL SUCCESSFUL!")
 		elif p2_reversed:
 			state.attacker_override = 2
-			emit_signal("combat_log_updated", ">> P2 REVERSAL SUCCESSFUL!")
+			combat_log_updated.emit(">> P2 REVERSAL SUCCESSFUL!")
 
 	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
 	_check_reversal_state() 
@@ -600,16 +619,19 @@ func resolve_clash():
 
 	state.p1_action_queue = null
 	state.p2_action_queue = null
-	
+
 	if p1_data.current_hp <= 0 or p2_data.current_hp <= 0:
 		_handle_death(winner_id)
 		return
-	
+
+	# [NEW] Optional intermediate POST_CLASH phase, removed double SELECTION call
 	change_state(State.POST_CLASH)
+
 	# [NEW SYNC TRIGGER] 
 	# Force clients to align with the server's final calculation before the next turn starts
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		broadcast_state_snapshot()
+		
 	change_state(State.SELECTION)
 
 # ==============================================================================
