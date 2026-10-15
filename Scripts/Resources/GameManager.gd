@@ -120,17 +120,17 @@ const KEYWORD_DEFS = {
 	"Tiring": "Cause the opponent to lose X Stamina"
 }
 
-# --- SIGNALS ---
-signal state_changed(new_state)
-signal clash_resolved(winner_id, log_text)
-signal combat_log_updated(text)
-signal game_over(winner_id)
+### --- MODERN GDSCRIPT 2.0 SIGNALS ---
+signal state_changed(new_state: State)
+signal clash_resolved(winner_id: int, p1_card: ActionData, p2_card: ActionData, results: Dictionary)
+signal combat_log_updated(text: String)
+signal game_over(winner_id: int)
 signal damage_dealt(target_id: int, amount: int, is_blocked: bool)
 signal healing_received(target_id: int, amount: int)
 signal status_applied(target_id: int, status_name: String)
-signal request_clash_animation(p1_card, p2_card)
+signal request_clash_animation(p1_card: ActionData, p2_card: ActionData)
 signal clash_animation_finished
-signal wall_crush_occurred(player_id, damage_amount)
+signal wall_crush_occurred(player_id: int, damage_amount: int)
 signal sync_advance_approved
 
 # --- CONFIGURATION ---
@@ -336,25 +336,32 @@ func player_select_action(player_id: int, action: ActionData, extra_data: Dictio
 # FEINT MECHANICS
 # ==============================================================================
 
-func _enter_reveal_phase():
-	_is_sync_approved = false 
+func _enter_reveal_phase() -> void:
+	_is_sync_approved = false
 	
-	emit_signal("combat_log_updated", "\nREVEAL: P1 chose " + state.p1_action_queue.display_name + " | P2 chose " + state.p2_action_queue.display_name)
-	emit_signal("request_clash_animation", state.p1_action_queue, state.p2_action_queue)
-	
-	# --- 1. HEADLESS SERVER FIX (Skip Visual Await) ---
-	if not (multiplayer.is_server() and DisplayServer.get_name() == "headless"):
-		await self.clash_animation_finished
-	
-	# --- 2. NETWORK SYNC CHECK (FIXED) ---
-	# We must ensure there are actually connected peers, otherwise Arcade mode freezes here!
+	combat_log_updated.emit("\nREVEAL: P1 chose " + state.p1_action_queue.display_name + " | P2 chose " + state.p2_action_queue.display_name)
+	request_clash_animation.emit(state.p1_action_queue, state.p2_action_queue)
+
+	# --- 1. HEADLESS SERVER FIX & SAFETY TIMER ---
+	if multiplayer.is_server() and DisplayServer.get_name() == "headless":
+		# Start a 10 second timeout timer in case a client disconnects during the animation
+		var net_manager = get_node("/root/NetworkManager")
+		net_manager._animation_timeout = get_tree().create_timer(10.0)
+		net_manager._animation_timeout.timeout.connect(net_manager._on_handshake_timeout)
+	else:
+		# Clients wait for the visual animation to finish
+		await clash_animation_finished
+
+	# --- 2. NETWORK SYNC CHECK ---
 	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
 		if not multiplayer.is_server():
-			NetworkManager.rpc_id(1, "report_animation_done")
+			# Tell the server we finished watching the animation
+			var net_manager = get_node("/root/NetworkManager")
+			net_manager.report_animation_done.rpc_id(1)
 			
 		if not _is_sync_approved:
-			await self.sync_advance_approved
-	
+			await sync_advance_approved
+
 	state.p1_pending_feint = state.p1_action_queue.feint
 	state.p2_pending_feint = state.p2_action_queue.feint
 

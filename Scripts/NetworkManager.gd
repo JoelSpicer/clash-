@@ -18,6 +18,12 @@ var players_ready_for_match: Array[int] = []
 
 # Tracks the IDs of players who have finished watching the Clash Animation
 var anim_ready_players: Array[int] = []
+
+### --- MATCH STATE GUARDS ---
+var _is_match_active: bool = false
+var _loading_timeout: SceneTreeTimer = null
+var _animation_timeout: SceneTreeTimer = null
+
 #endregion
 
 #region Initialization
@@ -60,7 +66,17 @@ func start_server() -> void:
 
 ## Triggered automatically when a player connects to the server.
 func _on_peer_connected(id: int) -> void:
-	print("SERVER: A new fighter joined! Their Network ID is: ", id)
+	if not multiplayer.is_server():
+		return
+		
+	print("SERVER: Peer connected. ID: ", id)
+	
+	if _is_match_active:
+		printerr("🚨 [SERVER ALERT] Match in progress. Booting spectator: ", id)
+		# Tell the specific late-joiner to leave without affecting P1 and P2
+		return_to_lobby.rpc_id(id)
+		# Forcefully disconnect them on the server side
+		multiplayer.multiplayer_peer.disconnect_peer(id)
 
 ## Triggered automatically when a player closes their browser or loses internet.
 func _on_peer_disconnected(id: int) -> void:
@@ -121,22 +137,35 @@ func _on_kicked_by_server() -> void:
 ## 1. CLIENTS call this to tell the server what character they picked.
 ## ONLY THE SERVER executes the code inside.
 @rpc("any_peer", "call_remote", "reliable")
-func register_player_character(char_file_path: String) -> void:
-	if not multiplayer.is_server():
+func register_player_character(preset_path: String) -> void:
+	if not multiplayer.is_server(): 
+		return
+
+	var sender_id: int = multiplayer.get_remote_sender_id()
+	
+	# Block registration if a match is already running
+	if _is_match_active:
 		return
 		
-	var sender_id: int = multiplayer.get_remote_sender_id()
-	server_players[sender_id] = char_file_path
-	print("Server: Player ", sender_id, " locked in: ", char_file_path)
-	
-	# If two players have submitted their characters, it's time to start!
+	server_players[sender_id] = preset_path
+	print("Server: Registered player ", sender_id, " with character: ", preset_path)
+
 	if server_players.size() == 2:
-		var peer_ids: Array = server_players.keys()
-		var p1_id: int = peer_ids[0]
-		var p2_id: int = peer_ids[1]
+		print("Server: Lobby is full! Triggering Match Start...")
+		_is_match_active = true
 		
-		# Tell EVERYONE to start the match, providing them the exact file paths and IDs
-		rpc("start_match", server_players[p1_id], server_players[p2_id], p1_id, p2_id)
+		var p_ids: Array = server_players.keys()
+		var p1_id: int = p_ids[0]
+		var p2_id: int = p_ids[1]
+		var p1_path: String = server_players[p1_id]
+		var p2_path: String = server_players[p2_id]
+
+		# 1. Start the Match
+		start_match.rpc(p1_path, p2_path, p1_id, p2_id)
+		
+		# 2. Start a 15-second safety timer for scene loading
+		_loading_timeout = get_tree().create_timer(15.0)
+		_loading_timeout.timeout.connect(_on_handshake_timeout)
 
 ## 2. THE SERVER calls this. ALL CLIENTS execute it simultaneously.
 @rpc("authority", "call_local", "reliable")
@@ -167,21 +196,24 @@ func start_match(p1_path: String, p2_path: String, p1_id: int, p2_id: int) -> vo
 ## 1. CLIENTS call this when their Arena has fully rendered and is ready.
 @rpc("any_peer", "call_remote", "reliable")
 func client_finished_loading() -> void:
-	if not multiplayer.is_server():
+	if not multiplayer.is_server(): 
 		return
 		
 	var sender_id: int = multiplayer.get_remote_sender_id()
-	
-	# Make sure we don't add the same person twice
+
 	if not players_ready_for_match.has(sender_id):
 		players_ready_for_match.append(sender_id)
 		
 	print("Server: Player ", sender_id, " is in the arena and ready!")
-	
-	# Wait until exactly 2 people are loaded before officially starting the combat loop
+
 	if players_ready_for_match.size() == 2:
+		# Cancel the safety timer!
+		if _loading_timeout:
+			_loading_timeout.timeout.disconnect(_on_handshake_timeout)
+			_loading_timeout = null
+			
 		print("Server: Both players are loaded! Starting Combat State...")
-		rpc("begin_combat_phase")
+		begin_combat_phase.rpc()
 
 ## 2. THE SERVER tells the clients to officially start the game.
 @rpc("authority", "call_local", "reliable")
@@ -192,20 +224,24 @@ func begin_combat_phase() -> void:
 ## 3. CLIENTS call this when they finish watching a combat animation.
 @rpc("any_peer", "call_remote", "reliable")
 func report_animation_done() -> void:
-	if not multiplayer.is_server():
+	if not multiplayer.is_server(): 
 		return
 		
 	var sender_id: int = multiplayer.get_remote_sender_id()
-	
+
 	if not anim_ready_players.has(sender_id):
 		anim_ready_players.append(sender_id)
 		
 	print("Server: Player ", sender_id, " finished watching the clash animation.")
-	
-	# Once both players are done animating, give the green light to advance the turn
+
 	if anim_ready_players.size() == 2:
+		# Cancel the safety timer!
+		if _animation_timeout:
+			_animation_timeout.timeout.disconnect(_on_handshake_timeout)
+			_animation_timeout = null
+			
 		anim_ready_players.clear()
-		rpc("approve_state_advance")
+		approve_state_advance.rpc()
 
 ## 4. THE SERVER tells the clients they can unpause and move to the next phase.
 @rpc("authority", "call_local", "reliable")
@@ -213,6 +249,13 @@ func approve_state_advance() -> void:
 	# Flip the safety flag BEFORE emitting the signal to prevent race conditions
 	GameManager._is_sync_approved = true
 	GameManager.emit_signal("sync_advance_approved")
+	
+	
+func _on_handshake_timeout() -> void:
+	printerr("🚨 [SERVER ALERT] Handshake Timeout! A client hung during loading or animation.")
+	# Force the remaining connected player back to the menu
+	return_to_lobby.rpc()
+	_wipe_server_memory()
 #endregion
 
 #region Lobby & Cleanup
@@ -254,11 +297,28 @@ func return_to_lobby() -> void:
 # --- HELPER FUNCTIONS ---
 
 ## Safely wipes all server memory tracking variables.
+### --- HELPER FUNCTIONS ---
+
+#### Safely wipes all server memory tracking variables and resets match guards.
 func _wipe_server_memory() -> void:
+	# 1. Clear tracking collections
 	server_players.clear()
 	players_ready_for_match.clear()
 	anim_ready_players.clear()
-	print("Server: Memory wiped. Ready for new match.")
+	
+	# 2. Cancel and disconnect any pending handshake timers
+	if _loading_timeout and _loading_timeout.timeout.is_connected(_on_handshake_timeout):
+		_loading_timeout.timeout.disconnect(_on_handshake_timeout)
+	_loading_timeout = null
+
+	if _animation_timeout and _animation_timeout.timeout.is_connected(_on_handshake_timeout):
+		_animation_timeout.timeout.disconnect(_on_handshake_timeout)
+	_animation_timeout = null
+
+	# 3. Unlock server for the next lobby
+	_is_match_active = false
+	
+	print("Server: Memory wiped and match guards reset. Ready for new match.")
 
 ## Safely destroys the local peer connection for a client.
 func _disconnect_local_peer() -> void:

@@ -5,6 +5,14 @@
 - Player1.tres
 - Player2.tres
 - README.md
+- addons\OvaniPlugin\OvaniPlayer.gd
+- addons\OvaniPlugin\OvaniSong.gd
+- addons\OvaniPlugin\SeamlessStream.gd
+- addons\OvaniPlugin\SeamlessStreamManager.gd
+- Audio\Music\SongDojo.tres
+- Audio\Music\SongMenus.tres
+- Audio\Music\SongRing.tres
+- Audio\Music\SongStreet.tres
 - Data\Actions\100_hand_slap.tres
 - Data\Actions\active_block.tres
 - Data\Actions\adept_block.tres
@@ -389,6 +397,489 @@ metadata/_custom_type_script = "uid://c4fll3p1ufpsf"
 
 
 --- END FILE: README.md ---
+
+
+--- START FILE: addons\OvaniPlugin\OvaniPlayer.gd ---
+
+@tool
+@icon("res://OvaniPlugin/OvaniPlayerIcon.png")
+class_name OvaniPlayer
+## The OvaniPlayer will let you easily Manage dynamic music in your game, via [OvaniSong]s.
+## 
+## This Node will let you: [br]
+## 1. Seamlessly loop the same song via "Reverb tails" [br]
+## 2. Seamlessly transition through different "Intensities" & Volumes [br]
+## 3. Easily fade or transition between different songs [br]
+extends Node
+
+
+## [OvaniSong]s in this array will play one by one, after eachother.
+## Add to this directly in code, or use [method OvaniPlayer.PlaySongNow]
+@export var QueuedSongs : Array[OvaniSong];
+
+## The volume of this player in Decibels
+@export_range(-80, 20) var Volume : float = 0:
+	get:
+		return Volume;
+	set(value):
+		for psm in _soundManagers:
+			psm.Volume = value;
+		Volume = value;
+## The current intensity of the playing OvaniSong
+@export_range(0, 1) var Intensity : float = 0:
+	get:
+		return Intensity;
+	set(value):
+		for psm in _soundManagers:
+			psm.Intensity = value;
+		Intensity = value;
+## Check this to preview how your [OvaniPlayer] and [OvaniSong]s sounds in the editor. It will dequeue finished songs!
+@export var PlayInEditor : bool = false;
+
+## This is the Godot Audio Bus that your music will play through. Can be assigned dynamically.
+@export var Bus : StringName = "Master":
+	get:
+		if _audioPlayer != null && !Engine.is_editor_hint():
+			return _audioPlayer.bus;
+		else:
+			return Bus;
+	set(value):
+		Bus = value;
+		if _audioPlayer != null:
+			_audioPlayer.bus = value;
+
+var _audioPlayer : AudioStreamPlayer:
+	get:
+		return _audioPlayer;
+	set(value):
+		value.bus = Bus;
+		_audioPlayer = value
+
+## Checking this will make the Queue send finished songs to the end of the queue, to infinitely loop music.
+@export var LoopQueue : bool
+		
+
+## Use PlaySongNow to Replace the current OvaniSong with a new one.[br]
+## Use transitionTime to govern how fast it fades to the next song.[br]
+## Setting transitionTime to -1 will use the current songs reverbTail to fade.
+func PlaySongNow(song : OvaniSong, transitionTime : float = -1):
+	if (len(QueuedSongs) == 0):
+		QueuedSongs.append(null)
+	
+	QueuedSongs.insert(1, song);
+	if (len(_soundManagers) != 0):
+		if (transitionTime == -1):
+			_soundManagers[0].StartTime = (_curTime - _soundManagers[0].SongLength) + _soundManagers[0].ReverbTail;
+			_soundManagers[0].FadeOut = _soundManagers[0].ReverbTail
+		else:
+			_soundManagers[0].StartTime = (_curTime - _soundManagers[0].SongLength) + transitionTime;
+			_soundManagers[0].FadeOut = transitionTime
+
+## Clears the song queue, and optionally fades to silence.
+func StopSongsNow(transition_time : int = 0):
+	if (len(QueuedSongs) > 0):
+		QueuedSongs = [QueuedSongs[0]]
+		PlaySongNow(null, transition_time)
+
+func QueueSong(song : OvaniSong):
+	QueuedSongs.append(song);
+
+var _audioStreamPlayback : AudioStreamPlaybackPolyphonic; 
+var _soundManagers : Array[PolySoundManager];
+
+## [enum OvaniPlayer.NextState] is used internally by the [OvaniPlayer], don't mind it.
+enum NextState {
+	None = 0,
+	StartedLoop = 1,
+	StartedDifferent = 2
+}
+class PolySoundManager:
+	var MyStream : AudioStreamPlaybackPolyphonic;
+	var Ids : Array[int];
+	var Volume : float:
+		get:
+			return Volume;
+		set(value):
+			var realIntensity : float;
+			if (len(Ids) == 3):
+				realIntensity = Intensity;
+			else:
+				realIntensity = 0;
+			for i in range(len(Ids)):
+				# set volume based on intensity
+				# if only 1 audio id it'll just be full
+				#MyStream.set_stream_volume(Ids[i], linear_to_db(db_to_linear(value) * max((.5 - abs((i as float)/2 - realIntensity))/.5, 0)));
+				# --- FIX 1: Prevent -Infinity Audio Crash ---
+				var safe_linear = db_to_linear(value) * max((.5 - abs((i as float)/2 - realIntensity))/.5, 0)
+				MyStream.set_stream_volume(Ids[i], linear_to_db(max(safe_linear, 0.00001)))
+# --------------------------------------------
+			Volume = value;
+	var Intensity : float:
+		get:
+			return Intensity;
+		set(value):
+			Intensity = value;
+			Volume = Volume;
+	var StartTime : float;
+	var SongLength : float;
+	var ReverbTail : float;
+	var FadeIn : float = -1;
+	var FadeOut : float = -1;
+	var StartedNextState : NextState = NextState.None;
+
+func _constructPolySoundManager(song : OvaniSong) -> PolySoundManager:
+	var o : PolySoundManager = PolySoundManager.new();
+	o.MyStream = _audioStreamPlayback;
+
+	if (song != null):
+		if (song.SongMode == OvaniSong.OvaniMode.Intensities):
+			o.Ids.append(_audioStreamPlayback.play_stream(song.Intensity1));
+			o.Ids.append(_audioStreamPlayback.play_stream(song.Intensity2));
+			o.Ids.append(_audioStreamPlayback.play_stream(song.Intensity3));
+			o.Intensity = Intensity;
+			o.SongLength = song.Intensity1.get_length();
+		elif (song.SongMode == OvaniSong.OvaniMode.Loop30):
+			o.Ids.append(_audioStreamPlayback.play_stream(song.Loop30));
+			o.Intensity = 0;
+			o.SongLength = song.Loop30.get_length();
+		else:
+			o.Ids.append(_audioStreamPlayback.play_stream(song.Loop60));
+			o.Intensity = 0;
+			o.SongLength = song.Loop60.get_length();
+		o.ReverbTail = song.ReverbTail;
+	
+	o.Volume = Volume;
+	o.StartTime = _curTime;
+	return o;
+ 
+ 
+func _ready():
+	_audioPlayer = AudioStreamPlayer.new();
+	_audioPlayer.stream = AudioStreamPolyphonic.new();
+	add_child(_audioPlayer, INTERNAL_MODE_BACK);
+	_audioPlayer.owner = null;
+	_audioPlayer.play();
+	_audioStreamPlayback = _audioPlayer.get_stream_playback();
+
+var _startIntFadeVal : float = 0;
+var _endIntFadeVal : float = 1;
+var _timeIntFadeStarted : float = 0;
+var _timeIntFadeEnded : float = 1;
+## Use this to transition the current Intensity over time. [br]
+## It's a simple alternative to setting the Intensity manually yourself each frame.
+func FadeIntensity(intensity : float, transitionTime : float):
+	_timeIntFadeStarted = _curTime
+	_timeIntFadeEnded  = _curTime + transitionTime;
+	_startIntFadeVal = Intensity;
+	_endIntFadeVal = intensity;
+
+var _startVolFadeVal : float = 0;
+var _endVolFadeVal : float = 1;
+var _timeVolFadeStarted : float = 0;
+var _timeVolFadeEnded : float = 1;
+## Use this to transition the current Decibel Volume over time. [br]
+## It's a simple alternative to setting the Volume manually yourself each frame.
+func FadeVolume(volume : float, transitionTime : float):
+	_timeVolFadeStarted = _curTime
+	_timeVolFadeEnded  = _curTime + transitionTime;
+	_startVolFadeVal = Volume;
+	_endVolFadeVal = volume;
+
+## The Current time In the Current Song.
+var CurrentSongTime : float:
+	get:
+		if (len(_soundManagers) > 0):
+			return _curTime - _soundManagers[0].StartTime;
+		else:
+			return 0;
+## The Current Length Of the Current Song.
+var CurrentSongLength : float:
+	get:
+		if (len(_soundManagers) > 0):
+			return _soundManagers[0].SongLength;
+		else:
+			return 0;
+
+var _curTime : float = 500;
+func _process(delta):
+	if (Engine.is_editor_hint() && !PlayInEditor):
+		for psm in _soundManagers:
+			if (psm.StartedNextState != NextState.StartedLoop):
+				psm.StartTime = (_curTime - psm.SongLength) + 1;
+				psm.FadeOut = 1;
+				psm.StartedNextState = NextState.StartedLoop;
+
+	_curTime += delta / Engine.time_scale;
+
+	
+	# Intensity Fade Logic
+	if (_timeIntFadeStarted < _curTime && _timeIntFadeEnded > _curTime):
+		Intensity = lerp(_startIntFadeVal, _endIntFadeVal, (_curTime - _timeIntFadeStarted)/(_timeIntFadeEnded - _timeIntFadeStarted))
+	# Volume Fade Logic
+	if (_timeVolFadeStarted < _curTime && _timeVolFadeEnded > _curTime):
+		Volume = lerp(_startVolFadeVal, _endVolFadeVal, (_curTime - _timeVolFadeStarted)/(_timeVolFadeEnded - _timeVolFadeStarted))
+
+	# Play queued songs logic
+	if (len(QueuedSongs) > 0):
+		if (len(_soundManagers) == 0 && (!Engine.is_editor_hint() || PlayInEditor)):
+			_soundManagers.append(_constructPolySoundManager(QueuedSongs[0]));
+		for psm in _soundManagers:
+			# handle fade in
+			var timePlayed : float = _curTime - psm.StartTime;
+			if (psm.FadeIn != -1 && timePlayed < psm.FadeIn):
+				#psm.Volume = linear_to_db((timePlayed / psm.FadeIn) * db_to_linear(Volume));
+				# --- FIX 2: Prevent -Infinity Fade In ---
+				psm.Volume = linear_to_db(max((timePlayed / psm.FadeIn) * db_to_linear(Volume), 0.00001))
+# ----------------------------------------
+				
+				
+			# handle fade out
+			var remainingTime : float = -(_curTime - (psm.StartTime + psm.SongLength));
+			if (psm.FadeOut != -1 && remainingTime < psm.FadeOut):
+				#psm.Volume = linear_to_db((remainingTime / psm.FadeOut) * db_to_linear(Volume));
+				# --- FIX 3: Prevent -Infinity Fade Out ---
+				psm.Volume = linear_to_db(max((remainingTime / psm.FadeOut) * db_to_linear(Volume), 0.00001))
+# -----------------------------------------
+			
+			if (remainingTime < psm.ReverbTail || remainingTime < psm.FadeOut):
+				if (psm.StartedNextState == NextState.None):
+					
+					if (!Engine.is_editor_hint() || PlayInEditor):
+						var nextSong : OvaniSong;
+						if (len(QueuedSongs) == 1):
+							nextSong = QueuedSongs[0];
+							psm.StartedNextState = NextState.StartedLoop;
+						else:
+							nextSong = QueuedSongs[1];
+							psm.StartedNextState = NextState.StartedDifferent;
+						var newPSM : PolySoundManager = _constructPolySoundManager(nextSong)
+						_soundManagers.append(newPSM);
+						if remainingTime < psm.FadeOut:
+							newPSM.FadeIn = psm.FadeOut;
+				if (remainingTime < 0):
+					_soundManagers.erase(psm);
+					for id in psm.Ids:
+						psm.MyStream.stop_stream(id);
+					if (psm.StartedNextState == NextState.StartedDifferent):
+						var leavingSong : OvaniSong = QueuedSongs.pop_front()
+						if LoopQueue:
+							QueuedSongs.append(leavingSong);
+						notify_property_list_changed();
+				
+		return;
+
+--- END FILE: addons\OvaniPlugin\OvaniPlayer.gd ---
+
+
+--- START FILE: addons\OvaniPlugin\OvaniSong.gd ---
+
+@tool
+@icon("res://OvaniPlugin/OvaniPlayerIcon.png")
+class_name OvaniSong
+## The OvaniSong Holds onto all your music variants, for use with the [OvaniPlayer].
+extends Resource
+
+@export_category("Sound Files")
+## This should be set to your least intense music file.
+@export var Intensity1 : AudioStream;
+## This should be set to your semi-intense music file.
+@export var Intensity2 : AudioStream;
+## This should be set to your most intense music file.
+@export var Intensity3 : AudioStream;
+
+## Set this to any 30 second loop of your music. 
+@export var Loop30 : AudioStream;
+## Set this to any 60 second loop of your music.
+@export var Loop60 : AudioStream;
+
+## Set this to how long the sound should loop over itself. [br]
+## This will make any songs with a Reverb Tail loop perfectly. 	
+@export var ReverbTail : float;
+
+
+@export_category("Default Settings")
+enum OvaniMode {
+	Intensities = 0, ## Determines this [OvaniSong] will play the [member Intensity1], [member Intensity2], and [member Intensity3], music files.
+	Loop30 = 1, ## Determines this [OvaniSong] will play the [member Loop30] music file.
+	Loop60 = 2 ## Determines this [OvaniSong] will play the [member Loop60] music file.
+}
+## Set this to change what linked music files will be played.
+@export var SongMode : OvaniMode = OvaniMode.Intensities;
+
+--- END FILE: addons\OvaniPlugin\OvaniSong.gd ---
+
+
+--- START FILE: addons\OvaniPlugin\SeamlessStream.gd ---
+
+@tool
+extends AudioStream
+class_name SeamlessStream
+
+@export
+var Song : AudioStream 
+
+@export
+var ReverbTail : float = 1
+
+var poly_stream : AudioStreamPolyphonic = AudioStreamPolyphonic.new()
+
+func _instantiate_playback() -> AudioStreamPlayback:
+	var playback : AudioStreamPlaybackPolyphonic = poly_stream.instantiate_playback()
+	var new_manager : SeamlessStreamManager = SeamlessStreamManager.new()
+	get_local_scene().add_child(new_manager, true, Node.INTERNAL_MODE_FRONT)
+	new_manager.seamless_stream = weakref(self)
+	new_manager.poly_man = weakref(playback)
+	return playback
+
+--- END FILE: addons\OvaniPlugin\SeamlessStream.gd ---
+
+
+--- START FILE: addons\OvaniPlugin\SeamlessStreamManager.gd ---
+
+@tool
+class_name SeamlessStreamManager
+extends Node
+
+var seamless_stream : WeakRef
+var poly_man : WeakRef
+var last_song : AudioStream
+var last_RT : float
+var cur_song_length : float
+
+var current_playbacks : Array[int] = []
+
+var curTime : float
+func _process(delta: float) -> void:
+	if (poly_man == null) or (seamless_stream == null):
+		queue_free();
+		return;
+	
+	var curStream : SeamlessStream = seamless_stream.get_ref()
+	var curPoly : AudioStreamPlaybackPolyphonic = poly_man.get_ref()
+	if (curStream == null) or (curPoly == null):
+		queue_free();
+		return;
+	
+	if (last_song != curStream.Song) or (last_RT != curStream.ReverbTail):
+		last_song = curStream.Song
+		last_RT = curStream.ReverbTail
+		
+		for cur_play in current_playbacks:
+			curPoly.stop_stream(cur_play)
+		current_playbacks = []
+		
+		curTime = 0
+		if curStream.Song != null:
+			current_playbacks = [curPoly.play_stream(curStream.Song)]
+			cur_song_length = curStream.Song.get_length() - last_RT
+	
+	if (last_song != null):
+		if (curTime > cur_song_length):
+			current_playbacks.append(curPoly.play_stream(curStream.Song))
+			if len(current_playbacks) > 2:
+				curPoly.stop_stream(current_playbacks.pop_front())
+			curTime = 0
+	
+	curTime += delta * Engine.time_scale
+
+--- END FILE: addons\OvaniPlugin\SeamlessStreamManager.gd ---
+
+
+--- START FILE: Audio\Music\SongDojo.tres ---
+
+[gd_resource type="Resource" script_class="OvaniSong" format=3 uid="uid://v146iygng60j"]
+
+[ext_resource type="AudioStream" uid="uid://cniakhgqtqjw7" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Intensity 1.wav" id="1_fh1k1"]
+[ext_resource type="Script" uid="uid://bkblmr410vlsw" path="res://addons/OvaniPlugin/OvaniSong.gd" id="1_s6ua7"]
+[ext_resource type="AudioStream" uid="uid://i64rqnmdeokg" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Intensity 2.wav" id="2_sfyg4"]
+[ext_resource type="AudioStream" uid="uid://cubr0cc3rp80f" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Main.wav" id="3_q8uav"]
+[ext_resource type="AudioStream" uid="uid://bgfn631y3oaj4" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Cut 30.wav" id="4_md2i7"]
+[ext_resource type="AudioStream" uid="uid://otst6wmskatj" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Cut 60.wav" id="5_p4nb2"]
+
+[resource]
+script = ExtResource("1_s6ua7")
+Intensity1 = ExtResource("1_fh1k1")
+Intensity2 = ExtResource("2_sfyg4")
+Intensity3 = ExtResource("3_q8uav")
+Loop30 = ExtResource("4_md2i7")
+Loop60 = ExtResource("5_p4nb2")
+ReverbTail = 1.938
+metadata/_custom_type_script = "uid://bkblmr410vlsw"
+
+--- END FILE: Audio\Music\SongDojo.tres ---
+
+
+--- START FILE: Audio\Music\SongMenus.tres ---
+
+[gd_resource type="Resource" script_class="OvaniSong" format=3 uid="uid://brgvi0cfvokl4"]
+
+[ext_resource type="AudioStream" uid="uid://jr0g3cw8g58o" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Intensity 1.wav" id="1_5jc54"]
+[ext_resource type="Script" uid="uid://bkblmr410vlsw" path="res://addons/OvaniPlugin/OvaniSong.gd" id="1_jntbp"]
+[ext_resource type="AudioStream" uid="uid://bqh2w813kvgoh" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Intensity 2.wav" id="2_7hodk"]
+[ext_resource type="AudioStream" uid="uid://chpr7xg2g0fiw" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Main.wav" id="3_j5kgy"]
+[ext_resource type="AudioStream" uid="uid://f6r2xed8luyu" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Cut 30.wav" id="4_30o2o"]
+[ext_resource type="AudioStream" uid="uid://da3rhyukwvl0w" path="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Cut 60.wav" id="5_7jlyj"]
+
+[resource]
+script = ExtResource("1_jntbp")
+Intensity1 = ExtResource("1_5jc54")
+Intensity2 = ExtResource("2_7hodk")
+Intensity3 = ExtResource("3_j5kgy")
+Loop30 = ExtResource("4_30o2o")
+Loop60 = ExtResource("5_7jlyj")
+ReverbTail = 3.0
+SongMode = 2
+metadata/_custom_type_script = "uid://bkblmr410vlsw"
+
+--- END FILE: Audio\Music\SongMenus.tres ---
+
+
+--- START FILE: Audio\Music\SongRing.tres ---
+
+[gd_resource type="Resource" script_class="OvaniSong" format=3 uid="uid://qf0nv874h0ju"]
+
+[ext_resource type="AudioStream" uid="uid://c400bahb6hoke" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Intensity 1.wav" id="1_imatp"]
+[ext_resource type="Script" uid="uid://bkblmr410vlsw" path="res://addons/OvaniPlugin/OvaniSong.gd" id="1_isjf3"]
+[ext_resource type="AudioStream" uid="uid://dhp5rf1h1wkix" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Intensity 2.wav" id="2_ohxpb"]
+[ext_resource type="AudioStream" uid="uid://djit04gxwd8ni" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Main.wav" id="3_er6tb"]
+[ext_resource type="AudioStream" uid="uid://bx40imm4gknq2" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Cut 30.wav" id="4_mv7o1"]
+[ext_resource type="AudioStream" uid="uid://bgm708fjhg7fs" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Cut 60.wav" id="5_6m1le"]
+
+[resource]
+script = ExtResource("1_isjf3")
+Intensity1 = ExtResource("1_imatp")
+Intensity2 = ExtResource("2_ohxpb")
+Intensity3 = ExtResource("3_er6tb")
+Loop30 = ExtResource("4_mv7o1")
+Loop60 = ExtResource("5_6m1le")
+ReverbTail = 2.652
+metadata/_custom_type_script = "uid://bkblmr410vlsw"
+
+--- END FILE: Audio\Music\SongRing.tres ---
+
+
+--- START FILE: Audio\Music\SongStreet.tres ---
+
+[gd_resource type="Resource" script_class="OvaniSong" format=3 uid="uid://dqc36qnrqybfy"]
+
+[ext_resource type="Script" uid="uid://bkblmr410vlsw" path="res://addons/OvaniPlugin/OvaniSong.gd" id="1_fcaeb"]
+[ext_resource type="AudioStream" uid="uid://bdqw8aew82qtu" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Intensity 1.wav" id="1_g2ajn"]
+[ext_resource type="AudioStream" uid="uid://cbrmxkbs1p5lq" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Intensity 2.wav" id="2_6n2wh"]
+[ext_resource type="AudioStream" uid="uid://rvnaf0ud0p3o" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Main.wav" id="3_n8t2t"]
+[ext_resource type="AudioStream" uid="uid://cxxl8eedp0gc3" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Cut 30.wav" id="4_skxhi"]
+[ext_resource type="AudioStream" uid="uid://ddwbno6ejngpn" path="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Cut 60.wav" id="5_mjy3q"]
+
+[resource]
+script = ExtResource("1_fcaeb")
+Intensity1 = ExtResource("1_g2ajn")
+Intensity2 = ExtResource("2_6n2wh")
+Intensity3 = ExtResource("3_n8t2t")
+Loop30 = ExtResource("4_skxhi")
+Loop60 = ExtResource("5_mjy3q")
+ReverbTail = 1.163
+metadata/_custom_type_script = "uid://bkblmr410vlsw"
+
+--- END FILE: Audio\Music\SongStreet.tres ---
 
 
 --- START FILE: Data\Actions\100_hand_slap.tres ---
@@ -15933,73 +16424,89 @@ func _prepare_human_turn(player_id: int):
 		battle_ui.lock_ui()
 		print("Waiting for Opponent to choose...")
 
-func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}):
-	var card_name = ""
-	if card != null:
+func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}) -> void:
+	var card_name: String = ""
+	if card != null: 
 		card_name = card.display_name
-		
-	# --- SYNC FIX: Route all input to the invisible referee! ---
+
+	# GDScript 2.0: Use Callable.rpc_id() instead of rpc_id(1, "...")
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
-		rpc_id(1, "server_receive_input", _current_input_player, card_name, extra_data)
+		server_receive_input.rpc_id(1, _current_input_player, card_name, extra_data)
 	else:
 		# Offline fallback
 		server_receive_input(_current_input_player, card_name, extra_data)
 
 @rpc("any_peer", "call_local", "reliable")
-func server_receive_input(player_id: int, card_name: String, extra_data: Dictionary):
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+func server_receive_input(player_id: int, card_name: String, extra_data: Dictionary) -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server(): 
 		return
-		
-	var str_id = str(player_id)
+
+	var str_id: String = str(player_id)
 	server_received_inputs[str_id] = { "card": card_name, "extra": extra_data }
 	print("📥 [SERVER FUNNEL] Received P", player_id)
-	
-	# Ask the funnel if we have what we need
+
+	# Ask the funnel if we have what we need to advance the turn
 	_check_server_funnel()
-	
-	# OFFLINE FALLBACK
+
+	# OFFLINE FALLBACK (Sequential Turn Hand-off)
 	if not multiplayer.has_multiplayer_peer() or multiplayer.get_peers().size() == 0:
 		if player_id == 1:
 			if is_player_2_human:
+				# Wait slightly so the UI doesn't instantly flip jarringly
 				await get_tree().create_timer(0.2).timeout
 				_prepare_human_turn(2)
 			else:
 				_run_bot_turn(2)
 
-func _check_server_funnel():
-	var inputs_ready = false
+func _check_server_funnel() -> void:
+	var inputs_ready: bool = false
+	var match_state = GameManager.state
 	
 	if GameManager.current_state == GameManager.State.SELECTION:
-		# Standard Turn: We absolutely need BOTH inputs
-		if server_received_inputs.has("1") and server_received_inputs.has("2"): 
+		# THE FIX: A player is ready if they sent an input OR they are locked into a card
+		var p1_ready: bool = server_received_inputs.has("1") or match_state.p1_locked_card != null
+		var p2_ready: bool = server_received_inputs.has("2") or match_state.p2_locked_card != null
+		
+		if p1_ready and p2_ready: 
 			inputs_ready = true
 			
 	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
-		var is_ready = true
-		if GameManager.state.p1_pending_feint and not server_received_inputs.has("1"): is_ready = false
-		if GameManager.state.p2_pending_feint and not server_received_inputs.has("2"): is_ready = false
-		inputs_ready = is_ready
+		var p1_ready: bool = (not match_state.p1_pending_feint) or server_received_inputs.has("1")
+		var p2_ready: bool = (not match_state.p2_pending_feint) or server_received_inputs.has("2")
+		
+		if p1_ready and p2_ready:
+			inputs_ready = true
 		
 	if inputs_ready:
 		print("🚀 [SERVER FUNNEL] Ready! Blasting to clients...")
-		rpc("client_execute_turn", server_received_inputs.duplicate())
+		
+		# INJECTION: Add locked cards into the payload so clients deterministically execute them
+		if match_state.p1_locked_card != null and not server_received_inputs.has("1"):
+			server_received_inputs["1"] = { "card": match_state.p1_locked_card.display_name, "extra": {} }
+			
+		if match_state.p2_locked_card != null and not server_received_inputs.has("2"):
+			server_received_inputs["2"] = { "card": match_state.p2_locked_card.display_name, "extra": {} }
+
+		# GDScript 2.0: Use Callable.rpc() instead of rpc("...")
+		client_execute_turn.rpc(server_received_inputs.duplicate())
 		server_received_inputs.clear()
 
 @rpc("authority", "call_local", "reliable")
-func client_execute_turn(inputs: Dictionary):
+func client_execute_turn(inputs: Dictionary) -> void:
 	print(">>> NETWORK SYNC: Executing Turn Data Deterministically!")
-	
+
 	# 1. STRICT ORDER: Always process Player 1, then Player 2. 
 	# Do not trust the Dictionary keys() order!
 	for p_id in [1, 2]:
-		var str_id = str(p_id)
+		var str_id: String = str(p_id)
 		
 		if inputs.has(str_id):
-			var data = inputs[str_id]
+			var data: Dictionary = inputs[str_id]
+			var card_name: String = data.get("card", "")
+			var extra: Dictionary = data.get("extra", {})
 			
-			if data != null:
-				var action = _get_action_to_submit(p_id, data.card)
-				GameManager.player_select_action(p_id, action, data.extra)
+			var action: ActionData = _get_action_to_submit(p_id, card_name)
+			GameManager.player_select_action(p_id, action, extra)
 
 func _get_action_to_submit(player_id: int, card_name: String) -> ActionData:
 	if card_name == "SKIP FEINT" or card_name == "": return null
@@ -17711,6 +18218,57 @@ class MatchState:
 	
 	var p1_action_queue: ActionData = null
 	var p2_action_queue: ActionData = null
+	
+	### ==========================================
+	### --- SERIALIZATION (GDScript 2.0) ---
+	### ==========================================
+	func to_dict() -> Dictionary:
+		return {
+			"momentum": momentum,
+			"current_combo_attacker": current_combo_attacker,
+			"attacker_override": attacker_override,
+			"priority_player": priority_player,
+			"p1_cost_limit": p1_cost_limit,
+			"p2_cost_limit": p2_cost_limit,
+			"p1_opening_stat": p1_opening_stat,
+			"p2_opening_stat": p2_opening_stat,
+			"p1_opportunity_stat": p1_opportunity_stat,
+			"p2_opportunity_stat": p2_opportunity_stat,
+			"p1_must_opener": p1_must_opener,
+			"p2_must_opener": p2_must_opener,
+			"p1_pending_feint": p1_pending_feint,
+			"p2_pending_feint": p2_pending_feint,
+			"p1_rage_active": p1_rage_active,
+			"p2_rage_active": p2_rage_active,
+			"p1_keep_up_active": p1_keep_up_active,
+			"p2_keep_up_active": p2_keep_up_active,
+			"p1_gym_block_bonus": p1_gym_block_bonus,
+			
+			# Flatten Resource references into string names for the network payload
+			"p1_locked_card_name": p1_locked_card.display_name if p1_locked_card != null else "",
+			"p2_locked_card_name": p2_locked_card.display_name if p2_locked_card != null else ""
+		}
+
+	func from_dict(data: Dictionary) -> void:
+		momentum = data.get("momentum", 0)
+		current_combo_attacker = data.get("current_combo_attacker", 0)
+		attacker_override = data.get("attacker_override", 0)
+		priority_player = data.get("priority_player", 1)
+		p1_cost_limit = data.get("p1_cost_limit", 99)
+		p2_cost_limit = data.get("p2_cost_limit", 99)
+		p1_opening_stat = data.get("p1_opening_stat", 0)
+		p2_opening_stat = data.get("p2_opening_stat", 0)
+		p1_opportunity_stat = data.get("p1_opportunity_stat", 0)
+		p2_opportunity_stat = data.get("p2_opportunity_stat", 0)
+		p1_must_opener = data.get("p1_must_opener", false)
+		p2_must_opener = data.get("p2_must_opener", false)
+		p1_pending_feint = data.get("p1_pending_feint", false)
+		p2_pending_feint = data.get("p2_pending_feint", false)
+		p1_rage_active = data.get("p1_rage_active", false)
+		p2_rage_active = data.get("p2_rage_active", false)
+		p1_keep_up_active = data.get("p1_keep_up_active", false)
+		p2_keep_up_active = data.get("p2_keep_up_active", false)
+		p1_gym_block_bonus = data.get("p1_gym_block_bonus", 0)
 
 # ==========================================
 # --- 2. ACTIVE STATE ---
@@ -17912,8 +18470,9 @@ func change_state(new_state: State):
 	
 	match current_state:
 		State.SELECTION:
-			if state.p1_locked_card: player_select_action(1, state.p1_locked_card)
-			if state.p2_locked_card: player_select_action(2, state.p2_locked_card)
+			pass
+			#if state.p1_locked_card: player_select_action(1, state.p1_locked_card)
+			#if state.p2_locked_card: player_select_action(2, state.p2_locked_card)
 		State.REVEAL:
 			_enter_reveal_phase()
 		State.FEINT_CHECK:
@@ -18223,6 +18782,10 @@ func resolve_clash():
 		return
 	
 	change_state(State.POST_CLASH)
+	# [NEW SYNC TRIGGER] 
+	# Force clients to align with the server's final calculation before the next turn starts
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		broadcast_state_snapshot()
 	change_state(State.SELECTION)
 
 # ==============================================================================
@@ -18668,6 +19231,55 @@ func _update_dynamic_music():
 		AudioManager.set_music_intensity(1.0, 2.0)
 		if GlobalCinematics.has_method("set_danger_vignette"):
 			GlobalCinematics.set_danger_vignette(false)
+
+
+### ==============================================================================
+### AUTHORITATIVE STATE SYNC (GDScript 2.0)
+### ==============================================================================
+
+func broadcast_state_snapshot() -> void:
+	# Only the authoritative headless server (or the host, if P2P) is allowed to broadcast truth
+	if not multiplayer.is_server():
+		return
+		
+	var snapshot: Dictionary = {
+		"match_state": state.to_dict(),
+		# We must also sync persistent character stats that live outside MatchState
+		"p1_hp": p1_data.current_hp,
+		"p1_sp": p1_data.current_sp,
+		"p2_hp": p2_data.current_hp,
+		"p2_sp": p2_data.current_sp
+	}
+	
+	print("📡 [SERVER] Broadcasting Authoritative Snapshot to Clients...")
+	receive_state_snapshot.rpc(snapshot)
+
+
+@rpc("authority", "call_remote", "reliable")
+func receive_state_snapshot(snapshot: Dictionary) -> void:
+	print("📥 [CLIENT] Received Authoritative Snapshot. Enforcing server math.")
+	
+	# 1. Overwrite Core Health & SP Stats
+	p1_data.current_hp = snapshot.get("p1_hp", p1_data.current_hp)
+	p1_data.current_sp = snapshot.get("p1_sp", p1_data.current_sp)
+	p2_data.current_hp = snapshot.get("p2_hp", p2_data.current_hp)
+	p2_data.current_sp = snapshot.get("p2_sp", p2_data.current_sp)
+	
+	# 2. Overwrite the MatchState Variables
+	var ms_data: Dictionary = snapshot.get("match_state", {})
+	state.from_dict(ms_data)
+	
+	# 3. Re-hydrate the Resource Pointers (Locked Cards) from string names
+	var p1_card_name: String = ms_data.get("p1_locked_card_name", "")
+	var p2_card_name: String = ms_data.get("p2_locked_card_name", "")
+	
+	# (Assuming you expose or move _find_card_by_name from TestArena to GameManager, 
+	#  or have ClassFactory fetch them)
+	state.p1_locked_card = ClassFactory.find_action_resource(p1_card_name) if p1_card_name != "" else null
+	state.p2_locked_card = ClassFactory.find_action_resource(p2_card_name) if p2_card_name != "" else null
+	
+	# 4. Trigger UI update so health bars/momentum instantly snap to the server's values
+	state_changed.emit(current_state)
 
 --- END FILE: Scripts\Resources\GameManager.gd ---
 
