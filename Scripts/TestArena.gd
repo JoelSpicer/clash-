@@ -378,73 +378,89 @@ func _prepare_human_turn(player_id: int):
 		battle_ui.lock_ui()
 		print("Waiting for Opponent to choose...")
 
-func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}):
-	var card_name = ""
-	if card != null:
+func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}) -> void:
+	var card_name: String = ""
+	if card != null: 
 		card_name = card.display_name
-		
-	# --- SYNC FIX: Route all input to the invisible referee! ---
+
+	# GDScript 2.0: Use Callable.rpc_id() instead of rpc_id(1, "...")
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
-		rpc_id(1, "server_receive_input", _current_input_player, card_name, extra_data)
+		server_receive_input.rpc_id(1, _current_input_player, card_name, extra_data)
 	else:
 		# Offline fallback
 		server_receive_input(_current_input_player, card_name, extra_data)
 
 @rpc("any_peer", "call_local", "reliable")
-func server_receive_input(player_id: int, card_name: String, extra_data: Dictionary):
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+func server_receive_input(player_id: int, card_name: String, extra_data: Dictionary) -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server(): 
 		return
-		
-	var str_id = str(player_id)
+
+	var str_id: String = str(player_id)
 	server_received_inputs[str_id] = { "card": card_name, "extra": extra_data }
 	print("📥 [SERVER FUNNEL] Received P", player_id)
-	
-	# Ask the funnel if we have what we need
+
+	# Ask the funnel if we have what we need to advance the turn
 	_check_server_funnel()
-	
-	# OFFLINE FALLBACK
+
+	# OFFLINE FALLBACK (Sequential Turn Hand-off)
 	if not multiplayer.has_multiplayer_peer() or multiplayer.get_peers().size() == 0:
 		if player_id == 1:
 			if is_player_2_human:
+				# Wait slightly so the UI doesn't instantly flip jarringly
 				await get_tree().create_timer(0.2).timeout
 				_prepare_human_turn(2)
 			else:
 				_run_bot_turn(2)
 
-func _check_server_funnel():
-	var inputs_ready = false
+func _check_server_funnel() -> void:
+	var inputs_ready: bool = false
+	var match_state = GameManager.state
 	
 	if GameManager.current_state == GameManager.State.SELECTION:
-		# Standard Turn: We absolutely need BOTH inputs
-		if server_received_inputs.has("1") and server_received_inputs.has("2"): 
+		# THE FIX: A player is ready if they sent an input OR they are locked into a card
+		var p1_ready: bool = server_received_inputs.has("1") or match_state.p1_locked_card != null
+		var p2_ready: bool = server_received_inputs.has("2") or match_state.p2_locked_card != null
+		
+		if p1_ready and p2_ready: 
 			inputs_ready = true
 			
 	elif GameManager.current_state == GameManager.State.FEINT_CHECK:
-		var is_ready = true
-		if GameManager.state.p1_pending_feint and not server_received_inputs.has("1"): is_ready = false
-		if GameManager.state.p2_pending_feint and not server_received_inputs.has("2"): is_ready = false
-		inputs_ready = is_ready
+		var p1_ready: bool = (not match_state.p1_pending_feint) or server_received_inputs.has("1")
+		var p2_ready: bool = (not match_state.p2_pending_feint) or server_received_inputs.has("2")
+		
+		if p1_ready and p2_ready:
+			inputs_ready = true
 		
 	if inputs_ready:
 		print("🚀 [SERVER FUNNEL] Ready! Blasting to clients...")
-		rpc("client_execute_turn", server_received_inputs.duplicate())
+		
+		# INJECTION: Add locked cards into the payload so clients deterministically execute them
+		if match_state.p1_locked_card != null and not server_received_inputs.has("1"):
+			server_received_inputs["1"] = { "card": match_state.p1_locked_card.display_name, "extra": {} }
+			
+		if match_state.p2_locked_card != null and not server_received_inputs.has("2"):
+			server_received_inputs["2"] = { "card": match_state.p2_locked_card.display_name, "extra": {} }
+
+		# GDScript 2.0: Use Callable.rpc() instead of rpc("...")
+		client_execute_turn.rpc(server_received_inputs.duplicate())
 		server_received_inputs.clear()
 
 @rpc("authority", "call_local", "reliable")
-func client_execute_turn(inputs: Dictionary):
+func client_execute_turn(inputs: Dictionary) -> void:
 	print(">>> NETWORK SYNC: Executing Turn Data Deterministically!")
-	
+
 	# 1. STRICT ORDER: Always process Player 1, then Player 2. 
 	# Do not trust the Dictionary keys() order!
 	for p_id in [1, 2]:
-		var str_id = str(p_id)
+		var str_id: String = str(p_id)
 		
 		if inputs.has(str_id):
-			var data = inputs[str_id]
+			var data: Dictionary = inputs[str_id]
+			var card_name: String = data.get("card", "")
+			var extra: Dictionary = data.get("extra", {})
 			
-			if data != null:
-				var action = _get_action_to_submit(p_id, data.card)
-				GameManager.player_select_action(p_id, action, data.extra)
+			var action: ActionData = _get_action_to_submit(p_id, card_name)
+			GameManager.player_select_action(p_id, action, extra)
 
 func _get_action_to_submit(player_id: int, card_name: String) -> ActionData:
 	if card_name == "SKIP FEINT" or card_name == "": return null

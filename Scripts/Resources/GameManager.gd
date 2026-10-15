@@ -35,6 +35,57 @@ class MatchState:
 	
 	var p1_action_queue: ActionData = null
 	var p2_action_queue: ActionData = null
+	
+	### ==========================================
+	### --- SERIALIZATION (GDScript 2.0) ---
+	### ==========================================
+	func to_dict() -> Dictionary:
+		return {
+			"momentum": momentum,
+			"current_combo_attacker": current_combo_attacker,
+			"attacker_override": attacker_override,
+			"priority_player": priority_player,
+			"p1_cost_limit": p1_cost_limit,
+			"p2_cost_limit": p2_cost_limit,
+			"p1_opening_stat": p1_opening_stat,
+			"p2_opening_stat": p2_opening_stat,
+			"p1_opportunity_stat": p1_opportunity_stat,
+			"p2_opportunity_stat": p2_opportunity_stat,
+			"p1_must_opener": p1_must_opener,
+			"p2_must_opener": p2_must_opener,
+			"p1_pending_feint": p1_pending_feint,
+			"p2_pending_feint": p2_pending_feint,
+			"p1_rage_active": p1_rage_active,
+			"p2_rage_active": p2_rage_active,
+			"p1_keep_up_active": p1_keep_up_active,
+			"p2_keep_up_active": p2_keep_up_active,
+			"p1_gym_block_bonus": p1_gym_block_bonus,
+			
+			# Flatten Resource references into string names for the network payload
+			"p1_locked_card_name": p1_locked_card.display_name if p1_locked_card != null else "",
+			"p2_locked_card_name": p2_locked_card.display_name if p2_locked_card != null else ""
+		}
+
+	func from_dict(data: Dictionary) -> void:
+		momentum = data.get("momentum", 0)
+		current_combo_attacker = data.get("current_combo_attacker", 0)
+		attacker_override = data.get("attacker_override", 0)
+		priority_player = data.get("priority_player", 1)
+		p1_cost_limit = data.get("p1_cost_limit", 99)
+		p2_cost_limit = data.get("p2_cost_limit", 99)
+		p1_opening_stat = data.get("p1_opening_stat", 0)
+		p2_opening_stat = data.get("p2_opening_stat", 0)
+		p1_opportunity_stat = data.get("p1_opportunity_stat", 0)
+		p2_opportunity_stat = data.get("p2_opportunity_stat", 0)
+		p1_must_opener = data.get("p1_must_opener", false)
+		p2_must_opener = data.get("p2_must_opener", false)
+		p1_pending_feint = data.get("p1_pending_feint", false)
+		p2_pending_feint = data.get("p2_pending_feint", false)
+		p1_rage_active = data.get("p1_rage_active", false)
+		p2_rage_active = data.get("p2_rage_active", false)
+		p1_keep_up_active = data.get("p1_keep_up_active", false)
+		p2_keep_up_active = data.get("p2_keep_up_active", false)
+		p1_gym_block_bonus = data.get("p1_gym_block_bonus", 0)
 
 # ==========================================
 # --- 2. ACTIVE STATE ---
@@ -236,8 +287,9 @@ func change_state(new_state: State):
 	
 	match current_state:
 		State.SELECTION:
-			if state.p1_locked_card: player_select_action(1, state.p1_locked_card)
-			if state.p2_locked_card: player_select_action(2, state.p2_locked_card)
+			pass
+			#if state.p1_locked_card: player_select_action(1, state.p1_locked_card)
+			#if state.p2_locked_card: player_select_action(2, state.p2_locked_card)
 		State.REVEAL:
 			_enter_reveal_phase()
 		State.FEINT_CHECK:
@@ -547,6 +599,10 @@ func resolve_clash():
 		return
 	
 	change_state(State.POST_CLASH)
+	# [NEW SYNC TRIGGER] 
+	# Force clients to align with the server's final calculation before the next turn starts
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		broadcast_state_snapshot()
 	change_state(State.SELECTION)
 
 # ==============================================================================
@@ -992,3 +1048,52 @@ func _update_dynamic_music():
 		AudioManager.set_music_intensity(1.0, 2.0)
 		if GlobalCinematics.has_method("set_danger_vignette"):
 			GlobalCinematics.set_danger_vignette(false)
+
+
+### ==============================================================================
+### AUTHORITATIVE STATE SYNC (GDScript 2.0)
+### ==============================================================================
+
+func broadcast_state_snapshot() -> void:
+	# Only the authoritative headless server (or the host, if P2P) is allowed to broadcast truth
+	if not multiplayer.is_server():
+		return
+		
+	var snapshot: Dictionary = {
+		"match_state": state.to_dict(),
+		# We must also sync persistent character stats that live outside MatchState
+		"p1_hp": p1_data.current_hp,
+		"p1_sp": p1_data.current_sp,
+		"p2_hp": p2_data.current_hp,
+		"p2_sp": p2_data.current_sp
+	}
+	
+	print("📡 [SERVER] Broadcasting Authoritative Snapshot to Clients...")
+	receive_state_snapshot.rpc(snapshot)
+
+
+@rpc("authority", "call_remote", "reliable")
+func receive_state_snapshot(snapshot: Dictionary) -> void:
+	print("📥 [CLIENT] Received Authoritative Snapshot. Enforcing server math.")
+	
+	# 1. Overwrite Core Health & SP Stats
+	p1_data.current_hp = snapshot.get("p1_hp", p1_data.current_hp)
+	p1_data.current_sp = snapshot.get("p1_sp", p1_data.current_sp)
+	p2_data.current_hp = snapshot.get("p2_hp", p2_data.current_hp)
+	p2_data.current_sp = snapshot.get("p2_sp", p2_data.current_sp)
+	
+	# 2. Overwrite the MatchState Variables
+	var ms_data: Dictionary = snapshot.get("match_state", {})
+	state.from_dict(ms_data)
+	
+	# 3. Re-hydrate the Resource Pointers (Locked Cards) from string names
+	var p1_card_name: String = ms_data.get("p1_locked_card_name", "")
+	var p2_card_name: String = ms_data.get("p2_locked_card_name", "")
+	
+	# (Assuming you expose or move _find_card_by_name from TestArena to GameManager, 
+	#  or have ClassFactory fetch them)
+	state.p1_locked_card = ClassFactory.find_action_resource(p1_card_name) if p1_card_name != "" else null
+	state.p2_locked_card = ClassFactory.find_action_resource(p2_card_name) if p2_card_name != "" else null
+	
+	# 4. Trigger UI update so health bars/momentum instantly snap to the server's values
+	state_changed.emit(current_state)
