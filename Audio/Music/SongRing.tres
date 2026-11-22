@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="OvaniSong" format=3 uid="uid://qf0nv874h0ju"]
+
+[ext_resource type="AudioStream" uid="uid://c400bahb6hoke" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Intensity 1.wav" id="1_imatp"]
+[ext_resource type="Script" uid="uid://bkblmr410vlsw" path="res://addons/OvaniPlugin/OvaniSong.gd" id="1_isjf3"]
+[ext_resource type="AudioStream" uid="uid://dhp5rf1h1wkix" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Intensity 2.wav" id="2_ohxpb"]
+[ext_resource type="AudioStream" uid="uid://djit04gxwd8ni" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Main.wav" id="3_er6tb"]
+[ext_resource type="AudioStream" uid="uid://bx40imm4gknq2" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Cut 30.wav" id="4_mv7o1"]
+[ext_resource type="AudioStream" uid="uid://bgm708fjhg7fs" path="res://Audio/Music/Ovani Packs/Bound (RT 2.652)/HipHop Vol3 Bound Cut 60.wav" id="5_6m1le"]
+
+[resource]
+script = ExtResource("1_isjf3")
+Intensity1 = ExtResource("1_imatp")
+Intensity2 = ExtResource("2_ohxpb")
+Intensity3 = ExtResource("3_er6tb")
+Loop30 = ExtResource("4_mv7o1")
+Loop60 = ExtResource("5_6m1le")
+ReverbTail = 2.652
+metadata/_custom_type_script = "uid://bkblmr410vlsw"

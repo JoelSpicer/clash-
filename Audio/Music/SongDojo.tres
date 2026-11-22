@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="OvaniSong" format=3 uid="uid://v146iygng60j"]
+
+[ext_resource type="AudioStream" uid="uid://cniakhgqtqjw7" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Intensity 1.wav" id="1_fh1k1"]
+[ext_resource type="Script" uid="uid://bkblmr410vlsw" path="res://addons/OvaniPlugin/OvaniSong.gd" id="1_s6ua7"]
+[ext_resource type="AudioStream" uid="uid://i64rqnmdeokg" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Intensity 2.wav" id="2_sfyg4"]
+[ext_resource type="AudioStream" uid="uid://cubr0cc3rp80f" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Main.wav" id="3_q8uav"]
+[ext_resource type="AudioStream" uid="uid://bgfn631y3oaj4" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Cut 30.wav" id="4_md2i7"]
+[ext_resource type="AudioStream" uid="uid://otst6wmskatj" path="res://Audio/Music/Ovani Packs/Harihara (RT 1.938)/HipHop Vol3 Harihara Cut 60.wav" id="5_p4nb2"]
+
+[resource]
+script = ExtResource("1_s6ua7")
+Intensity1 = ExtResource("1_fh1k1")
+Intensity2 = ExtResource("2_sfyg4")
+Intensity3 = ExtResource("3_q8uav")
+Loop30 = ExtResource("4_md2i7")
+Loop60 = ExtResource("5_p4nb2")
+ReverbTail = 1.938
+metadata/_custom_type_script = "uid://bkblmr410vlsw"

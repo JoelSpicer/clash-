@@ -28,91 +28,57 @@ var _simulation_active: bool = true
 var _current_input_player: int = 1 
 @onready var tutorial_layer = $"../TutorialLayer" # Grabs it from the MainScene
 
-func _ready():
-	# --- FIX: SPAWN GAME OVER SCREEN ON A TOP LAYER ---
-	var go_layer = CanvasLayer.new()
-	go_layer.layer = 100 # Put it above everything else
-	add_child(go_layer)
-	
-	game_over_screen = game_over_scene.instantiate()
-	game_over_screen.visible = false
-	game_over_screen.process_mode = Node.PROCESS_MODE_ALWAYS # Keep buttons active
-	go_layer.add_child(game_over_screen)
-	# ------------------------------------------------------
-	
-	# 1. UI SETUP
-	# Wait one frame to ensure the UI's own _ready() has finished setting up nodes
+func _ready() -> void:
+	# 1. Await a frame so BattleUI can finish its internal _ready
 	await get_tree().process_frame
-	
-	# Clear the log to start fresh
+
 	if battle_ui.has_method("combat_log") and battle_ui.combat_log:
 		battle_ui.combat_log.clear_log()
-	elif battle_ui.get("combat_log"): # Fallback access
-		battle_ui.combat_log.clear_log()
-	
-	# 2. LOAD PLAYER RESOURCES
+
+	# 2. Load Player Resources
 	if GameManager.next_match_p1_data != null:
 		p1_resource = GameManager.next_match_p1_data
-		
 	if GameManager.next_match_p2_data != null:
 		p2_resource = GameManager.next_match_p2_data
 		
-	# 3. DETERMINE HUMAN/AI STATUS & NETWORK ID
+	# 3. Determine Human/AI & Network Status
 	is_player_1_human = true 
 	is_player_2_human = false
-	local_player_id = 1 # Default for solo play
-	
-	# We grab the ID once up here so we can use it throughout the function
-	var my_id = 1 
+	local_player_id = 1 
+
+	var my_id: int = 1 
 	if multiplayer.has_multiplayer_peer():
 		my_id = multiplayer.get_unique_id()
-	
-	# If we are connected to a network session, override the settings!
+
 	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
-		is_player_2_human = true # Both players are human now
-		
-		# --- THE FIX: IDENTIFY BASED ON NETWORK IDs ---
+		is_player_2_human = true 
 		if my_id == GameManager.p1_network_id:
 			local_player_id = 1
-			print("--- MULTIPLAYER ENGAGED! I am Player 1 ---")
-			
 		elif my_id == GameManager.p2_network_id:
 			local_player_id = 2
-			print("--- MULTIPLAYER ENGAGED! I am Player 2 ---")
-			
 		else:
-			local_player_id = 0 # The dedicated server
-			print("--- MULTIPLAYER ENGAGED! I am the Referee ---")
-		# ----------------------------------------------
+			local_player_id = 0 # The dedicated server Referee
 			
 	elif not RunManager.is_arcade_mode and GameManager.p2_is_custom:
-		is_player_2_human = true # Local split-keyboard mode
+		is_player_2_human = true
 
-	# 4. CONNECT SIGNALS
+	# 4. Connect Core Signals
 	if not GameManager.state_changed.is_connected(_on_state_changed):
 		GameManager.state_changed.connect(_on_state_changed)
 		GameManager.combat_log_updated.connect(_on_log_updated)
 		GameManager.clash_resolved.connect(_on_clash_resolved)
-		GameManager.game_over.connect(_on_game_over)
+		# GameManager.game_over is now cleanly handled by BattleUI!
 		GameManager.request_clash_animation.connect(battle_ui.play_clash_animation)
-	
+
 	if not battle_ui.human_selected_card.is_connected(_on_human_input_received):
 		battle_ui.human_selected_card.connect(_on_human_input_received)
-	
 	if not battle_ui.p1_mode_toggled.is_connected(_on_p1_mode_toggled):
 		battle_ui.p1_mode_toggled.connect(_on_p1_mode_toggled)
 		battle_ui.p2_mode_toggled.connect(_on_p2_mode_toggled)
-	
-	# 5. INITIALIZE UI ELEMENTS
-	# --- FIX: Give the UI the correct deck based on our Network ID ---
-	if my_id == GameManager.p1_network_id:
-		battle_ui.load_deck(p1_resource.deck) 
-	elif my_id == GameManager.p2_network_id:
-		battle_ui.load_deck(p2_resource.deck) 
-	else:
-		# If you are testing solo (offline), default to Player 1's deck
-		battle_ui.load_deck(p1_resource.deck)
-	# -----------------------------------------------------------------
+
+	# 5. INITIALIZE UI (The Decoupled Way)
+	battle_ui.setup_match_ui(p1_resource, p2_resource, local_player_id)
+	battle_ui.setup_toggles(is_player_1_human, is_player_2_human)
 	
 	print("--- INITIALIZING MATCH ---")
 	
@@ -503,11 +469,11 @@ func _run_bot_turn(player_id: int):
 
 # TestArena.gd
 
-func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
-	var valid_options = []
-	var affordable_backups = [] 
-	
-	# A. FILTER (Same as before)
+func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
+	var valid_options: Array[ActionData] = []
+	var affordable_backups: Array[ActionData] = []
+
+	# A. FILTER VALID CARDS
 	for card in character.deck:
 		if type_filter != null and card.type != type_filter: continue
 		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
@@ -515,12 +481,11 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		if card.counter_value > 0 and my_opening < card.counter_value: continue
 		if card.is_super and not allow_super: continue
 		
-		# --- FIX: ACCOUNT FOR REPEAT COUNT COST ---
-		var effective_single_cost = max(0, card.cost - my_opportunity)
-		var total_reps = max(1, card.repeat_count)
-		var total_effective_cost = effective_single_cost * total_reps
+		var effective_single_cost: int = max(0, card.cost - my_opportunity)
+		var total_reps: int = max(1, card.repeat_count)
+		var total_effective_cost: int = effective_single_cost * total_reps
 		
-		var can_pay = (total_effective_cost <= character.current_sp)
+		var can_pay: bool = (total_effective_cost <= character.current_sp)
 		
 		if character.can_pay_with_hp:
 			if (character.current_sp + character.current_hp) > total_effective_cost:
@@ -530,202 +495,54 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 			valid_options.append(card)
 		elif total_effective_cost == 0:
 			affordable_backups.append(card)
-		# ------------------------------------------
-	
-	# --- FIX: ADD STRUGGLE OPTION ---
-	# If the bot is filtering for a specific type (e.g. Defence), give it the Struggle option for that type.
-	var required_type = type_filter if type_filter != null else ActionData.Type.OFFENCE
-	var struggle = GameManager.get_struggle_action(required_type)
-	
-	# If we have NO valid deck options, or if we just want to consider saving SP, add Struggle.
-	# Adding it to 'valid_options' lets the Scoring System decide if it's a good idea.
-	valid_options.append(struggle)
-	# --------------------------------
-	
-	if valid_options.is_empty():
-		return struggle 
 
-	# B. STRATEGY
-	var best_card = valid_options[0]
-	
-	# --- NEW LOGIC START ---
-	var is_very_easy = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
-	
-	# If Very Easy: We want the LOWEST score, so start High.
-	# If Normal: We want the HIGHEST score, so start Low.
-	var best_score = 99999.0 if is_very_easy else -99999.0
-	
-	var my_id = 1 if character == p1_resource else 2
-	var opponent = p2_resource if my_id == 1 else p1_resource
-	
+	# Guarantee at least one valid move (Struggle)
+	var required_type: int = type_filter if type_filter != null else ActionData.Type.OFFENCE
+	var struggle: ActionData = GameManager.get_struggle_action(required_type)
+	valid_options.append(struggle)
+
+	# B. DELEGATE TO MODULAR AI RESOURCE
+	var best_card: ActionData = valid_options[0]
+	var is_very_easy: bool = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
+	var best_score: float = 99999.0 if is_very_easy else -99999.0
+
+	var my_id: int = 1 if character == p1_resource else 2
+	var opponent: CharacterData = p2_resource if my_id == 1 else p1_resource
+
+	# Use the assigned AI profile, or fallback to a blank one if missing
+	var brain: AIBehavior = null
+	if "ai_profile" in character and character.ai_profile != null:
+		brain = character.ai_profile
+	else:
+		brain = AIBehavior.new()
+
 	# Noise Setup
-	var noise_range = 0.0
+	var noise_range: float = 0.0
 	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: noise_range = 0 # No noise, just pure bad decisions
+		GameManager.Difficulty.VERY_EASY: noise_range = 0.0 
 		GameManager.Difficulty.EASY: noise_range = 100.0
 		GameManager.Difficulty.MEDIUM: noise_range = 25.0
 		GameManager.Difficulty.HARD: noise_range = 2.0
-	
+
 	for card in valid_options:
-		var score = _score_card_utility(card, character, opponent, my_id)
+		# --- THE DECOUPLING MAGIC ---
+		var score: float = brain.score_action(card, character, opponent, my_id)
+		
 		score += randf_range(-noise_range, noise_range)
 		
 		if is_very_easy:
-			# INVERTED LOGIC: Pick the WORST score
 			if score < best_score:
 				best_score = score
 				best_card = card
 		else:
-			# STANDARD LOGIC: Pick the BEST score
 			if score > best_score:
 				best_score = score
 				best_card = card
-	
+
 	return best_card
 
 # 2. THE BRAIN (Assigns value to actions)
-func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
-	var score = 0.0
-	var log_parts = [] # Stores reasons like "+10 Dmg" or "-100 Repetition"
-	
-	# Weights
-	var w_dmg = 1.0; var w_def = 1.0; var w_tech = 1.0; var w_cost = 1.0
-	
-	match me.ai_archetype:
-		CharacterData.AIArchetype.AGGRESSIVE:
-			w_dmg = 1.5; w_def = 0.5; w_cost = 0.5
-		CharacterData.AIArchetype.DEFENSIVE:
-			w_dmg = 0.7; w_def = 1.5; w_cost = 1.2
-		CharacterData.AIArchetype.TRICKSTER:
-			w_dmg = 0.8; w_def = 0.8; w_tech = 1.5
-	
-	# --- 1. STRICT ANTI-REPETITION ---
-	if card.display_name == p2_last_action_name:
-		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
-			# [cite_start]FIX: For Very Easy, we pick the LOWEST score[cite: 220].
-			# To discourage repetition, we must ADD to the score so it isn't the lowest.
-			score += 100.0
-			log_parts.append("+100 (Repetition Avoidance)")
-		else:
-			# Normal Logic: We pick the HIGHEST score.
-			# Subtracting makes the AI avoid it.
-			score -= 100.0
-			log_parts.append("-100 (Repetition)")
 
-	# --- 2. TACTICAL RESPONSE ---
-	if card.type == ActionData.Type.OFFENCE:
-		# Counter Opportunities
-		var opp_opening = GameManager.state.p1_opening_stat if my_id == 2 else GameManager.state.p2_opening_stat
-		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
-			var val = 50.0 * w_tech
-			score += val
-			log_parts.append("+" + str(val) + " (Counter Opportunity)")
-		
-		# Punish Tired
-		if p1_last_cost >= 2 or (float(opp.current_sp)/max(1, opp.max_sp) < 0.3):
-			var val = card.damage * 5 * w_dmg
-			score += val
-			log_parts.append("+" + str(val) + " (Punish Tired)")
-		
-		# Break Turtles
-		if p1_last_action_type == ActionData.Type.DEFENCE:
-			if card.guard_break: 
-				score += 30 * w_tech
-				log_parts.append("+30 (Guard Break)")
-			if card.feint: 
-				score += 20 * w_tech
-				log_parts.append("+20 (Feint vs Block)")
-			
-	elif card.type == ActionData.Type.DEFENCE:
-		# Heavy Incoming
-		if p1_last_cost >= 2:
-			if card.dodge_value > 0: 
-				score += 20 * w_def
-				log_parts.append("+20 (Dodge Heavy)")
-			if card.block_value >= 4: 
-				score += 15 * w_def
-				log_parts.append("+15 (Block Heavy)")
-			
-		# Light Incoming
-		elif p1_last_cost <= 1:
-			if card.cost >= 2: 
-				var pen = 15.0 * w_cost
-				score -= pen
-				log_parts.append("-" + str(pen) + " (Overkill Def)")
-			if card.block_value > 0 and card.cost <= 1: 
-				score += 10 * w_def
-				log_parts.append("+10 (Efficient Block)")
-
-		# Fishing for Reversals
-		if opp.current_hp <= 5 and card.reversal:
-			score += 15 * w_tech
-			log_parts.append("+15 (Execute Reversal)")
-
-	# --- 3. UTILITY SCORING ---
-	
-	# Kill Instinct
-	if card.damage >= opp.current_hp: 
-		score += 1000.0
-		log_parts.append("+1000 (KILL SHOT)")
-	
-	# Survival Instinct
-	var panic = 5 if me.ai_archetype == CharacterData.AIArchetype.DEFENSIVE else 3
-	if me.current_hp < panic:
-		var s_val = (card.block_value * 10 * w_def) + (card.heal_value * 15 * w_def)
-		if card.type == ActionData.Type.DEFENCE: s_val += 20 * w_def
-		score += s_val
-		if s_val > 0: log_parts.append("+" + str(s_val) + " (Panic Mode)")
-	
-	# Logic for Struggle (display_name check)
-	if card.display_name == "Struggle":
-		# If we are low on SP, Struggle is very valuable
-		if me.current_sp <= 1:
-			score += 50.0
-			log_parts.append("+50 (Need SP)")
-		# If we are full on SP, Struggle is bad
-		elif me.current_sp >= me.max_sp:
-			score -= 50.0
-			log_parts.append("-50 (SP Full)")
-	
-	# Momentum Logic
-	var mom = GameManager.state.momentum
-	var winning = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
-	var losing = (my_id == 1 and mom >= 5) or (my_id == 2 and mom <= 4)
-	
-	if winning:
-		var m_val = (card.damage * 10 * w_dmg)
-		if card.type == ActionData.Type.OFFENCE: m_val += 10
-		score += m_val
-		if m_val > 0: log_parts.append("+" + str(m_val) + " (Winning Mom)")
-	elif losing:
-		var m_val = (card.fall_back_value * 10 * w_def) + (card.block_value * 5 * w_def)
-		if card.reversal: m_val += 20 * w_tech
-		score += m_val
-		if m_val > 0: log_parts.append("+" + str(m_val) + " (Losing Mom)")
-
-	# Base Stats
-	var stat_score = (card.damage * 5 * w_dmg) + (card.block_value * 5 * w_def) + (card.heal_value * 5 * w_def)
-	
-	if card.tiring > 0: stat_score += card.tiring * 5 * w_tech
-	if card.create_opening > 0: stat_score += card.create_opening * 5 * w_tech
-	if card.feint: stat_score += 10 * w_tech
-	
-	score += stat_score
-	log_parts.append("+" + str(stat_score) + " (Stats)")
-	
-	# Cost Efficiency
-	if card.cost > 0:
-		var sp_ratio = float(me.current_sp) / float(max(1, me.max_sp))
-		var scarcity = 1.0 if sp_ratio > 0.5 else 2.5
-		var c_pen = card.cost * (10 * w_cost * scarcity)
-		score -= c_pen
-		log_parts.append("-" + str(c_pen) + " (Cost)")
-
-	# --- PRINT LOG ---
-	# Format: [AI] CardName: 45.0 | Breakdown: +20 (Stats), -5 (Cost), +30 (Counter)
-	print("[AI] %s: %s | %s" % [card.display_name, str(snapped(score, 0.1)), ", ".join(log_parts)])
-
-	return score
 
 # --- LOGGING ---
 func _on_game_over(winner_id: int):

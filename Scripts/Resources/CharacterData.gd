@@ -17,6 +17,7 @@ enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
 # ---------------------------------
 
 # --- STATIC DATA ---
+@export var ai_profile: AIBehavior
 @export_group("Identity")
 @export var character_name: String
 @export var portrait: Texture2D

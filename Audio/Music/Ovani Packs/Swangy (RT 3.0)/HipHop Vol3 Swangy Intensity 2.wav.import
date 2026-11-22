@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://bqh2w813kvgoh"
+path="res://.godot/imported/HipHop Vol3 Swangy Intensity 2.wav-35296d75bbb1de1c41490bece0a23285.sample"
+
+[deps]
+
+source_file="res://Audio/Music/Ovani Packs/Swangy (RT 3.0)/HipHop Vol3 Swangy Intensity 2.wav"
+dest_files=["res://.godot/imported/HipHop Vol3 Swangy Intensity 2.wav-35296d75bbb1de1c41490bece0a23285.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

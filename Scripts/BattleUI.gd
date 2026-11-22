@@ -1,6 +1,10 @@
 extends CanvasLayer
 
 #region vars
+
+var game_over_scene: PackedScene = preload("res://Scenes/GameOverScreen.tscn")
+var game_over_screen: Control = null
+var go_layer: CanvasLayer = null
 signal human_selected_card(action_card, extra_data)
 signal p1_mode_toggled(is_human)
 signal p2_mode_toggled(is_human)
@@ -1192,3 +1196,41 @@ func _show_player_identity_flash():
 	
 	# Delete the node from the game to free up memory
 	tween.tween_callback(flash_label.queue_free)
+
+### ==============================================================================
+### MATCH SETUP (Called once by TestArena on load)
+### ==============================================================================
+
+func setup_match_ui(p1: CharacterData, p2: CharacterData, local_id: int) -> void:
+	# 1. Spawn the Game Over Layer (Cleanly managed by the UI, not the arena!)
+	if not go_layer:
+		go_layer = CanvasLayer.new()
+		go_layer.layer = 100 # Put it above everything else
+		add_child(go_layer)
+		
+		game_over_screen = game_over_scene.instantiate()
+		game_over_screen.visible = false
+		game_over_screen.process_mode = Node.PROCESS_MODE_ALWAYS # Keep buttons active
+		go_layer.add_child(game_over_screen)
+		
+	# 2. Connect to GameManager for the end-game trigger
+	if not GameManager.game_over.is_connected(_show_game_over):
+		GameManager.game_over.connect(_show_game_over)
+		
+	# 3. Setup the HUDs
+	initialize_hud(p1, p2)
+	
+	# 4. Load the correct deck based on who the local player is playing as
+	if local_id == 1:
+		load_deck(p1.deck)
+	elif local_id == 2:
+		load_deck(p2.deck)
+	else:
+		# Spectator / Server fallback
+		load_deck(p1.deck)
+
+
+func _show_game_over(winner_id: int) -> void:
+	if game_over_screen:
+		# Trigger your visual reveal/fade-in here if you want!
+		game_over_screen.visible = true

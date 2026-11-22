@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://rvnaf0ud0p3o"
+path="res://.godot/imported/HipHop Vol3 Crate Digger Main.wav-600fb971cb8388fd6ae1dff7f7fa9616.sample"
+
+[deps]
+
+source_file="res://Audio/Music/Ovani Packs/Crate Digger (RT 1.163)/HipHop Vol3 Crate Digger Main.wav"
+dest_files=["res://.godot/imported/HipHop Vol3 Crate Digger Main.wav-600fb971cb8388fd6ae1dff7f7fa9616.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2
