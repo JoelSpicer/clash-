@@ -35,6 +35,12 @@ class MatchState:
 	
 	var p1_action_queue: ActionData = null
 	var p2_action_queue: ActionData = null
+
+	# --- AI MEMORY (Previous Clash Context) ---
+	var p1_last_action_name: String = ""
+	var p2_last_action_name: String = ""
+	var p1_last_cost: int = 0
+	var p2_last_cost: int = 0
 	
 	### ==========================================
 	### --- SERIALIZATION (GDScript 2.0) ---
@@ -60,6 +66,10 @@ class MatchState:
 			"p1_keep_up_active": p1_keep_up_active,
 			"p2_keep_up_active": p2_keep_up_active,
 			"p1_gym_block_bonus": p1_gym_block_bonus,
+			"p1_last_action_name": p1_last_action_name,
+			"p2_last_action_name": p2_last_action_name,
+			"p1_last_cost": p1_last_cost,
+			"p2_last_cost": p2_last_cost,
 			
 			# Flatten Resource references into string names for the network payload
 			"p1_locked_card_name": p1_locked_card.display_name if p1_locked_card != null else "",
@@ -86,6 +96,10 @@ class MatchState:
 		p1_keep_up_active = data.get("p1_keep_up_active", false)
 		p2_keep_up_active = data.get("p2_keep_up_active", false)
 		p1_gym_block_bonus = data.get("p1_gym_block_bonus", 0)
+		p1_last_action_name = data.get("p1_last_action_name", "")
+		p2_last_action_name = data.get("p2_last_action_name", "")
+		p1_last_cost = data.get("p1_last_cost", 0)
+		p2_last_cost = data.get("p2_last_cost", 0)
 
 # ==========================================
 # --- 2. ACTIVE STATE ---
@@ -457,6 +471,21 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 
 func resolve_clash() -> void:
 	state.attacker_override = 0
+
+	# --- RECORD AI MEMORY BEFORE QUEUES ARE CLEARED ---
+	if state.p1_action_queue != null:
+		state.p1_last_action_name = state.p1_action_queue.display_name
+		state.p1_last_cost = state.p1_action_queue.cost
+	else:
+		state.p1_last_action_name = ""
+		state.p1_last_cost = 0
+
+	if state.p2_action_queue != null:
+		state.p2_last_action_name = state.p2_action_queue.display_name
+		state.p2_last_cost = state.p2_action_queue.cost
+	else:
+		state.p2_last_action_name = ""
+		state.p2_last_cost = 0
 
 	state.p1_action_queue = state.p1_action_queue.duplicate()
 	state.p2_action_queue = state.p2_action_queue.duplicate()
