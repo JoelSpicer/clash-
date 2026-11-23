@@ -6,12 +6,14 @@ uid="uid://cro141nkyhqi3"
 
 [deps]
 
-files=["res://Art/balance_report.P2 Action.translation", "res://Art/balance_report.P1 Type.translation", "res://Art/balance_report.P2 Type.translation", "res://Art/balance_report.Winner.translation", "res://Art/balance_report.P1 Net Dmg.translation", "res://Art/balance_report.P2 Net Dmg.translation", "res://Art/balance_report.Mom Shift.translation", "res://Art/balance_report.Note.translation"]
+files=["res://Art/balance_report.P2 Action.translation", "res://Art/balance_report.P1 Type.translation", "res://Art/balance_report.P2 Type.translation", "res://Art/balance_report.Winner.translation", "res://Art/balance_report.P1 Net Dmg.translation", "res://Art/balance_report.P2 Net Dmg.translation", "res://Art/balance_report.Mom Shift.translation"]
 
 source_file="res://Art/balance_report.csv"
-dest_files=["res://Art/balance_report.P2 Action.translation", "res://Art/balance_report.P1 Type.translation", "res://Art/balance_report.P2 Type.translation", "res://Art/balance_report.Winner.translation", "res://Art/balance_report.P1 Net Dmg.translation", "res://Art/balance_report.P2 Net Dmg.translation", "res://Art/balance_report.Mom Shift.translation", "res://Art/balance_report.Note.translation"]
+dest_files=["res://Art/balance_report.P2 Action.translation", "res://Art/balance_report.P1 Type.translation", "res://Art/balance_report.P2 Type.translation", "res://Art/balance_report.Winner.translation", "res://Art/balance_report.P1 Net Dmg.translation", "res://Art/balance_report.P2 Net Dmg.translation", "res://Art/balance_report.Mom Shift.translation"]
 
 [params]
 
 compress=true
 delimiter=0
+unescape_keys=false
+unescape_translations=true

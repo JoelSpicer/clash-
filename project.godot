@@ -48,7 +48,7 @@ window/stretch/mode="canvas_items"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/tube/plugin.cfg")
+enabled=PackedStringArray()
 
 [gui]
 

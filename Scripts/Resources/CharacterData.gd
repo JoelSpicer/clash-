@@ -52,6 +52,7 @@ enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
 @export var statuses: Dictionary = {}
 
 
+
 #endregion
 
 # --- LOGIC ---
