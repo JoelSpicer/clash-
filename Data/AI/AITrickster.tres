@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="AITrickster" format=3 uid="uid://mw8p0tcapgbh"]
+
+[ext_resource type="Script" uid="uid://kqvbwdbta85t" path="res://Scripts/Resources/AITrickster.gd" id="1_x5tx0"]
+
+[resource]
+script = ExtResource("1_x5tx0")
+metadata/_custom_type_script = "uid://kqvbwdbta85t"

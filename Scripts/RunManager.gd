@@ -714,7 +714,9 @@ func start_map_fight(node_data: MapNodeData):
 	current_map_index = RunManager.tournament_map.find(node_data)
 	
 	# 2. DUPLICATE ENEMY DATA (Critical so buffs don't permanently alter the base resource file)
-	var enemy_copy = node_data.enemy_data.duplicate(true)
+	var enemy_copy: CharacterData = node_data.enemy_data.duplicate(true)
+	if enemy_copy.ai_profile == null:
+		enemy_copy.ai_profile = ClassFactory.pick_random_ai_profile()
 	is_rival_match = false # Reset the flag for this specific fight
 	
 	# 3. RIVALRY SYSTEM (Check for Grudge Match)

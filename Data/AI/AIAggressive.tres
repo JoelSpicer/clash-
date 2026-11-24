@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="AIAggressive" format=3 uid="uid://bshwwtwemnk03"]
+
+[ext_resource type="Script" uid="uid://c8i8k8s03qy5t" path="res://Scripts/Resources/AIAggressive.gd" id="1_71oom"]
+
+[resource]
+script = ExtResource("1_71oom")
+w_dmg = 100.0
+metadata/_custom_type_script = "uid://c8i8k8s03qy5t"

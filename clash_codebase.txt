@@ -101,6 +101,7 @@
 - Data\Actions\vital_strike.tres
 - Data\Actions\weave.tres
 - Data\Actions\wind_up.tres
+- Data\AI\AIAggressive.gd
 - Data\Classes\HeavyClass.tres
 - Data\Classes\PatientClass.tres
 - Data\Classes\QuickClass.tres
@@ -215,6 +216,7 @@
 - Scripts\VFXManager.gd
 - Scripts\VsScreen.gd
 - Scripts\Resources\ActionData.gd
+- Scripts\Resources\AIBehavior.gd
 - Scripts\Resources\BaseModifierData.gd
 - Scripts\Resources\CharacterData.gd
 - Scripts\Resources\ClassDefinition.gd
@@ -2826,6 +2828,80 @@ feint = true
 repeat_count = 0
 
 --- END FILE: Data\Actions\wind_up.tres ---
+
+
+--- START FILE: Data\AI\AIAggressive.gd ---
+
+extends AIBehavior
+class_name AIAggressive
+
+
+func _init() -> void:
+	w_dmg = 1.5
+	w_def = 0.5
+	w_tech = 1.0
+	w_cost = 0.5
+	panic_hp_threshold = 3
+
+
+## Scores an action using aggressive damage-first weighting plus MatchState context.
+func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
+	var score: float = 0.0
+	var match_state: GameManager.MatchState = GameManager.state
+
+	var my_last_action: String = match_state.p1_last_action_name if my_id == 1 else match_state.p2_last_action_name
+	var opp_last_cost: int = match_state.p2_last_cost if my_id == 1 else match_state.p1_last_cost
+
+	# 1. Anti-repetition (inverted when Very Easy picks lowest scores)
+	if card.display_name == my_last_action:
+		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
+			score += repetition_penalty
+		else:
+			score -= repetition_penalty
+
+	# 2. Kill shot priority
+	if card.damage >= opp.current_hp and opp.current_hp > 0:
+		score += kill_shot_bonus
+
+	# 3. Offensive & defensive tactical adjustments
+	if card.type == ActionData.Type.OFFENCE:
+		var opp_opening: int = match_state.p2_opening_stat if my_id == 1 else match_state.p1_opening_stat
+		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
+			score += 50.0 * w_tech
+
+		var opp_sp_ratio: float = float(opp.current_sp) / float(max(1, opp.max_sp))
+		if opp_last_cost >= 2 or opp_sp_ratio < 0.3:
+			score += float(card.damage) * 5.0 * w_dmg
+
+		if card.guard_break:
+			score += 30.0 * w_tech
+		if card.feint:
+			score += 20.0 * w_tech
+	else:
+		if opp_last_cost >= 2:
+			if card.dodge_value > 0:
+				score += 20.0 * w_def
+			if card.block_value >= 4:
+				score += 15.0 * w_def
+
+		if me.current_hp < panic_hp_threshold:
+			score += (float(card.block_value) * 10.0 * w_def) + (float(card.heal_value) * 15.0 * w_def) + (20.0 * w_def)
+
+	# 4. Base stat & stamina cost trade-off
+	score += (float(card.damage) * 5.0 * w_dmg) + (float(card.block_value) * 5.0 * w_def) + (float(card.heal_value) * 5.0 * w_def)
+	if card.tiring > 0:
+		score += float(card.tiring) * 5.0 * w_tech
+	if card.create_opening > 0:
+		score += float(card.create_opening) * 5.0 * w_tech
+
+	if card.cost > 0:
+		var my_sp_ratio: float = float(me.current_sp) / float(max(1, me.max_sp))
+		var scarcity: float = 1.0 if my_sp_ratio > 0.5 else 2.5
+		score -= float(card.cost) * (10.0 * w_cost * scarcity)
+
+	return score
+
+--- END FILE: Data\AI\AIAggressive.gd ---
 
 
 --- START FILE: Data\Classes\HeavyClass.tres ---
@@ -16617,11 +16693,11 @@ func _run_bot_turn(player_id: int):
 
 # TestArena.gd
 
-func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
-	var valid_options = []
-	var affordable_backups = [] 
-	
-	# A. FILTER (Same as before)
+func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
+	var valid_options: Array[ActionData] = []
+	var affordable_backups: Array[ActionData] = []
+
+	# A. FILTER VALID CARDS
 	for card in character.deck:
 		if type_filter != null and card.type != type_filter: continue
 		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
@@ -16629,12 +16705,11 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 		if card.counter_value > 0 and my_opening < card.counter_value: continue
 		if card.is_super and not allow_super: continue
 		
-		# --- FIX: ACCOUNT FOR REPEAT COUNT COST ---
-		var effective_single_cost = max(0, card.cost - my_opportunity)
-		var total_reps = max(1, card.repeat_count)
-		var total_effective_cost = effective_single_cost * total_reps
+		var effective_single_cost: int = max(0, card.cost - my_opportunity)
+		var total_reps: int = max(1, card.repeat_count)
+		var total_effective_cost: int = effective_single_cost * total_reps
 		
-		var can_pay = (total_effective_cost <= character.current_sp)
+		var can_pay: bool = (total_effective_cost <= character.current_sp)
 		
 		if character.can_pay_with_hp:
 			if (character.current_sp + character.current_hp) > total_effective_cost:
@@ -16644,202 +16719,54 @@ func _get_smart_card_choice(character: CharacterData, type_filter, must_be_opene
 			valid_options.append(card)
 		elif total_effective_cost == 0:
 			affordable_backups.append(card)
-		# ------------------------------------------
-	
-	# --- FIX: ADD STRUGGLE OPTION ---
-	# If the bot is filtering for a specific type (e.g. Defence), give it the Struggle option for that type.
-	var required_type = type_filter if type_filter != null else ActionData.Type.OFFENCE
-	var struggle = GameManager.get_struggle_action(required_type)
-	
-	# If we have NO valid deck options, or if we just want to consider saving SP, add Struggle.
-	# Adding it to 'valid_options' lets the Scoring System decide if it's a good idea.
-	valid_options.append(struggle)
-	# --------------------------------
-	
-	if valid_options.is_empty():
-		return struggle 
 
-	# B. STRATEGY
-	var best_card = valid_options[0]
-	
-	# --- NEW LOGIC START ---
-	var is_very_easy = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
-	
-	# If Very Easy: We want the LOWEST score, so start High.
-	# If Normal: We want the HIGHEST score, so start Low.
-	var best_score = 99999.0 if is_very_easy else -99999.0
-	
-	var my_id = 1 if character == p1_resource else 2
-	var opponent = p2_resource if my_id == 1 else p1_resource
-	
+	# Guarantee at least one valid move (Struggle)
+	var required_type: int = type_filter if type_filter != null else ActionData.Type.OFFENCE
+	var struggle: ActionData = GameManager.get_struggle_action(required_type)
+	valid_options.append(struggle)
+
+	# B. DELEGATE TO MODULAR AI RESOURCE
+	var best_card: ActionData = valid_options[0]
+	var is_very_easy: bool = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
+	var best_score: float = 99999.0 if is_very_easy else -99999.0
+
+	var my_id: int = 1 if character == p1_resource else 2
+	var opponent: CharacterData = p2_resource if my_id == 1 else p1_resource
+
+	# Use the assigned AI profile, or fallback to a blank one if missing
+	var brain: AIBehavior = null
+	if "ai_profile" in character and character.ai_profile != null:
+		brain = character.ai_profile
+	else:
+		brain = AIBehavior.new()
+
 	# Noise Setup
-	var noise_range = 0.0
+	var noise_range: float = 0.0
 	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: noise_range = 0 # No noise, just pure bad decisions
+		GameManager.Difficulty.VERY_EASY: noise_range = 0.0 
 		GameManager.Difficulty.EASY: noise_range = 100.0
 		GameManager.Difficulty.MEDIUM: noise_range = 25.0
 		GameManager.Difficulty.HARD: noise_range = 2.0
-	
+
 	for card in valid_options:
-		var score = _score_card_utility(card, character, opponent, my_id)
+		# --- THE DECOUPLING MAGIC ---
+		var score: float = brain.score_action(card, character, opponent, my_id)
+		
 		score += randf_range(-noise_range, noise_range)
 		
 		if is_very_easy:
-			# INVERTED LOGIC: Pick the WORST score
 			if score < best_score:
 				best_score = score
 				best_card = card
 		else:
-			# STANDARD LOGIC: Pick the BEST score
 			if score > best_score:
 				best_score = score
 				best_card = card
-	
+
 	return best_card
 
 # 2. THE BRAIN (Assigns value to actions)
-func _score_card_utility(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
-	var score = 0.0
-	var log_parts = [] # Stores reasons like "+10 Dmg" or "-100 Repetition"
-	
-	# Weights
-	var w_dmg = 1.0; var w_def = 1.0; var w_tech = 1.0; var w_cost = 1.0
-	
-	match me.ai_archetype:
-		CharacterData.AIArchetype.AGGRESSIVE:
-			w_dmg = 1.5; w_def = 0.5; w_cost = 0.5
-		CharacterData.AIArchetype.DEFENSIVE:
-			w_dmg = 0.7; w_def = 1.5; w_cost = 1.2
-		CharacterData.AIArchetype.TRICKSTER:
-			w_dmg = 0.8; w_def = 0.8; w_tech = 1.5
-	
-	# --- 1. STRICT ANTI-REPETITION ---
-	if card.display_name == p2_last_action_name:
-		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
-			# [cite_start]FIX: For Very Easy, we pick the LOWEST score[cite: 220].
-			# To discourage repetition, we must ADD to the score so it isn't the lowest.
-			score += 100.0
-			log_parts.append("+100 (Repetition Avoidance)")
-		else:
-			# Normal Logic: We pick the HIGHEST score.
-			# Subtracting makes the AI avoid it.
-			score -= 100.0
-			log_parts.append("-100 (Repetition)")
 
-	# --- 2. TACTICAL RESPONSE ---
-	if card.type == ActionData.Type.OFFENCE:
-		# Counter Opportunities
-		var opp_opening = GameManager.state.p1_opening_stat if my_id == 2 else GameManager.state.p2_opening_stat
-		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
-			var val = 50.0 * w_tech
-			score += val
-			log_parts.append("+" + str(val) + " (Counter Opportunity)")
-		
-		# Punish Tired
-		if p1_last_cost >= 2 or (float(opp.current_sp)/max(1, opp.max_sp) < 0.3):
-			var val = card.damage * 5 * w_dmg
-			score += val
-			log_parts.append("+" + str(val) + " (Punish Tired)")
-		
-		# Break Turtles
-		if p1_last_action_type == ActionData.Type.DEFENCE:
-			if card.guard_break: 
-				score += 30 * w_tech
-				log_parts.append("+30 (Guard Break)")
-			if card.feint: 
-				score += 20 * w_tech
-				log_parts.append("+20 (Feint vs Block)")
-			
-	elif card.type == ActionData.Type.DEFENCE:
-		# Heavy Incoming
-		if p1_last_cost >= 2:
-			if card.dodge_value > 0: 
-				score += 20 * w_def
-				log_parts.append("+20 (Dodge Heavy)")
-			if card.block_value >= 4: 
-				score += 15 * w_def
-				log_parts.append("+15 (Block Heavy)")
-			
-		# Light Incoming
-		elif p1_last_cost <= 1:
-			if card.cost >= 2: 
-				var pen = 15.0 * w_cost
-				score -= pen
-				log_parts.append("-" + str(pen) + " (Overkill Def)")
-			if card.block_value > 0 and card.cost <= 1: 
-				score += 10 * w_def
-				log_parts.append("+10 (Efficient Block)")
-
-		# Fishing for Reversals
-		if opp.current_hp <= 5 and card.reversal:
-			score += 15 * w_tech
-			log_parts.append("+15 (Execute Reversal)")
-
-	# --- 3. UTILITY SCORING ---
-	
-	# Kill Instinct
-	if card.damage >= opp.current_hp: 
-		score += 1000.0
-		log_parts.append("+1000 (KILL SHOT)")
-	
-	# Survival Instinct
-	var panic = 5 if me.ai_archetype == CharacterData.AIArchetype.DEFENSIVE else 3
-	if me.current_hp < panic:
-		var s_val = (card.block_value * 10 * w_def) + (card.heal_value * 15 * w_def)
-		if card.type == ActionData.Type.DEFENCE: s_val += 20 * w_def
-		score += s_val
-		if s_val > 0: log_parts.append("+" + str(s_val) + " (Panic Mode)")
-	
-	# Logic for Struggle (display_name check)
-	if card.display_name == "Struggle":
-		# If we are low on SP, Struggle is very valuable
-		if me.current_sp <= 1:
-			score += 50.0
-			log_parts.append("+50 (Need SP)")
-		# If we are full on SP, Struggle is bad
-		elif me.current_sp >= me.max_sp:
-			score -= 50.0
-			log_parts.append("-50 (SP Full)")
-	
-	# Momentum Logic
-	var mom = GameManager.state.momentum
-	var winning = (my_id == 1 and mom <= 3) or (my_id == 2 and mom >= 6)
-	var losing = (my_id == 1 and mom >= 5) or (my_id == 2 and mom <= 4)
-	
-	if winning:
-		var m_val = (card.damage * 10 * w_dmg)
-		if card.type == ActionData.Type.OFFENCE: m_val += 10
-		score += m_val
-		if m_val > 0: log_parts.append("+" + str(m_val) + " (Winning Mom)")
-	elif losing:
-		var m_val = (card.fall_back_value * 10 * w_def) + (card.block_value * 5 * w_def)
-		if card.reversal: m_val += 20 * w_tech
-		score += m_val
-		if m_val > 0: log_parts.append("+" + str(m_val) + " (Losing Mom)")
-
-	# Base Stats
-	var stat_score = (card.damage * 5 * w_dmg) + (card.block_value * 5 * w_def) + (card.heal_value * 5 * w_def)
-	
-	if card.tiring > 0: stat_score += card.tiring * 5 * w_tech
-	if card.create_opening > 0: stat_score += card.create_opening * 5 * w_tech
-	if card.feint: stat_score += 10 * w_tech
-	
-	score += stat_score
-	log_parts.append("+" + str(stat_score) + " (Stats)")
-	
-	# Cost Efficiency
-	if card.cost > 0:
-		var sp_ratio = float(me.current_sp) / float(max(1, me.max_sp))
-		var scarcity = 1.0 if sp_ratio > 0.5 else 2.5
-		var c_pen = card.cost * (10 * w_cost * scarcity)
-		score -= c_pen
-		log_parts.append("-" + str(c_pen) + " (Cost)")
-
-	# --- PRINT LOG ---
-	# Format: [AI] CardName: 45.0 | Breakdown: +20 (Stats), -5 (Cost), +30 (Counter)
-	print("[AI] %s: %s | %s" % [card.display_name, str(snapped(score, 0.1)), ", ".join(log_parts)])
-
-	return score
 
 # --- LOGGING ---
 func _on_game_over(winner_id: int):
@@ -17962,6 +17889,33 @@ enum Type { OFFENCE, DEFENCE }
 --- END FILE: Scripts\Resources\ActionData.gd ---
 
 
+--- START FILE: Scripts\Resources\AIBehavior.gd ---
+
+extends Resource
+class_name AIBehavior
+
+## Base utility weights exported for Inspector tuning on .tres instances.
+@export_group("Base Weights")
+@export var w_dmg: float = 1.0
+@export var w_def: float = 1.0
+@export var w_tech: float = 1.0
+@export var w_cost: float = 1.0
+
+@export_group("Behavioral Thresholds")
+@export var repetition_penalty: float = 100.0
+@export var kill_shot_bonus: float = 1000.0
+@export var panic_hp_threshold: int = 3
+
+
+## Evaluates how desirable [param card] is for [param me] against [param opp].
+## Override in subclasses for archetype-specific scoring rules.
+func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
+	push_error("AIBehavior.score_action() must be overridden by a subclass.")
+	return 0.0
+
+--- END FILE: Scripts\Resources\AIBehavior.gd ---
+
+
 --- START FILE: Scripts\Resources\BaseModifierData.gd ---
 
 extends Resource
@@ -18028,6 +17982,7 @@ enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
 # ---------------------------------
 
 # --- STATIC DATA ---
+@export var ai_profile: AIBehavior
 @export_group("Identity")
 @export var character_name: String
 @export var portrait: Texture2D
@@ -18060,6 +18015,7 @@ enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
 @export var has_keep_up_toggle: bool = false
 @export var has_technique_dropdown: bool = false
 @export var statuses: Dictionary = {}
+
 
 
 #endregion
@@ -18286,6 +18242,12 @@ class MatchState:
 	
 	var p1_action_queue: ActionData = null
 	var p2_action_queue: ActionData = null
+
+	# --- AI MEMORY (Previous Clash Context) ---
+	var p1_last_action_name: String = ""
+	var p2_last_action_name: String = ""
+	var p1_last_cost: int = 0
+	var p2_last_cost: int = 0
 	
 	### ==========================================
 	### --- SERIALIZATION (GDScript 2.0) ---
@@ -18311,6 +18273,10 @@ class MatchState:
 			"p1_keep_up_active": p1_keep_up_active,
 			"p2_keep_up_active": p2_keep_up_active,
 			"p1_gym_block_bonus": p1_gym_block_bonus,
+			"p1_last_action_name": p1_last_action_name,
+			"p2_last_action_name": p2_last_action_name,
+			"p1_last_cost": p1_last_cost,
+			"p2_last_cost": p2_last_cost,
 			
 			# Flatten Resource references into string names for the network payload
 			"p1_locked_card_name": p1_locked_card.display_name if p1_locked_card != null else "",
@@ -18337,6 +18303,10 @@ class MatchState:
 		p1_keep_up_active = data.get("p1_keep_up_active", false)
 		p2_keep_up_active = data.get("p2_keep_up_active", false)
 		p1_gym_block_bonus = data.get("p1_gym_block_bonus", 0)
+		p1_last_action_name = data.get("p1_last_action_name", "")
+		p2_last_action_name = data.get("p2_last_action_name", "")
+		p1_last_cost = data.get("p1_last_cost", 0)
+		p2_last_cost = data.get("p2_last_cost", 0)
 
 # ==========================================
 # --- 2. ACTIVE STATE ---
@@ -18708,6 +18678,21 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 
 func resolve_clash() -> void:
 	state.attacker_override = 0
+
+	# --- RECORD AI MEMORY BEFORE QUEUES ARE CLEARED ---
+	if state.p1_action_queue != null:
+		state.p1_last_action_name = state.p1_action_queue.display_name
+		state.p1_last_cost = state.p1_action_queue.cost
+	else:
+		state.p1_last_action_name = ""
+		state.p1_last_cost = 0
+
+	if state.p2_action_queue != null:
+		state.p2_last_action_name = state.p2_action_queue.display_name
+		state.p2_last_cost = state.p2_action_queue.cost
+	else:
+		state.p2_last_action_name = ""
+		state.p2_last_cost = 0
 
 	state.p1_action_queue = state.p1_action_queue.duplicate()
 	state.p2_action_queue = state.p2_action_queue.duplicate()

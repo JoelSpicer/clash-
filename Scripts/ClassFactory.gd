@@ -1,5 +1,6 @@
 extends Node
 
+
 # Map Enum -> Resource Path
 var class_registry = {
 	CharacterData.ClassType.HEAVY: preload("res://Data/Classes/HeavyClass.tres"),
@@ -74,12 +75,25 @@ var art_patient = preload("res://Art/Portraits/Patient.png")
 var art_quick = preload("res://Art/Portraits/Quick.png")
 var art_technical = preload("res://Art/Portraits/Technical.png")
 
+const AI_PRESETS: Array[AIBehavior] = [
+	preload("res://Data/AI/AIAggressive.tres"),
+	# Add additional .tres presets here as you create them, e.g.:
+	preload("res://Data/AI/AIDefensive.tres"),
+	preload("res://Data/AI/AITrickster.tres"),
+]
+
 const HAND_LIMIT = 8
 
 var bot_names: Array[String] = []
 
 func _ready():
 	_load_bot_names()
+
+## Picks a random AI resource preset for a generated run enemy.
+func pick_random_ai_profile() -> AIBehavior:
+	if AI_PRESETS.is_empty():
+		return null
+	return AI_PRESETS.pick_random()
 
 func _load_bot_names():
 	var file_path = "res://Data/enemy_names.txt"
@@ -108,11 +122,13 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	
 	# 2. Create the Base Character
 	# This sets the BASE stats (e.g. 5 HP / 4 SP) from the Class Definition
-	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
-	
-	# --- ASSIGN RANDOM PERSONALITY ---
-	var personalities = CharacterData.AIArchetype.values()
+# Inside ClassFactory.create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
+	var bot_data: CharacterData = create_character(selected_class, "Lv." + str(level) + " Bot")
+
+	var personalities: Array = CharacterData.AIArchetype.values()
 	bot_data.ai_archetype = personalities.pick_random()
+	bot_data.ai_profile = pick_random_ai_profile()
+	print("Assigned AI Profile: ", bot_data.ai_profile.resource_path if bot_data.ai_profile else "NULL")
 	
 	# Flavor: Rank Title
 	# If level is 1 or negative, default to 0 ("Foolish")

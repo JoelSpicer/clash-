@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="AIDefensive" format=3 uid="uid://dy2ijjg40xyjk"]
+
+[ext_resource type="Script" uid="uid://d1yd85evy1sbt" path="res://Scripts/Resources/AIDefensive.gd" id="1_e8hnj"]
+
+[resource]
+script = ExtResource("1_e8hnj")
+metadata/_custom_type_script = "uid://d1yd85evy1sbt"
