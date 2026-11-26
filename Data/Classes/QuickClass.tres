@@ -20,6 +20,7 @@ arcade_description = "[center][b][font_size=28]QUICK[/font_size][/b][/center]
 ----------------
 [color=yellow]Relentless: Every 3rd hit in a combo restores 1 SP.[/color][/font_size]"
 starting_deck = Array[ExtResource("3_0x3nb")]([ExtResource("12_k1hmy"), ExtResource("13_iihhh")])
+base_speed = 4
 skill_tree_root_id = 73
 combo_sp_recovery_rate = 3
 barks = {

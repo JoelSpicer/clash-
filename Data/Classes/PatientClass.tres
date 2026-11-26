@@ -20,9 +20,9 @@ arcade_description = "[center][b][font_size=28]PATIENT[/font_size][/b][/center]
 ----------------
 [color=yellow]Bide: When you use a fall back action, your next action gains +1 damage, and cannot trigger this passive.[/color][/font_size]"
 starting_deck = Array[ExtResource("2_7e45r")]([ExtResource("12_aabbj"), ExtResource("13_2vuc8")])
+base_speed = 2
 skill_tree_root_id = 75
 has_bide_mechanic = true
-has_keep_up_toggle = true
 barks = {
 "HURT": ["A calculation error...", "Predictable.", "Sloppy..."],
 "INTRO_GENERIC": ["I can wait all day.", "Your mistake will be your last.", "Patience is a weapon."],

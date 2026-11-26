@@ -434,11 +434,17 @@ func _get_action_to_submit(player_id: int, card_name: String) -> ActionData:
 func _run_bot_turn(player_id: int):
 	_current_input_player = player_id 
 	var character = p1_resource if player_id == 1 else p2_resource
-	
-	# ... (Keep your debug force and locked card checks here) ...
+
+	# Respect locked cards (Multi) on SELECTION
+	var locked_card: ActionData = GameManager.state.p1_locked_card if player_id == 1 else GameManager.state.p2_locked_card
+	if locked_card != null and GameManager.current_state == GameManager.State.SELECTION:
+		print(">>> BOT P" + str(player_id) + " LOCKED INTO: " + locked_card.display_name)
+		server_receive_input(player_id, locked_card.display_name, {})
+		return
 
 	var c = _get_player_constraints(player_id)
 	var card: ActionData
+	var extra_data: Dictionary = {}
 	
 	# --- NEW: TUTORIAL BOT HIJACK ---
 	if TutorialManager.is_tutorial_active and player_id == 2:
@@ -450,59 +456,76 @@ func _run_bot_turn(player_id: int):
 			printerr("TUTORIAL ERROR: Bot missing card " + target_card_name)
 			card = GameManager.get_struggle_action(ActionData.Type.OFFENCE)
 	else:
-		# NORMAL AI BEHAVIOR
-		card = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
+		# NORMAL AI BEHAVIOR (returns { "card": ActionData, "extra": Dictionary })
+		var choice: Dictionary = _get_smart_card_choice(character, c.filter, c.needs_opener, c.max_cost, c.opening_stat, c.can_use_super, c.opportunity_stat)
+		card = choice["card"]
+		extra_data = choice["extra"]
 	# --------------------------------
 
 	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
-	server_receive_input(player_id, card.display_name, {})
+	server_receive_input(player_id, card.display_name, extra_data)
 	
 
 
 # TestArena.gd
 
-# TestArena.gd
-
-func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> ActionData:
-	var valid_options: Array[ActionData] = []
-	var affordable_backups: Array[ActionData] = []
-
-	# A. FILTER VALID CARDS
-	for card in character.deck:
-		if type_filter != null and card.type != type_filter: continue
-		if must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener: continue
-		if card.cost > max_cost: continue
-		if card.counter_value > 0 and my_opening < card.counter_value: continue
-		if card.is_super and not allow_super: continue
-		
-		var effective_single_cost: int = max(0, card.cost - my_opportunity)
-		var total_reps: int = max(1, card.repeat_count)
-		var total_effective_cost: int = effective_single_cost * total_reps
-		
-		var can_pay: bool = (total_effective_cost <= character.current_sp)
-		
-		if character.can_pay_with_hp:
-			if (character.current_sp + character.current_hp) > total_effective_cost:
-				can_pay = true
-				
-		if can_pay:
-			valid_options.append(card)
-		elif total_effective_cost == 0:
-			affordable_backups.append(card)
-
-	# Struggle is purely a last-resort backup when no legal card in the deck can be played
-	if valid_options.is_empty():
-		var required_type: ActionData.Type = type_filter if type_filter != null else ActionData.Type.OFFENCE
-		return GameManager.get_struggle_action(required_type)
-
-	if valid_options.size() == 1:
-		return valid_options[0]
-
-	# B. DELEGATE TO MODULAR AI RESOURCE
+func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must_be_opener: bool, max_cost: int, my_opening: int, allow_super: bool, my_opportunity: int) -> Dictionary:
 	var my_id: int = 1 if character == p1_resource else 2
 	var opponent: CharacterData = p2_resource if my_id == 1 else p1_resource
+	var candidates: Array[Dictionary] = []
 
-	# Use the assigned AI profile, or assign a random preset for this match if missing
+	# A. FILTER VALID CARDS (including Technical's Custom Technique passive options)
+	for card in character.deck:
+		if type_filter != null and card.type != type_filter: continue
+		if card.counter_value > 0 and my_opening < card.counter_value: continue
+		if card.is_super and not allow_super: continue
+
+		var total_reps: int = max(1, card.repeat_count)
+		var base_needs_opener_block: bool = (must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener)
+
+		# 1. Normal play (no technique)
+		if not base_needs_opener_block and card.cost <= max_cost:
+			var effective_single_cost: int = max(0, card.cost - my_opportunity)
+			var total_effective_cost: int = effective_single_cost * total_reps
+			var can_pay: bool = (total_effective_cost <= character.current_sp)
+			if character.can_pay_with_hp and (character.current_sp + character.current_hp) > total_effective_cost:
+				can_pay = true
+			if can_pay:
+				candidates.append({ "card": card, "sim": card, "extra": {} })
+
+				# Optional Technical upgrades (+Tiring 1 / +Momentum 1 for +1 SP) when SP is comfortable
+				if character.has_technique_dropdown and (card.cost + 1) <= max_cost:
+					var tech_total_cost: int = max(0, (card.cost + 1) - my_opportunity) * total_reps
+					if character.current_sp >= tech_total_cost + 1:
+						if opponent.current_sp > 0:
+							var sim_tire: ActionData = card.duplicate()
+							sim_tire.cost += 1
+							sim_tire.tiring += 1
+							candidates.append({ "card": card, "sim": sim_tire, "extra": { "technique": 2 } })
+						if card.type == ActionData.Type.OFFENCE:
+							var sim_mom: ActionData = card.duplicate()
+							sim_mom.cost += 1
+							sim_mom.momentum_gain += 1
+							candidates.append({ "card": card, "sim": sim_mom, "extra": { "technique": 3 } })
+
+		# 2. Technical passive: spend +1 SP to grant Opener to a non-Opener Offence card
+		if base_needs_opener_block and character.has_technique_dropdown and (card.cost + 1) <= max_cost:
+			var opener_total_cost: int = max(0, (card.cost + 1) - my_opportunity) * total_reps
+			if character.current_sp >= opener_total_cost:
+				var sim_open: ActionData = card.duplicate()
+				sim_open.cost += 1
+				sim_open.is_opener = true
+				candidates.append({ "card": card, "sim": sim_open, "extra": { "technique": 1 } })
+
+	# Struggle is purely a last-resort backup when no legal card in the deck can be played
+	if candidates.is_empty():
+		var required_type: ActionData.Type = type_filter if type_filter != null else ActionData.Type.OFFENCE
+		return { "card": GameManager.get_struggle_action(required_type), "extra": {} }
+
+	if candidates.size() == 1:
+		return { "card": candidates[0]["card"], "extra": candidates[0]["extra"] }
+
+	# B. DELEGATE TO MODULAR AI RESOURCE
 	var brain: AIBehavior = character.ai_profile
 	if brain == null:
 		brain = ClassFactory.pick_random_ai_profile()
@@ -516,7 +539,8 @@ func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must
 	# - MEDIUM: 40% suboptimal pick + moderate noise (45.0)
 	# - HARD: full profile scoring + public-state counterplay awareness (noise 2.0)
 	if GameManager.ai_difficulty == GameManager.Difficulty.EASY and randf() < 0.80:
-		return valid_options.pick_random()
+		var pick: Dictionary = candidates.pick_random()
+		return { "card": pick["card"], "extra": pick["extra"] }
 
 	var is_very_easy: bool = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
 	var is_hard: bool = (GameManager.ai_difficulty == GameManager.Difficulty.HARD)
@@ -530,40 +554,41 @@ func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must
 	var attacker_id: int = GameManager.get_attacker()
 
 	var scored: Array[Dictionary] = []
-	for card in valid_options:
-		var score: float = brain.score_action(card, character, opponent, my_id)
+	for cand in candidates:
+		var sim_card: ActionData = cand["sim"]
+		var score: float = brain.score_action(sim_card, character, opponent, my_id)
 		if GameManager.ai_difficulty == GameManager.Difficulty.EASY and score >= brain.kill_shot_bonus * 0.5:
 			score -= brain.kill_shot_bonus
 		if is_hard:
 			# HARD reads public board state: punish SP-dry foes, respect defence, avoid 0-dmg stalls
-			if card.type == ActionData.Type.OFFENCE:
-				if opponent.current_sp == 0 and card.damage >= 2:
+			if sim_card.type == ActionData.Type.OFFENCE:
+				if opponent.current_sp == 0 and sim_card.damage >= 2:
 					score += 20.0
-				if card.guard_break and opponent.current_sp <= 1:
+				if sim_card.guard_break and opponent.current_sp <= 1:
 					score += 22.0
-				if card.damage == 0 and attacker_id == my_id:
+				if sim_card.damage == 0 and attacker_id == my_id:
 					score -= 12.0
 			else:
 				if attacker_id != my_id and attacker_id != 0:
-					if card.is_parry and opponent.current_sp >= 1:
+					if sim_card.is_parry and opponent.current_sp >= 1:
 						score += 16.0
-					if card.reversal:
+					if sim_card.reversal:
 						score += 12.0
-					if card.block_value >= 1 and card.cost == 0:
+					if sim_card.block_value >= 1 and sim_card.cost == 0:
 						score += 10.0
 		score += randf_range(-noise_range, noise_range)
-		scored.append({ "card": card, "score": score })
+		scored.append({ "card": cand["card"], "extra": cand["extra"], "score": score })
 
 	if is_very_easy:
 		scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["score"] < b["score"])
-		return scored[0]["card"]
+		return { "card": scored[0]["card"], "extra": scored[0]["extra"] }
 
 	scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["score"] > b["score"])
 	if GameManager.ai_difficulty == GameManager.Difficulty.MEDIUM and scored.size() > 1 and randf() < 0.40:
 		var sub_idx: int = min(scored.size() - 1, randi_range(1, 2))
-		return scored[sub_idx]["card"]
+		return { "card": scored[sub_idx]["card"], "extra": scored[sub_idx]["extra"] }
 
-	return scored[0]["card"]
+	return { "card": scored[0]["card"], "extra": scored[0]["extra"] }
 
 # 2. THE BRAIN (Assigns value to actions)
 

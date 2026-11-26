@@ -176,21 +176,29 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 		for neighbor in TREE_CONNECTIONS[root_id]:
 			unlockable_options.append(neighbor)
 			
-	# Draft Loop
+	# Draft Loop (Counter X cards require an already-drafted Create Opening >= X card)
 	for i in range(cards_to_draft):
-		if unlockable_options.is_empty(): break 
-		
-		var picked_id = unlockable_options.pick_random()
+		var eligible_ids: Array[int] = []
+		for cand_id: int in unlockable_options:
+			var cand_name: Variant = ID_TO_NAME_MAP.get(cand_id)
+			if cand_name:
+				var cand_card: ActionData = find_action_resource(str(cand_name))
+				if cand_card and can_draft_action(cand_card, bot_data.unlocked_actions):
+					eligible_ids.append(cand_id)
+		if eligible_ids.is_empty():
+			break
+
+		var picked_id: int = eligible_ids.pick_random()
 		var card_name = ID_TO_NAME_MAP.get(picked_id)
-		
+
 		if card_name:
 			var new_card = find_action_resource(card_name)
 			if new_card and not _has_card(bot_data.unlocked_actions, new_card):
 				bot_data.unlocked_actions.append(new_card)
-		
+
 		owned_ids.append(picked_id)
 		unlockable_options.erase(picked_id)
-		
+
 		if picked_id in TREE_CONNECTIONS:
 			for neighbor in TREE_CONNECTIONS[picked_id]:
 				if neighbor not in owned_ids and neighbor not in unlockable_options:
@@ -254,47 +262,124 @@ func _has_card(list: Array, card: ActionData) -> bool:
 		if c.display_name == card.display_name: return true
 	return false
 
+## Returns true if [param card] can be drafted/equipped given [param owned_actions].
+## Counter X cards require an owned action with Create Opening >= X.
+func can_draft_action(card: ActionData, owned_actions: Array[ActionData]) -> bool:
+	if card == null:
+		return false
+	if card.counter_value <= 0:
+		return true
+	var max_opening: int = 0
+	for owned: ActionData in owned_actions:
+		if owned and owned.create_opening > max_opening:
+			max_opening = owned.create_opening
+	return max_opening >= card.counter_value
+
+func _pop_first_eligible(list: Array[ActionData], chosen: Array[ActionData]) -> ActionData:
+	for i in range(list.size()):
+		if can_draft_action(list[i], chosen):
+			var picked: ActionData = list[i]
+			list.remove_at(i)
+			return picked
+	return null
+
 func _select_smart_hand(pool: Array[ActionData]) -> Array[ActionData]:
 	# If we have 8 or fewer, just take them all
 	if pool.size() <= HAND_LIMIT:
 		return pool.duplicate()
-		
-	var chosen: Array[ActionData] = []
-	var remaining = pool.duplicate()
-	
-	# 1. PRIORITY: Always take Class Signatures (Non-Basic)
-	# We prioritize "cool" cards over "Basic" ones
-	for i in range(remaining.size() - 1, -1, -1):
-		var c = remaining[i]
-		if not c.is_basic:
-			chosen.append(c)
-			remaining.remove_at(i)
-			
-	# 2. PRIORITY: Fill remaining slots with Basics
-	remaining.shuffle()
-	
-	while chosen.size() < HAND_LIMIT and remaining.size() > 0:
-		chosen.append(remaining.pop_back())
-		
-	# 3. Trim down to 8 FIRST (Moved this up!)
-	if chosen.size() > HAND_LIMIT:
-		chosen.resize(HAND_LIMIT)
 
-	# 4. SAFETY: NOW Ensure at least 1 Opener
-	var has_opener = false
-	for c in chosen:
-		if c.is_opener or c.cost == 0: has_opener = true
-	
-	if not has_opener:
-		# Search the remaining pile for an opener
-		for c in remaining:
-			if c.is_opener or c.cost == 0:
-				# Swap a random card out for this opener
-				if chosen.size() > 0:
-					chosen.pop_back() 
-				chosen.append(c)
-				break
-				
+	var chosen: Array[ActionData] = []
+	var off_special: Array[ActionData] = []
+	var off_basic: Array[ActionData] = []
+	var def_special: Array[ActionData] = []
+	var def_basic: Array[ActionData] = []
+
+	for card: ActionData in pool:
+		if card.type == ActionData.Type.OFFENCE:
+			if card.is_basic:
+				off_basic.append(card)
+			else:
+				off_special.append(card)
+		else:
+			if card.is_basic:
+				def_basic.append(card)
+			else:
+				def_special.append(card)
+
+	# Shuffle each bucket so bots with overlapping pools get distinct, varied hands
+	off_special.shuffle()
+	off_basic.shuffle()
+	def_special.shuffle()
+	def_basic.shuffle()
+
+	var off_ordered: Array[ActionData] = []
+	off_ordered.append_array(off_special)
+	off_ordered.append_array(off_basic)
+
+	var def_ordered: Array[ActionData] = []
+	def_ordered.append_array(def_special)
+	def_ordered.append_array(def_basic)
+
+	# 1. Guarantee at least 1 affordable Opener (cost <= 2) so the deck can enter Neutral/combos
+	for i in range(off_ordered.size()):
+		if off_ordered[i].is_opener and off_ordered[i].cost <= 2 and can_draft_action(off_ordered[i], chosen):
+			chosen.append(off_ordered[i])
+			off_ordered.remove_at(i)
+			break
+
+	# 2. Guarantee at least 1 low-cost (0-1 SP) Defence card so the deck can recover SP cleanly
+	for i in range(def_ordered.size()):
+		if def_ordered[i].cost <= 1 and can_draft_action(def_ordered[i], chosen):
+			chosen.append(def_ordered[i])
+			def_ordered.remove_at(i)
+			break
+
+	# 3. Guarantee a balanced structural core (at least 3 Offence and 3 Defence total)
+	#    Counter X cards are only added if a Create Opening >= X card is already in the hand!
+	var off_count: int = 0
+	var def_count: int = 0
+	for c: ActionData in chosen:
+		if c.type == ActionData.Type.OFFENCE:
+			off_count += 1
+		else:
+			def_count += 1
+
+	while off_count < 3 and chosen.size() < HAND_LIMIT:
+		var next_off: ActionData = _pop_first_eligible(off_ordered, chosen)
+		if next_off == null:
+			break
+		chosen.append(next_off)
+		off_count += 1
+
+	while def_count < 3 and chosen.size() < HAND_LIMIT:
+		var next_def: ActionData = _pop_first_eligible(def_ordered, chosen)
+		if next_def == null:
+			break
+		chosen.append(next_def)
+		def_count += 1
+
+	# 4. Fill remaining 2 flex slots randomly (preferring drafted specials, then basics)
+	#    while still enforcing the Counter X -> Create Opening >= X hand requirement
+	var flex_special: Array[ActionData] = []
+	var flex_basic: Array[ActionData] = []
+	for c: ActionData in off_ordered:
+		if c.is_basic: flex_basic.append(c)
+		else: flex_special.append(c)
+	for c: ActionData in def_ordered:
+		if c.is_basic: flex_basic.append(c)
+		else: flex_special.append(c)
+
+	flex_special.shuffle()
+	flex_basic.shuffle()
+
+	while chosen.size() < HAND_LIMIT:
+		var next_flex: ActionData = _pop_first_eligible(flex_special, chosen)
+		if next_flex == null:
+			next_flex = _pop_first_eligible(flex_basic, chosen)
+		if next_flex == null:
+			break
+		chosen.append(next_flex)
+
 	return chosen
 
 func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):

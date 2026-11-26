@@ -20,6 +20,7 @@ arcade_description = "[center][b][font_size=28]TECHNICAL[/font_size][/b][/center
 ----------------
 [color=yellow]Custom Technique: Spend 1 SP to add Opener, Tiring, or Momentum to any action.[/color][/font_size]"
 starting_deck = Array[ExtResource("3_uhsbe")]([ExtResource("12_7frj5"), ExtResource("13_67n4n")])
+base_speed = 3
 skill_tree_root_id = 74
 has_technique_dropdown = true
 barks = {

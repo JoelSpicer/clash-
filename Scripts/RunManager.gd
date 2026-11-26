@@ -236,12 +236,14 @@ func get_valid_action_rewards() -> Array[ActionData]:
 				if neighbor not in player_owned_tree_ids and neighbor not in neighbor_ids:
 					neighbor_ids.append(neighbor)
 	
-	# Convert IDs to actual Resources
+	# Convert IDs to actual Resources (Counter X cards require an already-owned Create Opening >= X)
+	var owned_pool: Array[ActionData] = player_run_data.unlocked_actions if player_run_data != null else []
 	for id in neighbor_ids:
 		var c_name = ClassFactory.ID_TO_NAME_MAP.get(id)
 		if c_name:
 			var card = ClassFactory.find_action_resource(c_name)
-			if card: valid_actions.append(card)
+			if card and ClassFactory.can_draft_action(card, owned_pool):
+				valid_actions.append(card)
 			
 	return valid_actions
 
