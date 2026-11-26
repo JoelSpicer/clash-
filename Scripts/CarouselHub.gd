@@ -12,6 +12,10 @@ const TUTORIAL_TEXTS = [
 		"text": "This is the main roguelike mode. Choose your fighter's class, set your difficulty, optionally select a sponsor to alter your stats and gameplay, and battle your way through a gauntlet of opponents. Draft new Actions, Equipment and Buffs as you climb the ranks, gaining circuit tokens to unlock more classes and sponsors!"
 	},
 	{
+		"title": "QUICK MATCH",
+		"text": "Jump straight into a one-and-done clash between preset fighters! Pick any two presets, choose your arena and CPU difficulty, or toggle Opponent to Player 2 for local hotseat."
+	},
+	{
 		"title": "NETWORK TERMINAL",
 		"text": "Spend the Circuit Tokens you earn from your runs here. You can unlock new Sponsors, Classes, and powerful permanent upgrades to aid you in future runs."
 	},
@@ -57,6 +61,11 @@ func _ready():
 			"title": "THE CIRCUIT",
 			"scene_path": "res://Scenes/MenuArcade.tscn",
 			"bg_path": "res://Art/Background/LockerRoom.png"
+		},
+		{
+			"title": "QUICK MATCH",
+			"scene_path": "res://Scenes/MenuQuick.tscn",
+			"bg_path": "res://Art/Background/Dojo.png"
 		},
 		{
 			"title": "NETWORK TERMINAL",
