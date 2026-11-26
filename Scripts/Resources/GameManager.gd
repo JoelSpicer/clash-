@@ -146,6 +146,7 @@ signal request_clash_animation(p1_card: ActionData, p2_card: ActionData)
 signal clash_animation_finished
 signal wall_crush_occurred(player_id: int, damage_amount: int)
 signal sync_advance_approved
+signal snapshot_applied
 
 # --- CONFIGURATION ---
 var TOTAL_MOMENTUM_SLOTS: int = 8 
@@ -1252,5 +1253,5 @@ func receive_state_snapshot(snapshot: Dictionary) -> void:
 	state.p1_locked_card = ClassFactory.find_action_resource(p1_card_name) if p1_card_name != "" else null
 	state.p2_locked_card = ClassFactory.find_action_resource(p2_card_name) if p2_card_name != "" else null
 	
-	# 4. Trigger UI update so health bars/momentum instantly snap to the server's values
-	state_changed.emit(current_state)
+	# 4. Refresh HUD visuals without re-triggering SELECTION/FEINT state transitions
+	snapshot_applied.emit()

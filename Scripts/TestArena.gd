@@ -85,10 +85,15 @@ func _ready() -> void:
 	# 6. SETUP VISUALS
 	battle_ui.initialize_hud(p1_resource, p2_resource)
 	
+	if not GameManager.snapshot_applied.is_connected(_update_visuals):
+		GameManager.snapshot_applied.connect(_update_visuals)
+
 	# 7. THE SYNC FIX!
 	# Tell the server we are done building our UI and are ready to play
 	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
-		if not multiplayer.is_server():
+		if multiplayer.is_server():
+			NetworkManager.notify_server_arena_ready()
+		else:
 			print("Waiting for opponent to load the arena...")
 			NetworkManager.rpc_id(1, "client_finished_loading")
 	else:
@@ -154,6 +159,8 @@ func _on_state_changed(new_state):
 	match new_state:
 		GameManager.State.SELECTION:
 			await get_tree().create_timer(0.5).timeout
+			if GameManager.current_state != GameManager.State.SELECTION:
+				return
 			_start_turn_sequence()
 			
 			# THE FIX: Only check the funnel AFTER the turn sequence has fully started!
@@ -162,6 +169,8 @@ func _on_state_changed(new_state):
 				
 		GameManager.State.FEINT_CHECK:
 			await get_tree().create_timer(0.3).timeout
+			if GameManager.current_state != GameManager.State.FEINT_CHECK:
+				return
 			print("| --- FEINT PHASE --- |")
 			_start_feint_input()
 			
@@ -353,6 +362,9 @@ func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}) -> 
 @rpc("any_peer", "call_local", "reliable")
 func server_receive_input(player_id: int, card_name: String, extra_data: Dictionary) -> void:
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server(): 
+		return
+	if GameManager.current_state != GameManager.State.SELECTION and GameManager.current_state != GameManager.State.FEINT_CHECK:
+		print("⚠️ [SERVER FUNNEL] Ignored out-of-phase input from P", player_id, " during ", GameManager.State.keys()[GameManager.current_state])
 		return
 
 	var str_id: String = str(player_id)

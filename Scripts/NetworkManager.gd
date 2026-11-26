@@ -21,6 +21,7 @@ var anim_ready_players: Array[int] = []
 
 ### --- MATCH STATE GUARDS ---
 var _is_match_active: bool = false
+var _server_arena_ready: bool = false
 var _loading_timeout: SceneTreeTimer = null
 var _animation_timeout: SceneTreeTimer = null
 
@@ -166,6 +167,7 @@ func register_player_character(preset_path: String) -> void:
 	if server_players.size() == 2:
 		print("Server: Lobby is full! Triggering Match Start...")
 		_is_match_active = true
+		_server_arena_ready = false
 		
 		var p_ids: Array = server_players.keys()
 		var p1_id: int = p_ids[0]
@@ -218,14 +220,25 @@ func client_finished_loading() -> void:
 		players_ready_for_match.append(sender_id)
 		
 	print("Server: Player ", sender_id, " is in the arena and ready!")
+	_try_begin_combat_phase()
 
-	if players_ready_for_match.size() == 2:
+## Called locally by the dedicated server's TestArena once reset_combat() completes.
+func notify_server_arena_ready() -> void:
+	if not multiplayer.is_server():
+		return
+	_server_arena_ready = true
+	print("Server: Referee arena initialized and ready!")
+	_try_begin_combat_phase()
+
+func _try_begin_combat_phase() -> void:
+	if players_ready_for_match.size() == 2 and _server_arena_ready:
 		# Cancel the safety timer!
 		if _loading_timeout:
-			_loading_timeout.timeout.disconnect(_on_handshake_timeout)
+			if _loading_timeout.timeout.is_connected(_on_handshake_timeout):
+				_loading_timeout.timeout.disconnect(_on_handshake_timeout)
 			_loading_timeout = null
-			
-		print("Server: Both players are loaded! Starting Combat State...")
+
+		print("Server: Both players and referee arena loaded! Starting Combat State...")
 		begin_combat_phase.rpc()
 
 ## 2. THE SERVER tells the clients to officially start the game.
@@ -330,6 +343,7 @@ func _wipe_server_memory() -> void:
 
 	# 3. Unlock server for the next lobby
 	_is_match_active = false
+	_server_arena_ready = false
 	
 	print("Server: Memory wiped and match guards reset. Ready for new match.")
 

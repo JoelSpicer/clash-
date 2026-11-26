@@ -8,6 +8,10 @@ extends Control
 @onready var logo = $Logo
 
 func _ready():
+	# Dedicated headless servers should never run the splash tween into MainMenu
+	if DisplayServer.get_name() == "headless" or OS.get_cmdline_args().has("--server"):
+		return
+
 	# 1. THE BYPASS
 	# If we are testing, or if the skip toggle is on, go straight to menu.
 	if skip_splash:
