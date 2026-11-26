@@ -33,6 +33,7 @@ const LEAGUE_LENGTH = 10
 const MID_BOSS_INDEX = 4
 var is_rival_match: bool = false
 var is_boss_match: bool = false
+var last_league_tokens_awarded: int = 0
 
 # --- GLOBAL META DATA ---
 const GLOBAL_SAVE_PATH = "user://global_save.tres"
@@ -673,10 +674,14 @@ func generate_new_league():
 			fight_counter += 1
 		# --------------------------------------------
 			
-		# 4. FIXED REST SPOTS (GYM)
-		elif randf() < 0.2 and i > 0:
-			node.type = MapNodeData.Type.GYM
-			node.title = "Training"
+		# 4. REST SPOTS (GYM) & RANDOM EVENTS
+		elif i > 0 and randf() < 0.35:
+			if randf() < 0.57:
+				node.type = MapNodeData.Type.GYM
+				node.title = "Training"
+			else:
+				node.type = MapNodeData.Type.EVENT
+				node.title = "Event"
 			
 		# 5. STANDARD FIGHT
 		else:
@@ -709,11 +714,37 @@ func advance_map():
 
 func handle_league_victory():
 	leagues_completed += 1
-	print("League Complete! Starting next tier...")
-	# For now, just generate the next one immediately
-	# Later, we can add a "Victory Lap" screen
+	print("League %d Complete! Entering Victory Lap..." % leagues_completed)
+	
+	# Award League Champion Circuit Token Bonus (5 for League 1, +2 per additional league)
+	var base_bonus: int = 5 + ((leagues_completed - 1) * 2)
+	var prev_tokens: int = meta_data.circuit_tokens if meta_data else 0
+	add_circuit_tokens(base_bonus)
+	last_league_tokens_awarded = (meta_data.circuit_tokens - prev_tokens) if meta_data else base_bonus
+	
+	# Restore full HP/SP between leagues so the next circuit starts fresh
+	if player_run_data != null:
+		player_run_data.current_hp = player_run_data.max_hp
+		player_run_data.current_sp = player_run_data.max_sp
+		check_danger_state()
+	
+	save_run()
+	SceneLoader.change_scene("res://Scenes/LeagueVictoryScreen.tscn")
+
+func continue_to_next_league():
 	generate_new_league()
 	SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
+
+func retire_champion():
+	var safe_name: String = current_run_name.validate_filename()
+	delete_save_file(safe_name + ".tres")
+	is_arcade_mode = false
+	is_boss_match = false
+	is_rival_match = false
+	pending_advancement = false
+	pending_reward = false
+	_save_global_data()
+	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 # Call this from the Deck Editor "Continue" button
 func exit_deck_editor():

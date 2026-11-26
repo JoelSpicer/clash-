@@ -81,6 +81,8 @@ func _on_node_clicked(index: int):
 			_start_fight(data)
 		MapNodeData.Type.GYM:
 			_enter_gym(data)
+		MapNodeData.Type.EVENT:
+			_enter_event(data)
 
 func _start_fight(data: MapNodeData):
 	RunManager.start_map_fight(data)
@@ -88,3 +90,7 @@ func _start_fight(data: MapNodeData):
 func _enter_gym(_data: MapNodeData):
 	print("Entering Gym...")
 	SceneLoader.change_scene("res://Scenes/Gym.tscn")
+
+func _enter_event(_data: MapNodeData):
+	print("Entering Event Room...")
+	SceneLoader.change_scene("res://Scenes/EventRoom.tscn")

@@ -44,6 +44,9 @@ func setup(node_data: MapNodeData, index: int):
 		if node_data.type == MapNodeData.Type.GYM:
 			icon.texture = preload("res://Art/Icons/icon_Bide.png")
 			modulate = Color(1.0, 1.0, 1.5) # Blue tint
+		elif node_data.type == MapNodeData.Type.EVENT:
+			icon.texture = preload("res://Art/Icons/icon_Opportunity.png")
+			modulate = Color(1.4, 1.25, 0.7) # Warm gold tint
 	
 	# 3. Handle Status (Locked/Completed/Ready)
 	if node_data.is_completed:
