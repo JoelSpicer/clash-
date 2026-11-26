@@ -438,8 +438,7 @@ func _apply_feint_direct(player_id: int, secondary: ActionData) -> void:
 	var opp_val: int = GameManager.state.p1_opportunity_stat if player_id == 1 else GameManager.state.p2_opportunity_stat
 	var effective_total: int = max(0, total_cost - opp_val)
 	var combined_card: ActionData = GameManager._combine_actions(base_card, secondary)
-	var total_reps: int = max(1, combined_card.repeat_count)
-	var total_required: int = effective_total * total_reps
+	var total_required: int = effective_total
 	var can_afford: bool = (character.current_sp >= total_required)
 	if not can_afford and character.class_type == CharacterData.ClassType.HEAVY and (character.current_sp + character.current_hp) > total_required:
 		can_afford = true
@@ -509,20 +508,15 @@ func _choose_ai_choice(character: CharacterData, my_id: int, difficulty: GameMan
 		if type_filter != null and card.type != type_filter: continue
 		if card.counter_value > 0 and my_opening < card.counter_value: continue
 		if card.is_super and not allow_super: continue
-		var total_reps: int = max(1, card.repeat_count)
 		var base_needs_opener_block: bool = (must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener)
 
 		if not base_needs_opener_block and card.cost <= max_cost:
-			var effective_single_cost: int = max(0, card.cost - my_opportunity)
-			var total_effective_cost: int = effective_single_cost * total_reps
-			var can_pay: bool = (total_effective_cost <= character.current_sp)
-			if character.can_pay_with_hp and (character.current_sp + character.current_hp) > total_effective_cost:
-				can_pay = true
+			var can_pay: bool = GameManager.get_effective_repeat_count(character, card, my_opportunity, false, false) > 0
 			if can_pay:
 				candidates.append({ "card": card, "sim": card, "extra": {} })
 				if character.has_technique_dropdown and (card.cost + 1) <= max_cost:
-					var tech_total_cost: int = max(0, (card.cost + 1) - my_opportunity) * total_reps
-					if character.current_sp >= tech_total_cost + 1:
+					var tech_first_cost: int = max(0, (card.cost + 1) - my_opportunity)
+					if character.current_sp >= tech_first_cost + 1:
 						if opponent.current_sp > 0:
 							var sim_tire: ActionData = card.duplicate()
 							sim_tire.cost += 1
@@ -535,8 +529,8 @@ func _choose_ai_choice(character: CharacterData, my_id: int, difficulty: GameMan
 							candidates.append({ "card": card, "sim": sim_mom, "extra": { "technique": 3 } })
 
 		if base_needs_opener_block and character.has_technique_dropdown and (card.cost + 1) <= max_cost:
-			var opener_total_cost: int = max(0, (card.cost + 1) - my_opportunity) * total_reps
-			if character.current_sp >= opener_total_cost:
+			var opener_first_cost: int = max(0, (card.cost + 1) - my_opportunity)
+			if character.current_sp >= opener_first_cost:
 				var sim_open: ActionData = card.duplicate()
 				sim_open.cost += 1
 				sim_open.is_opener = true

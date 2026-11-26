@@ -19,6 +19,13 @@ func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id
 	var match_state: GameManager.MatchState = GameManager.state
 	var attacker_id: int = GameManager.get_attacker()
 
+	var hits: int = _get_effective_hits(card, me, my_id)
+	var raw_total_dmg: int = card.damage * hits
+	var exp_dmg: float = _get_expected_damage(card, hits)
+	var total_mom: int = card.momentum_gain * hits
+	var total_tiring: int = card.tiring * hits
+	var total_cost: int = _get_effective_total_cost(card, my_id, hits)
+
 	var my_last_action: String = match_state.p1_last_action_name if my_id == 1 else match_state.p2_last_action_name
 	var opp_last_cost: int = match_state.p2_last_cost if my_id == 1 else match_state.p1_last_cost
 	var opp_opening: int = match_state.p2_opening_stat if my_id == 1 else match_state.p1_opening_stat
@@ -31,12 +38,12 @@ func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id
 		else:
 			score -= repetition_penalty
 
-	# 2. Kill shot priority
-	if card.damage >= opp.current_hp and opp.current_hp > 0:
-		score += kill_shot_bonus
+	# 2. Kill shot priority (accounts for multi-hit Repeat lethal)
+	if raw_total_dmg >= opp.current_hp and opp.current_hp > 0:
+		score += kill_shot_bonus * (0.75 if (hits > 1 and card.damage == 1 and not card.guard_break) else 1.0)
 
 	# 3. Strict 0-SP recovery priority (use real SP recovery options before ever hitting Struggle)
-	var eff_recover: int = card.recover_value + (1 if card.type == ActionData.Type.DEFENCE else 0)
+	var eff_recover: int = (card.recover_value + (1 if card.type == ActionData.Type.DEFENCE else 0)) * hits
 	if me.current_sp == 0 and eff_recover > 0:
 		score += float(eff_recover) * 35.0
 
@@ -44,14 +51,14 @@ func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id
 	if opp_opening > 0:
 		if card.counter_value > 0 and card.counter_value <= opp_opening:
 			score += 65.0 * w_tech
-		if card.damage > 0:
-			score += float(card.damage) * 6.0 * w_dmg
+		if raw_total_dmg > 0:
+			score += exp_dmg * 6.0 * w_dmg
 	else:
 		if card.create_opening > 0 and opp.current_hp > 3:
 			score += float(card.create_opening) * 5.5 * w_tech
 
-	if my_opp_stat > 0 and card.damage > 0:
-		score += float(card.damage) * 5.0 * w_dmg
+	if my_opp_stat > 0 and raw_total_dmg > 0:
+		score += exp_dmg * 5.0 * w_dmg
 	elif card.opportunity > 0 and opp.current_hp > 3:
 		score += float(card.opportunity) * 4.5 * w_tech
 
@@ -59,8 +66,8 @@ func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id
 		score += 20.0 * w_tech
 	if card.guard_break:
 		score += 26.0 * w_tech
-	if card.tiring > 0 and opp.current_sp > 0:
-		score += float(card.tiring) * 6.5 * w_tech
+	if total_tiring > 0 and opp.current_sp > 0:
+		score += float(total_tiring) * 6.5 * w_tech
 
 	if card.type == ActionData.Type.DEFENCE:
 		if attacker_id != my_id and attacker_id != 0:
@@ -71,23 +78,25 @@ func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id
 		if card.reversal:
 			score += 18.0 * w_tech
 	else:
-		if card.damage == 0 and attacker_id == my_id:
+		if raw_total_dmg == 0 and attacker_id == my_id:
 			score -= 10.0
 		var opp_sp_ratio: float = float(opp.current_sp) / float(max(1, opp.max_sp))
 		if opp_last_cost >= 2 or opp_sp_ratio < 0.35:
-			score += float(card.damage) * 5.0 * w_dmg
+			score += exp_dmg * 5.0 * w_dmg
 
 	# 5. Survival instinct (only when hurt)
 	if me.current_hp < panic_hp_threshold and me.current_hp < me.max_hp:
-		score += (float(card.block_value) * 8.0 * w_def) + (float(card.heal_value) * 14.0 * w_def) + (14.0 * w_def)
+		score += (float(card.block_value) * 8.0 * w_def) + (float(card.heal_value * hits) * 14.0 * w_def) + (14.0 * w_def)
 
-	# 6. Base stat & stamina cost trade-off
-	score += (float(card.damage) * 8.0 * w_dmg) + (float(card.block_value) * 5.0 * w_def) + (float(card.heal_value) * 5.0 * w_def)
-	score += float(card.momentum_gain) * 3.5 * w_dmg
+	# 6. Base stat & stamina cost trade-off (Repeat-aware)
+	score += (exp_dmg * 8.0 * w_dmg) + (float(card.block_value) * 5.0 * w_def) + (float(card.heal_value * hits) * 5.0 * w_def)
+	score += float(total_mom) * 3.5 * w_dmg
+	if me.combo_sp_recovery_rate > 0 and hits >= 2 and card.type == ActionData.Type.OFFENCE:
+		score += float(hits) * 4.0
 
-	if card.cost > 0:
+	if total_cost > 0:
 		var my_sp_ratio: float = float(me.current_sp) / float(max(1, me.max_sp))
 		var scarcity: float = 1.0 if my_sp_ratio > 0.35 else 1.5
-		score -= float(card.cost) * (4.0 * w_cost * scarcity)
+		score -= float(total_cost) * (4.0 * w_cost * scarcity)
 
 	return score

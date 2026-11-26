@@ -341,8 +341,7 @@ func _apply_feint_direct(player_id: int, secondary: ActionData) -> void:
 	var opp_val: int = GameManager.state.p1_opportunity_stat if player_id == 1 else GameManager.state.p2_opportunity_stat
 	var effective_total: int = max(0, total_cost - opp_val)
 	var combined_card: ActionData = GameManager._combine_actions(base_card, secondary)
-	var total_reps: int = max(1, combined_card.repeat_count)
-	var total_required: int = effective_total * total_reps
+	var total_required: int = effective_total
 	var can_afford: bool = (character.current_sp >= total_required)
 	if not can_afford and character.class_type == CharacterData.ClassType.HEAVY and (character.current_sp + character.current_hp) > total_required:
 		can_afford = true
@@ -424,15 +423,7 @@ func _choose_ai_card(character: CharacterData, my_id: int, difficulty: GameManag
 		if card.counter_value > 0 and my_opening < card.counter_value: continue
 		if card.is_super and not allow_super: continue
 
-		var effective_single_cost: int = max(0, card.cost - my_opportunity)
-		var total_reps: int = max(1, card.repeat_count)
-		var total_effective_cost: int = effective_single_cost * total_reps
-
-		var can_pay: bool = (total_effective_cost <= character.current_sp)
-		if character.can_pay_with_hp and (character.current_sp + character.current_hp) > total_effective_cost:
-			can_pay = true
-
-		if can_pay:
+		if GameManager.get_effective_repeat_count(character, card, my_opportunity, false, false) > 0:
 			valid_options.append(card)
 
 	# Struggle is purely a last-resort backup when no legal card in the deck can be played

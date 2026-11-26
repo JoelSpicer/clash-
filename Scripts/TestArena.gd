@@ -480,23 +480,18 @@ func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must
 		if card.counter_value > 0 and my_opening < card.counter_value: continue
 		if card.is_super and not allow_super: continue
 
-		var total_reps: int = max(1, card.repeat_count)
 		var base_needs_opener_block: bool = (must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener)
 
-		# 1. Normal play (no technique)
+		# 1. Normal play (Repeat pays per hit, so at least 1 hit must be affordable)
 		if not base_needs_opener_block and card.cost <= max_cost:
-			var effective_single_cost: int = max(0, card.cost - my_opportunity)
-			var total_effective_cost: int = effective_single_cost * total_reps
-			var can_pay: bool = (total_effective_cost <= character.current_sp)
-			if character.can_pay_with_hp and (character.current_sp + character.current_hp) > total_effective_cost:
-				can_pay = true
+			var can_pay: bool = GameManager.get_effective_repeat_count(character, card, my_opportunity, false, false) > 0
 			if can_pay:
 				candidates.append({ "card": card, "sim": card, "extra": {} })
 
 				# Optional Technical upgrades (+Tiring 1 / +Momentum 1 for +1 SP) when SP is comfortable
 				if character.has_technique_dropdown and (card.cost + 1) <= max_cost:
-					var tech_total_cost: int = max(0, (card.cost + 1) - my_opportunity) * total_reps
-					if character.current_sp >= tech_total_cost + 1:
+					var tech_first_cost: int = max(0, (card.cost + 1) - my_opportunity)
+					if character.current_sp >= tech_first_cost + 1:
 						if opponent.current_sp > 0:
 							var sim_tire: ActionData = card.duplicate()
 							sim_tire.cost += 1
@@ -510,8 +505,8 @@ func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must
 
 		# 2. Technical passive: spend +1 SP to grant Opener to a non-Opener Offence card
 		if base_needs_opener_block and character.has_technique_dropdown and (card.cost + 1) <= max_cost:
-			var opener_total_cost: int = max(0, (card.cost + 1) - my_opportunity) * total_reps
-			if character.current_sp >= opener_total_cost:
+			var opener_first_cost: int = max(0, (card.cost + 1) - my_opportunity)
+			if character.current_sp >= opener_first_cost:
 				var sim_open: ActionData = card.duplicate()
 				sim_open.cost += 1
 				sim_open.is_opener = true

@@ -126,7 +126,7 @@ const KEYWORD_DEFS = {
 	"Opportunity": "Increase your next actions momentum by X, and reduce its stamina cost by X",
 	"Parry": "Your action steals the Momentum X trait of your opponent’s action. If this causes the momentum tracker to move in your direction, your opponent’s action has no affect on you, and your opponent’s next action must have the Opener trait",
 	"Recover": "Gain X stamina",
-	"Repeat": "After this action, use the same action again, ignoring the Repeat X trait. This must continue X times. This action interacts with your opponent’s chosen action as normal",
+	"Repeat": "Execute this action up to X total times in a single clash, paying its stamina cost for each hit while you have enough SP. Each hit interacts with your opponent’s action (Block applies per hit; Parry only steals 1 hit’s momentum), and Opportunity applies only to the first hit.",
 	"Retaliate": "Your opponent takes the same damage as they dealt to you in the previous clash",
 	"Reversal": "If the momentum tracker moves closer to your side from this clash, the current combo ends and you take the offence, even if you do not have the momentum advantage. This applies even in the inital clash",
 	"Super": "This action can only be used when the momentum tracker has reached the end of your side. You can only use an action with this trait once per combat",
@@ -411,8 +411,8 @@ func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 	var effective_total = max(0, total_cost - opp_val)
 	
 	var combined_card = _combine_actions(base_card, secondary_action)
-	var total_reps = max(1, combined_card.repeat_count)
-	var total_required = effective_total * total_reps
+	# Repeat pays per hit (up to repeat_count), so at least 1 hit must be affordable
+	var total_required = effective_total
 	
 	var can_afford = false
 	if character.current_sp >= total_required:
@@ -525,27 +525,28 @@ func resolve_clash() -> void:
 
 	var is_initial_clash: bool = (state.momentum == 0)
 
-	if winner_id == 1 and state.p1_action_queue.type == ActionData.Type.OFFENCE:
-		if state.current_combo_attacker != 1: 
-			p1_data.combo_action_count = 1
-		else: 
-			p1_data.combo_action_count += 1
-	else:
-		p1_data.combo_action_count = 0
-
-	if winner_id == 2 and state.p2_action_queue.type == ActionData.Type.OFFENCE:
-		if state.current_combo_attacker != 2: 
-			p2_data.combo_action_count = 1
-		else: 
-			p2_data.combo_action_count += 1
-	else:
-		p2_data.combo_action_count = 0
-
 	var p1_started_injured: bool = has_status(1, "Injured")
 	var p2_started_injured: bool = has_status(2, "Injured")
 
-	var p1_active: bool = _pay_cost(1, state.p1_action_queue)
-	var p2_active: bool = _pay_cost(2, state.p2_action_queue)
+	var p1_hits: int = _pay_cost_for_hits(1, state.p1_action_queue)
+	var p2_hits: int = _pay_cost_for_hits(2, state.p2_action_queue)
+	var p1_active: bool = (p1_hits > 0)
+	var p2_active: bool = (p2_hits > 0)
+
+	# Count each Repeat hit toward combo_action_count & Relentless SP recovery
+	if p1_active and winner_id == 1 and state.p1_action_queue.type == ActionData.Type.OFFENCE:
+		if state.current_combo_attacker != 1:
+			p1_data.combo_action_count = 0
+		_advance_combo_hits(1, p1_hits)
+	else:
+		p1_data.combo_action_count = 0
+
+	if p2_active and winner_id == 2 and state.p2_action_queue.type == ActionData.Type.OFFENCE:
+		if state.current_combo_attacker != 2:
+			p2_data.combo_action_count = 0
+		_advance_combo_hits(2, p2_hits)
+	else:
+		p2_data.combo_action_count = 0
 
 	if p1_active and state.p1_action_queue.is_super:
 		p1_data.has_used_super = true
@@ -554,14 +555,14 @@ func resolve_clash() -> void:
 		p2_data.has_used_super = true
 		combat_log_updated.emit(">> P2 unleashes their Ultimate Art!")
 
-	if p1_active: _apply_phase_1_self_effects(1, state.p1_action_queue)
-	if p2_active: _apply_phase_1_self_effects(2, state.p2_action_queue)
+	if p1_active: _apply_phase_1_self_effects(1, state.p1_action_queue, p1_hits)
+	if p2_active: _apply_phase_1_self_effects(2, state.p2_action_queue, p2_hits)
 
 	var p1_is_dodged: bool = false
 	var p2_is_dodged: bool = false
 	
-	var p1_reps: int = max(1, state.p1_action_queue.repeat_count) if p1_active else 1
-	var p2_reps: int = max(1, state.p2_action_queue.repeat_count) if p2_active else 1
+	var p1_reps: int = p1_hits if p1_active else 1
+	var p2_reps: int = p2_hits if p2_active else 1
 	
 	var p1_total_cost: int = state.p1_action_queue.cost * p1_reps
 	var p2_total_cost: int = state.p2_action_queue.cost * p2_reps
@@ -574,23 +575,17 @@ func resolve_clash() -> void:
 	var p1_parries: bool = (p1_active and state.p1_action_queue.is_parry)
 	var p2_parries: bool = (p2_active and state.p2_action_queue.is_parry)
 
-	var p1_single_gain: int = state.p1_action_queue.momentum_gain + _get_opportunity_value(1)
-	var p2_single_gain: int = state.p2_action_queue.momentum_gain + _get_opportunity_value(2)
+	var p1_single_gain: int = (state.p1_action_queue.momentum_gain + _get_opportunity_value(1)) if p1_active else 0
+	var p2_single_gain: int = (state.p2_action_queue.momentum_gain + _get_opportunity_value(2)) if p2_active else 0
 
-	var p1_total_gain: int = _calculate_projected_momentum(1, state.p1_action_queue, p1_active)
-	var p2_total_gain: int = _calculate_projected_momentum(2, state.p2_action_queue, p2_active)
+	var p1_total_gain: int = _calculate_projected_momentum(1, state.p1_action_queue, p1_active, p1_hits)
+	var p2_total_gain: int = _calculate_projected_momentum(2, state.p2_action_queue, p2_active, p2_hits)
 
 	var p1_stolen: int = p2_single_gain if p1_parries else 0
 	var p2_stolen: int = p1_single_gain if p2_parries else 0
 
 	var p1_fb: int = (state.p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
 	var p2_fb: int = (state.p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
-
-	var p1_net_gain: int = p1_total_gain + p1_stolen - p1_fb
-	var p2_net_gain: int = p2_total_gain + p2_stolen - p2_fb
-
-	var p1_parry_success: bool = (p1_parries and p1_net_gain > 0)
-	var p2_parry_success: bool = (p2_parries and p2_net_gain > 0)
 
 	if p1_fb > 0 and state.momentum >= TOTAL_MOMENTUM_SLOTS:
 		_apply_wall_crush(1, p1_fb)
@@ -601,17 +596,21 @@ func resolve_clash() -> void:
 		p2_fb = 0 
 
 	var p1_contribution: int = p1_total_gain
-	if p2_parries: p1_contribution -= p1_single_gain
+	if p2_parries: p1_contribution = max(0, p1_contribution - p1_single_gain)
 	if p1_is_dodged: p1_contribution = 0
 
 	var p2_contribution: int = p2_total_gain
-	if p1_parries: p2_contribution -= p2_single_gain
+	if p1_parries: p2_contribution = max(0, p2_contribution - p2_single_gain)
 	if p2_is_dodged: p2_contribution = 0
 
 	var p1_final_push: int = p1_contribution + p1_stolen
 	var p2_final_push: int = p2_contribution + p2_stolen
 
 	var delta: int = (-p1_final_push + p1_fb) + (p2_final_push - p2_fb)
+
+	# Glossary rule: Parry succeeds iff it causes the momentum tracker to move in the parrier's direction
+	var p1_parry_success: bool = (p1_parries and delta < 0)
+	var p2_parry_success: bool = (p2_parries and delta > 0)
 
 	var p1_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
 	var p2_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
@@ -620,9 +619,9 @@ func resolve_clash() -> void:
 	var p1_immune_or_dodged: bool = p1_parry_success or p2_is_dodged
 
 	if p1_active: 
-		p1_results = _apply_phase_2_combat_effects(1, 2, state.p1_action_queue, state.p2_action_queue, p2_immune_or_dodged)
+		p1_results = _apply_phase_2_combat_effects(1, 2, state.p1_action_queue, state.p2_action_queue, p2_immune_or_dodged, p1_hits)
 	if p2_active: 
-		p2_results = _apply_phase_2_combat_effects(2, 1, state.p2_action_queue, state.p1_action_queue, p1_immune_or_dodged)
+		p2_results = _apply_phase_2_combat_effects(2, 1, state.p2_action_queue, state.p1_action_queue, p1_immune_or_dodged, p2_hits)
 
 	_update_turn_constraints(p1_results, p2_results, state.p1_action_queue, state.p2_action_queue, p1_parry_success, p2_parry_success)
 
@@ -703,14 +702,17 @@ func _apply_wall_crush(player_id: int, amount: int):
 		emit_signal("combat_log_updated", "   Lost " + str(sp_paid) + " SP and took " + str(hp_damage) + " HP DAMAGE!")
 		emit_signal("damage_dealt", player_id, hp_damage, false)
 
-func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
-	var character = p1_data if owner_id == 1 else p2_data
-	var total_hits = max(1, my_card.repeat_count)
-	
-	if character.combo_sp_recovery_rate > 0:
-		if character.combo_action_count > 0 and (character.combo_action_count % character.combo_sp_recovery_rate == 0):
+func _advance_combo_hits(owner_id: int, hits: int) -> void:
+	var character: CharacterData = p1_data if owner_id == 1 else p2_data
+	for _i in range(hits):
+		character.combo_action_count += 1
+		if character.combo_sp_recovery_rate > 0 and (character.combo_action_count % character.combo_sp_recovery_rate == 0):
 			character.current_sp = min(character.current_sp + 1, character.max_sp)
 			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
+
+func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData, hits: int = -1):
+	var character = p1_data if owner_id == 1 else p2_data
+	var total_hits = hits if hits > 0 else max(1, my_card.repeat_count)
 	
 	for i in range(total_hits):
 		var actual_recover = my_card.recover_value
@@ -728,7 +730,7 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData):
 				remove_status(owner_id, "Injured")
 				emit_signal("combat_log_updated", ">> P" + str(owner_id) + " cures Injury!")
 
-func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool) -> Dictionary:
+func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool, hits: int = -1) -> Dictionary:
 	var character = p1_data if owner_id == 1 else p2_data
 	var target = p2_data if owner_id == 1 else p1_data
 	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
@@ -767,7 +769,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 	elif target_id == 1:
 		defender_block_mod += state.p1_gym_block_bonus
 		
-	var total_hits = max(1, my_card.repeat_count)
+	var total_hits = hits if hits > 0 else max(1, my_card.repeat_count)
 	for i in range(total_hits):
 		var total_damage = max(0, my_card.damage + dmg_mod)
 		var enemy_block = enemy_card.block_value + defender_block_mod
@@ -850,55 +852,76 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 # HELPER FUNCTIONS
 # ==============================================================================
 
-func _calculate_projected_momentum(player_id: int, card: ActionData, is_active: bool) -> int:
+func _calculate_projected_momentum(player_id: int, card: ActionData, is_active: bool, hits: int = -1) -> int:
 	if not is_active: return 0
-	var opp_val = _get_opportunity_value(player_id)
-	var single_gain = card.momentum_gain + opp_val
-	var total_gain = single_gain * max(1, card.repeat_count)
-	return total_gain
+	var opp_val: int = _get_opportunity_value(player_id)
+	var total_hits: int = hits if hits > 0 else max(1, card.repeat_count)
+	# Opportunity applies once per action (not multiplied by Repeat)
+	return (card.momentum_gain * total_hits) + opp_val
 
 func _get_opportunity_value(player_id: int) -> int:
 	return state.p1_opportunity_stat if player_id == 1 else state.p2_opportunity_stat
 
-func _pay_cost(player_id: int, card: ActionData) -> bool:
-	var character = p1_data if player_id == 1 else p2_data
-	var is_free = (state.p1_locked_card != null if player_id == 1 else state.p2_locked_card != null)
-	var rage_is_on = (state.p1_rage_active if player_id == 1 else state.p2_rage_active)
-	
-	var raw_cost = card.cost
-	var opp_val = _get_opportunity_value(player_id)
-	var effective_single_cost = max(0, raw_cost - opp_val)
-	var total_reps = max(1, card.repeat_count)
-	var total_cost = effective_single_cost * total_reps
-	
-	if is_free: total_cost = 0
-	
+## Returns how many hits (0..repeat_count) [param character] can afford for [param card].
+## Opportunity discounts only the first hit; subsequent Repeat hits pay card.cost each while SP lasts.
+func get_effective_repeat_count(character: CharacterData, card: ActionData, opp_val: int = 0, is_free: bool = false, rage_is_on: bool = false) -> int:
+	var max_reps: int = max(1, card.repeat_count)
+	if is_free:
+		return max_reps
+	var single_cost: int = max(0, card.cost)
+	var first_hit_cost: int = max(0, single_cost - opp_val)
+	if single_cost == 0:
+		return max_reps
 	if rage_is_on and character.can_pay_with_hp:
-		if character.current_hp > total_cost:
-			character.current_hp -= total_cost
-			emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
-			emit_signal("damage_dealt", player_id, total_cost, false)
-			return true
-		else:
+		var hp_budget: int = max(0, character.current_hp - 1)
+		if hp_budget < first_hit_cost:
+			return 0
+		return 1 + min(max_reps - 1, int((hp_budget - first_hit_cost) / single_cost))
+	if character.current_sp >= first_hit_cost:
+		return 1 + min(max_reps - 1, int((character.current_sp - first_hit_cost) / single_cost))
+	if character.can_pay_with_hp and (character.current_sp + character.current_hp) > first_hit_cost:
+		return 1
+	return 0
+
+func _pay_cost_for_hits(player_id: int, card: ActionData) -> int:
+	var character: CharacterData = p1_data if player_id == 1 else p2_data
+	var is_free: bool = (state.p1_locked_card != null if player_id == 1 else state.p2_locked_card != null)
+	var rage_is_on: bool = (state.p1_rage_active if player_id == 1 else state.p2_rage_active)
+	var opp_val: int = _get_opportunity_value(player_id)
+
+	var hits: int = get_effective_repeat_count(character, card, opp_val, is_free, rage_is_on)
+	if hits <= 0:
+		if rage_is_on and character.can_pay_with_hp:
 			emit_signal("combat_log_updated", ">> RAGE failed! Not enough HP.")
-			return false
-	
+		else:
+			emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
+		return 0
+
+	var single_cost: int = max(0, card.cost)
+	var first_hit_cost: int = max(0, single_cost - opp_val)
+	var total_cost: int = 0 if is_free else (first_hit_cost + single_cost * (hits - 1))
+
+	if rage_is_on and character.can_pay_with_hp:
+		character.current_hp -= total_cost
+		emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
+		emit_signal("damage_dealt", player_id, total_cost, false)
+		return hits
+
 	if character.current_sp >= total_cost:
 		character.current_sp -= total_cost
-		return true
-	else:
-		if character.can_pay_with_hp:
-			if (character.current_sp + character.current_hp) > total_cost:
-				var sp_avail = character.current_sp
-				var hp_cost = total_cost - sp_avail
-				character.current_sp = 0
-				character.current_hp -= hp_cost
-				emit_signal("combat_log_updated", ">> Rage! P" + str(player_id) + " pays " + str(hp_cost) + " HP for action.")
-				emit_signal("damage_dealt", player_id, hp_cost, false)
-				return true
-		
-		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
-		return false
+		return hits
+
+	if character.can_pay_with_hp and (character.current_sp + character.current_hp) > total_cost:
+		var sp_avail: int = character.current_sp
+		var hp_cost: int = total_cost - sp_avail
+		character.current_sp = 0
+		character.current_hp -= hp_cost
+		emit_signal("combat_log_updated", ">> Rage! P" + str(player_id) + " pays " + str(hp_cost) + " HP for action.")
+		emit_signal("damage_dealt", player_id, hp_cost, false)
+		return hits
+
+	emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
+	return 0
 
 func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
 	for id in [1, 2]:

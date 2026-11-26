@@ -538,9 +538,8 @@ func _calculate_card_cost(card: ActionData) -> int:
 	var tech_idx = tech_dropdown.selected if tech_dropdown.visible else 0
 	var tech_cost = 1 if tech_idx > 0 else 0
 	var base_cost = card.cost + tech_cost
-	var effective_single_cost = max(0, base_cost - my_opportunity_val)
-	var total_reps = max(1, card.repeat_count)
-	return effective_single_cost * total_reps
+	# Repeat pays per hit (up to repeat_count), and Opportunity discounts the first hit
+	return max(0, base_cost - my_opportunity_val)
 
 func _check_card_validity(card: ActionData, final_cost: int) -> bool:
 	var can_afford = false

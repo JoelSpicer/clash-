@@ -19,4 +19,4 @@ statuses_to_apply = Array[Dictionary]([{
 "name": "Injured",
 "self": false
 }])
-repeat_count = 2
+repeat_count = 3
