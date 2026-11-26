@@ -319,7 +319,7 @@ func _prepare_human_turn(player_id: int):
 				if highlight_str == "hand": 
 					highlight_node = battle_ui.button_grid
 				elif highlight_str == "momentum" or highlight_str == "wall": 
-					highlight_node = battle_ui.momentum_slider
+					highlight_node = battle_ui.momentum_tracker
 				
 				# NEW: Support "card:Name"
 				elif highlight_str.begins_with("card:"):
