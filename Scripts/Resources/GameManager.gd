@@ -1012,9 +1012,12 @@ func _handle_death(winner_id):
 	else: game_winner = winner_id 
 	
 	if game_winner == 1 and RunManager.player_run_data:
-		var heal_amt = 0
+		var heal_amt: int = 0
 		for eq in RunManager.player_run_data.equipment:
-			heal_amt += eq.heal_on_win
+			if eq:
+				heal_amt += eq.heal_on_win
+		if RunManager.active_sponsor:
+			heal_amt += RunManager.active_sponsor.heal_on_win
 		
 		if heal_amt > 0:
 			p1_data.current_hp = min(p1_data.current_hp + heal_amt, p1_data.max_hp)

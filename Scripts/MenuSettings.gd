@@ -25,9 +25,11 @@ func _ready():
 
 	# 2. Setup Visuals
 	if brightness_slider:
-		_setup_visual_slider(brightness_slider, "Brightness", -0.5, 0.5, GlobalCinematics.user_brightness)
+		var saved_bright: float = SettingsManager.get_saved_visual("brightness", GlobalCinematics.user_brightness)
+		_setup_visual_slider(brightness_slider, "Brightness", -0.5, 0.5, saved_bright)
 	if contrast_slider:
-		_setup_visual_slider(contrast_slider, "Contrast", 0.5, 1.5, GlobalCinematics.user_contrast)
+		var saved_contrast: float = SettingsManager.get_saved_visual("contrast", GlobalCinematics.user_contrast)
+		_setup_visual_slider(contrast_slider, "Contrast", 0.5, 1.5, saved_contrast)
 		
 	# 3. Setup Meta Debug
 	if token_label and RunManager.meta_data:
@@ -116,9 +118,9 @@ func _on_audio_changed(value: float, bus_name: String):
 # --- EVENT HANDLER: VISUALS ---
 func _on_visual_changed(value: float, type: String):
 	if type == "Brightness":
-		GlobalCinematics.set_brightness(value)
+		SettingsManager.update_visual("brightness", value)
 	elif type == "Contrast":
-		GlobalCinematics.set_contrast(value)
+		SettingsManager.update_visual("contrast", value)
 
 # --- NEW: RESET TUTORIALS FUNCTION ---
 func _on_reset_tutorials_pressed():

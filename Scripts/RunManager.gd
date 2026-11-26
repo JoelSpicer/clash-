@@ -350,39 +350,33 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run", 
 	p_data.has_keep_up_toggle = source_class.has_keep_up_toggle
 	p_data.has_technique_dropdown = source_class.has_technique_dropdown
 	
-	# Set Base Stats [cite: 25]
-	p_data.max_hp = 5
-	p_data.current_hp = 5
-	p_data.max_sp = 4
-	p_data.current_sp = 4
+	# Set Base Stats from ClassDefinition
+	p_data.max_hp = source_class.base_hp
+	p_data.max_sp = source_class.base_sp
 	
 	# --- APPLY SPONSOR MODIFIERS ---
+	# Note: Combat-only sponsor bonuses (bonus_speed, starting_barrier, combo_sp_regen_bonus,
+	# starting_sp_bonus, momentum_start_bonus, etc.) are applied dynamically in GameManager.
 	if active_sponsor != null:
-		# Apply Base Stats
 		p_data.max_hp += active_sponsor.bonus_max_hp
 		p_data.max_sp += active_sponsor.bonus_max_sp
 		
-		# Apply Missing Stats
-		p_data.speed += active_sponsor.bonus_speed
-		
-		# If combo SP regen is 3, a bonus of 1 makes it 2 (faster regen)
-		if p_data.combo_sp_recovery_rate > 0:
-			p_data.combo_sp_recovery_rate = max(1, p_data.combo_sp_recovery_rate - active_sponsor.combo_sp_regen_bonus)
-		
-		# Ensure current HP/SP matches the newly buffed max
-		p_data.current_hp = p_data.max_hp
-		p_data.current_sp = p_data.max_sp
-		
-		# Apply Barrier (Temporary HP added ON TOP of max)
-		if active_sponsor.starting_barrier > 0:
-			p_data.current_hp += active_sponsor.starting_barrier
-			
 		# Grant Reroll Tokens
 		current_rerolls = active_sponsor.starting_rerolls
 		
-		# Give Starting Equipment
+		# Give Starting Equipment (and apply any permanent max stat bonuses they carry)
 		if active_sponsor.starting_equipment.size() > 0:
-			p_data.equipment.append_array(active_sponsor.starting_equipment)
+			for eq in active_sponsor.starting_equipment:
+				if eq == null:
+					continue
+				p_data.equipment.append(eq)
+				p_data.max_hp += eq.bonus_max_hp
+				p_data.max_sp += eq.bonus_max_sp
+
+	p_data.max_hp = max(1, p_data.max_hp)
+	p_data.max_sp = max(1, p_data.max_sp)
+	p_data.current_hp = p_data.max_hp
+	p_data.current_sp = p_data.max_sp
 
 	# 3. LOAD STARTING DECK 
 	p_data.unlocked_actions = ClassFactory.get_starting_deck(source_class.class_type)
@@ -418,10 +412,10 @@ func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition
 	# Priority 2: Fallback to defaults if Resource is missing (Safety net for Presets)
 	if root_id == 0:
 		match p_data.class_type:
-			ClassFactory.ClassType.HEAVY: root_id = 76
-			ClassFactory.ClassType.QUICK: root_id = 73
-			ClassFactory.ClassType.TECHNICAL:  root_id = 74
-			ClassFactory.ClassType.PATIENT: root_id = 75
+			CharacterData.ClassType.HEAVY: root_id = 76
+			CharacterData.ClassType.QUICK: root_id = 73
+			CharacterData.ClassType.TECHNICAL: root_id = 74
+			CharacterData.ClassType.PATIENT: root_id = 75
 	
 	# --- UNLOCK LOGIC ---
 	if root_id != 0:
