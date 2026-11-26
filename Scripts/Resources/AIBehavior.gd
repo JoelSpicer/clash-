@@ -9,7 +9,7 @@ class_name AIBehavior
 @export var w_cost: float = 1.0
 
 @export_group("Behavioral Thresholds")
-@export var repetition_penalty: float = 100.0
+@export var repetition_penalty: float = 22.0
 @export var kill_shot_bonus: float = 1000.0
 @export var panic_hp_threshold: int = 3
 

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://Scripts/AIBalanceRunner.gd" id="1_aibalrun"]
+
+[node name="AIBalanceRunner" type="Node"]
+script = ExtResource("1_aibalrun")

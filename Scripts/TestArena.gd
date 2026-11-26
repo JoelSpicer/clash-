@@ -490,16 +490,15 @@ func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must
 		elif total_effective_cost == 0:
 			affordable_backups.append(card)
 
-	# Guarantee at least one valid move (Struggle)
-	var required_type: int = type_filter if type_filter != null else ActionData.Type.OFFENCE
-	var struggle: ActionData = GameManager.get_struggle_action(required_type)
-	valid_options.append(struggle)
+	# Struggle is purely a last-resort backup when no legal card in the deck can be played
+	if valid_options.is_empty():
+		var required_type: ActionData.Type = type_filter if type_filter != null else ActionData.Type.OFFENCE
+		return GameManager.get_struggle_action(required_type)
+
+	if valid_options.size() == 1:
+		return valid_options[0]
 
 	# B. DELEGATE TO MODULAR AI RESOURCE
-	var best_card: ActionData = valid_options[0]
-	var is_very_easy: bool = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
-	var best_score: float = 99999.0 if is_very_easy else -99999.0
-
 	var my_id: int = 1 if character == p1_resource else 2
 	var opponent: CharacterData = p2_resource if my_id == 1 else p1_resource
 
@@ -511,30 +510,60 @@ func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must
 			brain = preload("res://Scripts/Resources/AIBalanced.gd").new()
 		character.ai_profile = brain
 
-	# Noise Setup
-	var noise_range: float = 0.0
+	# Difficulty Ladder:
+	# - VERY_EASY: picks worst legal move (with mild tie noise)
+	# - EASY: 80% random legal card; otherwise noisy score (ignores kill-shot lock-in)
+	# - MEDIUM: 40% suboptimal pick + moderate noise (45.0)
+	# - HARD: full profile scoring + public-state counterplay awareness (noise 2.0)
+	if GameManager.ai_difficulty == GameManager.Difficulty.EASY and randf() < 0.80:
+		return valid_options.pick_random()
+
+	var is_very_easy: bool = (GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY)
+	var is_hard: bool = (GameManager.ai_difficulty == GameManager.Difficulty.HARD)
+	var noise_range: float = 2.0
 	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: noise_range = 0.0 
-		GameManager.Difficulty.EASY: noise_range = 100.0
-		GameManager.Difficulty.MEDIUM: noise_range = 25.0
+		GameManager.Difficulty.VERY_EASY: noise_range = 8.0
+		GameManager.Difficulty.EASY: noise_range = 80.0
+		GameManager.Difficulty.MEDIUM: noise_range = 45.0
 		GameManager.Difficulty.HARD: noise_range = 2.0
 
-	for card in valid_options:
-		# --- THE DECOUPLING MAGIC ---
-		var score: float = brain.score_action(card, character, opponent, my_id)
-		
-		score += randf_range(-noise_range, noise_range)
-		
-		if is_very_easy:
-			if score < best_score:
-				best_score = score
-				best_card = card
-		else:
-			if score > best_score:
-				best_score = score
-				best_card = card
+	var attacker_id: int = GameManager.get_attacker()
 
-	return best_card
+	var scored: Array[Dictionary] = []
+	for card in valid_options:
+		var score: float = brain.score_action(card, character, opponent, my_id)
+		if GameManager.ai_difficulty == GameManager.Difficulty.EASY and score >= brain.kill_shot_bonus * 0.5:
+			score -= brain.kill_shot_bonus
+		if is_hard:
+			# HARD reads public board state: punish SP-dry foes, respect defence, avoid 0-dmg stalls
+			if card.type == ActionData.Type.OFFENCE:
+				if opponent.current_sp == 0 and card.damage >= 2:
+					score += 20.0
+				if card.guard_break and opponent.current_sp <= 1:
+					score += 22.0
+				if card.damage == 0 and attacker_id == my_id:
+					score -= 12.0
+			else:
+				if attacker_id != my_id and attacker_id != 0:
+					if card.is_parry and opponent.current_sp >= 1:
+						score += 16.0
+					if card.reversal:
+						score += 12.0
+					if card.block_value >= 1 and card.cost == 0:
+						score += 10.0
+		score += randf_range(-noise_range, noise_range)
+		scored.append({ "card": card, "score": score })
+
+	if is_very_easy:
+		scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["score"] < b["score"])
+		return scored[0]["card"]
+
+	scored.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["score"] > b["score"])
+	if GameManager.ai_difficulty == GameManager.Difficulty.MEDIUM and scored.size() > 1 and randf() < 0.40:
+		var sub_idx: int = min(scored.size() - 1, randi_range(1, 2))
+		return scored[sub_idx]["card"]
+
+	return scored[0]["card"]
 
 # 2. THE BRAIN (Assigns value to actions)
 
