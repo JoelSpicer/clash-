@@ -234,6 +234,8 @@ func reset_combat():
 	var total_p2_momentum_bonus: int = 0
 	var p1_speed_bonus: int = 0
 	var p2_speed_bonus: int = 0
+	var p1_starting_opportunity: int = 0
+	var p2_starting_opportunity: int = 0
 	
 	var all_p1_modifiers: Array[BaseModifierData] = []
 	all_p1_modifiers.append_array(p1_data.equipment)
@@ -252,6 +254,7 @@ func reset_combat():
 			
 		total_p1_momentum_bonus += mod.momentum_start_bonus
 		p1_speed_bonus += mod.bonus_speed
+		p1_starting_opportunity += mod.starting_opportunity
 
 	if RunManager.is_rival_match and RunManager.active_sponsor:
 		total_p1_momentum_bonus -= RunManager.active_sponsor.rival_momentum_handicap
@@ -263,6 +266,12 @@ func reset_combat():
 			p2_data.current_hp += item.starting_barrier
 		total_p2_momentum_bonus += item.momentum_start_bonus
 		p2_speed_bonus += item.bonus_speed
+		p2_starting_opportunity += item.starting_opportunity
+
+	if p1_starting_opportunity > 0:
+		state.p1_opportunity_stat += p1_starting_opportunity
+	if p2_starting_opportunity > 0:
+		state.p2_opportunity_stat += p2_starting_opportunity
 
 	# --- 5. APPLY MOMENTUM STARTING POSITION ---
 	var net_momentum_bonus: int = total_p1_momentum_bonus - total_p2_momentum_bonus

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BossModifierData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/BossModifierData.gd" id="1_script"]
+[ext_resource type="Resource" path="res://Data/AI/AIBalanced.tres" id="2_ai"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Master Tactician"
+description = "Starts with Opportunity 1, +1 Max SP, and +1 Starting Barrier."
+bonus_max_sp = 1
+starting_barrier = 1
+starting_opportunity = 1
+boss_epithet = "THE TACTICIAN"
+boss_intro_line = "I already know your opening move. Let's see how you adapt."
+preferred_ai_profile = ExtResource("2_ai")
+grant_super = false

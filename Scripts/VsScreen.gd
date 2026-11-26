@@ -94,14 +94,57 @@ func _setup_visuals():
 			p2_portrait.flip_h = true
 		p2_name.text = p2.character_name
 		
-		if p2.character_name == "THE JUGGERNAUT":
+		var base_class_name: String = CharacterData.ClassType.keys()[p2.class_type] if p2.class_type >= 0 else "UNKNOWN"
+		var boss_epithets: Array[String] = []
+		var trait_lines: Array[String] = []
+		for eq in p2.equipment:
+			if eq == null:
+				continue
+			var epithet: Variant = eq.get("boss_epithet")
+			if epithet != null and str(epithet) != "":
+				boss_epithets.append(str(epithet))
+			if eq.description != "":
+				trait_lines.append("%s: %s" % [eq.item_name, eq.description])
+			else:
+				trait_lines.append(eq.item_name)
+		
+		if not boss_epithets.is_empty():
+			p2_class.text = "BOSS — " + " / ".join(boss_epithets)
+			p2_class.modulate = Color(1.0, 0.35, 0.35)
+		elif p2.character_name == "THE JUGGERNAUT":
 			p2_class.text = "BOSS"
 			p2_class.modulate = Color.RED
 		else:
-			p2_class.text = CharacterData.ClassType.keys()[p2.class_type] if p2.class_type >= 0 else "UNKNOWN"
+			p2_class.text = base_class_name
+			p2_class.modulate = Color.WHITE
+		
+		_set_p2_traits_banner(base_class_name, trait_lines, not boss_epithets.is_empty())
 		
 		p2_hp.text = "HP: " + str(p2.max_hp)
 		p2_sp.text = "SP: " + str(p2.max_sp)
+
+func _set_p2_traits_banner(base_class_name: String, trait_lines: Array[String], is_boss: bool) -> void:
+	var info_vbox: Node = p2_class.get_parent()
+	if info_vbox == null:
+		return
+	var existing: Node = info_vbox.get_node_or_null("BossTraitsLabel")
+	if trait_lines.is_empty():
+		if existing:
+			existing.queue_free()
+		return
+	var traits_label: Label = existing as Label
+	if traits_label == null:
+		traits_label = Label.new()
+		traits_label.name = "BossTraitsLabel"
+		traits_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		traits_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		traits_label.add_theme_font_size_override("font_size", 15)
+		traits_label.add_theme_color_override("font_outline_color", Color.BLACK)
+		traits_label.add_theme_constant_override("outline_size", 2)
+		info_vbox.add_child(traits_label)
+	var prefix: String = "[%s] " % base_class_name if is_boss else ""
+	traits_label.text = prefix + " | ".join(trait_lines)
+	traits_label.modulate = Color(1.0, 0.85, 0.45) if is_boss else Color(0.75, 0.9, 1.0)
 
 func _play_intro_animation():
 	var screen_w = get_viewport_rect().size.x

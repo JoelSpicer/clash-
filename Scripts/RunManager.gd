@@ -20,6 +20,7 @@ const SAVE_DIR = "user://saves/"
 var maintain_hp_enabled: bool = true
 const EQUIPMENT_DIR = "res://Data/Equipment/"
 const BOSS_DIR = "res://Data/Presets/Bosses/"
+const BOSS_MODIFIERS_DIR = "res://Data/BossModifiers/"
 
 # --- MAP STATE ---
 var tournament_map: Array[MapNodeData] = []
@@ -30,7 +31,9 @@ var current_enemy_data: CharacterData # The enemy we are currently fighting
 # --- CONFIGURATION ---
 # A standard "Cup" might be 8 steps long
 const LEAGUE_LENGTH = 10
+const MID_BOSS_INDEX = 4
 var is_rival_match: bool = false
+var is_boss_match: bool = false
 
 # --- GLOBAL META DATA ---
 const GLOBAL_SAVE_PATH = "user://global_save.tres"
@@ -145,25 +148,24 @@ func start_next_fight():
 	
 # 4. Generate Enemy (MODIFIED FOR BOSSES)
 	var enemy: CharacterData
+	is_boss_match = false
+	GameManager.rival_intro_override = ""
 	
-	# Check if the CURRENT level has a scheduled boss
-	if BOSS_SCHEDULE.has(current_level):
-		var boss_path = BOSS_DIR + BOSS_SCHEDULE[current_level]
-		var boss_preset = load(boss_path) as PresetCharacter
-		
-		# Generate the boss exactly as designed in the editor
-		enemy = ClassFactory.create_from_preset(boss_preset)
-		
-		# Bosses scale slightly with difficulty
-		if GameManager.ai_difficulty == GameManager.Difficulty.HARD:
-			enemy.max_hp += 5
-			enemy.max_sp += 1
-		elif GameManager.ai_difficulty <= GameManager.Difficulty.EASY:
-			enemy.max_hp = max(1, enemy.max_hp - 3)
-			
-		enemy.reset_stats()
-		print(">> BOSS ENCOUNTER LOADED: " + enemy.character_name)
-		
+	# Check if this level is a Mid-Boss (every 5th) or Finals Boss (every 10th)
+	if current_level > 0 and (current_level % 10 == 0 or current_level % 5 == 0):
+		is_boss_match = true
+		var is_finals: bool = (current_level % 10 == 0)
+		var level_bump: int = 2 if is_finals else 1
+		var mod_count: int = 2 if (is_finals and current_level >= 20) else 1
+		var boss_mods: Array[EquipmentData] = pick_boss_modifiers(mod_count)
+		enemy = ClassFactory.create_boss_enemy(final_enemy_level + level_bump, GameManager.ai_difficulty, boss_mods)
+		if is_finals:
+			enemy.character_name = "CHAMPION " + enemy.character_name
+		if not boss_mods.is_empty():
+			var intro_line: Variant = boss_mods[0].get("boss_intro_line")
+			if intro_line != null and str(intro_line) != "":
+				GameManager.rival_intro_override = str(intro_line)
+		print(">> PROCEDURAL BOSS GENERATED: " + enemy.character_name)
 	else:
 		# Standard Random Enemy
 		enemy = ClassFactory.create_random_enemy(final_enemy_level, GameManager.ai_difficulty)
@@ -190,6 +192,41 @@ func handle_win():
 	
 	save_run() # Save progress AFTER setting the flag
 	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
+
+## Loads all BossModifierData resources from BOSS_MODIFIERS_DIR.
+func get_all_boss_modifiers() -> Array[EquipmentData]:
+	var list: Array[EquipmentData] = []
+	var dir: DirAccess = DirAccess.open(BOSS_MODIFIERS_DIR)
+	if dir:
+		dir.list_dir_begin()
+		var file: String = dir.get_next()
+		while file != "":
+			if not dir.current_is_dir() and file.ends_with(".tres"):
+				var res: Resource = load(BOSS_MODIFIERS_DIR + file)
+				if res is EquipmentData:
+					list.append(res as EquipmentData)
+			file = dir.get_next()
+		dir.list_dir_end()
+	return list
+
+## Picks [param count] distinct boss modifiers, excluding any names already in [param exclude].
+func pick_boss_modifiers(count: int, exclude: Array[EquipmentData] = []) -> Array[EquipmentData]:
+	var all_mods: Array[EquipmentData] = get_all_boss_modifiers()
+	var pool: Array[EquipmentData] = []
+	var excluded_names: Array[String] = []
+	for ex: EquipmentData in exclude:
+		if ex:
+			excluded_names.append(ex.item_name)
+	for mod: EquipmentData in all_mods:
+		if mod.item_name not in excluded_names:
+			pool.append(mod)
+	if pool.size() < count:
+		pool = all_mods.duplicate()
+	pool.shuffle()
+	var picked: Array[EquipmentData] = []
+	for i in range(min(count, pool.size())):
+		picked.append(pool[i])
+	return picked
 
 # Helper to fetch all equipment for the draft
 func get_all_equipment() -> Array[EquipmentData]:
@@ -600,12 +637,13 @@ func generate_new_league():
 		GameManager.Difficulty.HARD:      diff_offset = 1
 		
 	var fight_counter = 0 
+	var used_league_boss_mods: Array[EquipmentData] = []
 	
 	# --- NEW: PICK A RIVAL AMBUSH NODE ---
-	# Pick a random node in the middle of the run (e.g., between node 5 and 15)
+	# Pick a random node in the second half of the run (between index 5 and 6 for length 10)
 	var rival_node_index = -1
 	if active_sponsor != null and active_sponsor.rival_character_name != "":
-		rival_node_index = randi_range(5, LEAGUE_LENGTH - 4)
+		rival_node_index = randi_range(MID_BOSS_INDEX + 1, LEAGUE_LENGTH - 4)
 		#rival_node_index = 0
 	# -------------------------------------
 	
@@ -616,28 +654,23 @@ func generate_new_league():
 		var raw_rank = actual_progress_level + diff_offset
 		var fight_level = raw_rank if raw_rank > 0 else raw_rank - 1
 		
-		# 1. CHECK BOSS SCHEDULE
-		if BOSS_SCHEDULE.has(actual_progress_level):
+		# 1. MID-LEAGUE MINI-BOSS (+1 Level + 1 Boss Modifier)
+		if i == MID_BOSS_INDEX:
 			node.type = MapNodeData.Type.BOSS
-			node.title = "RIVAL"
-			
-			var boss_path = BOSS_DIR + BOSS_SCHEDULE[actual_progress_level]
-			if ResourceLoader.exists(boss_path):
-				var boss_preset = load(boss_path) as PresetCharacter
-				node.enemy_data = ClassFactory.create_from_preset(boss_preset)
-				node.enemy_data.max_hp = max(1, node.enemy_data.max_hp + diff_offset)
-				node.enemy_data.max_sp = max(1, node.enemy_data.max_sp + diff_offset)
-				node.enemy_data.reset_stats()
-				node.enemy_data.character_name = "RIVAL: " + node.enemy_data.character_name
-			else:
-				node.enemy_data = ClassFactory.create_random_enemy(fight_level + 2, GameManager.ai_difficulty)
+			node.title = "MINI-BOSS"
+			var mid_mods: Array[EquipmentData] = pick_boss_modifiers(1, used_league_boss_mods)
+			used_league_boss_mods.append_array(mid_mods)
+			node.enemy_data = ClassFactory.create_boss_enemy(fight_level + 1, GameManager.ai_difficulty, mid_mods)
 			fight_counter += 1
 			
-		# 2. LEAGUE FINALS
+		# 2. LEAGUE FINALS (+2 Levels + 1 Boss Modifier, or 2 in League 2+)
 		elif i == LEAGUE_LENGTH - 1:
 			node.type = MapNodeData.Type.BOSS
 			node.title = "FINALS"
-			node.enemy_data = ClassFactory.create_random_enemy(fight_level + 2, GameManager.ai_difficulty)
+			var finals_mod_count: int = 2 if leagues_completed >= 1 else 1
+			var finals_mods: Array[EquipmentData] = pick_boss_modifiers(finals_mod_count, used_league_boss_mods)
+			used_league_boss_mods.append_array(finals_mods)
+			node.enemy_data = ClassFactory.create_boss_enemy(fight_level + 2, GameManager.ai_difficulty, finals_mods)
 			node.enemy_data.character_name = "CHAMPION " + node.enemy_data.character_name
 			fight_counter += 1
 			
@@ -720,6 +753,7 @@ func start_map_fight(node_data: MapNodeData):
 	if enemy_copy.ai_profile == null:
 		enemy_copy.ai_profile = ClassFactory.pick_random_ai_profile()
 	is_rival_match = false # Reset the flag for this specific fight
+	is_boss_match = false
 	
 	# 3. RIVALRY SYSTEM (Check for Grudge Match)
 	if active_sponsor != null and enemy_copy.character_name == active_sponsor.rival_character_name:
@@ -739,6 +773,15 @@ func start_map_fight(node_data: MapNodeData):
 			GameManager.rival_intro_override = active_sponsor.rival_custom_intro
 	else:
 		GameManager.rival_intro_override = ""
+		if node_data.type == MapNodeData.Type.BOSS:
+			is_boss_match = true
+			for eq in enemy_copy.equipment:
+				if eq == null:
+					continue
+				var intro_line: Variant = eq.get("boss_intro_line")
+				if intro_line != null and str(intro_line) != "":
+					GameManager.rival_intro_override = str(intro_line)
+					break
 
 	# 4. SETUP PLAYER & ENEMY (CRITICAL! DO NOT REMOVE)
 	GameManager.next_match_p1_data = player_run_data

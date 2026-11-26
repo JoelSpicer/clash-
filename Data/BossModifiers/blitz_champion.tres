@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BossModifierData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/BossModifierData.gd" id="1_script"]
+[ext_resource type="Resource" path="res://Data/AI/AIAggressive.tres" id="2_ai"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Blitz Rush"
+description = "+2 Starting Momentum, +1 Speed, and +1 Combo SP Regen."
+bonus_speed = 1
+momentum_start_bonus = 2
+combo_sp_regen_bonus = 1
+boss_epithet = "THE BLITZ CHAMPION"
+boss_intro_line = "Blink and you're on the canvas. Try to keep up!"
+preferred_ai_profile = ExtResource("2_ai")
+grant_super = false

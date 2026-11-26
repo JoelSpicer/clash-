@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BossModifierData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/BossModifierData.gd" id="1_script"]
+[ext_resource type="Resource" path="res://Data/AI/AIAggressive.tres" id="2_ai"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Berserker's Fury"
+description = "+1 Attack Damage and +2 Max HP, but -1 Block effectiveness."
+bonus_max_hp = 2
+damage_modifier = 1
+block_modifier = -1
+boss_epithet = "THE BERSERKER"
+boss_intro_line = "No guards. No mercy. Only one of us walks out standing!"
+preferred_ai_profile = ExtResource("2_ai")
+grant_super = false

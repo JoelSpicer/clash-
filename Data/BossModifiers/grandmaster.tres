@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BossModifierData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/BossModifierData.gd" id="1_script"]
+[ext_resource type="Resource" path="res://Data/AI/AITrickster.tres" id="2_ai"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Grandmaster's Focus"
+description = "+1 Max HP, +1 Max SP, +1 Starting SP, +1 Starting Momentum, and enters combat with a class Super."
+bonus_max_hp = 1
+bonus_max_sp = 1
+starting_sp_bonus = 1
+momentum_start_bonus = 1
+boss_epithet = "THE GRANDMASTER"
+boss_intro_line = "Years of discipline against your raw ambition. Show me your technique."
+preferred_ai_profile = ExtResource("2_ai")
+grant_super = true

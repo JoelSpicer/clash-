@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="BossModifierData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/BossModifierData.gd" id="1_script"]
+[ext_resource type="Resource" path="res://Data/AI/AIAggressive.tres" id="2_ai"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Juggernaut's Might"
+description = "+3 Starting Barrier, +1 Starting Momentum, and +1 Wall Crush Damage."
+starting_barrier = 3
+momentum_start_bonus = 1
+wall_crush_damage_bonus = 1
+boss_epithet = "THE JUGGERNAUT"
+boss_intro_line = "Stand your ground if you can. I will walk right through you!"
+preferred_ai_profile = ExtResource("2_ai")
+grant_super = false

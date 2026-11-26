@@ -17,6 +17,7 @@ class_name BaseModifierData
 @export var bonus_speed: int = 0
 @export var starting_barrier: int = 0
 @export var starting_sp_bonus: int = 0
+@export var starting_opportunity: int = 0
 
 @export_category("Combat Passives")
 @export var damage_modifier: int = 0

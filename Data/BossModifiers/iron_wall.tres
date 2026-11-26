@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BossModifierData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://Scripts/Resources/BossModifierData.gd" id="1_script"]
+[ext_resource type="Resource" path="res://Data/AI/AIDefensive.tres" id="2_ai"]
+
+[resource]
+script = ExtResource("1_script")
+item_name = "Iron Wall"
+description = "+1 Block and +1 Thorns, but -2 Max HP and -1 Speed."
+bonus_max_hp = -2
+bonus_speed = -1
+block_modifier = 1
+thorns = 1
+boss_epithet = "THE IRON WALL"
+boss_intro_line = "Go ahead — throw your best punch. Let's see whose knuckles break first."
+preferred_ai_profile = ExtResource("2_ai")
+grant_super = false

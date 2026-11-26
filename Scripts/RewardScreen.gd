@@ -17,6 +17,9 @@ func _ready():
 	# --- AWARD META CURRENCY ---
 	var tokens_earned = 1 
 	
+	if RunManager.is_boss_match:
+		tokens_earned += 1
+	
 	if RunManager.is_rival_match and RunManager.active_sponsor:
 		tokens_earned += RunManager.active_sponsor.rival_reward_currency_bonus
 		# Note: We do NOT reset is_rival_match yet so the item can spawn below!
@@ -77,6 +80,22 @@ func _generate_rewards():
 			else:
 				choices.append(stat_upgrades.pick_random())
 	
+	# --- BOSS VICTORY PAYOUT (Guaranteed Equipment + Bonus Choice) ---
+	if RunManager.is_boss_match:
+		if title_label:
+			title_label.text = "BOSS VICTORY! CHOOSE YOUR REWARD"
+		var has_equipment_choice: bool = false
+		for ch in choices:
+			if ch is EquipmentData:
+				has_equipment_choice = true
+				break
+		if not has_equipment_choice and valid_items.size() > 0:
+			choices.insert(0, _get_weighted_random(valid_items))
+		elif valid_actions.size() > 0:
+			choices.append(valid_actions.pick_random())
+		else:
+			choices.append(stat_upgrades.pick_random())
+
 	# --- GRUDGE MATCH PAYOUT ---
 	if RunManager.is_rival_match and RunManager.active_sponsor:
 		if RunManager.active_sponsor.rival_reward_item != null:
@@ -146,6 +165,7 @@ func _create_reward_card(reward):
 
 func _on_selected(reward):
 	AudioManager.play_sfx("ui_click")
+	RunManager.is_boss_match = false
 	RunManager.apply_reward(reward)
 
 func _player_has_item(item_data):

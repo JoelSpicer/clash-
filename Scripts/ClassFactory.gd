@@ -253,6 +253,66 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	
 	return bot_data
 
+## Returns the signature Super card for a given fighting class.
+func get_class_super(type: CharacterData.ClassType) -> ActionData:
+	match type:
+		CharacterData.ClassType.QUICK:
+			return find_action_resource("Ultimate Barrage")
+		CharacterData.ClassType.TECHNICAL:
+			return find_action_resource("Vital Point Assault")
+		CharacterData.ClassType.PATIENT:
+			return find_action_resource("Overwhelming Aura")
+		CharacterData.ClassType.HEAVY:
+			return find_action_resource("Final Strike")
+	return null
+
+## Procedurally generates a scaling boss fighter with one or more BossModifierData traits.
+func create_boss_enemy(level: int, difficulty: GameManager.Difficulty, modifiers: Array[EquipmentData]) -> CharacterData:
+	var boss: CharacterData = create_random_enemy(level, difficulty)
+	var ai_assigned: bool = false
+	var should_grant_super: bool = false
+
+	for mod: EquipmentData in modifiers:
+		if mod == null:
+			continue
+		var mod_copy: EquipmentData = mod.duplicate(true) as EquipmentData
+		boss.equipment.append(mod_copy)
+		boss.max_hp = max(1, boss.max_hp + mod_copy.bonus_max_hp)
+		boss.max_sp = max(1, boss.max_sp + mod_copy.bonus_max_sp)
+
+		if not ai_assigned:
+			var pref_ai: Variant = mod_copy.get("preferred_ai_profile")
+			if pref_ai is AIBehavior:
+				boss.ai_profile = pref_ai
+				ai_assigned = true
+
+		if mod_copy.get("grant_super") == true:
+			should_grant_super = true
+
+	if should_grant_super:
+		var super_card: ActionData = get_class_super(boss.class_type)
+		if super_card != null:
+			var super_copy: ActionData = super_card.duplicate() as ActionData
+			if not _has_card(boss.unlocked_actions, super_copy):
+				boss.unlocked_actions.append(super_copy)
+			if not _has_card(boss.deck, super_copy):
+				if boss.deck.size() >= HAND_LIMIT:
+					var replace_idx: int = -1
+					for idx in range(boss.deck.size() - 1, -1, -1):
+						var existing: ActionData = boss.deck[idx]
+						if existing.is_basic and not existing.is_opener:
+							replace_idx = idx
+							break
+					if replace_idx == -1:
+						replace_idx = boss.deck.size() - 1
+					boss.deck[replace_idx] = super_copy
+				else:
+					boss.deck.append(super_copy)
+
+	boss.current_hp = boss.max_hp
+	boss.current_sp = boss.max_sp
+	return boss
+
 # -------------------------------------------------------------------------
 # NEW HELPERS (Needed for the above code)
 # -------------------------------------------------------------------------

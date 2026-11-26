@@ -1003,6 +1003,9 @@ func _populate_enemy_deck():
 	# 3. Safety check
 	if not opponent_data: 
 		return
+	
+	# 3.5. Show Opponent Equipment / Boss Traits Banner
+	_update_inspect_traits_banner(opponent_data)
 		
 	# 4. Populate the UI with the correct opponent's deck
 	for card in opponent_data.deck:
@@ -1012,6 +1015,65 @@ func _populate_enemy_deck():
 		card_disp.custom_minimum_size = Vector2(180, 250)
 		card_disp.scale = Vector2(0.8, 0.8) 
 		card_disp.mouse_entered.connect(func(): AudioManager.play_sfx("ui_hover", 0.1))
+
+func _update_inspect_traits_banner(opponent_data: CharacterData) -> void:
+	if not inspect_popup:
+		return
+	var scroll: Control = inspect_popup.get_node_or_null("ScrollContainer") as Control
+	var banner: PanelContainer = inspect_popup.get_node_or_null("EnemyTraitsBanner") as PanelContainer
+	
+	var trait_lines: Array[String] = []
+	var has_boss_trait: bool = false
+	for eq in opponent_data.equipment:
+		if eq == null:
+			continue
+		var epithet: Variant = eq.get("boss_epithet")
+		if epithet != null and str(epithet) != "":
+			has_boss_trait = true
+			trait_lines.append("[%s] %s — %s" % [str(epithet), eq.item_name, eq.description])
+		else:
+			trait_lines.append("%s — %s" % [eq.item_name, eq.description])
+	
+	if trait_lines.is_empty():
+		if banner:
+			banner.visible = false
+		if scroll:
+			scroll.offset_top = 0.0
+		return
+	
+	if banner == null:
+		banner = PanelContainer.new()
+		banner.name = "EnemyTraitsBanner"
+		banner.anchor_left = 0.0
+		banner.anchor_right = 1.0
+		banner.anchor_top = 0.0
+		banner.anchor_bottom = 0.0
+		banner.offset_left = 12.0
+		banner.offset_top = 10.0
+		banner.offset_right = -12.0
+		var style: StyleBoxFlat = StyleBoxFlat.new()
+		style.bg_color = Color(0.18, 0.08, 0.08, 0.92)
+		style.border_color = Color(0.9, 0.35, 0.25, 0.9)
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(6)
+		style.set_content_margin_all(8)
+		banner.add_theme_stylebox_override("panel", style)
+		var lbl: Label = Label.new()
+		lbl.name = "TraitsText"
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.add_theme_font_size_override("font_size", 15)
+		banner.add_child(lbl)
+		inspect_popup.add_child(banner)
+	
+	var text_lbl: Label = banner.get_node("TraitsText") as Label
+	var header: String = "BOSS TRAITS:\n" if has_boss_trait else "OPPONENT EQUIPMENT:\n"
+	text_lbl.text = header + "\n".join(trait_lines)
+	text_lbl.modulate = Color(1.0, 0.85, 0.55) if has_boss_trait else Color(0.75, 0.9, 1.0)
+	var banner_height: float = clampf(38.0 + float(trait_lines.size()) * 26.0, 64.0, 140.0)
+	banner.offset_bottom = 10.0 + banner_height
+	banner.visible = true
+	if scroll:
+		scroll.offset_top = banner.offset_bottom + 8.0
 
 # Helper to safely tween shader params
 func _set_bg_saturation(val: float):
