@@ -6,13 +6,14 @@
 
 [resource]
 script = ExtResource("1_jlvxh")
+flavor_quote = "\"Supply chains win championships.\""
 rival_character_name = "The Interference"
 rival_custom_intro = "'You know what they say about best laid plans...'"
 rival_momentum_handicap = 2
 rival_reward_currency_bonus = 5
 synergy_keywords = Array[String](["Technical", "Quick"])
 item_name = "Vanguard Logistics"
-description = "Extra draft option, 3 reward rerolls, cash x1.2"
+description = "Run-economy specialist. +1 Draft Option, 3 Reward Rerolls, and 1.2x Circuit Tokens."
 extra_draft_options = 1
 starting_rerolls = 3
 meta_currency_multiplier = 1.2

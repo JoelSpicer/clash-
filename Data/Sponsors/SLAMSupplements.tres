@@ -3,18 +3,18 @@
 [ext_resource type="Script" uid="uid://c45g8d8d4wjtr" path="res://Scripts/Resources/SponsorData.gd" id="1_ffhlm"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_8gnev"]
 [ext_resource type="Script" uid="uid://b3y0gojixwh16" path="res://Scripts/Resources/EquipmentData.gd" id="3_sgqji"]
-[ext_resource type="Resource" uid="uid://f5yy2vc36wh4" path="res://Data/Equipment/EnergyDrink.tres" id="4_8gnev"]
+[ext_resource type="Resource" uid="uid://dncgblvufdh11" path="res://Data/Equipment/AfterFightSnacks.tres" id="4_8gnev"]
 
 [resource]
 script = ExtResource("1_ffhlm")
-flavor_quote = "\"I love that classic taste!\""
+flavor_quote = "\"Fuel up, shrug it off, go again!\""
 starting_equipment = Array[ExtResource("3_sgqji")]([ExtResource("4_8gnev")])
 rival_character_name = "SLAM Hater"
-rival_custom_intro = "How can you drink that stuff!"
+rival_custom_intro = "How can you eat that stuff!"
 rival_boss_hp_buff = 1
 rival_boss_sp_buff = 1
-rival_reward_currency_bonus = 1
+rival_reward_currency_bonus = 10
 item_name = "SLAM Supplements"
-description = "+2 Max HP, Provides free energy drinks"
+description = "+2 Max HP and starts with After-Fight Snacks (+2 HP heal after every win)."
 bonus_max_hp = 2
 metadata/_custom_type_script = "uid://c45g8d8d4wjtr"
