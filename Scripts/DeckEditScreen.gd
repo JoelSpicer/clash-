@@ -31,6 +31,7 @@ func _refresh_grid():
 	# Update Label
 	count_label.text = "HAND: " + str(deck.size()) + " / " + str(ClassFactory.HAND_LIMIT)
 	count_label.modulate = Color.GREEN if deck.size() == ClassFactory.HAND_LIMIT else Color.WHITE
+	_update_deck_warnings(deck)
 
 	# Draw all unlocked cards
 	for action in unlocked:
@@ -93,3 +94,48 @@ func _on_fight_pressed():
 	
 	# CHANGED: Use the new smart exit function
 	RunManager.exit_deck_editor()
+
+func _update_deck_warnings(deck: Array[ActionData]) -> void:
+	var warn_lbl: Label = get_node_or_null("DeckWarningLabel") as Label
+	if warn_lbl == null:
+		warn_lbl = Label.new()
+		warn_lbl.name = "DeckWarningLabel"
+		warn_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		warn_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		warn_lbl.add_theme_font_size_override("font_size", 16)
+		warn_lbl.add_theme_color_override("font_color", Color(1.0, 0.78, 0.3))
+		warn_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+		warn_lbl.add_theme_constant_override("outline_size", 2)
+		warn_lbl.anchor_left = 0.2
+		warn_lbl.anchor_right = 0.8
+		warn_lbl.anchor_top = 0.0
+		warn_lbl.anchor_bottom = 0.0
+		warn_lbl.offset_top = 64.0
+		warn_lbl.offset_bottom = 112.0
+		add_child(warn_lbl)
+
+	var warnings: Array[String] = []
+	var has_opener: bool = false
+	var has_defence: bool = false
+	var max_opening: int = 0
+	for card: ActionData in deck:
+		if card == null:
+			continue
+		if card.type == ActionData.Type.OFFENCE and card.is_opener:
+			has_opener = true
+		if card.type == ActionData.Type.DEFENCE:
+			has_defence = true
+		if card.create_opening > max_opening:
+			max_opening = card.create_opening
+
+	if not deck.is_empty():
+		if not has_opener:
+			warnings.append("No Opener card in hand (hard to start combos)")
+		if not has_defence:
+			warnings.append("No Defence cards in hand")
+		for card: ActionData in deck:
+			if card and card.counter_value > 0 and max_opening < card.counter_value:
+				warnings.append("%s needs Create Opening %d" % [card.display_name, card.counter_value])
+
+	warn_lbl.visible = not warnings.is_empty()
+	warn_lbl.text = "⚠ " + "  |  ".join(warnings) if not warnings.is_empty() else ""

@@ -14,3 +14,11 @@ extends Resource
 
 @export var pending_advancement: bool = false
 @export var pending_reward: bool = false
+
+@export var active_sponsor: SponsorData = null
+@export var leagues_completed: int = 0
+@export var current_rerolls: int = 0
+@export var active_gym_buff: String = ""
+@export var next_fight_statuses: Array[String] = []
+@export var is_boss_match: bool = false
+@export var is_rival_match: bool = false

@@ -16,7 +16,7 @@ func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id
 		return -500.0
 
 	var score: float = 0.0
-	var match_state: GameManager.MatchState = GameManager.state
+	var match_state: MatchState = GameManager.state
 	var attacker_id: int = GameManager.get_attacker()
 
 	var hits: int = _get_effective_hits(card, me, my_id)

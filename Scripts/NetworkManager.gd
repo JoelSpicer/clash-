@@ -315,7 +315,7 @@ func return_to_lobby() -> void:
 	
 	# 2. Reset leftover GameManager states so the next match doesn't break
 	# 2. Reset leftover GameManager states so the next match starts fresh
-	GameManager.state = GameManager.MatchState.new()
+	GameManager.state = MatchState.new()
 	
 	# 3. Load the Multiplayer Lobby Scene
 	get_tree().change_scene_to_file("res://Scenes/Multi.tscn")

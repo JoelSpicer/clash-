@@ -62,24 +62,24 @@ const SCRIPTS = {
 			},
 			{
 				# TURN 6: Reversal 2
-				"sensei_text": "You Parried the heavy attack, negating the damage, and forcing me to use an action with the Opener trait next. But watch out! If you use an action with the Fall Back trait, and you're already at minimum momentum, you'll take SP, and the HP damage! Now, I need to recover some stamina, so try using a reversal on me, to take the offence once again!",
+				"sensei_text": "You Parried the heavy attack, negating the damage, and forcing me to use an action with the Opener trait next. But watch out! If you use an action with the Fall Back trait, and you're already at minimum momentum, you'll take SP, and then HP damage! Now, I need to recover some stamina, so try using a reversal on me, to take the offence once again!",
 				"bot_card": "Basic Positioning",
 				"player_card": "Basic Reversal",
 				"highlight": "card:Basic Reversal"
 			},
 			{
 				# TURN 7: Finale 1
-				"sensei_text": "And now you're on the offence again, ready for a combo! Most fights run on these 4 basic interations: \n Block beats Light, low damage actions, and generally helps recover stamina.\nDodge is best against actions of the same cost, with advanced traits, like Guard Break.\nParry negates high momentum, heavy actions, but only if the momentum trait is higher than your fall back trait.\nReversal beats actions with the fall back trait, and allows the defender to become the attacker.",
+				"sensei_text": "And now you're on the offence again, ready for a combo! Most fights run on these 4 basic interactions: \n Block beats Light, low damage actions, and generally helps recover stamina.\nDodge is best against actions of the same cost, with advanced traits, like Guard Break.\nParry negates high momentum, heavy actions, but only if the momentum trait is higher than your fall back trait.\nReversal beats actions with the fall back trait, and allows the defender to become the attacker.",
 				"bot_card": "Basic Dodge",
 				"player_card": "Basic Technical",
 				"highlight": "card:Basic Technical"
 			},
 			{
 				# TURN 8: Finale 2
-				"sensei_text": "Most actions are variations and combinations of these traits, however there are some more advanced traits too! You can view every action and trait in the compendium, accessable by going left from The Circuit menu, or by clicking the '?' button in the bottom right of the screen during a combat.",
+				"sensei_text": "Most actions are variations and combinations of these traits, however there are some more advanced traits too! You can view every action and trait in the compendium, accessible by going left from The Circuit menu, or by clicking the '?' button in the bottom right of the screen during a combat.",
 				"bot_card": "Basic Block",
 				"player_card": "Basic Light",
-				"highlight": "card:Basic Technical"
+				"highlight": "card:Basic Light"
 			}
 		]
 	},

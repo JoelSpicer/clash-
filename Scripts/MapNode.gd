@@ -23,17 +23,47 @@ func setup(node_data: MapNodeData, index: int):
 	if node_data.enemy_data != null:
 		# It's a Fight or Boss!
 		enemy_name_label.show()
-		enemy_name_label.text = node_data.enemy_data.character_name
-		
+		var epithets: Array[String] = []
+		var trait_tips: Array[String] = []
+		for eq: EquipmentData in node_data.enemy_data.equipment:
+			if eq == null:
+				continue
+			var ep: Variant = eq.get("boss_epithet")
+			if ep != null and str(ep) != "":
+				epithets.append(str(ep))
+			if eq.description != "":
+				trait_tips.append("%s: %s" % [eq.item_name, eq.description])
+			else:
+				trait_tips.append(eq.item_name)
+
+		if not epithets.is_empty():
+			enemy_name_label.text = "%s\n(%s)" % [node_data.enemy_data.character_name, " / ".join(epithets)]
+		else:
+			enemy_name_label.text = node_data.enemy_data.character_name
+
+		var class_str: String = ClassFactory.class_enum_to_string(node_data.enemy_data.class_type)
+		var scout_tip: String = "%s [%s]\nHP: %d  |  SP: %d" % [
+			node_data.enemy_data.character_name,
+			class_str,
+			node_data.enemy_data.max_hp,
+			node_data.enemy_data.max_sp
+		]
+		if not trait_tips.is_empty():
+			scout_tip += "\n" + "\n".join(trait_tips)
+		if not node_data.is_locked:
+			tooltip_text = scout_tip
+			button.tooltip_text = scout_tip
+		else:
+			tooltip_text = "Locked — defeat earlier rounds to scout this opponent."
+			button.tooltip_text = tooltip_text
+
 		if node_data.enemy_data.portrait:
 			icon.texture = node_data.enemy_data.portrait
 		else:
-			# Safety fallback if you forgot to assign a portrait
 			icon.texture = preload("res://Art/Icons/icon_Opportunity.png")
-			
-		# Tint red if it's a boss
+
 		if node_data.type == MapNodeData.Type.BOSS:
-			modulate = Color(1.5, 1.0, 1.0) 
+			modulate = Color(1.5, 1.0, 1.0)
 		else:
 			modulate = Color(1.0, 1.0, 1.0)
 			

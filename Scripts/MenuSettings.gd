@@ -8,6 +8,7 @@ extends Control
 # --- VISUAL REFERENCES ---
 @onready var brightness_slider = $CenterContainer/VBoxContainer/BrightnessSlider
 @onready var contrast_slider = $CenterContainer/VBoxContainer/ContrastSlider
+@onready var fullscreen_toggle = $CenterContainer/VBoxContainer/FullscreenToggle
 
 # --- META DEBUG REFERENCES ---
 @onready var token_label = $CenterContainer/VBoxContainer/TokenLabel
@@ -30,6 +31,9 @@ func _ready():
 	if contrast_slider:
 		var saved_contrast: float = SettingsManager.get_saved_visual("contrast", GlobalCinematics.user_contrast)
 		_setup_visual_slider(contrast_slider, "Contrast", 0.5, 1.5, saved_contrast)
+	if fullscreen_toggle:
+		fullscreen_toggle.set_pressed_no_signal(bool(SettingsManager.settings_data.video.get("fullscreen", false)))
+		fullscreen_toggle.toggled.connect(_on_fullscreen_toggled)
 		
 	# 3. Setup Meta Debug
 	if token_label and RunManager.meta_data:
@@ -121,6 +125,9 @@ func _on_visual_changed(value: float, type: String):
 		SettingsManager.update_visual("brightness", value)
 	elif type == "Contrast":
 		SettingsManager.update_visual("contrast", value)
+
+func _on_fullscreen_toggled(enabled: bool) -> void:
+	SettingsManager.update_fullscreen(enabled)
 
 # --- NEW: RESET TUTORIALS FUNCTION ---
 func _on_reset_tutorials_pressed():
