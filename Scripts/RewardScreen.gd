@@ -62,9 +62,16 @@ func _generate_rewards():
 	else: 
 		choices.append(stat_upgrades.pick_random())
 		
-	# --- SPONSOR EXTRA OPTIONS ---
-	if RunManager.active_sponsor and RunManager.active_sponsor.extra_draft_options > 0:
-		for i in range(RunManager.active_sponsor.extra_draft_options):
+	# --- SPONSOR & EQUIPMENT EXTRA DRAFT OPTIONS ---
+	var extra_opts: int = 0
+	if RunManager.active_sponsor:
+		extra_opts += RunManager.active_sponsor.extra_draft_options
+	if RunManager.player_run_data:
+		for eq in RunManager.player_run_data.equipment:
+			if eq:
+				extra_opts += eq.extra_draft_options
+	if extra_opts > 0:
+		for i in range(extra_opts):
 			if valid_actions.size() > 0 and randf() > 0.5:
 				choices.append(valid_actions.pick_random())
 			else:

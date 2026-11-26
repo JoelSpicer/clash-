@@ -411,17 +411,22 @@ func unlock_for_input(forced_tab, player_current_sp: int, player_current_hp: int
 	my_opportunity_val = opportunity_val 
 	feint_mode = is_feint_mode 
 	
-	# --- NEW: SPONSOR TOGGLES ---
-	if RunManager.active_sponsor:
-		# 1. Disable Supers
-		if RunManager.active_sponsor.disable_supers:
-			super_allowed = false
-			
-		# 2. Reveal Enemy Opener (Only triggers on Neutral/Start of fight)
-		if RunManager.active_sponsor.reveal_enemy_opener and GameManager.state.momentum == 0:
-			if GameManager.state.p2_action_queue:
-				_show_bark(2, "I'll open with " + GameManager.state.p2_action_queue.display_name + "!")
-	# ----------------------------- 
+	# --- MODIFIER TOGGLES (Sponsor + Equipment) ---
+	if GameManager.is_super_disabled(1):
+		super_allowed = false
+
+	if GameManager.has_reveal_enemy_opener(1) and GameManager.state.momentum == 0:
+		if GameManager.state.p2_action_queue:
+			_show_bark(2, "Scouted: " + GameManager.state.p2_action_queue.display_name + "!")
+		elif GameManager.p2_data:
+			var likely_opener: ActionData = null
+			for card in GameManager.p2_data.deck:
+				if card.type == ActionData.Type.OFFENCE and card.is_opener and card.cost <= GameManager.p2_data.current_sp:
+					if likely_opener == null or card.damage > likely_opener.damage:
+						likely_opener = card
+			if likely_opener:
+				_show_bark(2, "Likely Opener: " + likely_opener.display_name)
+	# ---------------------------------------------- 
 	
 	if forced_tab != null:
 		_switch_tab(forced_tab)
@@ -1207,7 +1212,21 @@ func setup_match_ui(p1: CharacterData, p2: CharacterData, local_id: int) -> void
 		load_deck(p1.deck)
 
 
-func _show_game_over(_winner_id: int) -> void:
-	if game_over_screen:
-		# Trigger your visual reveal/fade-in here if you want!
-		game_over_screen.visible = true
+func _show_game_over(winner_id: int) -> void:
+	if not game_over_screen or game_over_screen.visible:
+		return
+
+	if GameManager.p1_data and GameManager.p2_data:
+		update_all_visuals(GameManager.p1_data, GameManager.p2_data, GameManager.state.momentum)
+
+	var winner_data: CharacterData = GameManager.p1_data if winner_id == 1 else GameManager.p2_data
+	var final_log_text: String = ""
+	if combat_log and combat_log.has_method("get_log_text"):
+		final_log_text = combat_log.get_log_text()
+
+	game_over_screen.setup(winner_data, final_log_text)
+	game_over_screen.visible = true
+
+	# Pause locally so bots/timers stop behind the overlay without blocking multiplayer peers
+	if not multiplayer.has_multiplayer_peer() or multiplayer.get_peers().is_empty():
+		get_tree().paused = true

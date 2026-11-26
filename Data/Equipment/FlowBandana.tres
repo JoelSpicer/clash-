@@ -6,9 +6,9 @@
 script = ExtResource("1_yr1f8")
 synergy_keywords = Array[String](["Combo", "SP", "Focus"])
 item_name = "Flow State Bandana"
-description = "+2 Combo SP Regen and +1 Starting SP, but you cannot use Supers."
+description = "+1 Starting SP and +1 Combo SP Regen, but you cannot use Supers."
 shop_cost = 50
 starting_sp_bonus = 1
-combo_sp_regen_bonus = 2
+combo_sp_regen_bonus = 1
 disable_supers = true
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

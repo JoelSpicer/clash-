@@ -6,9 +6,10 @@
 script = ExtResource("1_yr1f8")
 synergy_keywords = Array[String](["Damage", "Thorns", "Aggressive"])
 item_name = "Spiked Wraps"
-description = "+2 Damage and +3 Thorns, but -2 Block effectiveness."
+description = "+1 Damage and +1 Thorns, but -2 Block effectiveness and -2 Max HP."
 shop_cost = 40
-damage_modifier = 2
+bonus_max_hp = -2
+damage_modifier = 1
 block_modifier = -2
-thorns = 3
+thorns = 1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

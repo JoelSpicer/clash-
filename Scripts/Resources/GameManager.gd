@@ -229,40 +229,53 @@ func reset_combat():
 	# --- 3. THE MAGIC RESET ---
 	state = MatchState.new()
 	
-	# --- 4. APPLY PLAYER EQUIPMENT & SPONSOR BONUSES ---
-	var total_momentum_bonus = 0
-	var p1_speed_bonus = 0
+	# --- 4. APPLY PLAYER & ENEMY EQUIPMENT / SPONSOR BONUSES ---
+	var total_p1_momentum_bonus: int = 0
+	var total_p2_momentum_bonus: int = 0
+	var p1_speed_bonus: int = 0
+	var p2_speed_bonus: int = 0
 	
 	var all_p1_modifiers: Array[BaseModifierData] = []
-	if RunManager.player_run_data:
-		all_p1_modifiers.append_array(RunManager.player_run_data.equipment)
+	all_p1_modifiers.append_array(p1_data.equipment)
+	if RunManager.player_run_data and RunManager.player_run_data != p1_data:
+		for eq in RunManager.player_run_data.equipment:
+			if eq not in all_p1_modifiers:
+				all_p1_modifiers.append(eq)
 	if RunManager.active_sponsor:
 		all_p1_modifiers.append(RunManager.active_sponsor)
 		
 	for mod in all_p1_modifiers:
-		p1_data.current_sp += mod.starting_sp_bonus
+		p1_data.current_sp = max(0, p1_data.current_sp + mod.starting_sp_bonus)
 		if mod.starting_barrier > 0:
 			p1_data.current_hp += mod.starting_barrier
 			print("Modifier Barrier Applied: +%d HP" % mod.starting_barrier)
 			
-		total_momentum_bonus += mod.momentum_start_bonus
+		total_p1_momentum_bonus += mod.momentum_start_bonus
 		p1_speed_bonus += mod.bonus_speed
 
 	if RunManager.is_rival_match and RunManager.active_sponsor:
-		total_momentum_bonus -= RunManager.active_sponsor.rival_momentum_handicap
+		total_p1_momentum_bonus -= RunManager.active_sponsor.rival_momentum_handicap
 		print("Rival Handicap Applied! Momentum shifted by " + str(RunManager.active_sponsor.rival_momentum_handicap))
-		
-	# --- 5. APPLY MOMENTUM STARTING POSITION ---
-	if total_momentum_bonus > 0:
-		state.momentum = MOMENTUM_P1_MAX - (total_momentum_bonus - 1)
-		state.momentum = clampi(state.momentum, 1, MOMENTUM_P1_MAX)
-		print(">> Head Start! Momentum set to: " + str(state.momentum))
-		
-	# --- 6. APPLY ENEMY EQUIPMENT BONUSES ---
+
 	for item in p2_data.equipment:
-		p2_data.current_sp += item.starting_sp_bonus
-	
-	# --- 7. APPLY GYM BUFFS ---
+		p2_data.current_sp = max(0, p2_data.current_sp + item.starting_sp_bonus)
+		if item.starting_barrier > 0:
+			p2_data.current_hp += item.starting_barrier
+		total_p2_momentum_bonus += item.momentum_start_bonus
+		p2_speed_bonus += item.bonus_speed
+
+	# --- 5. APPLY MOMENTUM STARTING POSITION ---
+	var net_momentum_bonus: int = total_p1_momentum_bonus - total_p2_momentum_bonus
+	if net_momentum_bonus > 0:
+		state.momentum = MOMENTUM_P1_MAX - (net_momentum_bonus - 1)
+		state.momentum = clampi(state.momentum, 1, MOMENTUM_P1_MAX)
+		print(">> P1 Head Start! Momentum set to: " + str(state.momentum))
+	elif net_momentum_bonus < 0:
+		state.momentum = MOMENTUM_P2_START + (absi(net_momentum_bonus) - 1)
+		state.momentum = clampi(state.momentum, MOMENTUM_P2_START, TOTAL_MOMENTUM_SLOTS)
+		print(">> P2 Head Start! Momentum set to: " + str(state.momentum))
+		
+	# --- 6. APPLY GYM BUFFS ---
 	if RunManager.active_gym_buff != "":
 		print("Applying Gym Buff: " + RunManager.active_gym_buff)
 		if RunManager.active_gym_buff == "iron_stance":
@@ -274,9 +287,9 @@ func reset_combat():
 			print(">> Exploit Weakness: Enemy took " + str(damage) + " dmg")
 		RunManager.active_gym_buff = ""
 	
-	# --- 8. CALCULATE PRIORITY (SPEED TIES) ---
+	# --- 7. CALCULATE PRIORITY (SPEED TIES) ---
 	var p1_final_speed = p1_data.speed + p1_speed_bonus
-	var p2_final_speed = p2_data.speed
+	var p2_final_speed = p2_data.speed + p2_speed_bonus
 	
 	if p1_final_speed > p2_final_speed: 
 		state.priority_player = 1
@@ -702,13 +715,51 @@ func _apply_wall_crush(player_id: int, amount: int):
 		emit_signal("combat_log_updated", "   Lost " + str(sp_paid) + " SP and took " + str(hp_damage) + " HP DAMAGE!")
 		emit_signal("damage_dealt", player_id, hp_damage, false)
 
+## Returns true if [param player_id] has any equipment or sponsor that disables Supers.
+func is_super_disabled(player_id: int) -> bool:
+	var character: CharacterData = p1_data if player_id == 1 else p2_data
+	if character:
+		for eq in character.equipment:
+			if eq and eq.disable_supers:
+				return true
+	if player_id == 1 and RunManager.active_sponsor and RunManager.active_sponsor.disable_supers:
+		return true
+	return false
+
+## Returns true if [param player_id] has any equipment or sponsor that reveals the enemy opener.
+func has_reveal_enemy_opener(player_id: int) -> bool:
+	var character: CharacterData = p1_data if player_id == 1 else p2_data
+	if character:
+		for eq in character.equipment:
+			if eq and eq.reveal_enemy_opener:
+				return true
+	if player_id == 1 and RunManager.active_sponsor and RunManager.active_sponsor.reveal_enemy_opener:
+		return true
+	return false
+
+## Returns the effective combo hit interval for SP recovery (0 = disabled).
+func get_effective_combo_sp_rate(owner_id: int) -> int:
+	var character: CharacterData = p1_data if owner_id == 1 else p2_data
+	if character == null:
+		return 0
+	var bonus: int = 0
+	for eq in character.equipment:
+		if eq:
+			bonus += eq.combo_sp_regen_bonus
+	if character.combo_sp_recovery_rate > 0:
+		return max(2, character.combo_sp_recovery_rate - bonus)
+	if bonus > 0:
+		return max(2, 4 - bonus)
+	return 0
+
 func _advance_combo_hits(owner_id: int, hits: int) -> void:
 	var character: CharacterData = p1_data if owner_id == 1 else p2_data
+	var rate: int = get_effective_combo_sp_rate(owner_id)
 	for _i in range(hits):
 		character.combo_action_count += 1
-		if character.combo_sp_recovery_rate > 0 and (character.combo_action_count % character.combo_sp_recovery_rate == 0):
+		if rate > 0 and (character.combo_action_count % rate == 0):
 			character.current_sp = min(character.current_sp + 1, character.max_sp)
-			emit_signal("combat_log_updated", ">> Relentless! P" + str(owner_id) + " recovers 1 SP.")
+			emit_signal("combat_log_updated", ">> Flow! P" + str(owner_id) + " recovers 1 SP.")
 
 func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData, hits: int = -1):
 	var character = p1_data if owner_id == 1 else p2_data
@@ -771,8 +822,9 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		
 	var total_hits = hits if hits > 0 else max(1, my_card.repeat_count)
 	for i in range(total_hits):
-		var total_damage = max(0, my_card.damage + dmg_mod)
-		var enemy_block = enemy_card.block_value + defender_block_mod
+		# Only buff cards that actually deal damage (so +Damage equipment doesn't turn Block/Positioning into attacks)
+		var total_damage = max(0, my_card.damage + dmg_mod) if my_card.damage > 0 else 0
+		var enemy_block = max(0, enemy_card.block_value + defender_block_mod) if enemy_card.block_value > 0 else 0
 		
 		if my_card.guard_break: 
 			enemy_block = 0
@@ -876,9 +928,9 @@ func get_effective_repeat_count(character: CharacterData, card: ActionData, opp_
 		var hp_budget: int = max(0, character.current_hp - 1)
 		if hp_budget < first_hit_cost:
 			return 0
-		return 1 + min(max_reps - 1, int((hp_budget - first_hit_cost) / single_cost))
+		return 1 + min(max_reps - 1, floori(float(hp_budget - first_hit_cost) / float(single_cost)))
 	if character.current_sp >= first_hit_cost:
-		return 1 + min(max_reps - 1, int((character.current_sp - first_hit_cost) / single_cost))
+		return 1 + min(max_reps - 1, floori(float(character.current_sp - first_hit_cost) / float(single_cost)))
 	if character.can_pay_with_hp and (character.current_sp + character.current_hp) > first_hit_cost:
 		return 1
 	return 0

@@ -5,7 +5,8 @@
 [resource]
 script = ExtResource("1_pxe01")
 item_name = "Spiked Jacket"
-description = "-3 Max SP, Opponent Takes 1 Dam when they hit you."
-bonus_max_sp = -3
+description = "+1 Thorns when hit, -1 Max HP, -1 Max SP."
+bonus_max_hp = -1
+bonus_max_sp = -1
 thorns = 1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

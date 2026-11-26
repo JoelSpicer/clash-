@@ -5,6 +5,7 @@
 [resource]
 script = ExtResource("1_gfdb8")
 item_name = "Spiked Cleats"
-description = "Slamming enemies into the wall deals +1 Damage."
+description = "+1 Wall Crush Damage and +1 Starting Momentum."
+momentum_start_bonus = 1
 wall_crush_damage_bonus = 1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

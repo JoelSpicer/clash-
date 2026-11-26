@@ -480,7 +480,7 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 		c["max_cost"] = GameManager.state.p1_cost_limit
 		c["opening_stat"] = GameManager.state.p1_opening_stat
 		c["opportunity_stat"] = GameManager.state.p1_opportunity_stat
-		if mom == GameManager.get_wall_momentum(1) and not _active_p1.has_used_super:
+		if mom == GameManager.get_wall_momentum(1) and not _active_p1.has_used_super and not GameManager.is_super_disabled(1):
 			c["can_use_super"] = true
 		if GameManager.state.p1_must_opener:
 			c["needs_opener"] = true
@@ -488,7 +488,7 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 		c["max_cost"] = GameManager.state.p2_cost_limit
 		c["opening_stat"] = GameManager.state.p2_opening_stat
 		c["opportunity_stat"] = GameManager.state.p2_opportunity_stat
-		if mom == GameManager.get_wall_momentum(2) and not _active_p2.has_used_super:
+		if mom == GameManager.get_wall_momentum(2) and not _active_p2.has_used_super and not GameManager.is_super_disabled(2):
 			c["can_use_super"] = true
 		if GameManager.state.p2_must_opener:
 			c["needs_opener"] = true

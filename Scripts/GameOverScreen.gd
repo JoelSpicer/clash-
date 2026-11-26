@@ -44,10 +44,10 @@ func setup(data: CharacterData, log_text: String = ""):
 	if log_label:
 		log_label.text = match_log_text
 		
-	winner_label.text = "Winner: " + data.character_name
+	winner_label.text = "Winner: " + (data.character_name if data != null else "Unknown")
 	
 	# Mode Check
-	if RunManager.player_run_data != null:
+	if RunManager.is_arcade_mode and RunManager.player_run_data != null:
 		_setup_arcade_mode()
 	else:
 		_setup_quick_match_mode()
@@ -60,8 +60,15 @@ func _setup_quick_match_mode():
 	else:
 		main_btn.text = "REMATCH"
 
+func _is_arcade_player_winner() -> bool:
+	if winner_data == null or RunManager.player_run_data == null:
+		return false
+	if winner_data == GameManager.p1_data:
+		return true
+	return winner_data.character_name == RunManager.player_run_data.character_name
+
 func _setup_arcade_mode():
-	var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
+	var player_won: bool = _is_arcade_player_winner()
 	menu_btn.visible = false
 	if player_won:
 		title_label.text = "VICTORY!"
@@ -77,8 +84,8 @@ func _on_main_action():
 	AudioManager.play_sfx("ui_confirm")
 	
 	# 1. ARCADE MODE LOGIC
-	if RunManager.player_run_data != null:
-		var player_won = (winner_data.character_name == RunManager.player_run_data.character_name)
+	if RunManager.is_arcade_mode and RunManager.player_run_data != null:
+		var player_won: bool = _is_arcade_player_winner()
 		
 		if player_won:
 			RunManager.handle_win()

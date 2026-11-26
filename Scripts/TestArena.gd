@@ -222,7 +222,7 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 		
 		# SUPER CHECK (Updated for Dynamic Momentum)
 		# Checks if momentum is at P1's Wall (e.g. 1)
-		if mom == GameManager.get_wall_momentum(1) and not p1_resource.has_used_super:
+		if mom == GameManager.get_wall_momentum(1) and not p1_resource.has_used_super and not GameManager.is_super_disabled(1):
 			c.can_use_super = true
 			
 		if GameManager.state.p1_must_opener: c.needs_opener = true
@@ -233,7 +233,7 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 		
 		# SUPER CHECK (Updated for Dynamic Momentum)
 		# Checks if momentum is at P2's Wall (e.g. 8 or 12)
-		if mom == GameManager.get_wall_momentum(2) and not p2_resource.has_used_super:
+		if mom == GameManager.get_wall_momentum(2) and not p2_resource.has_used_super and not GameManager.is_super_disabled(2):
 			c.can_use_super = true
 			
 		if GameManager.state.p2_must_opener: c.needs_opener = true
