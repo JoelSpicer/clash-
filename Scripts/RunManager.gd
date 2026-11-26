@@ -19,7 +19,6 @@ const SAVE_DIR = "user://saves/"
 # --- NEW: RUN MODIFIERS ---
 var maintain_hp_enabled: bool = true
 const EQUIPMENT_DIR = "res://Data/Equipment/"
-const BOSS_DIR = "res://Data/Presets/Bosses/"
 const BOSS_MODIFIERS_DIR = "res://Data/BossModifiers/"
 
 # --- MAP STATE ---
@@ -38,11 +37,6 @@ var is_boss_match: bool = false
 # --- GLOBAL META DATA ---
 const GLOBAL_SAVE_PATH = "user://global_save.tres"
 var meta_data: GlobalSaveData
-
-const BOSS_SCHEDULE = {
-	#5: "juggernaut_boss.tres",
-	#10: "grandmaster_boss.tres"
-}
 
 # ... (start_run and start_run_from_preset remain exactly the same) ...
 var next_fight_statuses: Array[String] = []

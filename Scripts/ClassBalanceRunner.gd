@@ -26,7 +26,6 @@ const PRESET_DEFS: Array[Dictionary] = [
 	{ "name": "Basic_Bob_Technical", "path": "res://Data/Presets/Basic_Bob_Technical.tres" },
 	{ "name": "Crash_Johnson_Lv6", "path": "res://Data/Presets/Crash_Johnson_Lv6.tres" },
 	{ "name": "Kaiji_Akagi_Lv6", "path": "res://Data/Presets/Kaiji_Akagi_Lv6.tres" },
-	{ "name": "Boss_Big_Boris", "path": "res://Data/Presets/Bosses/juggernaut_boss.tres" },
 ]
 
 var _match_winner: int = 0
