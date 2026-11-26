@@ -257,10 +257,19 @@ func _get_player_constraints(player_id: int) -> Dictionary:
 	return c
 
 
+func _is_online_match() -> bool:
+	return multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0
+
+
+func _is_local_hotseat() -> bool:
+	return not _is_online_match() and is_player_1_human and is_player_2_human
+
+
 func _prepare_human_turn(player_id: int) -> void:
 	_current_input_player = player_id
 	var character: CharacterData = p1_resource if player_id == 1 else p2_resource
 
+	battle_ui.call("set_active_input_player", player_id, _is_local_hotseat())
 	battle_ui.call("setup_passive_toggles", character)
 	battle_ui.call("load_deck", character.deck)
 
@@ -286,7 +295,8 @@ func _prepare_human_turn(player_id: int) -> void:
 	_update_visuals()
 	print("| --- WAITING FOR P" + str(player_id) + " INPUT --- |")
 
-	if player_id == local_player_id:
+	var can_control_locally: bool = (player_id == local_player_id) if _is_online_match() else true
+	if can_control_locally:
 		battle_ui.call(
 			"unlock_for_input",
 			c["required_tab"],
@@ -355,10 +365,22 @@ func server_receive_input(player_id: int, card_name: String, extra_data: Diction
 
 	_check_server_funnel()
 
-	if not multiplayer.has_multiplayer_peer() or multiplayer.get_peers().is_empty():
-		if player_id == 1:
+	if not _is_online_match() and player_id == 1:
+		var needs_p2_selection: bool = (
+			GameManager.current_state == GameManager.State.SELECTION
+			and GameManager.state.p2_locked_card == null
+			and not server_received_inputs.has("2")
+		)
+		var needs_p2_feint: bool = (
+			GameManager.current_state == GameManager.State.FEINT_CHECK
+			and GameManager.state.p2_pending_feint
+			and not server_received_inputs.has("2")
+		)
+		if needs_p2_selection or needs_p2_feint:
 			if is_player_2_human:
 				await get_tree().create_timer(0.2).timeout
+				if GameManager.current_state != GameManager.State.SELECTION and GameManager.current_state != GameManager.State.FEINT_CHECK:
+					return
 				_prepare_human_turn(2)
 			else:
 				_run_bot_turn(2)

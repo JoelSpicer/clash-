@@ -94,6 +94,8 @@ func populate_enemy_deck() -> void:
 			var my_id: int = multiplayer.get_unique_id()
 			if my_id == GameManager.p2_network_id:
 				opponent_data = GameManager.p1_data
+	elif overlay_parent and int(overlay_parent.get("active_input_player")) == 2:
+		opponent_data = GameManager.p1_data
 
 	if opponent_data == null:
 		return

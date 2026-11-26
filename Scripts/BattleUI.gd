@@ -82,6 +82,8 @@ var feint_mode: bool = false
 
 var skip_action: ActionData
 var is_locked: bool = false
+var active_input_player: int = 1
+var _hotseat_banner: Label = null
 
 # Dynamic Controls
 var p1_toggle: CheckButton
@@ -357,7 +359,7 @@ func unlock_for_input(
 	my_opportunity_val = opportunity_val
 	feint_mode = is_feint_mode
 
-	if GameManager.is_super_disabled(1):
+	if GameManager.is_super_disabled(active_input_player):
 		super_allowed = false
 
 	if GameManager.has_reveal_enemy_opener(1) and GameManager.state.momentum == 0:
@@ -385,9 +387,45 @@ func unlock_for_input(
 		_switch_tab(current_tab)
 
 
+func set_active_input_player(player_id: int, show_hotseat_banner: bool) -> void:
+	active_input_player = player_id
+	if not show_hotseat_banner:
+		if _hotseat_banner:
+			_hotseat_banner.visible = false
+		return
+
+	if _hotseat_banner == null:
+		_hotseat_banner = Label.new()
+		_hotseat_banner.name = "HotseatTurnBanner"
+		_hotseat_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_hotseat_banner.add_theme_font_size_override("font_size", 24)
+		_hotseat_banner.add_theme_color_override("font_outline_color", Color.BLACK)
+		_hotseat_banner.add_theme_constant_override("outline_size", 4)
+		_hotseat_banner.anchor_left = 0.25
+		_hotseat_banner.anchor_right = 0.75
+		_hotseat_banner.anchor_top = 0.0
+		_hotseat_banner.anchor_bottom = 0.0
+		_hotseat_banner.offset_top = 108.0
+		_hotseat_banner.offset_bottom = 144.0
+		add_child(_hotseat_banner)
+
+	var fighter_name: String = ""
+	if player_id == 1 and GameManager.p1_data:
+		fighter_name = GameManager.p1_data.character_name
+	elif player_id == 2 and GameManager.p2_data:
+		fighter_name = GameManager.p2_data.character_name
+
+	var label_prefix: String = "PLAYER 1'S TURN" if player_id == 1 else "PLAYER 2'S TURN"
+	_hotseat_banner.text = "%s (%s) — CHOOSE ACTION" % [label_prefix, fighter_name] if fighter_name != "" else label_prefix
+	_hotseat_banner.add_theme_color_override("font_color", Color(0.45, 0.9, 1.0) if player_id == 1 else Color(1.0, 0.5, 0.5))
+	_hotseat_banner.visible = true
+
+
 func lock_ui() -> void:
 	is_locked = true
 	button_grid.visible = false
+	if _hotseat_banner:
+		_hotseat_banner.visible = false
 	_on_card_exited()
 
 
