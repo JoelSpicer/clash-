@@ -154,15 +154,31 @@ var environment_backgrounds: Dictionary = {}
 var MOMENTUM_P1_MAX: int = 4
 var MOMENTUM_P2_START: int = 5
 
+# --- MATCH SETUP CONFIG (Typed replacement for loose temp_* globals) ---
+class MatchSetupConfig:
+	var p1_class_selection: int = 0
+	var p2_class_selection: int = 0
+	var p1_name: String = ""
+	var p2_name: String = ""
+	var p1_preset: Resource = null
+	var p2_preset: Resource = null
+
+	func reset() -> void:
+		p1_class_selection = 0
+		p2_class_selection = 0
+		p1_name = ""
+		p2_name = ""
+		p1_preset = null
+		p2_preset = null
+
 # --- STATE MACHINE ---
 enum State { SETUP, SELECTION, REVEAL, FEINT_CHECK, RESOLUTION, POST_CLASH, GAME_OVER }
-var current_state = State.SETUP
-var temp_p1_class_selection: int = 0
-var temp_p2_class_selection: int = 0 
-var editing_player_index: int = 1    
-var p2_is_custom: bool = false       
+var current_state: State = State.SETUP
+var match_config: MatchSetupConfig = MatchSetupConfig.new()
+var editing_player_index: int = 1
+var p2_is_custom: bool = false
 enum Difficulty { VERY_EASY, EASY, MEDIUM, HARD }
-var ai_difficulty: Difficulty = Difficulty.MEDIUM 
+var ai_difficulty: Difficulty = Difficulty.MEDIUM
 
 # --- PERSISTENT GAME SETUP ---
 var next_match_p1_data: CharacterData
@@ -172,10 +188,6 @@ var next_match_p2_data: CharacterData
 var p1_data: CharacterData
 var p2_data: CharacterData
 
-var temp_p1_name: String = ""
-var temp_p2_name: String = ""
-var temp_p1_preset: Resource = null
-var temp_p2_preset: Resource = null
 var rival_intro_override: String = ""
 
 # --- NETWORK VARS ---

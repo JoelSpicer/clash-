@@ -11,11 +11,6 @@ extends Resource
 
 enum ClassType { HEAVY, PATIENT, QUICK, TECHNICAL, NONE }
 
-# --- NEW: AI PERSONALITY TYPES ---
-enum AIArchetype { BALANCED, AGGRESSIVE, DEFENSIVE, TRICKSTER }
-@export var ai_archetype: AIArchetype = AIArchetype.BALANCED 
-# ---------------------------------
-
 # --- STATIC DATA ---
 @export var ai_profile: AIBehavior
 @export_group("Identity")

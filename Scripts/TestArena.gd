@@ -10,11 +10,6 @@ extends Node2D
 @export var is_player_2_human: bool = false 
 @export var p2_debug_force_card: ActionData 
 
-# AI Memory System
-var p2_last_action_name: String = "" 
-var p1_last_action_type = null # Store ActionData.Type (0 or 1)
-var p1_last_cost: int = 0      # Track if player is tired
-
 # NEW: Preload the Game Over Screen
 var game_over_scene = preload("res://Scenes/GameOverScreen.tscn")
 var game_over_screen
@@ -32,7 +27,7 @@ func _ready() -> void:
 	# 1. Await a frame so BattleUI can finish its internal _ready
 	await get_tree().process_frame
 
-	if battle_ui.has_method("combat_log") and battle_ui.combat_log:
+	if battle_ui.combat_log and battle_ui.combat_log.has_method("clear_log"):
 		battle_ui.combat_log.clear_log()
 
 	# 2. Load Player Resources
@@ -87,9 +82,8 @@ func _ready() -> void:
 	GameManager.p2_data = p2_resource
 	GameManager.reset_combat() 
 	
-	# 6. SETUP VISUALS & TOGGLES
+	# 6. SETUP VISUALS
 	battle_ui.initialize_hud(p1_resource, p2_resource)
-	battle_ui.setup_toggles(is_player_1_human, is_player_2_human)
 	
 	# 7. THE SYNC FIX!
 	# Tell the server we are done building our UI and are ready to play
@@ -509,12 +503,13 @@ func _get_smart_card_choice(character: CharacterData, type_filter: Variant, must
 	var my_id: int = 1 if character == p1_resource else 2
 	var opponent: CharacterData = p2_resource if my_id == 1 else p1_resource
 
-	# Use the assigned AI profile, or fallback to a blank one if missing
-	var brain: AIBehavior = null
-	if "ai_profile" in character and character.ai_profile != null:
-		brain = character.ai_profile
-	else:
-		brain = AIBehavior.new()
+	# Use the assigned AI profile, or assign a random preset for this match if missing
+	var brain: AIBehavior = character.ai_profile
+	if brain == null:
+		brain = ClassFactory.pick_random_ai_profile()
+		if brain == null:
+			brain = preload("res://Scripts/Resources/AIBalanced.gd").new()
+		character.ai_profile = brain
 
 	# Noise Setup
 	var noise_range: float = 0.0
@@ -578,24 +573,9 @@ func _on_game_over(winner_id: int):
 	game_over_screen.visible = true
 	
 	
-func _on_clash_resolved(winner_id, p1_card, p2_card, _results): 
+func _on_clash_resolved(winner_id: int, _p1_card: ActionData, _p2_card: ActionData, _results: Dictionary) -> void:
 	print("\n>>> Clash Winner: P" + str(winner_id))
 	_update_visuals()
-	# --- UPDATE AI MEMORY ---
-	if not is_player_2_human:
-		# 1. Remember what the Bot did (for anti-repetition)
-		if p2_card != null:
-			p2_last_action_name = p2_card.display_name
-			
-		# 2. Remember what the Human did (for counter-play)
-		if p1_card != null:
-			p1_last_action_type = p1_card.type
-			p1_last_cost = p1_card.cost
-			
-			# Reset if Human did nothing (stunned/empty)
-		else:
-			p1_last_action_type = null
-			p1_last_cost = 0
 		
 func _on_log_updated(text): print("   > " + text)
 func _print_status_report():

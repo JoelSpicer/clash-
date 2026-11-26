@@ -30,8 +30,8 @@ extends Control
 @onready var arena_label = $ArenaLabel
 
 # --- PARALLAX SETTINGS ---
-var max_parallax: float = 20.0       # A good middle ground between menu and combat
-var parallax_smoothness: float = 4.0 
+var max_parallax: float = 20.0 # A good middle ground between menu and combat
+var parallax_smoothness: float = 4.0
 var base_bg_pos: Vector2 = Vector2.ZERO
 
 func _ready():
@@ -91,10 +91,10 @@ func _setup_visuals():
 	if p2:
 		if p2.portrait:
 			p2_portrait.texture = p2.portrait
-			p2_portrait.flip_h = true 
+			p2_portrait.flip_h = true
 		p2_name.text = p2.character_name
 		
-		if p2.character_name == "THE JUGGERNAUT": 
+		if p2.character_name == "THE JUGGERNAUT":
 			p2_class.text = "BOSS"
 			p2_class.modulate = Color.RED
 		else:
@@ -108,7 +108,7 @@ func _play_intro_animation():
 	
 	# Reset states
 	vs_label.scale = Vector2.ZERO
-	p1_container.position.x = -p1_container.size.x
+	p1_container.position.x = - p1_container.size.x
 	p2_container.position.x = screen_w
 	
 	# Push letterboxes offscreen initially
@@ -163,7 +163,7 @@ func _play_intro_animation():
 	# Player 1 Speaks
 	tween.tween_interval(0.2)
 	# Fade in the background panel smoothly
-	tween.tween_property(p1_bubble.get_parent(), "modulate:a", 1.0, 0.2) 
+	tween.tween_property(p1_bubble.get_parent(), "modulate:a", 1.0, 0.2)
 	tween.tween_callback(func():
 		AudioManager.play_sfx("ui_click") # Typewriter sound
 	)

@@ -185,7 +185,6 @@ func _ready():
 	await get_tree().process_frame
 	_snapshot_stats()
 	
-	_create_debug_toggles()
 	_create_passive_toggles()
 	setup_toggles()
 	
@@ -330,32 +329,6 @@ func setup_passive_toggles(character: CharacterData):
 	tech_dropdown.selected = 0 
 	rage_toggle.button_pressed = false
 	keep_up_toggle.button_pressed = false
-
-func _create_debug_toggles():
-	var container = HBoxContainer.new()
-	add_child(container)
-	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	container.position.y += 60 
-	container.add_theme_constant_override("separation", 20)
-	container.visible = false
-	container.name = "DebugContainer" 
-	
-	var p1_is_human = true 
-	var p2_is_human = false
-	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
-		p2_is_human = true
-	
-	p1_toggle = CheckButton.new()
-	p1_toggle.text = "P1 Human"
-	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
-	p1_toggle.button_pressed = p1_is_human 
-	container.add_child(p1_toggle)
-	
-	p2_toggle = CheckButton.new()
-	p2_toggle.text = "P2 Human"
-	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
-	p2_toggle.button_pressed = p2_is_human
-	container.add_child(p2_toggle)
 
 func initialize_hud(p1_data: CharacterData, p2_data: CharacterData):
 	p1_hud.setup(p1_data)
@@ -891,16 +864,8 @@ func _on_menu_pressed():
 	add_child(compendium)
 
 func setup_toggles(p1_override = null, p2_override = null):
-	var container = HBoxContainer.new()
-	add_child(container)
-	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	container.position.y += 60 
-	container.add_theme_constant_override("separation", 20)
-	container.visible = false
-	container.name = "DebugContainer"
-	
-	var p1_is_human = true 
-	var p2_is_human = false
+	var p1_is_human: bool = true
+	var p2_is_human: bool = false
 	
 	if not RunManager.is_arcade_mode and GameManager.p2_is_custom:
 		p2_is_human = true
@@ -908,16 +873,29 @@ func setup_toggles(p1_override = null, p2_override = null):
 	if p1_override != null: p1_is_human = p1_override
 	if p2_override != null: p2_is_human = p2_override
 	
+	if is_instance_valid(p1_toggle) and is_instance_valid(p2_toggle):
+		p1_toggle.set_pressed_no_signal(p1_is_human)
+		p2_toggle.set_pressed_no_signal(p2_is_human)
+		return
+	
+	var container = HBoxContainer.new()
+	add_child(container)
+	container.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	container.position.y += 60
+	container.add_theme_constant_override("separation", 20)
+	container.visible = false
+	container.name = "DebugContainer"
+	
 	p1_toggle = CheckButton.new()
 	p1_toggle.text = "P1 Human"
 	p1_toggle.toggled.connect(func(on): emit_signal("p1_mode_toggled", on))
-	p1_toggle.button_pressed = p1_is_human 
+	p1_toggle.set_pressed_no_signal(p1_is_human)
 	container.add_child(p1_toggle)
 	
 	p2_toggle = CheckButton.new()
 	p2_toggle.text = "P2 Human"
 	p2_toggle.toggled.connect(func(on): emit_signal("p2_mode_toggled", on))
-	p2_toggle.button_pressed = p2_is_human
+	p2_toggle.set_pressed_no_signal(p2_is_human)
 	container.add_child(p2_toggle)
 
 func _log_stat_changes():
@@ -1230,7 +1208,7 @@ func setup_match_ui(p1: CharacterData, p2: CharacterData, local_id: int) -> void
 		load_deck(p1.deck)
 
 
-func _show_game_over(winner_id: int) -> void:
+func _show_game_over(_winner_id: int) -> void:
 	if game_over_screen:
 		# Trigger your visual reveal/fade-in here if you want!
 		game_over_screen.visible = true

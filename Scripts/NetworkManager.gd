@@ -5,9 +5,9 @@ extends Node
 var peer: WebSocketMultiplayerPeer = WebSocketMultiplayerPeer.new()
 const PORT: int = 8080
 
-# NOTE: If you ever need to test locally without the cloud server, 
-# temporarily change this back to "ws://localhost:8080"
-const SERVER_URL: String = "wss://clashmulti.crushingboredom.uk"
+const CLOUD_SERVER_URL: String = "wss://clashmulti.crushingboredom.uk"
+const LOCAL_SERVER_URL: String = "ws://localhost:8080"
+var use_local_server: bool = false
 
 # --- SERVER MEMORY BANKS ---
 # Tracks connected player IDs and the file path to their chosen character
@@ -30,6 +30,9 @@ var _animation_timeout: SceneTreeTimer = null
 var heartbeat_timer: Timer
 
 func _ready() -> void:
+	if OS.get_cmdline_args().has("--local"):
+		use_local_server = true
+
 	var is_headless: bool = DisplayServer.get_name() == "headless"
 	var has_server_arg: bool = OS.get_cmdline_args().has("--server")
 	
@@ -101,15 +104,20 @@ func _on_peer_disconnected(id: int) -> void:
 # --- CLIENT ONLY LOGIC ---
 # ==========================================
 
+## Returns the active WebSocket endpoint based on local vs. cloud toggle.
+func get_server_url() -> String:
+	return LOCAL_SERVER_URL if use_local_server else CLOUD_SERVER_URL
+
 ## Called by the Client when they click the "Join/Find Match" button.
-func join_server() -> void:
+func join_server() -> Error:
 	# SAFETY: Check if we are already trying to connect so we don't spam the server.
 	if peer.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED:
 		print("⚠️ Connection already in progress. Ignoring duplicate request.")
-		return
+		return ERR_ALREADY_IN_USE
 
-	print("Connecting to the central server at: ", SERVER_URL)
-	var error: int = peer.create_client(SERVER_URL)
+	var target_url: String = get_server_url()
+	print("Connecting to server at: ", target_url)
+	var error: Error = peer.create_client(target_url)
 	
 	if error == OK:
 		multiplayer.multiplayer_peer = peer
@@ -118,6 +126,11 @@ func join_server() -> void:
 			multiplayer.server_disconnected.connect(_on_kicked_by_server)
 	else:
 		printerr("❌ Could not create client. Error code: ", error)
+	return error
+
+## Allows the lobby UI to abort a pending or failed connection cleanly.
+func cancel_connection() -> void:
+	_disconnect_local_peer()
 
 ## Triggered if the server crashes or explicitly kicks the client.
 func _on_kicked_by_server() -> void:

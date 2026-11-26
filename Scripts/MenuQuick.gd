@@ -98,54 +98,58 @@ func _load_presets():
 				if res is PresetCharacter: presets.append(res)
 			file_name = dir.get_next()
 
-func _setup_options(opt):
+func _setup_options(opt: OptionButton) -> void:
 	opt.clear()
 	for c in base_classes: opt.add_item(c)
 	if presets.size() > 0: opt.add_separator("Presets")
 	for p in presets: opt.add_item(p.character_name)
 
-func _get_char(idx, pname):
+func _get_char(idx: int, pname: String) -> CharacterData:
 	if idx < base_classes.size():
 		return ClassFactory.create_character(idx as CharacterData.ClassType, pname)
-	var preset_idx = idx - base_classes.size() - 1
-	if preset_idx >= 0: return ClassFactory.create_from_preset(presets[preset_idx])
+	var preset_idx: int = idx - base_classes.size() - 1
+	if preset_idx >= 0 and preset_idx < presets.size():
+		return ClassFactory.create_from_preset(presets[preset_idx])
 	return ClassFactory.create_character(0 as CharacterData.ClassType, "Error")
 
-func _on_custom_deck_pressed():
+func _on_custom_deck_pressed() -> void:
+	var cfg: GameManager.MatchSetupConfig = GameManager.match_config
+	cfg.reset()
+
 	# 1. P1 SETUP
-	var p1_sel = p1_option.selected
+	var p1_sel: int = p1_option.selected
 	if p1_sel < base_classes.size():
-		GameManager.temp_p1_class_selection = p1_sel
-		GameManager.temp_p1_name = "Player 1"
-		GameManager.temp_p1_preset = null
+		cfg.p1_class_selection = p1_sel
+		cfg.p1_name = "Player 1"
+		cfg.p1_preset = null
 	else:
-		var preset_idx = p1_sel - base_classes.size() - 1
-		if preset_idx >= 0:
-			var p = presets[preset_idx]
-			GameManager.temp_p1_class_selection = p.class_type
-			GameManager.temp_p1_name = p.character_name
-			GameManager.temp_p1_preset = p
+		var preset_idx: int = p1_sel - base_classes.size() - 1
+		if preset_idx >= 0 and preset_idx < presets.size():
+			var p: PresetCharacter = presets[preset_idx]
+			cfg.p1_class_selection = p.class_type
+			cfg.p1_name = p.character_name
+			cfg.p1_preset = p
 
 	# 2. P2 SETUP
-	var p2_sel = p2_option.selected
+	var p2_sel: int = p2_option.selected
 	if p2_sel < base_classes.size():
-		GameManager.temp_p2_class_selection = p2_sel
-		GameManager.temp_p2_name = "Player 2"
-		GameManager.temp_p2_preset = null
+		cfg.p2_class_selection = p2_sel
+		cfg.p2_name = "Player 2"
+		cfg.p2_preset = null
 	else:
-		var preset_idx = p2_sel - base_classes.size() - 1
-		if preset_idx >= 0:
-			var p = presets[preset_idx]
-			GameManager.temp_p2_class_selection = p.class_type
-			GameManager.temp_p2_name = p.character_name
-			GameManager.temp_p2_preset = p
+		var preset_idx: int = p2_sel - base_classes.size() - 1
+		if preset_idx >= 0 and preset_idx < presets.size():
+			var p: PresetCharacter = presets[preset_idx]
+			cfg.p2_class_selection = p.class_type
+			cfg.p2_name = p.character_name
+			cfg.p2_preset = p
 
-	GameManager.editing_player_index = 1 
+	GameManager.editing_player_index = 1
 	
 	if GameManager.p2_is_custom:
-		GameManager.next_match_p2_data = null 
+		GameManager.next_match_p2_data = null
 	else:
-		var p2 = _get_char(p2_sel, "Player 2")
+		var p2: CharacterData = _get_char(p2_sel, "Player 2")
 		GameManager.next_match_p2_data = p2
 	
 	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")

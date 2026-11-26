@@ -101,7 +101,9 @@
 - Data\Actions\vital_strike.tres
 - Data\Actions\weave.tres
 - Data\Actions\wind_up.tres
-- Data\AI\AIAggressive.gd
+- Data\AI\AIAggressive.tres
+- Data\AI\AIDefensive.tres
+- Data\AI\AITrickster.tres
 - Data\Classes\HeavyClass.tres
 - Data\Classes\PatientClass.tres
 - Data\Classes\QuickClass.tres
@@ -216,7 +218,10 @@
 - Scripts\VFXManager.gd
 - Scripts\VsScreen.gd
 - Scripts\Resources\ActionData.gd
+- Scripts\Resources\AIAggressive.gd
 - Scripts\Resources\AIBehavior.gd
+- Scripts\Resources\AIDefensive.gd
+- Scripts\Resources\AITrickster.gd
 - Scripts\Resources\BaseModifierData.gd
 - Scripts\Resources\CharacterData.gd
 - Scripts\Resources\ClassDefinition.gd
@@ -2830,78 +2835,44 @@ repeat_count = 0
 --- END FILE: Data\Actions\wind_up.tres ---
 
 
---- START FILE: Data\AI\AIAggressive.gd ---
+--- START FILE: Data\AI\AIAggressive.tres ---
 
-extends AIBehavior
-class_name AIAggressive
+[gd_resource type="Resource" script_class="AIAggressive" format=3 uid="uid://bshwwtwemnk03"]
+
+[ext_resource type="Script" uid="uid://c8i8k8s03qy5t" path="res://Scripts/Resources/AIAggressive.gd" id="1_71oom"]
+
+[resource]
+script = ExtResource("1_71oom")
+w_dmg = 100.0
+metadata/_custom_type_script = "uid://c8i8k8s03qy5t"
+
+--- END FILE: Data\AI\AIAggressive.tres ---
 
 
-func _init() -> void:
-	w_dmg = 1.5
-	w_def = 0.5
-	w_tech = 1.0
-	w_cost = 0.5
-	panic_hp_threshold = 3
+--- START FILE: Data\AI\AIDefensive.tres ---
+
+[gd_resource type="Resource" script_class="AIDefensive" format=3 uid="uid://dy2ijjg40xyjk"]
+
+[ext_resource type="Script" uid="uid://d1yd85evy1sbt" path="res://Scripts/Resources/AIDefensive.gd" id="1_e8hnj"]
+
+[resource]
+script = ExtResource("1_e8hnj")
+metadata/_custom_type_script = "uid://d1yd85evy1sbt"
+
+--- END FILE: Data\AI\AIDefensive.tres ---
 
 
-## Scores an action using aggressive damage-first weighting plus MatchState context.
-func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
-	var score: float = 0.0
-	var match_state: GameManager.MatchState = GameManager.state
+--- START FILE: Data\AI\AITrickster.tres ---
 
-	var my_last_action: String = match_state.p1_last_action_name if my_id == 1 else match_state.p2_last_action_name
-	var opp_last_cost: int = match_state.p2_last_cost if my_id == 1 else match_state.p1_last_cost
+[gd_resource type="Resource" script_class="AITrickster" format=3 uid="uid://mw8p0tcapgbh"]
 
-	# 1. Anti-repetition (inverted when Very Easy picks lowest scores)
-	if card.display_name == my_last_action:
-		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
-			score += repetition_penalty
-		else:
-			score -= repetition_penalty
+[ext_resource type="Script" uid="uid://kqvbwdbta85t" path="res://Scripts/Resources/AITrickster.gd" id="1_x5tx0"]
 
-	# 2. Kill shot priority
-	if card.damage >= opp.current_hp and opp.current_hp > 0:
-		score += kill_shot_bonus
+[resource]
+script = ExtResource("1_x5tx0")
+metadata/_custom_type_script = "uid://kqvbwdbta85t"
 
-	# 3. Offensive & defensive tactical adjustments
-	if card.type == ActionData.Type.OFFENCE:
-		var opp_opening: int = match_state.p2_opening_stat if my_id == 1 else match_state.p1_opening_stat
-		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
-			score += 50.0 * w_tech
-
-		var opp_sp_ratio: float = float(opp.current_sp) / float(max(1, opp.max_sp))
-		if opp_last_cost >= 2 or opp_sp_ratio < 0.3:
-			score += float(card.damage) * 5.0 * w_dmg
-
-		if card.guard_break:
-			score += 30.0 * w_tech
-		if card.feint:
-			score += 20.0 * w_tech
-	else:
-		if opp_last_cost >= 2:
-			if card.dodge_value > 0:
-				score += 20.0 * w_def
-			if card.block_value >= 4:
-				score += 15.0 * w_def
-
-		if me.current_hp < panic_hp_threshold:
-			score += (float(card.block_value) * 10.0 * w_def) + (float(card.heal_value) * 15.0 * w_def) + (20.0 * w_def)
-
-	# 4. Base stat & stamina cost trade-off
-	score += (float(card.damage) * 5.0 * w_dmg) + (float(card.block_value) * 5.0 * w_def) + (float(card.heal_value) * 5.0 * w_def)
-	if card.tiring > 0:
-		score += float(card.tiring) * 5.0 * w_tech
-	if card.create_opening > 0:
-		score += float(card.create_opening) * 5.0 * w_tech
-
-	if card.cost > 0:
-		var my_sp_ratio: float = float(me.current_sp) / float(max(1, me.max_sp))
-		var scarcity: float = 1.0 if my_sp_ratio > 0.5 else 2.5
-		score -= float(card.cost) * (10.0 * w_cost * scarcity)
-
-	return score
-
---- END FILE: Data\AI\AIAggressive.gd ---
+--- END FILE: Data\AI\AITrickster.tres ---
 
 
 --- START FILE: Data\Classes\HeavyClass.tres ---
@@ -11346,6 +11317,7 @@ func _hide_tutorial():
 
 extends Node
 
+
 # Map Enum -> Resource Path
 var class_registry = {
 	CharacterData.ClassType.HEAVY: preload("res://Data/Classes/HeavyClass.tres"),
@@ -11420,12 +11392,25 @@ var art_patient = preload("res://Art/Portraits/Patient.png")
 var art_quick = preload("res://Art/Portraits/Quick.png")
 var art_technical = preload("res://Art/Portraits/Technical.png")
 
+const AI_PRESETS: Array[AIBehavior] = [
+	preload("res://Data/AI/AIAggressive.tres"),
+	# Add additional .tres presets here as you create them, e.g.:
+	preload("res://Data/AI/AIDefensive.tres"),
+	preload("res://Data/AI/AITrickster.tres"),
+]
+
 const HAND_LIMIT = 8
 
 var bot_names: Array[String] = []
 
 func _ready():
 	_load_bot_names()
+
+## Picks a random AI resource preset for a generated run enemy.
+func pick_random_ai_profile() -> AIBehavior:
+	if AI_PRESETS.is_empty():
+		return null
+	return AI_PRESETS.pick_random()
 
 func _load_bot_names():
 	var file_path = "res://Data/enemy_names.txt"
@@ -11454,11 +11439,13 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	
 	# 2. Create the Base Character
 	# This sets the BASE stats (e.g. 5 HP / 4 SP) from the Class Definition
-	var bot_data = create_character(selected_class, "Lv." + str(level) + " Bot")
-	
-	# --- ASSIGN RANDOM PERSONALITY ---
-	var personalities = CharacterData.AIArchetype.values()
+# Inside ClassFactory.create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
+	var bot_data: CharacterData = create_character(selected_class, "Lv." + str(level) + " Bot")
+
+	var personalities: Array = CharacterData.AIArchetype.values()
 	bot_data.ai_archetype = personalities.pick_random()
+	bot_data.ai_profile = pick_random_ai_profile()
+	print("Assigned AI Profile: ", bot_data.ai_profile.resource_path if bot_data.ai_profile else "NULL")
 	
 	# Flavor: Rank Title
 	# If level is 1 or negative, default to 0 ("Foolish")
@@ -15746,7 +15733,9 @@ func start_map_fight(node_data: MapNodeData):
 	current_map_index = RunManager.tournament_map.find(node_data)
 	
 	# 2. DUPLICATE ENEMY DATA (Critical so buffs don't permanently alter the base resource file)
-	var enemy_copy = node_data.enemy_data.duplicate(true)
+	var enemy_copy: CharacterData = node_data.enemy_data.duplicate(true)
+	if enemy_copy.ai_profile == null:
+		enemy_copy.ai_profile = ClassFactory.pick_random_ai_profile()
 	is_rival_match = false # Reset the flag for this specific fight
 	
 	# 3. RIVALRY SYSTEM (Check for Grudge Match)
@@ -17889,6 +17878,80 @@ enum Type { OFFENCE, DEFENCE }
 --- END FILE: Scripts\Resources\ActionData.gd ---
 
 
+--- START FILE: Scripts\Resources\AIAggressive.gd ---
+
+extends AIBehavior
+class_name AIAggressive
+
+
+func _init() -> void:
+	w_dmg = 1.5
+	w_def = 0.5
+	w_tech = 1.0
+	w_cost = 0.5
+	panic_hp_threshold = 3
+
+
+## Scores an action using aggressive damage-first weighting plus MatchState context.
+func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
+	var score: float = 0.0
+	var match_state: GameManager.MatchState = GameManager.state
+
+	var my_last_action: String = match_state.p1_last_action_name if my_id == 1 else match_state.p2_last_action_name
+	var opp_last_cost: int = match_state.p2_last_cost if my_id == 1 else match_state.p1_last_cost
+
+	# 1. Anti-repetition (inverted when Very Easy picks lowest scores)
+	if card.display_name == my_last_action:
+		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
+			score += repetition_penalty
+		else:
+			score -= repetition_penalty
+
+	# 2. Kill shot priority
+	if card.damage >= opp.current_hp and opp.current_hp > 0:
+		score += kill_shot_bonus
+
+	# 3. Offensive & defensive tactical adjustments
+	if card.type == ActionData.Type.OFFENCE:
+		var opp_opening: int = match_state.p2_opening_stat if my_id == 1 else match_state.p1_opening_stat
+		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
+			score += 50.0 * w_tech
+
+		var opp_sp_ratio: float = float(opp.current_sp) / float(max(1, opp.max_sp))
+		if opp_last_cost >= 2 or opp_sp_ratio < 0.3:
+			score += float(card.damage) * 5.0 * w_dmg
+
+		if card.guard_break:
+			score += 30.0 * w_tech
+		if card.feint:
+			score += 20.0 * w_tech
+	else:
+		if opp_last_cost >= 2:
+			if card.dodge_value > 0:
+				score += 20.0 * w_def
+			if card.block_value >= 4:
+				score += 15.0 * w_def
+
+		if me.current_hp < panic_hp_threshold:
+			score += (float(card.block_value) * 10.0 * w_def) + (float(card.heal_value) * 15.0 * w_def) + (20.0 * w_def)
+
+	# 4. Base stat & stamina cost trade-off
+	score += (float(card.damage) * 5.0 * w_dmg) + (float(card.block_value) * 5.0 * w_def) + (float(card.heal_value) * 5.0 * w_def)
+	if card.tiring > 0:
+		score += float(card.tiring) * 5.0 * w_tech
+	if card.create_opening > 0:
+		score += float(card.create_opening) * 5.0 * w_tech
+
+	if card.cost > 0:
+		var my_sp_ratio: float = float(me.current_sp) / float(max(1, me.max_sp))
+		var scarcity: float = 1.0 if my_sp_ratio > 0.5 else 2.5
+		score -= float(card.cost) * (10.0 * w_cost * scarcity)
+
+	return score
+
+--- END FILE: Scripts\Resources\AIAggressive.gd ---
+
+
 --- START FILE: Scripts\Resources\AIBehavior.gd ---
 
 extends Resource
@@ -17914,6 +17977,180 @@ func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id
 	return 0.0
 
 --- END FILE: Scripts\Resources\AIBehavior.gd ---
+
+
+--- START FILE: Scripts\Resources\AIDefensive.gd ---
+
+extends AIBehavior
+class_name AIDefensive
+
+
+func _init() -> void:
+	w_dmg = 0.7
+	w_def = 1.5
+	w_tech = 1.0
+	w_cost = 1.2
+	panic_hp_threshold = 5
+
+
+## Scores an action using defensive mitigation, recovery, and momentum preservation.
+func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
+	var score: float = 0.0
+	var match_state: GameManager.MatchState = GameManager.state
+
+	var my_last_action: String = match_state.p1_last_action_name if my_id == 1 else match_state.p2_last_action_name
+	var opp_last_cost: int = match_state.p2_last_cost if my_id == 1 else match_state.p1_last_cost
+
+	# 1. Anti-repetition (inverted when Very Easy picks lowest scores)
+	if card.display_name == my_last_action:
+		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
+			score += repetition_penalty
+		else:
+			score -= repetition_penalty
+
+	# 2. Kill shot priority
+	if card.damage >= opp.current_hp and opp.current_hp > 0:
+		score += kill_shot_bonus
+
+	# 3. Defensive & offensive tactical adjustments
+	if card.type == ActionData.Type.DEFENCE:
+		score += 10.0 * w_def
+		if opp_last_cost >= 2:
+			if card.dodge_value > 0:
+				score += 20.0 * w_def
+			if card.block_value >= 4:
+				score += 15.0 * w_def
+		elif opp_last_cost <= 1:
+			if card.cost >= 2:
+				score -= 15.0 * w_cost
+			if card.block_value > 0 and card.cost <= 1:
+				score += 10.0 * w_def
+
+		if card.reversal and opp.current_hp <= 5:
+			score += 15.0 * w_tech
+		if card.recover_value > 0 or card.heal_value > 0:
+			score += (float(card.recover_value) + float(card.heal_value)) * 6.0 * w_def
+	else:
+		var opp_opening: int = match_state.p2_opening_stat if my_id == 1 else match_state.p1_opening_stat
+		if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
+			score += 50.0 * w_tech
+
+		var opp_sp_ratio: float = float(opp.current_sp) / float(max(1, opp.max_sp))
+		if opp_last_cost >= 2 or opp_sp_ratio < 0.3:
+			score += float(card.damage) * 5.0 * w_dmg
+
+		if card.guard_break:
+			score += 25.0 * w_tech
+
+	# 4. Survival instinct & Struggle SP management
+	if me.current_hp < panic_hp_threshold:
+		score += (float(card.block_value) * 10.0 * w_def) + (float(card.heal_value) * 15.0 * w_def) + (20.0 * w_def)
+
+	if card.display_name == "Struggle":
+		if me.current_sp <= 1:
+			score += 50.0
+		elif me.current_sp >= me.max_sp:
+			score -= 50.0
+
+	# 5. Base stat & stamina cost trade-off
+	score += (float(card.damage) * 5.0 * w_dmg) + (float(card.block_value) * 5.0 * w_def) + (float(card.heal_value) * 5.0 * w_def)
+	if card.fall_back_value > 0:
+		score += float(card.fall_back_value) * 6.0 * w_def
+	if card.tiring > 0:
+		score += float(card.tiring) * 5.0 * w_tech
+	if card.create_opening > 0:
+		score += float(card.create_opening) * 5.0 * w_tech
+
+	if card.cost > 0:
+		var my_sp_ratio: float = float(me.current_sp) / float(max(1, me.max_sp))
+		var scarcity: float = 1.0 if my_sp_ratio > 0.5 else 2.5
+		score -= float(card.cost) * (10.0 * w_cost * scarcity)
+
+	return score
+
+--- END FILE: Scripts\Resources\AIDefensive.gd ---
+
+
+--- START FILE: Scripts\Resources\AITrickster.gd ---
+
+extends AIBehavior
+class_name AITrickster
+
+
+func _init() -> void:
+	w_dmg = 0.8
+	w_def = 0.8
+	w_tech = 1.5
+	w_cost = 1.0
+	panic_hp_threshold = 3
+
+
+## Scores an action prioritizing openings, counters, feints, status/SP drain, and reversals.
+func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
+	var score: float = 0.0
+	var match_state: GameManager.MatchState = GameManager.state
+
+	var my_last_action: String = match_state.p1_last_action_name if my_id == 1 else match_state.p2_last_action_name
+	var opp_last_cost: int = match_state.p2_last_cost if my_id == 1 else match_state.p1_last_cost
+
+	# 1. Anti-repetition (inverted when Very Easy picks lowest scores)
+	if card.display_name == my_last_action:
+		if GameManager.ai_difficulty == GameManager.Difficulty.VERY_EASY:
+			score += repetition_penalty
+		else:
+			score -= repetition_penalty
+
+	# 2. Kill shot priority
+	if card.damage >= opp.current_hp and opp.current_hp > 0:
+		score += kill_shot_bonus
+
+	# 3. Trickster tactical scoring (counters, openings, feints, reversals, dodges)
+	var opp_opening: int = match_state.p2_opening_stat if my_id == 1 else match_state.p1_opening_stat
+	if opp_opening > 0 and card.counter_value > 0 and card.counter_value <= opp_opening:
+		score += 55.0 * w_tech
+
+	if card.create_opening > 0:
+		score += float(card.create_opening) * 8.0 * w_tech
+	if card.feint:
+		score += 18.0 * w_tech
+	if card.guard_break:
+		score += 25.0 * w_tech
+	if card.tiring > 0:
+		score += float(card.tiring) * 8.0 * w_tech
+	if card.opportunity > 0:
+		score += float(card.opportunity) * 8.0 * w_tech
+
+	if card.type == ActionData.Type.DEFENCE:
+		if opp_last_cost >= 2 and card.dodge_value > 0:
+			score += 22.0 * w_def
+		if card.reversal and opp.current_hp <= 6:
+			score += 20.0 * w_tech
+	else:
+		var opp_sp_ratio: float = float(opp.current_sp) / float(max(1, opp.max_sp))
+		if opp_last_cost >= 2 or opp_sp_ratio < 0.35:
+			score += float(card.damage) * 5.0 * w_dmg
+
+	# 4. Survival instinct & Struggle SP management
+	if me.current_hp < panic_hp_threshold:
+		score += (float(card.block_value) * 10.0 * w_def) + (float(card.heal_value) * 15.0 * w_def) + (20.0 * w_def)
+
+	if card.display_name == "Struggle":
+		if me.current_sp <= 1:
+			score += 50.0
+		elif me.current_sp >= me.max_sp:
+			score -= 50.0
+
+	# 5. Base stat & stamina cost trade-off
+	score += (float(card.damage) * 5.0 * w_dmg) + (float(card.block_value) * 5.0 * w_def) + (float(card.heal_value) * 5.0 * w_def)
+
+	if card.cost > 0:
+		var my_sp_ratio: float = float(me.current_sp) / float(max(1, me.max_sp))
+		var scarcity: float = 1.0 if my_sp_ratio > 0.5 else 2.5
+		score -= float(card.cost) * (10.0 * w_cost * scarcity)
+
+	return score
+
+--- END FILE: Scripts\Resources\AITrickster.gd ---
 
 
 --- START FILE: Scripts\Resources\BaseModifierData.gd ---
@@ -19942,3 +20179,6 @@ func _scan_directory(path: String, indent: String) -> String:
 
 --- END FILE: Scripts\Tools\StructureExporter.gd ---
 
+
+
+& "C:/Users/js24afn/AppData/Local/Programs/antigravity/Antigravity.exe" "C:\Users\js24afn\Documents\GitHub\clash-\Scripts\ClassFactory.gd"

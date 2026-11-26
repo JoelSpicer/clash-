@@ -16,6 +16,6 @@ class_name AIBehavior
 
 ## Evaluates how desirable [param card] is for [param me] against [param opp].
 ## Override in subclasses for archetype-specific scoring rules.
-func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id: int) -> float:
+func score_action(_card: ActionData, _me: CharacterData, _opp: CharacterData, _my_id: int) -> float:
 	push_error("AIBehavior.score_action() must be overridden by a subclass.")
 	return 0.0

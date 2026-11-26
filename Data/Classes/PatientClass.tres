@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://bpk3oy5rf8g3w"]
 
 [ext_resource type="Script" uid="uid://bg3yi5728wpap" path="res://Scripts/Resources/ClassDefinition.gd" id="1_1dmwk"]
-[ext_resource type="Texture2D" uid="uid://ba7852i08m1lw" path="res://Art/Portraits/Patient.png" id="1_47x7k"]
+[ext_resource type="Texture2D" uid="uid://ba7852i08m1lw" path="res://Art/Portraits/patient.png" id="1_47x7k"]
 [ext_resource type="Script" uid="uid://do7xex2nkfrer" path="res://Scripts/Resources/ActionData.gd" id="2_7e45r"]
 [ext_resource type="Resource" uid="uid://cvichi2xf1plu" path="res://Data/Actions/preparation.tres" id="12_aabbj"]
 [ext_resource type="Resource" uid="uid://dww40yaqty63w" path="res://Data/Actions/counter_strike.tres" id="13_2vuc8"]

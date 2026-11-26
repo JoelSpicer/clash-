@@ -70,14 +70,14 @@ const RANK_TITLES = [
 	"Godly"         # Level 20+
 ]
 
-var art_heavy = preload("res://Art/Portraits/Heavy.png") 
-var art_patient = preload("res://Art/Portraits/Patient.png")
-var art_quick = preload("res://Art/Portraits/Quick.png")
-var art_technical = preload("res://Art/Portraits/Technical.png")
+var art_heavy = preload("res://Art/Portraits/heavy.png")
+var art_patient = preload("res://Art/Portraits/patient.png")
+var art_quick = preload("res://Art/Portraits/quick.png")
+var art_technical = preload("res://Art/Portraits/technical.png")
 
 const AI_PRESETS: Array[AIBehavior] = [
 	preload("res://Data/AI/AIAggressive.tres"),
-	# Add additional .tres presets here as you create them, e.g.:
+	preload("res://Data/AI/AIBalanced.tres"),
 	preload("res://Data/AI/AIDefensive.tres"),
 	preload("res://Data/AI/AITrickster.tres"),
 ]
@@ -124,9 +124,6 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 	# This sets the BASE stats (e.g. 5 HP / 4 SP) from the Class Definition
 # Inside ClassFactory.create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
 	var bot_data: CharacterData = create_character(selected_class, "Lv." + str(level) + " Bot")
-
-	var personalities: Array = CharacterData.AIArchetype.values()
-	bot_data.ai_archetype = personalities.pick_random()
 	bot_data.ai_profile = pick_random_ai_profile()
 	print("Assigned AI Profile: ", bot_data.ai_profile.resource_path if bot_data.ai_profile else "NULL")
 	
@@ -200,7 +197,7 @@ func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> Cha
 					unlockable_options.append(neighbor)
 	
 	# 4. SELECT SMART HAND
-	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions, bot_data.ai_archetype)
+	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions)
 	
 	# ---------------------------------------------------------
 	# 5. NEW STAT SCALING (LINEAR GROWTH - SKIPPING ZERO)
@@ -257,7 +254,7 @@ func _has_card(list: Array, card: ActionData) -> bool:
 		if c.display_name == card.display_name: return true
 	return false
 
-func _select_smart_hand(pool: Array[ActionData], _archetype: CharacterData.AIArchetype) -> Array[ActionData]:
+func _select_smart_hand(pool: Array[ActionData]) -> Array[ActionData]:
 	# If we have 8 or fewer, just take them all
 	if pool.size() <= HAND_LIMIT:
 		return pool.duplicate()
@@ -357,7 +354,11 @@ func create_character(type: CharacterData.ClassType, player_name: String, bypass
 		char_data.deck = char_data.unlocked_actions.duplicate()
 	else:
 		# Standard 8-card cull for Bots/Arcade enemies
-		char_data.deck = _select_smart_hand(char_data.unlocked_actions, char_data.ai_archetype)
+		char_data.deck = _select_smart_hand(char_data.unlocked_actions)
+	
+	# Assign a random modular AI profile by default (can be overridden by bosses/presets)
+	if char_data.ai_profile == null:
+		char_data.ai_profile = pick_random_ai_profile()
 	
 	char_data.reset_stats()
 	return char_data

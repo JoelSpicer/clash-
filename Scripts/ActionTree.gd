@@ -573,7 +573,7 @@ func _on_confirm_button_pressed():
 		
 		# 4. NAME & ASSIGN
 		if GameManager.editing_player_index == 1:
-			var p1_name = GameManager.get("temp_p1_name")
+			var p1_name: String = GameManager.match_config.p1_name
 			final_character.character_name = p1_name if p1_name != "" else "Player 1"
 			GameManager.next_match_p1_data = final_character
 			
@@ -582,7 +582,7 @@ func _on_confirm_button_pressed():
 				_setup_for_current_player()
 				return 
 		else:
-			var p2_name = GameManager.get("temp_p2_name")
+			var p2_name: String = GameManager.match_config.p2_name
 			final_character.character_name = p2_name if p2_name != "" else "Player 2"
 			GameManager.next_match_p2_data = final_character
 
@@ -604,10 +604,7 @@ func _on_back_button_pressed():
 	GameManager.next_match_p2_data = null
 	GameManager.editing_player_index = 1
 	GameManager.p2_is_custom = false
-	GameManager.temp_p1_preset = null
-	GameManager.temp_p2_preset = null
-	GameManager.temp_p1_name = ""
-	GameManager.temp_p2_name = ""
+	GameManager.match_config.reset()
 	SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
 
 func _try_deselect_action(id_to_remove: int):
@@ -641,28 +638,27 @@ func _try_deselect_action(id_to_remove: int):
 	_recalculate_stats()
 	_refresh_loadout_manager()
 
-func _setup_for_current_player():
-	var target_selection = 0
+func _setup_for_current_player() -> void:
+	var target_selection: int = 0
 	if GameManager.editing_player_index == 1:
-		target_selection = GameManager.get("temp_p1_class_selection")
+		target_selection = GameManager.match_config.p1_class_selection
 	else:
-		target_selection = GameManager.get("temp_p2_class_selection")
+		target_selection = GameManager.match_config.p2_class_selection
 		
 	owned_ids.clear()
 	unlocked_ids.clear()
 	is_class_locked = false
 	
-	if target_selection != null:
-		var node_id = 0
-		match target_selection:
-			0: node_id = 76 
-			1: node_id = 75 
-			2: node_id = 73 
-			3: node_id = 74 
-			
-		if node_id != 0:
-			_select_class(node_id)
-			is_class_locked = true 
+	var node_id: int = 0
+	match target_selection:
+		0: node_id = 76
+		1: node_id = 75
+		2: node_id = 73
+		3: node_id = 74
+		
+	if node_id != 0:
+		_select_class(node_id)
+		is_class_locked = true 
 			
 	_refresh_loadout_manager()
 	_update_tree_visuals()
