@@ -356,31 +356,24 @@ func _load_sponsors():
 	sponsor_option.add_item("No Sponsor")
 	available_sponsors.append(null)
 	
-	var dir_path = "res://Data/Sponsors/"
-	
-	# Make sure the folder exists!
-	if not DirAccess.dir_exists_absolute(dir_path):
-		DirAccess.make_dir_absolute(dir_path)
-		return
-		
-	var dir = DirAccess.open(dir_path)
+	var dir_path: String = "res://Data/Sponsors/"
+	var seen: Dictionary = {}
+	var dir: DirAccess = DirAccess.open(dir_path)
 	if dir:
 		dir.list_dir_begin()
-		var file_name = dir.get_next()
+		var file_name: String = dir.get_next()
 		while file_name != "":
 			if not dir.current_is_dir():
-				# --- FIX: Handle Godot's Export Renaming ---
-				var clean_name = file_name.replace(".remap", "")
-				
-				if clean_name.ends_with(".tres") or clean_name.ends_with(".res"):
-					# Load using the clean name, Godot's resource loader handles the rest
-					var sponsor = load(dir_path + clean_name) as SponsorData
+				var clean_name: String = file_name.replace(".remap", "")
+				if (clean_name.ends_with(".tres") or clean_name.ends_with(".res")) and not seen.has(clean_name):
+					seen[clean_name] = true
+					var sponsor: SponsorData = load(dir_path + clean_name) as SponsorData
 					if sponsor:
 						if sponsor.item_name in RunManager.meta_data.unlocked_sponsors or sponsor.item_name == "CRASH Supplements" or sponsor.item_name == "SLAM Supplements":
 							available_sponsors.append(sponsor)
 							sponsor_option.add_item(sponsor.item_name)
-				# -------------------------------------------
 			file_name = dir.get_next()
+		dir.list_dir_end()
 			
 	# --- NEW: CONNECT SIGNAL AND INITIALIZE ---
 	if not sponsor_option.item_selected.is_connected(_on_sponsor_selected):

@@ -27,7 +27,8 @@ func _process(delta: float) -> void:
 		last_RT = curStream.ReverbTail
 		
 		for cur_play in current_playbacks:
-			curPoly.stop_stream(cur_play)
+			if curPoly.is_stream_playing(cur_play):
+				curPoly.stop_stream(cur_play)
 		current_playbacks = []
 		
 		curTime = 0
@@ -39,7 +40,9 @@ func _process(delta: float) -> void:
 		if (curTime > cur_song_length):
 			current_playbacks.append(curPoly.play_stream(curStream.Song))
 			if len(current_playbacks) > 2:
-				curPoly.stop_stream(current_playbacks.pop_front())
+				var old_id: int = current_playbacks.pop_front()
+				if curPoly.is_stream_playing(old_id):
+					curPoly.stop_stream(old_id)
 			curTime = 0
 	
 	curTime += delta * Engine.time_scale

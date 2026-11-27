@@ -259,15 +259,19 @@ func handle_loss() -> void:
 ## Loads all BossModifierData resources from BOSS_MODIFIERS_DIR.
 func get_all_boss_modifiers() -> Array[EquipmentData]:
 	var list: Array[EquipmentData] = []
+	var seen: Dictionary = {}
 	var dir: DirAccess = DirAccess.open(BOSS_MODIFIERS_DIR)
 	if dir:
 		dir.list_dir_begin()
 		var file: String = dir.get_next()
 		while file != "":
-			if not dir.current_is_dir() and file.ends_with(".tres"):
-				var res: Resource = load(BOSS_MODIFIERS_DIR + file)
-				if res is EquipmentData:
-					list.append(res as EquipmentData)
+			if not dir.current_is_dir():
+				var clean_file: String = file.replace(".remap", "")
+				if (clean_file.ends_with(".tres") or clean_file.ends_with(".res")) and not seen.has(clean_file):
+					seen[clean_file] = true
+					var res: Resource = load(BOSS_MODIFIERS_DIR + clean_file)
+					if res is EquipmentData:
+						list.append(res as EquipmentData)
 			file = dir.get_next()
 		dir.list_dir_end()
 	return list
@@ -295,15 +299,19 @@ func pick_boss_modifiers(count: int, exclude: Array[EquipmentData] = []) -> Arra
 
 func get_all_equipment() -> Array[EquipmentData]:
 	var list: Array[EquipmentData] = []
+	var seen: Dictionary = {}
 	var dir: DirAccess = DirAccess.open(EQUIPMENT_DIR)
 	if dir:
 		dir.list_dir_begin()
 		var file: String = dir.get_next()
 		while file != "":
-			if file.ends_with(".tres") or file.ends_with(".res"):
-				var res: Resource = load(EQUIPMENT_DIR + file)
-				if res is EquipmentData:
-					list.append(res as EquipmentData)
+			if not dir.current_is_dir():
+				var clean_file: String = file.replace(".remap", "")
+				if (clean_file.ends_with(".tres") or clean_file.ends_with(".res")) and not seen.has(clean_file):
+					seen[clean_file] = true
+					var res: Resource = load(EQUIPMENT_DIR + clean_file)
+					if res is EquipmentData:
+						list.append(res as EquipmentData)
 			file = dir.get_next()
 		dir.list_dir_end()
 	return list

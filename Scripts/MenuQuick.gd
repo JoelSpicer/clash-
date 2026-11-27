@@ -50,11 +50,15 @@ func _load_presets() -> void:
 		return
 
 	var filenames: Array[String] = []
+	var seen: Dictionary = {}
 	dir.list_dir_begin()
 	var file_name: String = dir.get_next()
 	while file_name != "":
-		if not dir.current_is_dir() and (file_name.ends_with(".tres") or file_name.ends_with(".res")):
-			filenames.append(file_name)
+		if not dir.current_is_dir():
+			var clean_name: String = file_name.replace(".remap", "")
+			if (clean_name.ends_with(".tres") or clean_name.ends_with(".res")) and not seen.has(clean_name):
+				seen[clean_name] = true
+				filenames.append(clean_name)
 		file_name = dir.get_next()
 	dir.list_dir_end()
 

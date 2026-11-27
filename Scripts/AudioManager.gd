@@ -43,6 +43,7 @@ func _ready():
 	
 	# 2. Setup Heartbeat (Unchanged)
 	heartbeat_player = AudioStreamPlayer.new()
+	heartbeat_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	heartbeat_player.stream = preload("res://Audio/SFX/heartbeat.wav")
 	heartbeat_player.bus = "SFX"
 	heartbeat_player.volume_db = 5.0 
@@ -89,17 +90,22 @@ func play_location_music(env_name: String):
 	
 	play_music(target_key, 2.0)
 
-# --- PUBLIC FUNCTION: SFX (Keep exactly as is) ---
+# --- PUBLIC FUNCTION: SFX ---
 func play_sfx(key: String, pitch_variance: float = 0.0):
 	if not sounds.has(key): return
 	var stream = sounds[key]
-	var player = _get_available_player()
+	var player = _get_available_player(stream)
 	if player:
-		player.stream = stream
+		if player.stream != stream:
+			player.stream = stream
 		player.pitch_scale = randf_range(1.0 - pitch_variance, 1.0 + pitch_variance) if pitch_variance > 0 else 1.0
 		player.play()
 
-func _get_available_player() -> AudioStreamPlayer:
+func _get_available_player(preferred_stream: AudioStream = null) -> AudioStreamPlayer:
+	if preferred_stream != null:
+		for p in sfx_players:
+			if not p.playing and p.stream == preferred_stream:
+				return p
 	for p in sfx_players:
 		if not p.playing: return p
 	var p = sfx_players.pop_front()
@@ -118,14 +124,10 @@ func set_danger_mode(active: bool):
 		music_player.FadeVolume(-5.0, 1.0) 
 	else:
 		# 1. Stop heartbeat
-		heartbeat_player.stop()
+		if heartbeat_player and heartbeat_player.playing:
+			heartbeat_player.stop()
 		# 2. Restore full volume
 		music_player.FadeVolume(0.0, 1.0)
-
-# This is the function RunManager is looking for!
-# Inside AudioManager.gd
-
-# Inside AudioManager.gd
 
 func reset_audio_state():
 	set_danger_mode(false) 
@@ -134,10 +136,9 @@ func reset_audio_state():
 	if GlobalCinematics.has_method("set_danger_vignette"):
 		GlobalCinematics.set_danger_vignette(false)
 		
-	# CHANGE THIS AS WELL:
 	if music_player: 
-		# music_player.Stop(0.5)  <-- WRONG
-		music_player.StopSongsNow(0.5) # <-- CORRECT
+		music_player.StopSongsNow(0.5)
+	current_music_key = ""
 
 # Inside AudioManager.gd
 

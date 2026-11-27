@@ -1,5 +1,5 @@
 @tool
-@icon("res://OvaniPlugin/OvaniPlayerIcon.png")
+@icon("res://addons/OvaniPlugin/OvaniPlayerIcon.png")
 class_name OvaniPlayer
 ## The OvaniPlayer will let you easily Manage dynamic music in your game, via [OvaniSong]s.
 ## 
@@ -73,7 +73,7 @@ func PlaySongNow(song : OvaniSong, transitionTime : float = -1):
 			_soundManagers[0].FadeOut = transitionTime
 
 ## Clears the song queue, and optionally fades to silence.
-func StopSongsNow(transition_time : int = 0):
+func StopSongsNow(transition_time : float = 0.0):
 	if (len(QueuedSongs) > 0):
 		QueuedSongs = [QueuedSongs[0]]
 		PlaySongNow(null, transition_time)
@@ -108,7 +108,8 @@ class PolySoundManager:
 				#MyStream.set_stream_volume(Ids[i], linear_to_db(db_to_linear(value) * max((.5 - abs((i as float)/2 - realIntensity))/.5, 0)));
 				# --- FIX 1: Prevent -Infinity Audio Crash ---
 				var safe_linear = db_to_linear(value) * max((.5 - abs((i as float)/2 - realIntensity))/.5, 0)
-				MyStream.set_stream_volume(Ids[i], linear_to_db(max(safe_linear, 0.00001)))
+				if MyStream != null and MyStream.is_stream_playing(Ids[i]):
+					MyStream.set_stream_volume(Ids[i], linear_to_db(max(safe_linear, 0.00001)))
 # --------------------------------------------
 			Volume = value;
 	var Intensity : float:
@@ -152,6 +153,9 @@ func _constructPolySoundManager(song : OvaniSong) -> PolySoundManager:
  
 func _ready():
 	_audioPlayer = AudioStreamPlayer.new();
+	# Force STREAM playback so Web exports don't route AudioStreamPolyphonic music
+	# through Web Audio Sample playback (which errors with null p_playback on stop_stream).
+	_audioPlayer.playback_type = AudioServer.PLAYBACK_TYPE_STREAM;
 	_audioPlayer.stream = AudioStreamPolyphonic.new();
 	add_child(_audioPlayer, INTERNAL_MODE_BACK);
 	_audioPlayer.owner = null;
@@ -256,7 +260,8 @@ func _process(delta):
 				if (remainingTime < 0):
 					_soundManagers.erase(psm);
 					for id in psm.Ids:
-						psm.MyStream.stop_stream(id);
+						if psm.MyStream != null and psm.MyStream.is_stream_playing(id):
+							psm.MyStream.stop_stream(id);
 					if (psm.StartedNextState == NextState.StartedDifferent):
 						var leavingSong : OvaniSong = QueuedSongs.pop_front()
 						if LoopQueue:

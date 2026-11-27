@@ -1,5 +1,5 @@
 @tool
-@icon("res://OvaniPlugin/OvaniPlayerIcon.png")
+@icon("res://addons/OvaniPlugin/OvaniPlayerIcon.png")
 class_name OvaniSong
 ## The OvaniSong Holds onto all your music variants, for use with the [OvaniPlayer].
 extends Resource

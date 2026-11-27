@@ -459,12 +459,32 @@ func _refresh_grid() -> void:
 	if current_deck == null or current_deck.is_empty():
 		return
 
+	var entries: Array[Dictionary] = []
 	for card: ActionData in current_deck:
 		if card == null or card.type != current_tab:
 			continue
 		var final_cost: int = _calculate_card_cost(card)
 		var is_valid: bool = _check_card_validity(card, final_cost)
-		_spawn_card_button(card, final_cost, is_valid, Color.WHITE)
+		entries.append({ "card": card, "cost": final_cost, "valid": is_valid })
+
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var a_valid: bool = bool(a["valid"])
+		var b_valid: bool = bool(b["valid"])
+		if a_valid != b_valid:
+			return a_valid
+		var a_cost: int = int(a["cost"])
+		var b_cost: int = int(b["cost"])
+		if a_cost != b_cost:
+			return a_cost < b_cost
+		var a_card: ActionData = a["card"] as ActionData
+		var b_card: ActionData = b["card"] as ActionData
+		if a_card.cost != b_card.cost:
+			return a_card.cost < b_card.cost
+		return a_card.display_name < b_card.display_name
+	)
+
+	for entry: Dictionary in entries:
+		_spawn_card_button(entry["card"] as ActionData, int(entry["cost"]), bool(entry["valid"]), Color.WHITE)
 
 	var hide_struggle: bool = false
 	if TutorialManager.is_tutorial_active:
