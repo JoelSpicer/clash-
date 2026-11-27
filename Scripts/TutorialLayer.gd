@@ -5,7 +5,7 @@ extends CanvasLayer
 @onready var continue_btn: Button = $MessageBox/MarginContainer/VBoxContainer/ContinueButton
 
 # We fetch the BattleUI dynamically so we can locate the UI elements
-@onready var battle_ui: Node = $"../TestArena/BattleUI"
+@onready var battle_ui: Node = $"../CombatArena/BattleUI"
 
 var skip_btn: Button
 

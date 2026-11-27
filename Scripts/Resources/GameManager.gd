@@ -1127,7 +1127,7 @@ func receive_state_snapshot(snapshot: Dictionary) -> void:
 	var p1_card_name: String = ms_data.get("p1_locked_card_name", "")
 	var p2_card_name: String = ms_data.get("p2_locked_card_name", "")
 	
-	# (Assuming you expose or move _find_card_by_name from TestArena to GameManager, 
+	# (Assuming you expose or move _find_card_by_name from CombatArena to GameManager, 
 	#  or have ClassFactory fetch them)
 	state.p1_locked_card = ClassFactory.find_action_resource(p1_card_name) if p1_card_name != "" else null
 	state.p2_locked_card = ClassFactory.find_action_resource(p2_card_name) if p2_card_name != "" else null

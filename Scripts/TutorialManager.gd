@@ -196,7 +196,7 @@ func setup_and_start_tutorial(tutorial_id: String):
 	GameManager.ai_difficulty = GameManager.Difficulty.MEDIUM
 
 	print("--- TUTORIAL STARTED: ", tutorial_id, " ---")
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/CombatArena.tscn")
 
 # --- NEW: DECK GENERATOR ---
 # This builds a perfectly balanced basic deck in memory for the tutorial.

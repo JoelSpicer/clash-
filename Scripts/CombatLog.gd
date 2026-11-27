@@ -274,7 +274,7 @@ func _on_visibility_changed():
 	if visible:
 		_auto_scroll()
 
-# --- NEW FUNCTION: This is what TestArena calls to get the text ---
+# --- NEW FUNCTION: This is what CombatArena calls to get the text ---
 func get_log_text() -> String:
 	var full_log_string = ""
 	

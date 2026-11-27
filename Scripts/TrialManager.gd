@@ -117,7 +117,7 @@ func start_trial(trial_id: String) -> void:
 		AudioManager.play_location_music(trial.environment)
 
 	print("--- DOJO TRIAL STARTED: ", trial.id, " (", trial.title, ") ---")
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/CombatArena.tscn")
 
 
 func retry_trial() -> void:
@@ -157,7 +157,7 @@ func clear_active_trial() -> void:
 	_unbind_combat_signals()
 
 
-## Called by TestArena._ready() right after GameManager.reset_combat().
+## Called by CombatArena._ready() right after GameManager.reset_combat().
 func apply_trial_initial_state() -> void:
 	if not is_trial_active or active_trial == null:
 		return

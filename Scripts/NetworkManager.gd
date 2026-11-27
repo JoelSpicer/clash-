@@ -200,7 +200,7 @@ func start_match(p1_path: String, p2_path: String, p1_id: int, p2_id: int) -> vo
 	GameManager.next_match_p2_data = ClassFactory.create_from_preset(p2_preset, true)
 	
 	# Change the scene to the Arena
-	get_tree().change_scene_to_file("res://Scenes/MainScene.tscn")
+	get_tree().change_scene_to_file("res://Scenes/CombatArena.tscn")
 #endregion
 
 #region Scene & Animation Syncing
@@ -222,7 +222,7 @@ func client_finished_loading() -> void:
 	print("Server: Player ", sender_id, " is in the arena and ready!")
 	_try_begin_combat_phase()
 
-## Called locally by the dedicated server's TestArena once reset_combat() completes.
+## Called locally by the dedicated server's CombatArena once reset_combat() completes.
 func notify_server_arena_ready() -> void:
 	if not multiplayer.is_server():
 		return

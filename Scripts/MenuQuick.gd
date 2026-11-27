@@ -172,5 +172,5 @@ func _on_fight_pressed() -> void:
 	GameManager.next_match_p1_data = p1
 	GameManager.next_match_p2_data = p2
 
-	# 5. Launch VS Screen -> MainScene
+	# 5. Launch VS Screen -> CombatArena
 	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")

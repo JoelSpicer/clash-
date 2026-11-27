@@ -65,7 +65,7 @@ func _ready():
 	
 	# The intro takes about 4 seconds total, load fight after 5
 	await get_tree().create_timer(7.0).timeout
-	SceneLoader.change_scene("res://Scenes/MainScene.tscn")
+	SceneLoader.change_scene("res://Scenes/CombatArena.tscn")
 
 func _setup_visuals():
 	var env_name = GameManager.current_environment_name
