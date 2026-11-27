@@ -182,8 +182,21 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 					battle_ui.call("show_trial_result", outcome)
 					return
 			if TutorialManager.is_tutorial_active:
-				TutorialManager.advance_step()
+				var tutorial_finished: bool = TutorialManager.advance_step()
+				if tutorial_finished:
+					_simulation_active = false
+					battle_ui.call("lock_ui")
+					_finish_tutorial_sequence()
+					return
 			_print_status_report()
+
+
+func _finish_tutorial_sequence() -> void:
+	await get_tree().create_timer(0.35).timeout
+	var outro: Dictionary = TutorialManager.get_outro_data()
+	tutorial_layer.call("show_message", str(outro.get("text", "Tutorial complete!")), null, str(outro.get("button", "Continue")), false)
+	await tutorial_layer.tutorial_message_closed
+	TutorialManager.end_tutorial()
 
 
 func _start_turn_sequence() -> void:

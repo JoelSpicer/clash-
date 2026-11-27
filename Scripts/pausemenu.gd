@@ -59,6 +59,7 @@ func _on_main_menu_pressed() -> void:
 
 	# 3. Reset tutorial, trial, audio, and visual states so nothing bleeds into the menu
 	TutorialManager.is_tutorial_active = false
+	TutorialManager.active_tutorial_id = ""
 	TutorialManager.current_step = 0
 	TutorialManager.active_script.clear()
 	TrialManager.clear_active_trial()

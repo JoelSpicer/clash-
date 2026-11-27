@@ -1,6 +1,7 @@
 extends Node
 
 var is_tutorial_active: bool = false
+var active_tutorial_id: String = ""
 var current_step: int = 0
 var active_script: Array = []
 
@@ -76,12 +77,14 @@ const SCRIPTS = {
 			},
 			{
 				# TURN 8: Finale 2
-				"sensei_text": "Most actions are variations and combinations of these traits, however there are some more advanced traits too! You can view every action and trait in the compendium, accessible by going left from The Circuit menu, or by clicking the '?' button in the bottom right of the screen during a combat.",
+				"sensei_text": "Most actions are variations and combinations of these traits, however there are some more advanced traits too! You can view every action and trait in the Compendium, practice every interaction and Class Passive in Dojo Trials on the main hub, or click the '?' button in the bottom right during combat.",
 				"bot_card": "Basic Block",
 				"player_card": "Basic Light",
 				"highlight": "card:Basic Light"
 			}
-		]
+		],
+		"outro_text": "Well done, Student! You've completed your basic training.\n\nReady to master every trait interaction, Class Passive, and tactical puzzle? Visit [color=yellow]Dojo Trials[/color] on the main hub to earn bonus Circuit Tokens!",
+		"outro_button": "Finish Tutorial"
 	},
 	
 	"begin": {
@@ -130,7 +133,9 @@ const SCRIPTS = {
 				"player_card": "Basic Positioning",
 				"highlight": "card:Basic Positioning"
 			},
-		]
+		],
+		"outro_text": "Alright, alright — [color=yellow]The Circuit[/color] is right through those doors! Head in to start a run, jump into Quick Match, or test your skills in [color=cyan]Dojo Trials[/color] to learn every trait interaction.",
+		"outro_button": "Enter The Circuit"
 	}
 }
 
@@ -143,10 +148,18 @@ func setup_and_start_tutorial(tutorial_id: String):
 	var tutorial_data = SCRIPTS[tutorial_id]
 	var config = tutorial_data["config"]
 
-	# 1. Set the Active Script
+	# 1. Set the Active Script & Clear Conflicting Mode State
+	active_tutorial_id = tutorial_id
 	active_script = tutorial_data["steps"]
 	is_tutorial_active = true
 	current_step = 0
+	TrialManager.clear_active_trial()
+	RunManager.is_arcade_mode = false
+	RunManager.is_boss_match = false
+	RunManager.is_rival_match = false
+	RunManager.active_sponsor = null
+	RunManager.active_gym_buff = ""
+	RunManager.next_fight_statuses.clear()
 
 	# 2. Create Fighters with Configured Stats
 	var p1 = CharacterData.new()
@@ -229,23 +242,38 @@ func get_current_data() -> Dictionary:
 		return active_script[current_step]
 	return {}
 
-func advance_step():
+func get_outro_data() -> Dictionary:
+	if SCRIPTS.has(active_tutorial_id):
+		var script_entry: Dictionary = SCRIPTS[active_tutorial_id]
+		return {
+			"text": str(script_entry.get("outro_text", "Tutorial complete!")),
+			"button": str(script_entry.get("outro_button", "Continue")),
+		}
+	return { "text": "Tutorial complete!", "button": "Continue" }
+
+
+## Advances the tutorial step counter. Returns true when all scripted turns are done.
+func advance_step() -> bool:
 	current_step += 1
-	if current_step >= active_script.size():
-		end_tutorial()
+	return current_step >= active_script.size()
+
 
 # --- UPDATED: END TUTORIAL ---
-func end_tutorial():
-	print("--- TUTORIAL COMPLETE ---")
-	
+func end_tutorial() -> void:
+	print("--- TUTORIAL COMPLETE (", active_tutorial_id, ") ---")
+	var target_scene: String = "res://Scenes/CarouselHub.tscn" if active_tutorial_id == "begin" else "res://Scenes/MainMenu.tscn"
+
 	# 1. Reset variables
 	is_tutorial_active = false
+	active_tutorial_id = ""
 	current_step = 0
 	active_script = []
-	
-	# 2. Reset Audio State
+	get_tree().paused = false
+
+	# 2. Reset Audio & Visual State
 	AudioManager.reset_audio_state()
+	GlobalCinematics.reset_visuals()
 	AudioManager.play_music("menu_theme")
-	
-	# 3. Route the player back to the Menu
-	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
+
+	# 3. Route the player onward (first-time intro goes straight into CarouselHub!)
+	SceneLoader.change_scene(target_scene)
