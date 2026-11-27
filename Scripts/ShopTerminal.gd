@@ -10,6 +10,7 @@ extends Control
 @export var resource_catalog: Array[Resource] = []
 
 var selected_index: int = -1
+var _item_buttons: Array[Button] = []
 
 
 func _ready() -> void:
@@ -24,8 +25,11 @@ func _refresh_ui() -> void:
 	token_label.text = "CIRCUIT TOKENS: " + str(RunManager.meta_data.circuit_tokens)
 
 	for child: Node in inventory_list.get_children():
+		inventory_list.remove_child(child)
 		child.queue_free()
+	_item_buttons.clear()
 
+	var first_unowned_idx: int = -1
 	for i: int in range(resource_catalog.size()):
 		var res: Resource = resource_catalog[i]
 		if not res:
@@ -34,17 +38,58 @@ func _refresh_ui() -> void:
 		var display_name: String = _get_res_name(res)
 		var cost: int = int(res.get("shop_cost")) if "shop_cost" in res else 0
 		var is_owned: bool = _check_if_owned(res)
+		if not is_owned and first_unowned_idx == -1:
+			first_unowned_idx = i
 
 		var btn: Button = Button.new()
 		btn.custom_minimum_size = Vector2(0, 50)
 		btn.text = display_name + (" [OWNED]" if is_owned else " [" + str(cost) + "T]")
-		btn.disabled = is_owned
+		btn.modulate = Color(0.65, 0.85, 0.65, 0.85) if is_owned else Color.WHITE
+		btn.focus_mode = Control.FOCUS_ALL
 
-		btn.pressed.connect(func() -> void: _select_item(i))
+		var item_idx: int = i
+		btn.pressed.connect(func() -> void: _select_item(item_idx, true))
+		btn.focus_entered.connect(func() -> void: _select_item(item_idx, false))
 		inventory_list.add_child(btn)
+		_item_buttons.append(btn)
+
+	for j: int in range(_item_buttons.size()):
+		var b: Button = _item_buttons[j]
+		if j > 0:
+			b.focus_neighbor_top = b.get_path_to(_item_buttons[j - 1])
+		if j + 1 < _item_buttons.size():
+			b.focus_neighbor_bottom = b.get_path_to(_item_buttons[j + 1])
+		if buy_btn:
+			b.focus_neighbor_right = b.get_path_to(buy_btn)
 
 	if selected_index == -1:
-		_clear_preview()
+		var auto_idx: int = first_unowned_idx if first_unowned_idx != -1 else (0 if not resource_catalog.is_empty() else -1)
+		if auto_idx != -1:
+			_select_item(auto_idx, false)
+		else:
+			_clear_preview()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if Pausemenu.visible or not is_visible_in_tree():
+		return
+	if event is InputEventJoypadButton:
+		var joy: InputEventJoypadButton = event as InputEventJoypadButton
+		if joy.pressed and joy.button_index == JOY_BUTTON_X and buy_btn and not buy_btn.disabled:
+			_on_buy_pressed()
+			get_viewport().set_input_as_handled()
+		return
+	if not (event is InputEventKey):
+		return
+	var key_event: InputEventKey = event as InputEventKey
+	if not key_event.pressed or key_event.echo:
+		return
+	if key_event.keycode == KEY_B and buy_btn and not buy_btn.disabled:
+		_on_buy_pressed()
+		get_viewport().set_input_as_handled()
+	elif (key_event.keycode == KEY_UP or key_event.keycode == KEY_DOWN) and get_viewport().gui_get_focus_owner() == null and not _item_buttons.is_empty():
+		_item_buttons[0].grab_focus()
+		get_viewport().set_input_as_handled()
 
 
 func _get_res_name(res: Resource) -> String:
@@ -67,11 +112,14 @@ func _check_if_owned(res: Resource) -> bool:
 	return false
 
 
-func _select_item(index: int) -> void:
+func _select_item(index: int, play_sfx: bool = true) -> void:
 	if index < 0 or index >= resource_catalog.size() or RunManager.meta_data == null:
 		return
-	AudioManager.play_sfx("ui_click")
+	if play_sfx:
+		AudioManager.play_sfx("ui_click")
 	selected_index = index
+	if buy_btn and index >= 0 and index < _item_buttons.size():
+		buy_btn.focus_neighbor_left = buy_btn.get_path_to(_item_buttons[index])
 	var res: Resource = resource_catalog[index]
 
 	item_name_label.text = _get_res_name(res)
@@ -122,6 +170,7 @@ func _on_buy_pressed() -> void:
 			RunManager.meta_data.unlocked_classes.append(id)
 
 		RunManager._save_global_data()
+		RunManager.check_achievements()
 		selected_index = -1
 		_refresh_ui()
 

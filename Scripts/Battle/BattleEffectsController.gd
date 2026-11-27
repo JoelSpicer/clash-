@@ -27,6 +27,10 @@ var _momentum_base_captured: bool = false
 var _wall_crush_tween: Tween = null
 var _p1_bark_tween: Tween = null
 var _p2_bark_tween: Tween = null
+var _outcome_banner: PanelContainer = null
+var _outcome_headline: Label = null
+var _outcome_detail: Label = null
+var _outcome_tween: Tween = null
 
 
 func setup(
@@ -66,6 +70,103 @@ func setup(
 
 	if clash_layer:
 		clash_layer.visible = false
+
+	_create_outcome_banner()
+
+
+func _create_outcome_banner() -> void:
+	if host_layer == null:
+		return
+	_outcome_banner = PanelContainer.new()
+	_outcome_banner.name = "ClashOutcomeBanner"
+	_outcome_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_outcome_banner.visible = false
+	_outcome_banner.z_index = 60
+
+	_outcome_banner.anchor_left = 0.5
+	_outcome_banner.anchor_right = 0.5
+	_outcome_banner.anchor_top = 0.0
+	_outcome_banner.anchor_bottom = 0.0
+	_outcome_banner.offset_left = -240.0
+	_outcome_banner.offset_right = 240.0
+	_outcome_banner.offset_top = 112.0
+	_outcome_banner.offset_bottom = 172.0
+
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.05, 0.07, 0.11, 0.9)
+	style.border_color = Color(0.85, 0.9, 1.0)
+	style.border_width_left = 5
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.set_corner_radius_all(8)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	_outcome_banner.add_theme_stylebox_override("panel", style)
+
+	var vbox: VBoxContainer = VBoxContainer.new()
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vbox.add_theme_constant_override("separation", 2)
+	_outcome_banner.add_child(vbox)
+
+	_outcome_headline = Label.new()
+	_outcome_headline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_outcome_headline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_outcome_headline.add_theme_font_size_override("font_size", 21)
+	_outcome_headline.add_theme_color_override("font_outline_color", Color.BLACK)
+	_outcome_headline.add_theme_constant_override("outline_size", 4)
+	vbox.add_child(_outcome_headline)
+
+	_outcome_detail = Label.new()
+	_outcome_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_outcome_detail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_outcome_detail.add_theme_font_size_override("font_size", 13)
+	_outcome_detail.add_theme_color_override("font_color", Color(0.88, 0.92, 0.98))
+	_outcome_detail.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	vbox.add_child(_outcome_detail)
+
+	host_layer.add_child(_outcome_banner)
+
+
+func show_clash_outcome_banner(headline: String, detail: String, accent: Color) -> void:
+	if _outcome_banner == null or DisplayServer.get_name() == "headless":
+		return
+	if _outcome_tween != null and _outcome_tween.is_valid():
+		_outcome_tween.kill()
+
+	var style: StyleBoxFlat = _outcome_banner.get_theme_stylebox("panel") as StyleBoxFlat
+	if style != null:
+		style.border_color = accent
+
+	_outcome_headline.text = headline
+	_outcome_headline.add_theme_color_override("font_color", accent)
+	_outcome_detail.text = detail
+	_outcome_detail.visible = detail != ""
+
+	_outcome_banner.visible = true
+	_outcome_banner.modulate.a = 0.0
+	_outcome_banner.pivot_offset = _outcome_banner.size / 2.0
+	_outcome_banner.scale = Vector2(0.86, 0.86)
+
+	_outcome_tween = create_tween()
+	_outcome_tween.set_parallel(true)
+	_outcome_tween.tween_property(_outcome_banner, "modulate:a", 1.0, 0.14).set_ease(Tween.EASE_OUT)
+	_outcome_tween.tween_property(_outcome_banner, "scale", Vector2.ONE, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_outcome_tween.chain().tween_interval(1.65)
+	_outcome_tween.chain().tween_property(_outcome_banner, "modulate:a", 0.0, 0.32).set_ease(Tween.EASE_IN)
+	_outcome_tween.chain().tween_callback(func() -> void:
+		if is_instance_valid(_outcome_banner):
+			_outcome_banner.visible = false
+	)
+
+
+func hide_clash_outcome_banner() -> void:
+	if _outcome_tween != null and _outcome_tween.is_valid():
+		_outcome_tween.kill()
+	if is_instance_valid(_outcome_banner):
+		_outcome_banner.visible = false
 
 
 func _process(delta: float) -> void:
@@ -275,9 +376,11 @@ func show_player_identity_flash() -> void:
 
 	var my_id: int = multiplayer.get_unique_id()
 	var is_p1: bool = (my_id == GameManager.p1_network_id)
+	var active_title: String = RunManager.get_active_title()
+	var title_line: String = ("\n« %s »" % active_title.to_upper()) if active_title != "" else ""
 
 	var flash_label: Label = Label.new()
-	flash_label.text = "YOU ARE PLAYER 1\n(LEFT SIDE)" if is_p1 else "YOU ARE PLAYER 2\n(RIGHT SIDE)"
+	flash_label.text = ("YOU ARE PLAYER 1\n(LEFT SIDE)" if is_p1 else "YOU ARE PLAYER 2\n(RIGHT SIDE)") + title_line
 	flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	flash_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	flash_label.add_theme_font_size_override("font_size", 64)

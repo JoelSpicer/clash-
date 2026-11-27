@@ -6,12 +6,16 @@ extends Control
 @onready var menu_btn: Button = $Panel/MarginContainer/VBoxContainer/MenuButton
 @onready var view_btn: Button = $Panel/MarginContainer/VBoxContainer/ViewBtn
 
+const MatchTelemetryScript = preload("res://Scripts/Meta/MatchTelemetry.gd")
+
 var winner_data: CharacterData = null
 var match_log_text: String = ""
 var _action_committed: bool = false
 
 var log_popup: Panel = null
 var log_label: RichTextLabel = null
+var summary_panel: PanelContainer = null
+var summary_label: RichTextLabel = null
 
 
 func _ready() -> void:
@@ -26,6 +30,7 @@ func _ready() -> void:
 		if not view_btn.pressed.is_connected(_on_view_pressed):
 			view_btn.pressed.connect(_on_view_pressed)
 
+	_build_summary_panel()
 	_build_log_window()
 
 
@@ -53,6 +58,64 @@ func setup(data: CharacterData, log_text: String = "") -> void:
 		_setup_arcade_mode()
 	else:
 		_setup_quick_match_mode()
+
+	_populate_summary_panel()
+
+
+func _build_summary_panel() -> void:
+	var vbox: Node = winner_label.get_parent()
+	if vbox == null:
+		return
+	summary_panel = PanelContainer.new()
+	summary_panel.name = "SummaryPanel"
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.06, 0.08, 0.13, 0.9)
+	style.border_color = Color(0.35, 0.55, 0.8, 0.7)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	summary_panel.add_theme_stylebox_override("panel", style)
+
+	summary_label = RichTextLabel.new()
+	summary_label.bbcode_enabled = true
+	summary_label.fit_content = true
+	summary_label.scroll_active = false
+	summary_label.add_theme_font_size_override("normal_font_size", 13)
+	summary_panel.add_child(summary_label)
+
+	vbox.add_child(summary_panel)
+	vbox.move_child(summary_panel, winner_label.get_index() + 1)
+
+
+func _populate_summary_panel() -> void:
+	if summary_panel == null or summary_label == null:
+		return
+	var is_circuit_loss: bool = (RunManager.is_arcade_mode and RunManager.player_run_data != null and not _is_arcade_player_winner())
+	var stats: Dictionary = RunManager.last_run_summary if (is_circuit_loss and not RunManager.last_run_summary.is_empty()) else RunManager.last_match_summary
+	if stats.is_empty():
+		summary_panel.visible = false
+		return
+
+	var txt: String = MatchTelemetryScript.format_summary_bbcode(stats, is_circuit_loss)
+	if is_circuit_loss:
+		var sponsor_str: String = RunManager.active_sponsor.item_name if RunManager.active_sponsor != null else "Independent"
+		txt += "\n[color=#aaaaaa]League %d · Node %d / %d · Sponsor: %s[/color]" % [
+			RunManager.leagues_completed + 1,
+			RunManager.current_map_index + 1,
+			maxi(1, RunManager.tournament_map.size()),
+			sponsor_str,
+		]
+	if not RunManager.last_unlocked_achievements.is_empty():
+		var names: Array[String] = []
+		for a: Dictionary in RunManager.last_unlocked_achievements:
+			names.append(str(a.get("name", "")))
+		txt += "\n[color=#ffd966]★ Unlocked: " + ", ".join(names) + "[/color]"
+
+	summary_label.text = "[center]" + txt + "[/center]"
+	summary_panel.visible = true
 
 
 func _setup_quick_match_mode() -> void:

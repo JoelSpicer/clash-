@@ -23,6 +23,10 @@ const COL_DEFENCE: Color = Color("#66a3ff")
 func _ready() -> void:
 	super._ready()
 	pivot_offset = size / 2.0
+	if not focus_entered.is_connected(_on_focus_entered):
+		focus_entered.connect(_on_focus_entered)
+	if not focus_exited.is_connected(_on_focus_exited):
+		focus_exited.connect(_on_focus_exited)
 
 
 func _exit_tree() -> void:
@@ -110,13 +114,32 @@ func _on_mouse_entered() -> void:
 	if disabled:
 		return
 	card_hovered.emit(my_action)
-	_create_ghost()
+	if not is_instance_valid(current_ghost):
+		_create_ghost()
 
 
 func _on_mouse_exited() -> void:
+	if has_focus():
+		return
+	_clear_hover_state()
+
+
+func _on_focus_entered() -> void:
+	if disabled:
+		return
+	card_hovered.emit(my_action)
+	if not is_instance_valid(current_ghost):
+		_create_ghost()
+
+
+func _on_focus_exited() -> void:
+	_clear_hover_state()
+
+
+func _clear_hover_state() -> void:
 	card_exited.emit()
 
-	if current_ghost:
+	if is_instance_valid(current_ghost):
 		current_ghost.queue_free()
 		current_ghost = null
 

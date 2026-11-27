@@ -64,6 +64,13 @@ func _ready() -> void:
 			"tut_text": "Spend the Circuit Tokens you earn from your runs here. You can unlock new Sponsors, Classes, and powerful permanent upgrades to aid you in future runs.",
 		},
 		{
+			"title": "CAREER & TROPHIES",
+			"scene_path": "res://Scenes/MenuProfile.tscn",
+			"bg_path": "res://Art/Background/LockerRoom.png",
+			"tut_title": "CAREER & TROPHIES",
+			"tut_text": "Review your lifetime combat telemetry, browse your last 30 matches in Match History, track 18 meta-progression Achievements for bonus Circuit Tokens, and equip unlocked Titles that appear on the VS Screen across every mode!",
+		},
+		{
 			"title": "GAME SETTINGS",
 			"scene_path": "res://Scenes/MenuSettings.tscn",
 			"bg_path": "res://Art/Background/Dojo.png",
@@ -113,7 +120,10 @@ func _ready() -> void:
 	_setup_tutorial_ui()
 	
 	var start_idx: int = 0
-	if TrialManager.return_to_dojo_slide:
+	if RunManager.return_to_carousel_slide >= 0:
+		start_idx = clampi(RunManager.return_to_carousel_slide, 0, slides.size() - 1)
+		RunManager.return_to_carousel_slide = -1
+	elif TrialManager.return_to_dojo_slide:
 		TrialManager.return_to_dojo_slide = false
 		start_idx = 2
 	current_index = start_idx
@@ -143,16 +153,37 @@ func _process(delta: float) -> void:
 	bg_fader.position = bg_fader.position.lerp(target_pos, delta * parallax_smoothness)
 
 func _unhandled_input(event: InputEvent) -> void:
+	if Pausemenu.visible:
+		return
+
+	if event is InputEventJoypadButton:
+		var joy: InputEventJoypadButton = event as InputEventJoypadButton
+		if not joy.pressed:
+			return
+		if tut_overlay and tut_overlay.visible:
+			if joy.button_index == JOY_BUTTON_A or joy.button_index == JOY_BUTTON_B:
+				_hide_tutorial()
+				get_viewport().set_input_as_handled()
+			return
+		if joy.button_index == JOY_BUTTON_LEFT_SHOULDER:
+			_change_slide(-1)
+			get_viewport().set_input_as_handled()
+		elif joy.button_index == JOY_BUTTON_RIGHT_SHOULDER:
+			_change_slide(1)
+			get_viewport().set_input_as_handled()
+		elif joy.button_index == JOY_BUTTON_Y:
+			_show_current_tutorial()
+			get_viewport().set_input_as_handled()
+		return
+
 	if not (event is InputEventKey):
 		return
 	var key_event: InputEventKey = event as InputEventKey
 	if not key_event.pressed or key_event.echo:
 		return
-	if Pausemenu.visible:
-		return
 
 	if tut_overlay and tut_overlay.visible:
-		if event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel"):
+		if event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel") or key_event.keycode == KEY_H:
 			_hide_tutorial()
 			get_viewport().set_input_as_handled()
 		return
@@ -161,11 +192,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if focused is LineEdit or focused is TextEdit or focused is OptionButton:
 		return
 
-	if event.is_action_pressed("ui_left"):
+	if event.is_action_pressed("ui_left") or key_event.keycode == KEY_Q:
 		_change_slide(-1)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("ui_right"):
+	elif event.is_action_pressed("ui_right") or key_event.keycode == KEY_E:
 		_change_slide(1)
+		get_viewport().set_input_as_handled()
+	elif key_event.keycode == KEY_H:
+		_show_current_tutorial()
 		get_viewport().set_input_as_handled()
 
 
@@ -250,6 +284,21 @@ func _setup_tutorial_ui() -> void:
 	help_btn.offset_right = -40 # Make it 40 pixels wide
 	help_btn.offset_bottom = 60 # Make it 40 pixels tall
 	help_btn.pressed.connect(_show_current_tutorial)
+
+	# Subtle bottom navigation hint bar
+	var nav_hint: Label = Label.new()
+	nav_hint.name = "NavHintLabel"
+	nav_hint.text = "◀ / ▶ or Q / E (LB / RB): Switch Mode   ·   H: Help   ·   Arrows / Enter: Navigate"
+	nav_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nav_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nav_hint.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	nav_hint.offset_top = -26.0
+	nav_hint.offset_bottom = -6.0
+	nav_hint.add_theme_font_size_override("font_size", 12)
+	nav_hint.add_theme_color_override("font_color", Color(0.85, 0.9, 1.0, 0.72))
+	nav_hint.add_theme_color_override("font_outline_color", Color.BLACK)
+	nav_hint.add_theme_constant_override("outline_size", 3)
+	$UI_Layer.add_child(nav_hint)
 	
 	# 2. Setup CanvasLayer so Popup is always on top
 	tut_layer = CanvasLayer.new()

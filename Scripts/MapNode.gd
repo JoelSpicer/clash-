@@ -2,6 +2,7 @@
 extends PanelContainer
 
 signal node_clicked(index: int)
+signal node_focused(node_control: Control)
 
 @onready var icon: TextureRect = $VBoxContainer/Icon
 @onready var label: Label = $VBoxContainer/Label
@@ -109,9 +110,22 @@ func setup(node_data: MapNodeData, index: int) -> void:
 		# ------------------------------
 		
 		# Juice: Make the current node pulse!
-		var tween = create_tween().set_loops()
+		var tween: Tween = create_tween().set_loops()
 		tween.tween_property(self, "scale", Vector2(1.05, 1.05), 0.5)
 		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.5)
+
+	# Clear focus outline so keyboard/gamepad users can browse the bracket cleanly
+	var focus_style: StyleBoxFlat = StyleBoxFlat.new()
+	focus_style.bg_color = Color(1.0, 0.88, 0.25, 0.14)
+	focus_style.border_color = Color(1.0, 0.9, 0.3)
+	focus_style.set_border_width_all(3)
+	focus_style.set_corner_radius_all(8)
+	button.add_theme_stylebox_override("focus", focus_style)
+
+
+func get_focus_button() -> Button:
+	return button
+
 
 func _on_button_pressed() -> void:
 	node_clicked.emit(my_index)
@@ -119,4 +133,5 @@ func _on_button_pressed() -> void:
 
 func _ready() -> void:
 	button.pressed.connect(_on_button_pressed)
+	button.focus_entered.connect(func() -> void: node_focused.emit(self))
 	pivot_offset = size / 2.0

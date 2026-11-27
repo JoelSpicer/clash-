@@ -381,6 +381,7 @@ func _record_trial_clear(t: TrialData) -> int:
 	RunManager.meta_data.completed_trials.append(t.id)
 	RunManager.meta_data.circuit_tokens += t.token_reward
 	RunManager._save_global_data()
+	RunManager.check_achievements()
 	return t.token_reward
 
 #endregion

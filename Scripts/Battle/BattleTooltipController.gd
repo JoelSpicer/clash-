@@ -32,7 +32,7 @@ func setup(
 		tooltip_panel.visible = false
 
 
-func show_card_preview(card: ActionData, effective_cost: int) -> void:
+func show_card_preview(card: ActionData, effective_cost: int, diff_bbcode: String = "") -> void:
 	if not preview_card or card == null:
 		return
 	preview_card.call("set_card_data", card, effective_cost)
@@ -48,7 +48,7 @@ func show_card_preview(card: ActionData, effective_cost: int) -> void:
 	_preview_tween.tween_property(preview_card, "modulate:a", 1.0, 0.15)
 	_preview_tween.tween_property(preview_card, "position:y", preview_base_pos.y, 0.2)
 
-	_update_keyword_tooltip(card)
+	_update_keyword_tooltip(card, diff_bbcode)
 
 
 func hide_all() -> void:
@@ -109,7 +109,7 @@ func show_equipment_tooltip(text: String, icon_node: Control) -> void:
 	_tooltip_tween.tween_property(tooltip_panel, "global_position:y", final_y, 0.2)
 
 
-func _update_keyword_tooltip(card: ActionData) -> void:
+func _update_keyword_tooltip(card: ActionData, diff_bbcode: String = "") -> void:
 	if not tooltip_label or not tooltip_panel:
 		return
 
@@ -147,11 +147,16 @@ func _update_keyword_tooltip(card: ActionData) -> void:
 	if card.create_opening > 0: active_keys.append("Create Opening")
 	if card.opportunity > 0: active_keys.append("Opportunity")
 
-	if active_keys.is_empty():
+	if active_keys.is_empty() and diff_bbcode == "":
 		tooltip_panel.visible = false
 		return
 
 	var full_text: String = ""
+	if diff_bbcode != "":
+		full_text += diff_bbcode + "\n"
+		if not active_keys.is_empty():
+			full_text += "[color=#667788]────────────────────[/color]\n"
+
 	for k: String in active_keys:
 		if k in GameManager.KEYWORD_DEFS:
 			full_text += "[color=#ffcc00][b]" + k + ":[/b][/color] " + str(GameManager.KEYWORD_DEFS[k]) + "\n"

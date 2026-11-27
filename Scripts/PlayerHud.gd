@@ -16,6 +16,14 @@ extends Control
 @onready var portrait: TextureRect = get_node_or_null("Portrait") as TextureRect
 
 var original_pos: Vector2 = Vector2.ZERO
+var _cached_character: CharacterData = null
+var _hp_ghost_default_tint: Color = Color(1.0, 0.0, 0.0, 1.0)
+var _sp_ghost_default_tint: Color = Color(1.0, 0.5, 0.0, 1.0)
+var _stats_tween: Tween = null
+var _hp_ghost_tween: Tween = null
+var _sp_ghost_tween: Tween = null
+var _preview_pulse_tween: Tween = null
+var _is_previewing: bool = false
 
 
 func _ready() -> void:
@@ -23,14 +31,17 @@ func _ready() -> void:
 		original_pos = portrait.position
 
 	if hp_ghost:
+		_hp_ghost_default_tint = hp_ghost.tint_progress
 		hp_ghost.max_value = hp_bar.max_value
 		hp_ghost.value = hp_bar.value
 	if sp_ghost:
+		_sp_ghost_default_tint = sp_ghost.tint_progress
 		sp_ghost.max_value = sp_bar.max_value
 		sp_ghost.value = sp_bar.value
 
 
 func setup(character: CharacterData) -> void:
+	_cached_character = character
 	var class_string: String = ClassFactory.class_enum_to_string(character.class_type)
 	name_label.text = character.character_name + " (" + class_string + ")"
 
@@ -102,32 +113,181 @@ func configure_visuals(is_player_2: bool) -> void:
 
 
 func update_stats(character: CharacterData, opportunity: int, opening: int, bide_active: bool) -> void:
-	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
-	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
+	_cached_character = character
+	_stop_preview_pulse()
+	if _is_previewing:
+		_is_previewing = false
+		if hp_ghost:
+			hp_ghost.tint_progress = _hp_ghost_default_tint
+		if sp_ghost:
+			sp_ghost.tint_progress = _sp_ghost_default_tint
 
-	var tween: Tween = create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(hp_bar, "value", character.current_hp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
+	hp_bar.max_value = character.max_hp
+	if hp_ghost:
+		hp_ghost.max_value = character.max_hp
+	sp_bar.max_value = character.max_sp
+	if sp_ghost:
+		sp_ghost.max_value = character.max_sp
+
+	hp_text.text = str(character.current_hp) + "/" + str(character.max_hp)
+	hp_text.modulate = Color.WHITE
+	sp_text.text = str(character.current_sp) + "/" + str(character.max_sp)
+	sp_text.modulate = Color.WHITE
+
+	if _stats_tween != null and _stats_tween.is_valid():
+		_stats_tween.kill()
+	if _hp_ghost_tween != null and _hp_ghost_tween.is_valid():
+		_hp_ghost_tween.kill()
+	if _sp_ghost_tween != null and _sp_ghost_tween.is_valid():
+		_sp_ghost_tween.kill()
+
+	_stats_tween = create_tween()
+	_stats_tween.set_parallel(true)
+	_stats_tween.tween_property(hp_bar, "value", character.current_hp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
 
 	if hp_ghost:
 		if character.current_hp < hp_ghost.value:
-			var t: Tween = create_tween()
-			t.tween_interval(0.4)
-			t.tween_property(hp_ghost, "value", character.current_hp, 0.6).set_trans(Tween.TRANS_SINE)
+			_hp_ghost_tween = create_tween()
+			_hp_ghost_tween.tween_interval(0.4)
+			_hp_ghost_tween.tween_property(hp_ghost, "value", character.current_hp, 0.6).set_trans(Tween.TRANS_SINE)
 		else:
 			hp_ghost.value = character.current_hp
 
-	tween.tween_property(sp_bar, "value", character.current_sp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
+	_stats_tween.tween_property(sp_bar, "value", character.current_sp, 0.2).set_trans(Tween.TRANS_CIRC).set_ease(Tween.EASE_OUT)
 
 	if sp_ghost:
 		if character.current_sp < sp_ghost.value:
-			var t: Tween = create_tween()
-			t.tween_interval(0.4)
-			t.tween_property(sp_ghost, "value", character.current_sp, 0.6).set_trans(Tween.TRANS_SINE)
+			_sp_ghost_tween = create_tween()
+			_sp_ghost_tween.tween_interval(0.4)
+			_sp_ghost_tween.tween_property(sp_ghost, "value", character.current_sp, 0.6).set_trans(Tween.TRANS_SINE)
 		else:
 			sp_ghost.value = character.current_sp
 
 	_update_status_icons(character, opportunity, opening, bide_active)
+
+
+func show_cost_preview(sp_after: int, hp_after: int, sp_delta: int, hp_delta: int, is_rage: bool = false) -> void:
+	if _cached_character == null:
+		return
+
+	_is_previewing = true
+	_stop_preview_pulse()
+	if _stats_tween != null and _stats_tween.is_valid():
+		_stats_tween.kill()
+	if _hp_ghost_tween != null and _hp_ghost_tween.is_valid():
+		_hp_ghost_tween.kill()
+	if _sp_ghost_tween != null and _sp_ghost_tween.is_valid():
+		_sp_ghost_tween.kill()
+
+	var cur_sp: int = _cached_character.current_sp
+	var cur_hp: int = _cached_character.current_hp
+	var sp_ghost_col: Color = _sp_ghost_default_tint
+	var hp_ghost_col: Color = _hp_ghost_default_tint
+	var pulse_sp: bool = false
+	var pulse_hp: bool = false
+
+	# SP bar & ghost preview
+	if sp_delta < 0:
+		# Reduction: bar drops to projected value, ghost shows the amount being spent
+		sp_bar.value = sp_after
+		if sp_ghost:
+			sp_ghost.value = cur_sp
+			sp_ghost_col = Color(1.0, 0.6, 0.15, 0.95)
+			sp_ghost.tint_progress = sp_ghost_col
+			pulse_sp = true
+		sp_text.text = "%d→%d/%d" % [cur_sp, sp_after, _cached_character.max_sp]
+		sp_text.modulate = Color(0.55, 0.9, 1.0)
+	elif sp_delta > 0:
+		# Increase: bar stays at current value, ghost extends forward in bright green
+		sp_bar.value = cur_sp
+		if sp_ghost:
+			sp_ghost.value = sp_after
+			sp_ghost_col = Color(0.32, 1.0, 0.52, 0.92)
+			sp_ghost.tint_progress = sp_ghost_col
+			pulse_sp = true
+		sp_text.text = "%d→%d/%d" % [cur_sp, sp_after, _cached_character.max_sp]
+		sp_text.modulate = Color(0.45, 1.0, 0.55)
+	else:
+		sp_bar.value = cur_sp
+		if sp_ghost:
+			sp_ghost.value = cur_sp
+			sp_ghost.tint_progress = _sp_ghost_default_tint
+		sp_text.text = str(cur_sp) + "/" + str(_cached_character.max_sp)
+		sp_text.modulate = Color.WHITE
+
+	# HP bar & ghost preview
+	if hp_delta < 0:
+		hp_bar.value = hp_after
+		if hp_ghost:
+			hp_ghost.value = cur_hp
+			hp_ghost_col = Color(1.0, 0.22, 0.22, 0.95)
+			hp_ghost.tint_progress = hp_ghost_col
+			pulse_hp = true
+		var tag: String = " [RAGE]" if is_rage else ""
+		hp_text.text = "%d→%d/%d%s" % [cur_hp, hp_after, _cached_character.max_hp, tag]
+		hp_text.modulate = Color(1.0, 0.42, 0.42)
+	elif hp_delta > 0:
+		hp_bar.value = cur_hp
+		if hp_ghost:
+			hp_ghost.value = hp_after
+			hp_ghost_col = Color(0.32, 1.0, 0.52, 0.92)
+			hp_ghost.tint_progress = hp_ghost_col
+			pulse_hp = true
+		hp_text.text = "%d→%d/%d" % [cur_hp, hp_after, _cached_character.max_hp]
+		hp_text.modulate = Color(0.45, 1.0, 0.55)
+	else:
+		hp_bar.value = cur_hp
+		if hp_ghost:
+			hp_ghost.value = cur_hp
+			hp_ghost.tint_progress = _hp_ghost_default_tint
+		hp_text.text = str(cur_hp) + "/" + str(_cached_character.max_hp)
+		hp_text.modulate = Color.WHITE
+
+	# Gentle pulse on active preview ghost(s) so they clearly read as projected changes
+	if pulse_sp or pulse_hp:
+		_preview_pulse_tween = create_tween().set_loops()
+		if pulse_sp and sp_ghost and pulse_hp and hp_ghost:
+			var sp_dim: Color = Color(sp_ghost_col.r, sp_ghost_col.g, sp_ghost_col.b, 0.42)
+			var hp_dim: Color = Color(hp_ghost_col.r, hp_ghost_col.g, hp_ghost_col.b, 0.42)
+			_preview_pulse_tween.tween_property(sp_ghost, "tint_progress", sp_dim, 0.45).set_trans(Tween.TRANS_SINE)
+			_preview_pulse_tween.parallel().tween_property(hp_ghost, "tint_progress", hp_dim, 0.45).set_trans(Tween.TRANS_SINE)
+			_preview_pulse_tween.chain().tween_property(sp_ghost, "tint_progress", sp_ghost_col, 0.45).set_trans(Tween.TRANS_SINE)
+			_preview_pulse_tween.parallel().tween_property(hp_ghost, "tint_progress", hp_ghost_col, 0.45).set_trans(Tween.TRANS_SINE)
+		elif pulse_sp and sp_ghost:
+			var sp_dim: Color = Color(sp_ghost_col.r, sp_ghost_col.g, sp_ghost_col.b, 0.42)
+			_preview_pulse_tween.tween_property(sp_ghost, "tint_progress", sp_dim, 0.45).set_trans(Tween.TRANS_SINE)
+			_preview_pulse_tween.tween_property(sp_ghost, "tint_progress", sp_ghost_col, 0.45).set_trans(Tween.TRANS_SINE)
+		elif pulse_hp and hp_ghost:
+			var hp_dim: Color = Color(hp_ghost_col.r, hp_ghost_col.g, hp_ghost_col.b, 0.42)
+			_preview_pulse_tween.tween_property(hp_ghost, "tint_progress", hp_dim, 0.45).set_trans(Tween.TRANS_SINE)
+			_preview_pulse_tween.tween_property(hp_ghost, "tint_progress", hp_ghost_col, 0.45).set_trans(Tween.TRANS_SINE)
+
+
+func clear_cost_preview() -> void:
+	if not _is_previewing:
+		return
+	_is_previewing = false
+	_stop_preview_pulse()
+	if _cached_character == null:
+		return
+	hp_bar.value = _cached_character.current_hp
+	if hp_ghost:
+		hp_ghost.value = _cached_character.current_hp
+		hp_ghost.tint_progress = _hp_ghost_default_tint
+	sp_bar.value = _cached_character.current_sp
+	if sp_ghost:
+		sp_ghost.value = _cached_character.current_sp
+		sp_ghost.tint_progress = _sp_ghost_default_tint
+	hp_text.text = str(_cached_character.current_hp) + "/" + str(_cached_character.max_hp)
+	hp_text.modulate = Color.WHITE
+	sp_text.text = str(_cached_character.current_sp) + "/" + str(_cached_character.max_sp)
+	sp_text.modulate = Color.WHITE
+
+
+func _stop_preview_pulse() -> void:
+	if _preview_pulse_tween != null and _preview_pulse_tween.is_valid():
+		_preview_pulse_tween.kill()
+	_preview_pulse_tween = null
 
 
 func _update_status_icons(character: CharacterData, opportunity: int, opening: int, bide_active: bool) -> void:

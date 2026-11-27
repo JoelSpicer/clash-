@@ -4,6 +4,7 @@ const BattleEffectsControllerScript = preload("res://Scripts/Battle/BattleEffect
 const BattleTooltipControllerScript = preload("res://Scripts/Battle/BattleTooltipController.gd")
 const BattleInspectPanelScript = preload("res://Scripts/Battle/BattleInspectPanel.gd")
 const BattleHandControllerScript = preload("res://Scripts/Battle/BattleHandController.gd")
+const CombatRulesScript = preload("res://Scripts/Battle/CombatRules.gd")
 const TrialOverlayScript = preload("res://Scripts/Battle/TrialOverlay.gd")
 
 #region Signals & Scenes
@@ -68,6 +69,7 @@ var game_over_screen: Control = null
 var go_layer: CanvasLayer = null
 var momentum_slots: Array[Panel] = []
 var _momentum_tweens: Dictionary = {}
+var _momentum_preview_slot: int = 0
 var _log_tween: Tween = null
 
 var _prev_p1_stats: Dictionary = { "hp": 0, "sp": 0 }
@@ -155,6 +157,7 @@ func _ready() -> void:
 	GameManager.healing_received.connect(_on_healing_received)
 	GameManager.status_applied.connect(_on_status_applied)
 	GameManager.combat_callout.connect(_on_combat_callout)
+	GameManager.clash_outcome_banner.connect(_on_clash_outcome_banner)
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
 	GameManager.clash_resolved.connect(_on_clash_resolved_log)
 	if not GameManager.state_changed.is_connected(_on_game_state_changed):
@@ -256,13 +259,197 @@ func _on_hand_card_selected(card: ActionData, extra_data: Dictionary) -> void:
 
 
 func _on_hand_card_hovered(card: ActionData, effective_cost: int) -> void:
+	var ctx: Dictionary = _hand_ctrl.call("get_hover_context", card) as Dictionary if _hand_ctrl != null else {}
+	var diff_bbcode: String = _build_and_apply_hover_preview(card, effective_cost, ctx)
 	if _tooltip_ctrl:
-		_tooltip_ctrl.call("show_card_preview", card, effective_cost)
+		_tooltip_ctrl.call("show_card_preview", card, effective_cost, diff_bbcode)
 
 
 func _on_hand_card_exited() -> void:
 	if _tooltip_ctrl:
 		_tooltip_ctrl.call("hide_all")
+	if p1_hud and p1_hud.has_method("clear_cost_preview"):
+		p1_hud.call("clear_cost_preview")
+	if p2_hud and p2_hud.has_method("clear_cost_preview"):
+		p2_hud.call("clear_cost_preview")
+	_clear_momentum_preview()
+
+
+func _build_and_apply_hover_preview(card: ActionData, effective_cost: int, ctx: Dictionary) -> String:
+	if card == null:
+		return ""
+	var pid: int = int(ctx.get("player_id", active_input_player))
+	var actor: CharacterData = GameManager.p1_data if pid == 1 else GameManager.p2_data
+	if actor == null:
+		return ""
+
+	var is_special: bool = bool(ctx.get("is_special", false))
+	var rage_on: bool = bool(ctx.get("rage", false))
+	var tech_idx: int = int(ctx.get("tech_idx", 0))
+	var opp_val: int = int(ctx.get("opportunity", 0))
+	var feint_on: bool = bool(ctx.get("feint_mode", false))
+
+	var sim_card: ActionData = card
+	if not is_special and tech_idx > 0:
+		sim_card = CombatRulesScript.apply_technique(card, tech_idx)
+
+	var hits: int = 1
+	if not is_special and not feint_on:
+		hits = maxi(1, GameManager.get_effective_repeat_count(actor, sim_card, opp_val, false, rage_on))
+
+	var total_cost: int = effective_cost
+	if not is_special and not feint_on and hits > 1:
+		var single_cost: int = maxi(0, sim_card.cost)
+		var first_cost: int = maxi(0, single_cost - opp_val)
+		total_cost = first_cost + single_cost * (hits - 1)
+
+	# Compute projected SP / HP spend + self-recovery
+	var sp_spend: int = 0
+	var hp_spend: int = 0
+	var used_rage: bool = false
+	if rage_on and actor.can_pay_with_hp and total_cost > 0:
+		hp_spend = total_cost
+		used_rage = true
+	elif actor.current_sp >= total_cost:
+		sp_spend = total_cost
+	elif actor.can_pay_with_hp and (actor.current_sp + actor.current_hp) > total_cost:
+		sp_spend = actor.current_sp
+		hp_spend = total_cost - sp_spend
+		used_rage = true
+
+	var sp_gain: int = 0
+	var hp_gain: int = 0
+	if not is_special or card.is_struggle:
+		var rec_per_hit: int = sim_card.recover_value + (1 if sim_card.type == ActionData.Type.DEFENCE else 0)
+		sp_gain = rec_per_hit * hits
+		hp_gain = sim_card.heal_value * hits
+
+	var sp_after: int = clampi(actor.current_sp - sp_spend + sp_gain, 0, actor.max_sp)
+	var hp_after: int = clampi(actor.current_hp - hp_spend + hp_gain, 0, actor.max_hp)
+	var sp_delta: int = sp_after - actor.current_sp
+	var hp_delta: int = hp_after - actor.current_hp
+
+	var active_hud: Control = p1_hud if pid == 1 else p2_hud
+	if active_hud and active_hud.has_method("show_cost_preview"):
+		active_hud.call("show_cost_preview", sp_after, hp_after, sp_delta, hp_delta, used_rage)
+
+	# Projected Momentum & Wall Crush risk
+	var cur_mom: int = GameManager.state.momentum
+	var mom_gain: int = (sim_card.momentum_gain * hits) + (opp_val if not is_special else 0)
+	var fb_total: int = sim_card.fall_back_value * hits
+	var own_wall: int = GameManager.TOTAL_MOMENTUM_SLOTS if pid == 1 else 1
+	var wall_crush_risk: bool = (cur_mom > 0 and fb_total > 0 and ((pid == 1 and cur_mom >= own_wall) or (pid == 2 and cur_mom <= own_wall)))
+	var proj_mom: int = cur_mom
+	var mom_str: String = ""
+
+	if cur_mom == 0:
+		if sim_card.type == ActionData.Type.OFFENCE and sim_card.is_opener:
+			proj_mom = GameManager.MOMENTUM_P1_MAX if pid == 1 else GameManager.MOMENTUM_P2_START
+			mom_str = "[color=#7fd8ff]Win Clash → Slot %d[/color]" % proj_mom
+			_show_momentum_preview(proj_mom, false)
+		else:
+			_clear_momentum_preview()
+	else:
+		var net_delta: int = (-mom_gain + (0 if wall_crush_risk else fb_total)) if pid == 1 else (mom_gain - (0 if wall_crush_risk else fb_total))
+		proj_mom = GameManager.clamp_momentum(cur_mom + net_delta)
+		if wall_crush_risk:
+			mom_str = "[color=#ff4d4d][b]⚠ WALL CRUSH (-%d SP/HP)[/b][/color]" % fb_total
+			_show_momentum_preview(own_wall, true)
+		elif proj_mom != cur_mom:
+			mom_str = "[color=#ffd966]Mom %d → %d[/color]" % [cur_mom, proj_mom]
+			_show_momentum_preview(proj_mom, false)
+		else:
+			_clear_momentum_preview()
+
+	# Projected Damage & Active Buffs
+	var parts: Array[String] = []
+	var sp_color: String = "#73ff8c" if sp_delta > 0 else ("#7fd8ff" if sp_delta < 0 else "#cccccc")
+	var sp_sign: String = "+" if sp_delta > 0 else ""
+	parts.append("[color=%s]SP %d→%d (%s%d)[/color]" % [sp_color, actor.current_sp, sp_after, sp_sign, sp_delta])
+
+	if hp_delta != 0:
+		var hp_color: String = "#73ff8c" if hp_delta > 0 else "#ff6666"
+		var hp_sign: String = "+" if hp_delta > 0 else ""
+		parts.append("[color=%s]HP %d→%d (%s%d)[/color]" % [hp_color, actor.current_hp, hp_after, hp_sign, hp_delta])
+
+	if sim_card.damage > 0:
+		var dmg_mod: int = 0
+		for mod: BaseModifierData in CombatRulesScript.get_all_modifiers_for(pid):
+			dmg_mod += mod.damage_modifier
+		var bide_bonus: int = 1 if actor.patient_buff_active else 0
+		var per_hit_dmg: int = maxi(0, sim_card.damage + dmg_mod + bide_bonus)
+		var total_dmg: int = per_hit_dmg * hits
+		var dmg_tag: String = "[color=#ff9966]DMG %d[/color]" % total_dmg
+		if hits > 1:
+			dmg_tag += " [color=#ffd966](×%d)[/color]" % hits
+		if bide_bonus > 0:
+			dmg_tag += " [color=#4dffff][BIDE +1][/color]"
+		elif dmg_mod > 0:
+			dmg_tag += " [color=#ffd966][+%d MOD][/color]" % dmg_mod
+		parts.append(dmg_tag)
+
+	if mom_str != "":
+		parts.append(mom_str)
+
+	var badges: Array[String] = []
+	if opp_val > 0 and not is_special:
+		badges.append("[color=#ffe066]OPPORTUNITY -%d SP / +%d MOM[/color]" % [opp_val, opp_val])
+	if tech_idx == 1:
+		badges.append("[color=#7fd8ff]TECH: +OPENER[/color]")
+	elif tech_idx == 2:
+		badges.append("[color=#7fd8ff]TECH: +TIRING 1[/color]")
+	elif tech_idx == 3:
+		badges.append("[color=#7fd8ff]TECH: +MOM 1[/color]")
+	if used_rage:
+		badges.append("[color=#ff5555]RAGE ACTIVE[/color]")
+
+	var header: String = "[b][color=#ffffff]PREVIEW:[/color][/b] " + "  ·  ".join(parts)
+	if not badges.is_empty():
+		header += "\n" + "  ·  ".join(badges)
+	return header
+
+
+func _show_momentum_preview(target_slot: int, is_warning: bool) -> void:
+	_clear_momentum_preview()
+	var idx: int = target_slot - 1
+	if idx < 0 or idx >= momentum_slots.size():
+		return
+	_momentum_preview_slot = target_slot
+	var slot: Panel = momentum_slots[idx]
+	var style: StyleBoxFlat = slot.get_theme_stylebox("panel") as StyleBoxFlat
+	if style == null:
+		return
+	var col: Color = Color(1.0, 0.25, 0.25) if is_warning else Color(1.0, 0.88, 0.25)
+	style.border_width_top = 3
+	style.border_width_bottom = 3
+	if target_slot != 1:
+		style.border_width_left = 3
+	if target_slot != GameManager.TOTAL_MOMENTUM_SLOTS:
+		style.border_width_right = 3
+	style.border_color = col
+	slot.queue_redraw()
+
+
+func _clear_momentum_preview() -> void:
+	if _momentum_preview_slot <= 0:
+		return
+	var idx: int = _momentum_preview_slot - 1
+	_momentum_preview_slot = 0
+	if idx < 0 or idx >= momentum_slots.size():
+		return
+	var slot: Panel = momentum_slots[idx]
+	var style: StyleBoxFlat = slot.get_theme_stylebox("panel") as StyleBoxFlat
+	if style == null:
+		return
+	style.border_width_top = 0
+	style.border_width_bottom = 0
+	style.border_width_left = 4 if (idx + 1) == 1 else 0
+	style.border_width_right = 4 if (idx + 1) == GameManager.TOTAL_MOMENTUM_SLOTS else 0
+	if (idx + 1) == 1:
+		style.border_color = Color.CYAN
+	elif (idx + 1) == GameManager.TOTAL_MOMENTUM_SLOTS:
+		style.border_color = Color.RED
+	slot.queue_redraw()
 
 
 func _check_opener_scout(player_id: int) -> void:
@@ -303,6 +490,7 @@ func update_all_visuals(p1: CharacterData, p2: CharacterData, momentum: int) -> 
 
 
 func update_momentum(val: int) -> void:
+	_clear_momentum_preview()
 	if momentum_slots.is_empty():
 		_build_momentum_track()
 
@@ -414,16 +602,38 @@ func set_active_input_player(player_id: int, show_hotseat_banner: bool) -> void:
 #region Hotkeys & Combat Signal Handlers
 
 func _unhandled_input(event: InputEvent) -> void:
+	if get_tree().paused or Pausemenu.visible:
+		return
+
+	if event is InputEventJoypadButton:
+		var joy: InputEventJoypadButton = event as InputEventJoypadButton
+		if not joy.pressed:
+			return
+		if joy.button_index == JOY_BUTTON_LEFT_SHOULDER or joy.button_index == JOY_BUTTON_RIGHT_SHOULDER:
+			if _hand_ctrl and bool(_hand_ctrl.call("toggle_tab_if_allowed")):
+				get_viewport().set_input_as_handled()
+		elif joy.button_index == JOY_BUTTON_Y:
+			if _inspect_ctrl:
+				_inspect_ctrl.call("toggle_inspect")
+				get_viewport().set_input_as_handled()
+		elif joy.button_index == JOY_BUTTON_DPAD_LEFT or joy.button_index == JOY_BUTTON_DPAD_RIGHT or joy.button_index == JOY_BUTTON_DPAD_UP or joy.button_index == JOY_BUTTON_DPAD_DOWN:
+			if get_viewport().gui_get_focus_owner() == null and _hand_ctrl and bool(_hand_ctrl.call("focus_first_available_card")):
+				get_viewport().set_input_as_handled()
+		return
+
 	if not (event is InputEventKey):
 		return
 	var key_event: InputEventKey = event as InputEventKey
 	if not key_event.pressed or key_event.echo:
 		return
-	if get_tree().paused or Pausemenu.visible:
-		return
 	var focused: Control = get_viewport().gui_get_focus_owner()
 	if focused is LineEdit or focused is TextEdit:
 		return
+
+	if (key_event.keycode == KEY_LEFT or key_event.keycode == KEY_RIGHT or key_event.keycode == KEY_UP or key_event.keycode == KEY_DOWN) and focused == null:
+		if _hand_ctrl and bool(_hand_ctrl.call("focus_first_available_card")):
+			get_viewport().set_input_as_handled()
+			return
 
 	match key_event.keycode:
 		KEY_TAB:
@@ -512,6 +722,11 @@ func _on_combat_callout(target_id: int, text: String, color: Color) -> void:
 		_callout_stagger_p2 += 1
 	var y_off: float = -72.0 - (float(stagger) * 32.0)
 	_effects_ctrl.call("spawn_floating_text", target_id, text, color, y_off)
+
+
+func _on_clash_outcome_banner(headline: String, detail: String, accent: Color) -> void:
+	if _effects_ctrl:
+		_effects_ctrl.call("show_clash_outcome_banner", headline, detail, accent)
 
 
 func _on_combat_log_updated(text: String) -> void:
@@ -695,6 +910,9 @@ func _show_game_over(winner_id: int) -> void:
 
 	if not game_over_screen or game_over_screen.visible:
 		return
+
+	if _effects_ctrl:
+		_effects_ctrl.call("hide_clash_outcome_banner")
 
 	if GameManager.p1_data and GameManager.p2_data:
 		update_all_visuals(GameManager.p1_data, GameManager.p2_data, GameManager.state.momentum)

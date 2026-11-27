@@ -84,6 +84,17 @@ func _setup_visuals() -> void:
 		p1_hp.text = "HP: " + str(p1.max_hp)
 		p1_sp.text = "SP: " + str(p1.max_sp)
 
+	# Show equipped player Title on local player's VS card across all game modes
+	var equipped_title: String = RunManager.get_active_title()
+	if equipped_title != "":
+		var local_is_p2: bool = (
+			multiplayer.has_multiplayer_peer()
+			and not multiplayer.get_peers().is_empty()
+			and multiplayer.get_unique_id() == GameManager.p2_network_id
+		)
+		var target_name_label: Label = p2_name if local_is_p2 else p1_name
+		_set_player_title_banner(target_name_label, equipped_title)
+
 	# -- Player 2 Data --
 	if p2:
 		if p2.portrait:
@@ -119,6 +130,24 @@ func _setup_visuals() -> void:
 		
 		p2_hp.text = "HP: " + str(p2.max_hp)
 		p2_sp.text = "SP: " + str(p2.max_sp)
+
+func _set_player_title_banner(name_lbl: Label, title_text: String) -> void:
+	var info_vbox: Node = name_lbl.get_parent()
+	if info_vbox == null:
+		return
+	var existing: Label = info_vbox.get_node_or_null("EquippedTitleLabel") as Label
+	if existing == null:
+		existing = Label.new()
+		existing.name = "EquippedTitleLabel"
+		existing.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		existing.add_theme_font_size_override("font_size", 17)
+		existing.add_theme_color_override("font_color", Color(1.0, 0.86, 0.32))
+		existing.add_theme_color_override("font_outline_color", Color.BLACK)
+		existing.add_theme_constant_override("outline_size", 3)
+		info_vbox.add_child(existing)
+		info_vbox.move_child(existing, name_lbl.get_index())
+	existing.text = "« %s »" % title_text.to_upper()
+
 
 func _set_p2_traits_banner(base_class_name: String, trait_lines: Array[String], is_boss: bool) -> void:
 	var info_vbox: Node = p2_class.get_parent()

@@ -2,6 +2,8 @@ extends Node
 
 const ResourceCatalogScript = preload("res://Scripts/Resources/ResourceCatalog.gd")
 const RunSaveManagerScript = preload("res://Scripts/RunSaveManager.gd")
+const MatchTelemetryScript = preload("res://Scripts/Meta/MatchTelemetry.gd")
+const AchievementManagerScript = preload("res://Scripts/Meta/AchievementManager.gd")
 
 var is_arcade_mode: bool = false
 var current_level: int = 1
@@ -40,12 +42,52 @@ var last_league_tokens_awarded: int = 0
 # --- GLOBAL META DATA ---
 const GLOBAL_SAVE_PATH: String = "user://global_save.tres"
 var meta_data: GlobalSaveData
+var telemetry: MatchTelemetry = null
+var run_stats: Dictionary = {}
+var last_match_summary: Dictionary = {}
+var last_run_summary: Dictionary = {}
+var last_unlocked_achievements: Array[Dictionary] = []
+var return_to_carousel_slide: int = -1
 
 var next_fight_statuses: Array[String] = []
 
 
 func _ready() -> void:
 	_init_global_save()
+	telemetry = MatchTelemetryScript.new()
+	telemetry.bind_signals()
+
+
+func notify_match_started() -> void:
+	last_unlocked_achievements.clear()
+	if telemetry != null:
+		var local_id: int = 1
+		if GameManager.multiplayer.has_multiplayer_peer() and not GameManager.multiplayer.get_peers().is_empty():
+			if GameManager.multiplayer.get_unique_id() == GameManager.p2_network_id:
+				local_id = 2
+		telemetry.reset_match_tracking(local_id)
+
+
+func check_achievements(custom_fighter_count: int = -1) -> Array[Dictionary]:
+	if meta_data == null:
+		return []
+	var unlocked: Array[Dictionary] = AchievementManagerScript.evaluate(self, meta_data, custom_fighter_count)
+	if not unlocked.is_empty():
+		last_unlocked_achievements.append_array(unlocked)
+	return unlocked
+
+
+func get_active_title() -> String:
+	if meta_data == null:
+		return ""
+	return meta_data.active_title
+
+
+func set_active_title(new_title: String) -> void:
+	if meta_data == null:
+		return
+	meta_data.active_title = new_title
+	_save_global_data()
 
 
 #region Run Lifecycle & State Reset
@@ -69,6 +111,7 @@ func clear_active_run_state() -> void:
 	tournament_map.clear()
 	current_map_index = 0
 	leagues_completed = 0
+	run_stats = MatchTelemetryScript.new_stats_bucket()
 	GameManager.rival_intro_override = ""
 
 
@@ -347,6 +390,11 @@ func load_run(filename: String) -> void:
 	is_boss_match = bool(raw_boss) if raw_boss != null else false
 	var raw_rival: Variant = save_data.get("is_rival_match")
 	is_rival_match = bool(raw_rival) if raw_rival != null else false
+	var raw_run_stats: Variant = save_data.get("run_stats")
+	if raw_run_stats is Dictionary and not (raw_run_stats as Dictionary).is_empty():
+		run_stats = (raw_run_stats as Dictionary).duplicate(true)
+	else:
+		run_stats = MatchTelemetryScript.new_stats_bucket()
 
 	if pending_league_victory:
 		SceneLoader.change_scene("res://Scenes/LeagueVictoryScreen.tscn")
@@ -493,6 +541,24 @@ func handle_league_victory() -> void:
 	var prev_tokens: int = meta_data.circuit_tokens if meta_data else 0
 	add_circuit_tokens(base_bonus)
 	last_league_tokens_awarded = (meta_data.circuit_tokens - prev_tokens) if meta_data else base_bonus
+
+	# Record career league milestones & evaluate league achievements
+	if meta_data != null:
+		if meta_data.career_stats.is_empty():
+			meta_data.career_stats = MatchTelemetryScript.new_stats_bucket()
+		var cs: Dictionary = meta_data.career_stats
+		cs["highest_league"] = maxi(int(cs.get("highest_league", 0)), leagues_completed)
+		cs["leagues_won"] = int(cs.get("leagues_won", 0)) + 1
+		if int(run_stats.get("wall_crushes_suffered", 0)) == 0:
+			cs["clean_wall_leagues"] = int(cs.get("clean_wall_leagues", 0)) + 1
+		if player_run_data != null:
+			var cname: String = ClassFactory.class_enum_to_string(player_run_data.class_type)
+			if not (cs.get("league_wins_by_class") is Dictionary):
+				cs["league_wins_by_class"] = {}
+			var lwc: Dictionary = cs["league_wins_by_class"] as Dictionary
+			lwc[cname] = int(lwc.get(cname, 0)) + 1
+		_save_global_data()
+		last_unlocked_achievements = AchievementManagerScript.evaluate(self, meta_data)
 
 	if player_run_data != null:
 		player_run_data.current_hp = player_run_data.max_hp

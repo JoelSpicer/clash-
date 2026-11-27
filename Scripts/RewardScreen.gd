@@ -8,6 +8,8 @@ const OVERLAY_SCENE: PackedScene = preload("res://Scenes/RunStatusOverlay.tscn")
 
 var _reward_claimed: bool = false
 var _reroll_btn: Button = null
+var _reward_buttons: Array[Button] = []
+var _reward_items: Array = []
 
 
 func _ready() -> void:
@@ -32,7 +34,10 @@ func _ready() -> void:
 
 func _generate_rewards() -> void:
 	for c: Node in container.get_children():
+		container.remove_child(c)
 		c.queue_free()
+	_reward_buttons.clear()
+	_reward_items.clear()
 	if is_instance_valid(_reroll_btn):
 		_reroll_btn.queue_free()
 		_reroll_btn = null
@@ -112,26 +117,76 @@ func _generate_rewards() -> void:
 			if not already_in:
 				choices.insert(0, rival_item)
 
+	var slot_num: int = 1
 	for reward: Variant in choices:
 		if reward != null:
-			_create_reward_card(reward)
+			_create_reward_card(reward, slot_num)
+			slot_num += 1
 
 	if RunManager.current_rerolls > 0:
 		_reroll_btn = Button.new()
-		_reroll_btn.text = "Reroll Options (" + str(RunManager.current_rerolls) + " left)"
-		_reroll_btn.custom_minimum_size = Vector2(200, 50)
+		_reroll_btn.text = "[R] Reroll Options (" + str(RunManager.current_rerolls) + " left)"
+		_reroll_btn.custom_minimum_size = Vector2(230, 50)
 		add_child(_reroll_btn)
 		_reroll_btn.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 		_reroll_btn.position.y -= 50.0
 
-		_reroll_btn.pressed.connect(func() -> void:
-			if _reward_claimed:
-				return
-			AudioManager.play_sfx("ui_click")
-			RunManager.current_rerolls -= 1
-			RunManager.save_run()
-			_generate_rewards()
-		)
+		_reroll_btn.pressed.connect(_trigger_reroll)
+
+	_wire_reward_focus()
+
+
+func _trigger_reroll() -> void:
+	if _reward_claimed or RunManager.current_rerolls <= 0:
+		return
+	AudioManager.play_sfx("ui_click")
+	RunManager.current_rerolls -= 1
+	RunManager.save_run()
+	_generate_rewards()
+
+
+func _wire_reward_focus() -> void:
+	for i: int in range(_reward_buttons.size()):
+		var b: Button = _reward_buttons[i]
+		b.focus_mode = Control.FOCUS_ALL
+		if i > 0:
+			b.focus_neighbor_left = b.get_path_to(_reward_buttons[i - 1])
+		if i + 1 < _reward_buttons.size():
+			b.focus_neighbor_right = b.get_path_to(_reward_buttons[i + 1])
+		if is_instance_valid(_reroll_btn):
+			b.focus_neighbor_bottom = b.get_path_to(_reroll_btn)
+	if is_instance_valid(_reroll_btn) and not _reward_buttons.is_empty():
+		_reroll_btn.focus_neighbor_top = _reroll_btn.get_path_to(_reward_buttons[0])
+	if not _reward_buttons.is_empty():
+		_reward_buttons[0].grab_focus()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _reward_claimed or Pausemenu.visible:
+		return
+	if event is InputEventJoypadButton:
+		var joy: InputEventJoypadButton = event as InputEventJoypadButton
+		if joy.pressed and joy.button_index == JOY_BUTTON_X and is_instance_valid(_reroll_btn):
+			_trigger_reroll()
+			get_viewport().set_input_as_handled()
+		return
+	if not (event is InputEventKey):
+		return
+	var key_event: InputEventKey = event as InputEventKey
+	if not key_event.pressed or key_event.echo:
+		return
+	if key_event.keycode == KEY_R and is_instance_valid(_reroll_btn):
+		_trigger_reroll()
+		get_viewport().set_input_as_handled()
+		return
+	var idx: int = -1
+	if key_event.keycode >= KEY_1 and key_event.keycode <= KEY_9:
+		idx = int(key_event.keycode - KEY_1)
+	elif key_event.keycode >= KEY_KP_1 and key_event.keycode <= KEY_KP_9:
+		idx = int(key_event.keycode - KEY_KP_1)
+	if idx >= 0 and idx < _reward_items.size():
+		_on_selected(_reward_items[idx])
+		get_viewport().set_input_as_handled()
 
 
 func _pop_random(pool: Array) -> Variant:
@@ -150,11 +205,13 @@ func _pop_weighted_random(pool: Array) -> Variant:
 	return picked
 
 
-func _create_reward_card(reward: Variant) -> void:
+func _create_reward_card(reward: Variant, slot_num: int = 0) -> void:
 	var btn: Button = Button.new()
 	btn.custom_minimum_size = Vector2(220, 320)
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	container.add_child(btn)
+	_reward_buttons.append(btn)
+	_reward_items.append(reward)
 
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.1, 1.0)
@@ -162,6 +219,16 @@ func _create_reward_card(reward: Variant) -> void:
 	style.set_border_width_all(2)
 	style.border_color = Color(0.3, 0.3, 0.3)
 	btn.add_theme_stylebox_override("normal", style)
+
+	var hover_style: StyleBoxFlat = style.duplicate() as StyleBoxFlat
+	hover_style.border_color = Color(0.65, 0.85, 1.0)
+	hover_style.set_border_width_all(3)
+	btn.add_theme_stylebox_override("hover", hover_style)
+
+	var focus_style: StyleBoxFlat = style.duplicate() as StyleBoxFlat
+	focus_style.border_color = Color(1.0, 0.88, 0.25)
+	focus_style.set_border_width_all(4)
+	btn.add_theme_stylebox_override("focus", focus_style)
 
 	if reward is ActionData:
 		var disp: Control = CARD_DISPLAY_SCENE.instantiate() as Control
@@ -182,6 +249,17 @@ func _create_reward_card(reward: Variant) -> void:
 	elif reward is Dictionary:
 		var dict_reward: Dictionary = reward as Dictionary
 		_build_info_card(btn, str(dict_reward.get("text", "")), str(dict_reward.get("desc", "")), Color(1.0, 0.5, 0.5), "UPGRADE")
+
+	if slot_num >= 1 and slot_num <= 9:
+		var badge: Label = Label.new()
+		badge.text = "[%d]" % slot_num
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.position = Vector2(10.0, 8.0)
+		badge.add_theme_font_size_override("font_size", 13)
+		badge.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+		badge.add_theme_color_override("font_outline_color", Color.BLACK)
+		badge.add_theme_constant_override("outline_size", 4)
+		btn.add_child(badge)
 
 	btn.pressed.connect(func() -> void: _on_selected(reward))
 

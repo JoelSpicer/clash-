@@ -5,26 +5,42 @@ extends Node
 ##   Godot_console.exe --headless --path <project> res://Scenes/Tests/CombatRegressionSuite.tscn
 
 const CombatRulesScript = preload("res://Scripts/Battle/CombatRules.gd")
+const MatchTelemetryScript = preload("res://Scripts/Meta/MatchTelemetry.gd")
+const AchievementCatalogScript = preload("res://Scripts/Data/AchievementCatalog.gd")
+const AchievementManagerScript = preload("res://Scripts/Meta/AchievementManager.gd")
+const CustomFighterStoreScript = preload("res://Scripts/Meta/CustomFighterStore.gd")
 
 var _passed: int = 0
 var _failed: int = 0
 var _match_ended: bool = false
 var _match_winner: int = 0
 var _game_over_count: int = 0
+var _last_banner_headline: String = ""
 
 var _saved_tokens: int = 0
 var _saved_completed: Array[String] = []
+var _saved_career_stats: Dictionary = {}
+var _saved_match_history: Array[Dictionary] = []
+var _saved_achievements: Array[String] = []
+var _saved_active_title: String = ""
 
 
 func _ready() -> void:
 	if RunManager.meta_data != null:
 		_saved_tokens = RunManager.meta_data.circuit_tokens
 		_saved_completed = RunManager.meta_data.completed_trials.duplicate()
+		_saved_career_stats = RunManager.meta_data.career_stats.duplicate(true)
+		_saved_match_history = RunManager.meta_data.match_history.duplicate(true)
+		_saved_achievements = RunManager.meta_data.unlocked_achievements.duplicate()
+		_saved_active_title = RunManager.meta_data.active_title
 
 	GameManager.game_over.connect(func(w: int) -> void:
 		_match_ended = true
 		_match_winner = w
 		_game_over_count += 1
+	)
+	GameManager.clash_outcome_banner.connect(func(headline: String, _detail: String, _accent: Color) -> void:
+		_last_banner_headline = headline
 	)
 
 	print("\n============================================================")
@@ -54,7 +70,10 @@ func _ready() -> void:
 	_test_equipment_and_sponsor_modifiers()
 	_test_sponsor_passives_and_mode_isolation()
 	_test_class_factory_case_insensitive_and_speed()
+	_test_clash_outcome_banner_signals()
 	_test_run_save_load_roundtrip()
+	_test_match_telemetry_and_achievements()
+	_test_custom_fighter_store_and_sandbox()
 	_test_all_28_dojo_trials()
 
 	# Restore user's meta save data cleanly
@@ -66,6 +85,10 @@ func _ready() -> void:
 	if RunManager.meta_data != null:
 		RunManager.meta_data.circuit_tokens = _saved_tokens
 		RunManager.meta_data.completed_trials = _saved_completed
+		RunManager.meta_data.career_stats = _saved_career_stats
+		RunManager.meta_data.match_history = _saved_match_history
+		RunManager.meta_data.unlocked_achievements = _saved_achievements
+		RunManager.meta_data.active_title = _saved_active_title
 		RunManager._save_global_data()
 
 	print("============================================================")
@@ -498,6 +521,23 @@ func _test_class_factory_case_insensitive_and_speed() -> void:
 		quick_char.speed == 4, "speed=%d" % quick_char.speed)
 
 
+func _test_clash_outcome_banner_signals() -> void:
+	_last_banner_headline = ""
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.NONE, 5, 5, 5, 2)
+	_clash(_action("Basic Parry"), _action("Basic Heavy"))
+	_check("Clash outcome banner emits PARRIED! on successful Parry", _last_banner_headline.begins_with("PARRIED!"), "got=" + _last_banner_headline)
+
+	_last_banner_headline = ""
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.NONE, 5, 5, 5, 2)
+	_clash(_action("Basic Dodge"), _action("Basic Technical"))
+	_check("Clash outcome banner emits DODGED! on clean Dodge", _last_banner_headline.begins_with("DODGED!"), "got=" + _last_banner_headline)
+
+	_last_banner_headline = ""
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.NONE, 5, 5, 3, 1)
+	_clash(_action("Basic Technical"), _action("Perfect Block"))
+	_check("Clash outcome banner emits GUARD BROKEN! on Guard Break vs Block", _last_banner_headline.begins_with("GUARD BROKEN!"), "got=" + _last_banner_headline)
+
+
 func _test_run_save_load_roundtrip() -> void:
 	var test_name: String = "__regression_roundtrip_test"
 	var test_file: String = test_name + ".tres"
@@ -547,6 +587,81 @@ func _test_run_save_load_roundtrip() -> void:
 		reloaded != null and reloaded.current_level == 7 and not reloaded.pending_league_victory,
 		"level=%s" % str(reloaded.current_level if reloaded else -1))
 	RunManager.delete_save_file(test_file)
+
+
+func _test_match_telemetry_and_achievements() -> void:
+	if RunManager.meta_data == null or RunManager.telemetry == null:
+		_check("Telemetry & Meta initialized", false)
+		return
+
+	# Reset isolated in-memory meta snapshot for deterministic achievement verification
+	RunManager.meta_data.career_stats = MatchTelemetryScript.new_stats_bucket()
+	RunManager.meta_data.match_history.clear()
+	RunManager.meta_data.unlocked_achievements.clear()
+	RunManager.meta_data.completed_trials.clear()
+	RunManager.meta_data.circuit_tokens = 0
+	RunManager.meta_data.active_title = ""
+
+	RunManager.telemetry._enabled_in_headless_tests = true
+	_setup_match(CharacterData.ClassType.HEAVY, 5, 5, CharacterData.ClassType.NONE, 2, 5, 3, 1)
+	_clash(_action("Basic Heavy"), _action("Basic Reversal"))
+	RunManager.telemetry._enabled_in_headless_tests = false
+
+	var ms: Dictionary = RunManager.last_match_summary
+	_check("MatchTelemetry records clashes, damage_dealt, flawless win, and match_history",
+		int(ms.get("clashes", 0)) == 1 and int(ms.get("damage_dealt", 0)) == 3 and int(ms.get("flawless_wins", 0)) == 1 and RunManager.meta_data.match_history.size() == 1,
+		"ms=%s hist=%d" % [str(ms), RunManager.meta_data.match_history.size()])
+
+	_check("AchievementManager unlocks First Blood & Untouchable and grants 15T once (no double grant)",
+		"first_blood" in RunManager.meta_data.unlocked_achievements
+		and "untouchable" in RunManager.meta_data.unlocked_achievements
+		and RunManager.meta_data.circuit_tokens == 15,
+		"unlocked=%s tokens=%d" % [str(RunManager.meta_data.unlocked_achievements), RunManager.meta_data.circuit_tokens])
+
+	var second_pass: Array[Dictionary] = AchievementManagerScript.evaluate(RunManager, RunManager.meta_data, 0, false)
+	var titles: Array[String] = AchievementCatalogScript.get_unlocked_titles(RunManager.meta_data)
+	_check("AchievementManager prevents duplicate unlocks & exposes unlocked VS Titles",
+		second_pass.is_empty() and "Untouchable" in titles and "Contender" in titles,
+		"second=%d titles=%s" % [second_pass.size(), str(titles)])
+
+
+func _test_custom_fighter_store_and_sandbox() -> void:
+	var test_id: String = "__regression_custom_fighter"
+	var class_pool: Array[ActionData] = CustomFighterStoreScript.get_legal_card_pool(CharacterData.ClassType.QUICK, false)
+	var sandbox_pool: Array[ActionData] = CustomFighterStoreScript.get_legal_card_pool(CharacterData.ClassType.QUICK, true)
+	_check("CustomFighterStore Sandbox pool strictly expands beyond single-class pool",
+		sandbox_pool.size() > class_pool.size() and class_pool.size() >= 8,
+		"class=%d sandbox=%d" % [class_pool.size(), sandbox_pool.size()])
+
+	# Verify Point-Buy budget clamping (Veteran = 5 pts max; passing 10+10 must clamp cleanly to 5 total)
+	var payload: Dictionary = {
+		"id": test_id,
+		"name": "Regression Custom",
+		"class_type": int(CharacterData.ClassType.QUICK),
+		"point_tier": "veteran",
+		"bonus_hp": 4,
+		"bonus_sp": 9,
+		"is_sandbox": true,
+		"deck_cards": ["Basic Light", "Basic Block", "Drop Kick", "Roll Punch"],
+	}
+	var err: Error = CustomFighterStoreScript.save_fighter(payload)
+	var loaded: Dictionary = CustomFighterStoreScript.load_fighter_file(CustomFighterStoreScript.CUSTOM_DIR + test_id + ".json")
+	var built: CharacterData = CustomFighterStoreScript.build_character_data(loaded)
+	var base_quick: CharacterData = ClassFactory.create_character(CharacterData.ClassType.QUICK, "Base", false)
+
+	_check("CustomFighterStore JSON roundtrip clamps Point-Buy tier & builds playable Sandbox fighter",
+		err == OK
+		and bool(loaded.get("is_sandbox", false))
+		and int(loaded.get("bonus_hp", 0)) == 4
+		and int(loaded.get("bonus_sp", 0)) == 1
+		and built != null
+		and built.max_hp == base_quick.max_hp + 4
+		and built.max_sp == base_quick.max_sp + 1
+		and built.deck.size() == 4
+		and CustomFighterStoreScript.get_origin_tag(true) == "Custom · Sandbox",
+		"loaded=%s" % str(loaded))
+
+	CustomFighterStoreScript.delete_fighter(test_id)
 
 #endregion
 

@@ -37,6 +37,9 @@ static func save_run(run_mgr: Node) -> Error:
 	save_data.next_fight_statuses = (run_mgr.get("next_fight_statuses") as Array[String]).duplicate()
 	save_data.is_boss_match = bool(run_mgr.get("is_boss_match"))
 	save_data.is_rival_match = bool(run_mgr.get("is_rival_match"))
+	var raw_stats: Variant = run_mgr.get("run_stats")
+	if raw_stats is Dictionary:
+		save_data.run_stats = (raw_stats as Dictionary).duplicate(true)
 
 	var safe_name: String = sanitize_save_name(save_data.run_name)
 	var file_path: String = SAVE_DIR + safe_name + ".tres"

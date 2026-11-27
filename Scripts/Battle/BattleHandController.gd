@@ -249,6 +249,54 @@ func refresh_grid() -> void:
 		skip_action.type = current_tab
 		_spawn_card_button(skip_action, 0, true, Color(0.9, 0.9, 1.0), hotkey_idx)
 
+	_wire_grid_focus()
+
+
+func _wire_grid_focus() -> void:
+	var btns: Array[Control] = []
+	for child: Node in button_grid.get_children():
+		if child is BaseButton:
+			var b: BaseButton = child as BaseButton
+			b.focus_mode = Control.FOCUS_ALL if not b.disabled else Control.FOCUS_NONE
+			if not b.disabled:
+				btns.append(b)
+	var cols: int = maxi(1, button_grid.columns)
+	for i: int in range(btns.size()):
+		var cur: Control = btns[i]
+		if i > 0:
+			cur.focus_neighbor_left = cur.get_path_to(btns[i - 1])
+		if i + 1 < btns.size():
+			cur.focus_neighbor_right = cur.get_path_to(btns[i + 1])
+		if i - cols >= 0:
+			cur.focus_neighbor_top = cur.get_path_to(btns[i - cols])
+		if i + cols < btns.size():
+			cur.focus_neighbor_bottom = cur.get_path_to(btns[i + cols])
+
+
+func focus_first_available_card() -> bool:
+	if is_locked or not button_grid.visible:
+		return false
+	for child: Node in button_grid.get_children():
+		if child is BaseButton and not (child as BaseButton).disabled:
+			(child as Control).grab_focus()
+			return true
+	return false
+
+
+func get_hover_context(card: ActionData) -> Dictionary:
+	var tech_idx: int = tech_dropdown.selected if (tech_dropdown != null and tech_dropdown.visible) else 0
+	var rage_on: bool = rage_toggle.button_pressed if (rage_toggle != null and rage_toggle.visible) else false
+	var is_special: bool = (card != null and (card.is_struggle or card == skip_action))
+	return {
+		"player_id": active_player_id,
+		"rage": rage_on,
+		"tech_idx": tech_idx,
+		"opportunity": my_opportunity_val,
+		"feint_mode": feint_mode,
+		"base_feint_cost": base_feint_cost,
+		"is_special": is_special,
+	}
+
 
 func _evaluate_ui_card(card: ActionData, constraints: Dictionary, rage_on: bool, tech_idx: int) -> Dictionary:
 	# Technical "+Opener" is Offence-only

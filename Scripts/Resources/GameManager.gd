@@ -19,6 +19,7 @@ signal damage_dealt(target_id: int, amount: int, is_blocked: bool)
 signal healing_received(target_id: int, amount: int)
 signal status_applied(target_id: int, status_name: String)
 signal combat_callout(target_id: int, text: String, color: Color)
+signal clash_outcome_banner(headline: String, detail: String, accent: Color)
 signal request_clash_animation(p1_card: ActionData, p2_card: ActionData)
 signal clash_animation_finished
 signal wall_crush_occurred(player_id: int, damage_amount: int)
@@ -99,6 +100,8 @@ func start_combat(p1: CharacterData, p2: CharacterData) -> void:
 func reset_combat() -> void:
 	_match_epoch += 1
 	current_state = State.SETUP
+	if RunManager and RunManager.has_method("notify_match_started"):
+		RunManager.notify_match_started()
 
 	# --- 1. RESET STATS ---
 	var p1_maintain: bool = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
@@ -395,20 +398,27 @@ func resolve_clash() -> void:
 	state.p2_action_queue = state.p2_action_queue.duplicate()
 
 	var winner_id: int = 0
+	var initial_clash_reason: String = ""
 
-	if state.p1_action_queue.type == ActionData.Type.OFFENCE and state.p2_action_queue.type == ActionData.Type.DEFENCE: 
+	if state.p1_action_queue.type == ActionData.Type.OFFENCE and state.p2_action_queue.type == ActionData.Type.DEFENCE:
 		winner_id = 1
-	elif state.p2_action_queue.type == ActionData.Type.OFFENCE and state.p1_action_queue.type == ActionData.Type.DEFENCE: 
+		initial_clash_reason = "Offence beats Defence"
+	elif state.p2_action_queue.type == ActionData.Type.OFFENCE and state.p1_action_queue.type == ActionData.Type.DEFENCE:
 		winner_id = 2
-	elif state.p1_action_queue.cost < state.p2_action_queue.cost: 
+		initial_clash_reason = "Offence beats Defence"
+	elif state.p1_action_queue.cost < state.p2_action_queue.cost:
 		winner_id = 1
-	elif state.p2_action_queue.cost < state.p1_action_queue.cost: 
+		initial_clash_reason = "Lower Cost (%d vs %d)" % [state.p1_action_queue.cost, state.p2_action_queue.cost]
+	elif state.p2_action_queue.cost < state.p1_action_queue.cost:
 		winner_id = 2
+		initial_clash_reason = "Lower Cost (%d vs %d)" % [state.p2_action_queue.cost, state.p1_action_queue.cost]
 	else:
 		combat_log_updated.emit("Tie! Priority Token Used.")
 		winner_id = state.priority_player
+		initial_clash_reason = "Cost Tie · Priority Token!"
 		swap_priority()
 
+	var pre_clash_mom: int = state.momentum
 	var log_text: String = "Clash Winner: P" + str(winner_id)
 	clash_resolved.emit(winner_id, state.p1_action_queue, state.p2_action_queue, {"log_text": log_text})
 
@@ -461,10 +471,12 @@ func resolve_clash() -> void:
 	var p1_total_cost: int = state.p1_action_queue.cost * p1_reps
 	var p2_total_cost: int = state.p2_action_queue.cost * p2_reps
 
-	if p2_active and state.p2_action_queue.dodge_value > 0 and state.p2_action_queue.dodge_value >= p1_total_cost: 
+	if p2_active and state.p2_action_queue.dodge_value > 0 and state.p2_action_queue.dodge_value >= p1_total_cost:
 		p1_is_dodged = true
-	if p1_active and state.p1_action_queue.dodge_value > 0 and state.p1_action_queue.dodge_value >= p2_total_cost: 
+		combat_callout.emit(2, "DODGED!", Color(0.4, 0.9, 1.0))
+	if p1_active and state.p1_action_queue.dodge_value > 0 and state.p1_action_queue.dodge_value >= p2_total_cost:
 		p2_is_dodged = true
+		combat_callout.emit(1, "DODGED!", Color(0.4, 0.9, 1.0))
 
 	var p1_parries: bool = (p1_active and state.p1_action_queue.is_parry)
 	var p2_parries: bool = (p2_active and state.p2_action_queue.is_parry)
@@ -481,12 +493,15 @@ func resolve_clash() -> void:
 	var p1_fb: int = (state.p1_action_queue.fall_back_value * p1_reps) if p1_active else 0
 	var p2_fb: int = (state.p2_action_queue.fall_back_value * p2_reps) if p2_active else 0
 
+	var wall_crush_target: int = 0
 	if p1_fb > 0 and state.momentum >= TOTAL_MOMENTUM_SLOTS:
 		_apply_wall_crush(1, p1_fb)
-		p1_fb = 0 
+		wall_crush_target = 1
+		p1_fb = 0
 		
 	if p2_fb > 0 and state.momentum <= 1:
 		_apply_wall_crush(2, p2_fb)
+		wall_crush_target = 2
 		p2_fb = 0 
 
 	var p1_contribution: int = p1_total_gain
@@ -510,25 +525,31 @@ func resolve_clash() -> void:
 	if p2_parry_success:
 		combat_callout.emit(2, "PARRIED!", Color(1.0, 0.88, 0.25))
 
-	var p1_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
-	var p2_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
+	var p1_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0, "dmg_dealt": 0, "blocked": false, "guard_broken": false, "retaliated": 0 }
+	var p2_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0, "dmg_dealt": 0, "blocked": false, "guard_broken": false, "retaliated": 0 }
 
 	var p2_immune_or_dodged: bool = p2_parry_success or p1_is_dodged
 	var p1_immune_or_dodged: bool = p1_parry_success or p2_is_dodged
 
-	if p1_active: 
+	if p1_active:
 		p1_results = _apply_phase_2_combat_effects(1, 2, state.p1_action_queue, state.p2_action_queue, p2_immune_or_dodged, p1_hits, p2_active)
-	if p2_active: 
+	if p2_active:
 		p2_results = _apply_phase_2_combat_effects(2, 1, state.p2_action_queue, state.p1_action_queue, p1_immune_or_dodged, p2_hits, p1_active)
 
 	_update_turn_constraints(p1_results, p2_results, state.p1_action_queue, state.p2_action_queue, p1_parry_success, p2_parry_success, p1_active, p2_active)
 
-	if p1_results.get("fatal", false) or p2_results.get("fatal", false):
-		_handle_death(winner_id)
-		return 
-
 	var p1_reversed: bool = (p1_active and state.p1_action_queue.reversal and delta < 0)
 	var p2_reversed: bool = (p2_active and state.p2_action_queue.reversal and delta > 0)
+
+	if p1_results.get("fatal", false) or p2_results.get("fatal", false):
+		_emit_clash_outcome_banner(
+			winner_id, is_initial_clash, initial_clash_reason, pre_clash_mom, state.momentum,
+			state.p1_action_queue, state.p2_action_queue, p1_active, p2_active,
+			p1_parry_success, p2_parry_success, p1_is_dodged, p2_is_dodged,
+			p1_reversed, p2_reversed, wall_crush_target, p1_results, p2_results, true
+		)
+		_handle_death(winner_id)
+		return
 
 	if is_initial_clash:
 		state.momentum = MOMENTUM_P1_MAX if winner_id == 1 else MOMENTUM_P2_START
@@ -553,6 +574,13 @@ func resolve_clash() -> void:
 			state.attacker_override = 2
 			combat_callout.emit(2, "REVERSAL!", Color(0.35, 1.0, 0.85))
 			combat_log_updated.emit(">> P2 REVERSAL SUCCESSFUL!")
+
+	_emit_clash_outcome_banner(
+		winner_id, is_initial_clash, initial_clash_reason, pre_clash_mom, state.momentum,
+		state.p1_action_queue, state.p2_action_queue, p1_active, p2_active,
+		p1_parry_success, p2_parry_success, p1_is_dodged, p2_is_dodged,
+		p1_reversed, p2_reversed, wall_crush_target, p1_results, p2_results, false
+	)
 
 	_handle_status_damage(p1_started_injured, p2_started_injured)
 	_check_reversal_state() 
@@ -579,6 +607,108 @@ func resolve_clash() -> void:
 # ==============================================================================
 # PHASE IMPLEMENTATIONS
 # ==============================================================================
+
+func _emit_clash_outcome_banner(
+	winner_id: int,
+	is_initial_clash: bool,
+	initial_reason: String,
+	pre_mom: int,
+	post_mom: int,
+	p1_card: ActionData,
+	p2_card: ActionData,
+	p1_active: bool,
+	p2_active: bool,
+	p1_parry: bool,
+	p2_parry: bool,
+	p1_dodged: bool,
+	p2_dodged: bool,
+	p1_rev: bool,
+	p2_rev: bool,
+	wall_crush_target: int,
+	p1_res: Dictionary,
+	p2_res: Dictionary,
+	is_fatal: bool
+) -> void:
+	var p1_name: String = p1_data.character_name if p1_data != null else "P1"
+	var p2_name: String = p2_data.character_name if p2_data != null else "P2"
+	var mom_note: String = (" · Mom %d→%d" % [pre_mom, post_mom]) if (pre_mom != post_mom and pre_mom > 0) else ""
+	var ko_tag: String = " — KO!" if is_fatal else ""
+
+	var headline: String = ""
+	var detail: String = ""
+	var accent: Color = Color(0.85, 0.9, 1.0)
+
+	if p1_active and p1_card.is_super:
+		headline = "SUPER UNLEASHED!" + ko_tag
+		detail = "%s fires %s (%d dmg)%s" % [p1_name, p1_card.display_name, int(p1_res.get("dmg_dealt", 0)), mom_note]
+		accent = Color(1.0, 0.82, 0.25)
+	elif p2_active and p2_card.is_super:
+		headline = "SUPER UNLEASHED!" + ko_tag
+		detail = "%s fires %s (%d dmg)%s" % [p2_name, p2_card.display_name, int(p2_res.get("dmg_dealt", 0)), mom_note]
+		accent = Color(1.0, 0.45, 0.25)
+	elif wall_crush_target != 0:
+		var victim_name: String = p1_name if wall_crush_target == 1 else p2_name
+		headline = "WALL CRUSH!" + ko_tag
+		detail = "%s fell back at the Wall and took crush damage!" % victim_name
+		accent = Color(1.0, 0.3, 0.3)
+	elif p1_parry or p2_parry:
+		var parrier: String = p1_name if p1_parry else p2_name
+		headline = "PARRIED!" + ko_tag
+		detail = "%s stole Momentum & negated the strike%s" % [parrier, mom_note]
+		accent = Color(1.0, 0.88, 0.28)
+	elif p1_rev or p2_rev:
+		var reverser: String = p1_name if p1_rev else p2_name
+		headline = "REVERSAL!" + ko_tag
+		detail = "%s flipped Momentum and seized Offence%s" % [reverser, mom_note]
+		accent = Color(0.35, 1.0, 0.85)
+	elif p1_dodged or p2_dodged:
+		var dodger: String = p2_name if p1_dodged else p1_name
+		headline = "DODGED!" + ko_tag
+		detail = "%s completely evaded the incoming attack%s" % [dodger, mom_note]
+		accent = Color(0.45, 0.88, 1.0)
+	elif bool(p1_res.get("guard_broken", false)) or bool(p2_res.get("guard_broken", false)):
+		var breaker: String = p1_name if bool(p1_res.get("guard_broken", false)) else p2_name
+		var dmg: int = int(p1_res.get("dmg_dealt", 0)) if bool(p1_res.get("guard_broken", false)) else int(p2_res.get("dmg_dealt", 0))
+		headline = "GUARD BROKEN!" + ko_tag
+		detail = "%s shattered Block for %d dmg%s" % [breaker, dmg, mom_note]
+		accent = Color(1.0, 0.58, 0.18)
+	elif int(p1_res.get("retaliated", 0)) > 0 or int(p2_res.get("retaliated", 0)) > 0:
+		var reflected: int = maxi(int(p1_res.get("retaliated", 0)), int(p2_res.get("retaliated", 0)))
+		var reflector: String = p2_name if int(p1_res.get("retaliated", 0)) > 0 else p1_name
+		headline = "RETALIATED!" + ko_tag
+		detail = "%s reflected %d damage back at the attacker!" % [reflector, reflected]
+		accent = Color(1.0, 0.4, 0.88)
+	elif is_initial_clash:
+		var win_name: String = p1_name if winner_id == 1 else p2_name
+		headline = "INITIAL CLASH · %s LEADS!" % win_name.to_upper()
+		detail = "%s · Takes Offence" % initial_reason
+		accent = Color(0.4, 0.92, 1.0) if winner_id == 1 else Color(1.0, 0.48, 0.45)
+	elif (bool(p1_res.get("blocked", false)) or bool(p2_res.get("blocked", false))) and int(p1_res.get("dmg_dealt", 0)) == 0 and int(p2_res.get("dmg_dealt", 0)) == 0:
+		headline = "BLOCKED!"
+		detail = "Guard absorbed all incoming damage%s" % mom_note
+		accent = Color(0.68, 0.78, 0.9)
+	else:
+		var p1_dmg: int = int(p1_res.get("dmg_dealt", 0))
+		var p2_dmg: int = int(p2_res.get("dmg_dealt", 0))
+		if p1_dmg > 0 and p2_dmg > 0:
+			headline = "HEAVY TRADE!" + ko_tag
+			detail = "%s -%d HP · %s -%d HP%s" % [p1_name, p2_dmg, p2_name, p1_dmg, mom_note]
+			accent = Color(1.0, 0.72, 0.35)
+		elif p1_dmg > 0:
+			headline = ("CLEAN HIT! -%d HP" % p1_dmg) + ko_tag
+			detail = "%s lands %s%s" % [p1_name, p1_card.display_name, mom_note]
+			accent = Color(0.45, 0.9, 1.0)
+		elif p2_dmg > 0:
+			headline = ("CLEAN HIT! -%d HP" % p2_dmg) + ko_tag
+			detail = "%s lands %s%s" % [p2_name, p2_card.display_name, mom_note]
+			accent = Color(1.0, 0.48, 0.45)
+		else:
+			headline = "POSITIONING EXCHANGE"
+			detail = "%s vs %s%s" % [p1_card.display_name, p2_card.display_name, mom_note]
+			accent = Color(0.75, 0.82, 0.92)
+
+	clash_outcome_banner.emit(headline, detail, accent)
+
 
 func _apply_wall_crush(player_id: int, amount: int) -> void:
 	var character: CharacterData = p1_data if player_id == 1 else p2_data
@@ -666,7 +796,15 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData, hits: int =
 func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool, hits: int = -1, enemy_active: bool = true) -> Dictionary:
 	var character: CharacterData = p1_data if owner_id == 1 else p2_data
 	var target: CharacterData = p2_data if owner_id == 1 else p1_data
-	var result: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
+	var result: Dictionary = {
+		"fatal": false,
+		"opening": 0,
+		"opportunity": 0,
+		"dmg_dealt": 0,
+		"blocked": false,
+		"guard_broken": false,
+		"retaliated": 0,
+	}
 	
 	if target_is_immune:
 		emit_signal("combat_log_updated", "P" + str(owner_id) + " attack NULLIFIED (Dodge/Parry)!")
@@ -700,6 +838,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		
 		if my_card.guard_break:
 			if enemy_block > 0 and i == 0:
+				result["guard_broken"] = true
 				combat_callout.emit(target_id, "GUARD BREAK!", Color(1.0, 0.55, 0.15))
 			enemy_block = 0
 			
@@ -741,6 +880,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 
 		if net_damage > 0:
 			target.current_hp -= net_damage
+			result["dmg_dealt"] = int(result["dmg_dealt"]) + net_damage
 			emit_signal("damage_dealt", target_id, net_damage, false)
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " hits P" + str(target_id) + ": -" + str(net_damage) + " HP")
 			
@@ -754,6 +894,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 					return result
 					
 		elif total_damage > 0:
+			result["blocked"] = true
 			emit_signal("combat_log_updated", "P" + str(owner_id) + " attack blocked (0 Dmg).")
 			emit_signal("damage_dealt", target_id, 0, true)
 
@@ -765,6 +906,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 			
 			if net_recoil > 0:
 				character.current_hp -= net_recoil
+				result["retaliated"] = int(result["retaliated"]) + net_recoil
 				combat_callout.emit(owner_id, "RETALIATE -" + str(net_recoil) + "!", Color(1.0, 0.35, 0.85))
 				emit_signal("damage_dealt", owner_id, net_recoil, false)
 				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")

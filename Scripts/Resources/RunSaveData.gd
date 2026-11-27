@@ -24,3 +24,4 @@ extends Resource
 @export var next_fight_statuses: Array[String] = []
 @export var is_boss_match: bool = false
 @export var is_rival_match: bool = false
+@export var run_stats: Dictionary = {}

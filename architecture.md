@@ -21,7 +21,8 @@
 - `res://Scripts/`:
   - Root scripts: Core UI screens, autoload managers, and persistence helper (`RunSaveManager.gd`).
   - `Scripts/Battle/`: Combat rules & controllers (`CombatRules`, `BotDecisionMaker`, `BattleHandController`, `BattleEffectsController`, `BattleTooltipController`, `BattleInspectPanel`, `TrialOverlay`).
-  - `Scripts/Data/`: Static content catalogs (`TrialCatalog.gd`).
+  - `Scripts/Data/`: Static content catalogs (`TrialCatalog.gd`, `AchievementCatalog.gd`).
+  - `Scripts/Meta/`: Meta-progression, telemetry, and custom roster helpers (`MatchTelemetry.gd`, `AchievementManager.gd`, `CustomFighterStore.gd`).
   - `Scripts/Resources/`: Data models, catalog helper (`ResourceCatalog.gd`), and core singletons (`ActionData`, `AIBehavior`, `BaseModifierData`, `BossModifierData`, `CharacterData`, `ClassDefinition`, `CombatGlossary`, `EquipmentData`, `EventData`, `GameManager`, `GlobalSaveData`, `MatchState`, `PresetCharacter`, `RunSaveData`, `SponsorData`, `TrialData`).
   - `Scripts/Tests/`: Headless automated test suite (`CombatRegressionSuite.gd`).
   - `Scripts/Balance/`: Shared headless match simulator (`CombatSimulator.gd`) powering the 5 balance runners (`Class`, `AI`, `Boss`, `Sponsor`, `Equipment`).
@@ -54,13 +55,14 @@
   - **`TrialOverlay`**: Collapsible Dojo Trial objective/hint/retry HUD docked beneath the combat log toggle.
 
 ## 5. Hub & Game Modes (`CarouselHub.tscn`)
-1. **The Circuit** (`MenuArcade.tscn` -> `TournamentMap.tscn` / `GymMain.tscn` / `EventRoom.tscn` / `RewardScreen.tscn` / `DeckEditScreen.tscn` / `LeagueVictoryScreen.tscn`): Roguelike tournament campaign with Sponsors, Boss Modifiers, and cache-safe save/load support.
-2. **Quick Match** (`MenuQuick.tscn`): Preset vs Preset (CPU or local Player 2 hotseat) across selectable arenas (`Ring` 6 slots, `Dojo` 8 slots, `Street` 10 slots).
+1. **The Circuit** (`MenuArcade.tscn` -> `TournamentMap.tscn` / `GymMain.tscn` / `EventRoom.tscn` / `RewardScreen.tscn` / `DeckEditScreen.tscn` / `LeagueVictoryScreen.tscn`): Roguelike tournament campaign with Sponsors, Boss Modifiers, per-run combat telemetry (`RunSaveData.run_stats`), Run Summaries, and cache-safe save/load support.
+2. **Quick Match** (`MenuQuick.tscn` + `CustomFighterBuilder.tscn`): Premade (`[Premade]`) and player-built (`[Custom · Class]` / `[Custom · Sandbox]`) fighters with selectable Point-Buy tiers (`Standard 0 pts`, `Veteran 5 pts`, `Champion 9 pts`) across selectable arenas (`Ring`, `Dojo`, `Street`) for CPU or Local 2P Hotseat.
 3. **Dojo Trials** (`MenuDojoTrials.tscn`): 28 bite-sized combat puzzles teaching every trait, Class Passive, and hybrid interaction.
 4. **Network Terminal** (`ShopTerminal.tscn`): Meta-progression unlocks (Classes, Sponsors, upgrades) using Circuit Tokens.
-5. **Game Settings** (`MenuSettings.tscn`): Audio, display, and progress reset controls.
-6. **Compendium** (`compendium.tscn`): Rules glossary (`CombatGlossary`) and full Action library browser.
-7. **Multiplayer** (`Multi.tscn`): Online lobby and matchmaking via `NetworkManager`.
+5. **Career & Trophies** (`MenuProfile.tscn`): Lifetime Career Stats, 30-entry Match History, 18 Meta-Progression Achievements (`AchievementCatalog` / `AchievementManager`), and equippable cosmetic Titles shown on `VsScreen.tscn` across all game modes.
+6. **Game Settings** (`MenuSettings.tscn`): Audio, display, and progress reset controls.
+7. **Compendium** (`compendium.tscn`): Rules glossary (`CombatGlossary`) and full Action library browser.
+8. **Multiplayer** (`Multi.tscn`): Online lobby and matchmaking via `NetworkManager` (authored `Data/Presets/` only).
 
 ## 6. Automated Verification & Balance Tooling
 - **Regression Test Suite (`Scenes/Tests/CombatRegressionSuite.tscn` / `Scripts/Tests/CombatRegressionSuite.gd`)**: Headless automated suite verifying every core combat rule, all 4 Class Passives, `FEINT_CHECK` state integrity, `CombatRules` snapshot serialization, failed-card resolution, sponsor passives & Arcade mode isolation, `RunSaveData` Save/Load roundtrip + cache-bypass reload, and all 28 Dojo Trials (winning lines, trap plays, and UI legality).
