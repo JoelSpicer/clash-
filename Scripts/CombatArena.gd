@@ -1,6 +1,7 @@
 extends Node2D
 
 const BotDecisionMakerScript = preload("res://Scripts/Battle/BotDecisionMaker.gd")
+const CombatRulesScript = preload("res://Scripts/Battle/CombatRules.gd")
 
 @export_group("Setup")
 @export var p1_resource: CharacterData
@@ -61,7 +62,8 @@ func _ready() -> void:
 		GameManager.state_changed.connect(_on_state_changed)
 		GameManager.combat_log_updated.connect(_on_log_updated)
 		GameManager.clash_resolved.connect(_on_clash_resolved)
-		GameManager.request_clash_animation.connect(Callable(battle_ui, "play_clash_animation"))
+		if DisplayServer.get_name() != "headless":
+			GameManager.request_clash_animation.connect(Callable(battle_ui, "play_clash_animation"))
 
 	if not battle_ui.is_connected("human_selected_card", _on_human_input_received):
 		battle_ui.connect("human_selected_card", _on_human_input_received)
@@ -69,10 +71,7 @@ func _ready() -> void:
 		battle_ui.connect("p1_mode_toggled", _on_p1_mode_toggled)
 		battle_ui.connect("p2_mode_toggled", _on_p2_mode_toggled)
 
-	# 5. Initialize UI
-	battle_ui.call("setup_match_ui", p1_resource, p2_resource, local_player_id)
-	battle_ui.call("setup_toggles", is_player_1_human, is_player_2_human)
-
+	# 5. Reset Match State FIRST so BattleUI snapshots true initial stats
 	print("--- INITIALIZING MATCH ---")
 	GameManager.p1_data = p1_resource
 	GameManager.p2_data = p2_resource
@@ -80,10 +79,12 @@ func _ready() -> void:
 
 	if TrialManager.is_trial_active:
 		TrialManager.apply_trial_initial_state()
-		battle_ui.call("setup_trial_ui")
 
-	# 6. Setup Visuals & Snapshot Refresh
-	battle_ui.call("initialize_hud", p1_resource, p2_resource)
+	# 6. Initialize UI & HUD (single clean initialization pass)
+	battle_ui.call("setup_match_ui", p1_resource, p2_resource, local_player_id)
+	battle_ui.call("setup_toggles", is_player_1_human, is_player_2_human)
+	if TrialManager.is_trial_active:
+		battle_ui.call("setup_trial_ui")
 	_update_visuals()
 	if not GameManager.snapshot_applied.is_connected(_update_visuals):
 		GameManager.snapshot_applied.connect(_update_visuals)
@@ -214,74 +215,31 @@ func _start_turn_sequence() -> void:
 
 
 func _start_feint_input() -> void:
+	if _is_online_match():
+		if local_player_id == 1 and GameManager.state.p1_pending_feint:
+			print("| --- WAITING FOR P1 FEINT SELECTION --- |")
+			_prepare_human_turn(1)
+		elif local_player_id == 2 and GameManager.state.p2_pending_feint:
+			print("| --- WAITING FOR P2 FEINT SELECTION --- |")
+			_prepare_human_turn(2)
+		return
+
 	if GameManager.state.p1_pending_feint:
 		print("| --- WAITING FOR P1 FEINT SELECTION --- |")
-		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
-			if local_player_id == 1:
-				_prepare_human_turn(1)
+		if is_player_1_human:
+			_prepare_human_turn(1)
 		else:
-			if is_player_1_human:
-				_prepare_human_turn(1)
-			else:
-				_run_bot_turn(1)
+			_run_bot_turn(1)
 	elif GameManager.state.p2_pending_feint:
 		print("| --- WAITING FOR P2 FEINT SELECTION --- |")
-		if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
-			if local_player_id == 2:
-				_prepare_human_turn(2)
+		if is_player_2_human:
+			_prepare_human_turn(2)
 		else:
-			if is_player_2_human:
-				_prepare_human_turn(2)
-			else:
-				_run_bot_turn(2)
+			_run_bot_turn(2)
 
 
 func _get_player_constraints(player_id: int) -> Dictionary:
-	var attacker_id: int = GameManager.get_attacker()
-	var is_combo: bool = (GameManager.state.current_combo_attacker != 0)
-	var mom: int = GameManager.state.momentum
-
-	var c: Dictionary = {
-		"filter": null,
-		"required_tab": null,
-		"needs_opener": false,
-		"max_cost": 99,
-		"opening_stat": 0,
-		"can_use_super": false,
-		"opportunity_stat": 0
-	}
-
-	if player_id == 1:
-		c["max_cost"] = GameManager.state.p1_cost_limit
-		c["opening_stat"] = GameManager.state.p1_opening_stat
-		c["opportunity_stat"] = GameManager.state.p1_opportunity_stat
-		if mom == GameManager.get_wall_momentum(1) and not p1_resource.has_used_super and not GameManager.is_super_disabled(1):
-			c["can_use_super"] = true
-		if GameManager.state.p1_must_opener:
-			c["needs_opener"] = true
-	else:
-		c["max_cost"] = GameManager.state.p2_cost_limit
-		c["opening_stat"] = GameManager.state.p2_opening_stat
-		c["opportunity_stat"] = GameManager.state.p2_opportunity_stat
-		if mom == GameManager.get_wall_momentum(2) and not p2_resource.has_used_super and not GameManager.is_super_disabled(2):
-			c["can_use_super"] = true
-		if GameManager.state.p2_must_opener:
-			c["needs_opener"] = true
-
-	if attacker_id != 0:
-		if attacker_id == player_id:
-			c["filter"] = ActionData.Type.OFFENCE
-			c["required_tab"] = ActionData.Type.OFFENCE
-		else:
-			c["filter"] = ActionData.Type.DEFENCE
-			c["required_tab"] = ActionData.Type.DEFENCE
-
-	if mom == 0:
-		c["needs_opener"] = true
-	elif attacker_id == player_id and not is_combo:
-		c["needs_opener"] = true
-
-	return c
+	return CombatRulesScript.get_player_constraints(player_id)
 
 
 func _is_online_match() -> bool:
@@ -389,17 +347,30 @@ func _on_human_input_received(card: ActionData, extra_data: Dictionary = {}) -> 
 func server_receive_input(player_id: int, card_name: String, extra_data: Dictionary) -> void:
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		return
+
+	# In online multiplayer, derive authoritative player_id from the RPC sender so peers cannot spoof inputs
+	var auth_player_id: int = player_id
+	if _is_online_match():
+		var sender_id: int = multiplayer.get_remote_sender_id()
+		if sender_id == GameManager.p1_network_id:
+			auth_player_id = 1
+		elif sender_id == GameManager.p2_network_id:
+			auth_player_id = 2
+		elif sender_id != 0:
+			printerr("🚨 [SERVER FUNNEL] Rejected spoofed input from unknown peer ", sender_id)
+			return
+
 	if GameManager.current_state != GameManager.State.SELECTION and GameManager.current_state != GameManager.State.FEINT_CHECK:
-		print("⚠️ [SERVER FUNNEL] Ignored out-of-phase input from P", player_id, " during ", GameManager.State.keys()[GameManager.current_state])
+		print("⚠️ [SERVER FUNNEL] Ignored out-of-phase input from P", auth_player_id, " during ", GameManager.State.keys()[GameManager.current_state])
 		return
 
-	var str_id: String = str(player_id)
+	var str_id: String = str(auth_player_id)
 	server_received_inputs[str_id] = { "card": card_name, "extra": extra_data }
-	print("📥 [SERVER FUNNEL] Received P", player_id)
+	print("📥 [SERVER FUNNEL] Received P", auth_player_id)
 
 	_check_server_funnel()
 
-	if not _is_online_match() and player_id == 1:
+	if not _is_online_match() and auth_player_id == 1:
 		var needs_p2_selection: bool = (
 			GameManager.current_state == GameManager.State.SELECTION
 			and GameManager.state.p2_locked_card == null
@@ -438,9 +409,9 @@ func _check_server_funnel() -> void:
 	if inputs_ready:
 		print("🚀 [SERVER FUNNEL] Ready! Blasting to clients...")
 		if match_state.p1_locked_card != null and not server_received_inputs.has("1"):
-			server_received_inputs["1"] = { "card": match_state.p1_locked_card.display_name, "extra": {} }
+			server_received_inputs["1"] = { "card": "__LOCKED__", "extra": {} }
 		if match_state.p2_locked_card != null and not server_received_inputs.has("2"):
-			server_received_inputs["2"] = { "card": match_state.p2_locked_card.display_name, "extra": {} }
+			server_received_inputs["2"] = { "card": "__LOCKED__", "extra": {} }
 
 		client_execute_turn.rpc(server_received_inputs.duplicate())
 		server_received_inputs.clear()
@@ -462,6 +433,12 @@ func client_execute_turn(inputs: Dictionary) -> void:
 func _get_action_to_submit(player_id: int, card_name: String) -> ActionData:
 	if card_name == "SKIP FEINT" or card_name == "":
 		return null
+
+	var locked_card: ActionData = GameManager.state.p1_locked_card if player_id == 1 else GameManager.state.p2_locked_card
+	if locked_card != null and GameManager.current_state == GameManager.State.SELECTION:
+		if card_name == "__LOCKED__" or card_name == locked_card.display_name:
+			return locked_card
+
 	var character: CharacterData = p1_resource if player_id == 1 else p2_resource
 	if card_name == "Struggle":
 		var is_offence: bool = (GameManager.get_attacker() == player_id)
@@ -480,21 +457,28 @@ func _run_bot_turn(player_id: int) -> void:
 	var locked_card: ActionData = GameManager.state.p1_locked_card if player_id == 1 else GameManager.state.p2_locked_card
 	if locked_card != null and GameManager.current_state == GameManager.State.SELECTION:
 		print(">>> BOT P" + str(player_id) + " LOCKED INTO: " + locked_card.display_name)
-		server_receive_input(player_id, locked_card.display_name, {})
+		server_receive_input(player_id, "__LOCKED__", {})
 		return
 
 	var c: Dictionary = _get_player_constraints(player_id)
+	var is_feinting: bool = (GameManager.current_state == GameManager.State.FEINT_CHECK)
+	var base_feint_card: ActionData = (GameManager.state.p1_action_queue if player_id == 1 else GameManager.state.p2_action_queue) if is_feinting else null
+	var base_feint_cost: int = base_feint_card.cost if base_feint_card != null else 0
+
 	var card: ActionData
 	var extra_data: Dictionary = {}
 
 	if TrialManager.is_trial_active and player_id == 2:
-		card = TrialManager.get_bot_card_for_turn(character)
+		card = TrialManager.get_bot_card_for_turn(character) if not is_feinting else null
 	elif TutorialManager.is_tutorial_active and player_id == 2:
-		var target_card_name: String = str(TutorialManager.get_current_data().get("bot_card", ""))
-		card = _find_card_by_name(character, target_card_name)
-		if card == null:
-			printerr("TUTORIAL ERROR: Bot missing card " + target_card_name)
-			card = GameManager.get_struggle_action(ActionData.Type.OFFENCE)
+		if is_feinting:
+			card = null
+		else:
+			var target_card_name: String = str(TutorialManager.get_current_data().get("bot_card", ""))
+			card = _find_card_by_name(character, target_card_name)
+			if card == null:
+				printerr("TUTORIAL ERROR: Bot missing card " + target_card_name)
+				card = GameManager.get_struggle_action(ActionData.Type.OFFENCE)
 	else:
 		var opponent: CharacterData = p2_resource if player_id == 1 else p1_resource
 		var choice: Dictionary = BotDecisionMakerScript.choose_action(
@@ -506,10 +490,17 @@ func _run_bot_turn(player_id: int) -> void:
 			int(c["max_cost"]),
 			int(c["opening_stat"]),
 			bool(c["can_use_super"]),
-			int(c["opportunity_stat"])
+			int(c["opportunity_stat"]),
+			is_feinting,
+			base_feint_cost
 		)
 		card = choice["card"] as ActionData
 		extra_data = choice["extra"] as Dictionary
+
+	if card == null:
+		print(">>> BOT P" + str(player_id) + " SKIPS FEINT")
+		server_receive_input(player_id, "SKIP FEINT", {})
+		return
 
 	print(">>> BOT P" + str(player_id) + " COMMITTED: " + card.display_name)
 	server_receive_input(player_id, card.display_name, extra_data)

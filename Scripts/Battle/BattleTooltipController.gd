@@ -133,7 +133,9 @@ func _update_keyword_tooltip(card: ActionData) -> void:
 
 	for s: Dictionary in card.statuses_to_apply:
 		var s_name: String = str(s.get("name", ""))
-		if s_name != "":
+		if s_name == "Injured":
+			s_name = "Injure"
+		if s_name != "" and s_name not in active_keys:
 			active_keys.append(s_name)
 
 	if card.retaliate: active_keys.append("Retaliate")

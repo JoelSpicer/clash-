@@ -86,17 +86,16 @@ func _on_peer_connected(id: int) -> void:
 func _on_peer_disconnected(id: int) -> void:
 	printerr("🚨 [SERVER ALERT] Peer ", id, " suddenly disconnected!")
 	
-	# 1. Erase the ghost player from all server memory lists
+	var was_participant: bool = server_players.has(id)
+	# 1. Erase the disconnected player from all server memory lists
 	server_players.erase(id)
 	players_ready_for_match.erase(id)
 	anim_ready_players.erase(id)
 	
-	# 2. If the match is still running and someone is left behind, abort the match!
-	if multiplayer.is_server() and server_players.size() > 0:
+	# 2. Only abort an active match if an actual match participant disconnected (not a booted 3rd peer)
+	if multiplayer.is_server() and was_participant and server_players.size() > 0:
 		print("Server: Match broken by disconnect. Sending remaining player to lobby.")
-		# Force the remaining player to exit
 		rpc("return_to_lobby")
-		# Completely wipe the server so it is ready for two brand new players
 		_wipe_server_memory()
 #endregion
 
@@ -138,9 +137,10 @@ func _on_kicked_by_server() -> void:
 	printerr("🚨 [CLIENT ALERT] The server closed our connection!")
 	_disconnect_local_peer()
 	
-	# --- THE STRANDED FIX ---
-	# If we lose connection, we MUST leave the Arena!
-	get_tree().change_scene_to_file("res://Scenes/Multi.tscn")
+	# Only redirect if we are NOT already on Multi.tscn (so lobby disconnect messages stay visible)
+	var cur_scene: Node = get_tree().current_scene
+	if cur_scene == null or cur_scene.scene_file_path != "res://Scenes/Multi.tscn":
+		get_tree().change_scene_to_file("res://Scenes/Multi.tscn")
 #endregion
 
 #region Matchmaking Handshake
@@ -159,6 +159,11 @@ func register_player_character(preset_path: String) -> void:
 	
 	# Block registration if a match is already running
 	if _is_match_active:
+		return
+
+	# Security/stability validation: only allow real Preset resources inside res://Data/Presets/
+	if not preset_path.begins_with("res://Data/Presets/") or ".." in preset_path or not (preset_path.ends_with(".tres") or preset_path.ends_with(".res")) or not ResourceLoader.exists(preset_path):
+		printerr("🚨 [SERVER] Rejected invalid preset path from peer ", sender_id, ": ", preset_path)
 		return
 		
 	server_players[sender_id] = preset_path
@@ -187,13 +192,33 @@ func register_player_character(preset_path: String) -> void:
 func start_match(p1_path: String, p2_path: String, p1_id: int, p2_id: int) -> void:
 	print("Client: Match starting! Loading characters safely...")
 	
+	# Clear any leftover single-player mode state so Circuit/Trial/Tutorial globals never leak into PvP
+	RunManager.is_arcade_mode = false
+	RunManager.player_run_data = null
+	RunManager.active_sponsor = null
+	RunManager.active_gym_buff = ""
+	RunManager.next_fight_statuses.clear()
+	RunManager.is_boss_match = false
+	RunManager.is_rival_match = false
+	TrialManager.clear_active_trial()
+	TutorialManager.is_tutorial_active = false
+	TutorialManager.active_tutorial_id = ""
+	TutorialManager.current_step = 0
+	TutorialManager.active_script = []
+
 	# Save network identities so the GameManager knows who is who
 	GameManager.p1_network_id = p1_id
 	GameManager.p2_network_id = p2_id
 	
 	# Load the characters from the paths the Server gave us
-	var p1_preset: Resource = load(p1_path)
-	var p2_preset: Resource = load(p2_path)
+	var p1_preset: PresetCharacter = load(p1_path) as PresetCharacter
+	var p2_preset: PresetCharacter = load(p2_path) as PresetCharacter
+	if p1_preset == null or p2_preset == null:
+		printerr("❌ Failed to load preset resources for multiplayer match!")
+		if multiplayer.is_server():
+			rpc("return_to_lobby")
+			_wipe_server_memory()
+		return
 	
 	# --- THE OVERRIDE: Pass 'true' to completely bypass the 8-card cull limit ---
 	GameManager.next_match_p1_data = ClassFactory.create_from_preset(p1_preset, true)
@@ -238,7 +263,9 @@ func _try_begin_combat_phase() -> void:
 				_loading_timeout.timeout.disconnect(_on_handshake_timeout)
 			_loading_timeout = null
 
-		print("Server: Both players and referee arena loaded! Starting Combat State...")
+		print("Server: Both players and referee arena loaded! Syncing initial state & starting combat...")
+		# Sync Clash 1 priority_player & initial stats before Clash 1 begins
+		GameManager.broadcast_state_snapshot()
 		begin_combat_phase.rpc()
 
 ## 2. THE SERVER tells the clients to officially start the game.
@@ -263,7 +290,8 @@ func report_animation_done() -> void:
 	if anim_ready_players.size() == 2:
 		# Cancel the safety timer!
 		if _animation_timeout:
-			_animation_timeout.timeout.disconnect(_on_handshake_timeout)
+			if _animation_timeout.timeout.is_connected(_on_handshake_timeout):
+				_animation_timeout.timeout.disconnect(_on_handshake_timeout)
 			_animation_timeout = null
 			
 		anim_ready_players.clear()
@@ -294,11 +322,14 @@ func _on_handshake_timeout() -> void:
 func request_server_reset() -> void:
 	if not multiplayer.is_server():
 		return
+
+	var sender_id: int = multiplayer.get_remote_sender_id()
+	if not server_players.has(sender_id):
+		printerr("🚨 [SERVER] Ignored unauthorized reset request from non-participant peer ", sender_id)
+		return
 		
 	print("Server: Match ended normally. Resetting server state and returning players to lobby.")
-	# Force everyone to go back to the menu
 	rpc("return_to_lobby")
-	# Wipe the server clean for the next set of players
 	_wipe_server_memory()
 
 ## THE SERVER calls this. The CLIENTS execute it to disconnect safely and load the menu.
@@ -313,8 +344,8 @@ func return_to_lobby() -> void:
 	# 1. Safely cut the connection to the server
 	_disconnect_local_peer()
 	
-	# 2. Reset leftover GameManager states so the next match doesn't break
 	# 2. Reset leftover GameManager states so the next match starts fresh
+	GameManager.bump_match_epoch()
 	GameManager.state = MatchState.new()
 	
 	# 3. Load the Multiplayer Lobby Scene
@@ -322,11 +353,11 @@ func return_to_lobby() -> void:
 
 # --- HELPER FUNCTIONS ---
 
-## Safely wipes all server memory tracking variables.
-### --- HELPER FUNCTIONS ---
-
 #### Safely wipes all server memory tracking variables and resets match guards.
 func _wipe_server_memory() -> void:
+	# 0. Invalidate any in-flight GameManager reveal/sync coroutines
+	GameManager.bump_match_epoch()
+
 	# 1. Clear tracking collections
 	server_players.clear()
 	players_ready_for_match.clear()

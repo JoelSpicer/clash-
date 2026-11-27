@@ -249,8 +249,9 @@ func _select_trial(t: TrialData) -> void:
 
 
 func _on_start_pressed() -> void:
-	if _selected_trial == null:
+	if _selected_trial == null or _start_btn.disabled:
 		return
+	_start_btn.disabled = true
 	AudioManager.play_sfx("ui_click")
 	TrialManager.start_trial(_selected_trial.id)
 

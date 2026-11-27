@@ -12,6 +12,7 @@ var close_env_button: Button
 var card_display_scene: PackedScene
 var compendium_scene: PackedScene
 var overlay_parent: Node
+var _active_compendium: Node = null
 
 
 func setup(
@@ -77,9 +78,11 @@ func toggle_env_popup() -> void:
 func open_compendium() -> void:
 	if not compendium_scene or not overlay_parent:
 		return
-	var compendium: Node = compendium_scene.instantiate()
-	compendium.set("is_overlay", true)
-	overlay_parent.add_child(compendium)
+	if is_instance_valid(_active_compendium):
+		return
+	_active_compendium = compendium_scene.instantiate()
+	_active_compendium.set("is_overlay", true)
+	overlay_parent.add_child(_active_compendium)
 
 
 func populate_enemy_deck() -> void:

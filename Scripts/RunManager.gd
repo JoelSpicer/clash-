@@ -1,10 +1,12 @@
 extends Node
 
+const ResourceCatalogScript = preload("res://Scripts/Resources/ResourceCatalog.gd")
+const RunSaveManagerScript = preload("res://Scripts/RunSaveManager.gd")
+
 var is_arcade_mode: bool = false
 var current_level: int = 1
-var player_run_data: CharacterData
+var player_run_data: CharacterData = null
 var player_owned_tree_ids: Array[int] = []
-var free_unlocks_remaining: int = 0
 var active_sponsor: SponsorData = null
 var current_rerolls: int = 0
 
@@ -12,6 +14,8 @@ var active_gym_buff: String = ""
 
 var pending_advancement: bool = false
 var pending_reward: bool = false
+var pending_league_victory: bool = false
+var reward_tokens_granted: bool = false
 
 var current_run_name: String = "Test Run"
 const SAVE_DIR: String = "user://saves/"
@@ -25,7 +29,6 @@ const BOSS_MODIFIERS_DIR: String = "res://Data/BossModifiers/"
 var tournament_map: Array[MapNodeData] = []
 var current_map_index: int = 0
 var leagues_completed: int = 0
-var current_enemy_data: CharacterData
 
 # --- CONFIGURATION ---
 const LEAGUE_LENGTH: int = 10
@@ -45,79 +48,70 @@ func _ready() -> void:
 	_init_global_save()
 
 
-#region Run Start Paths
+#region Run Lifecycle & State Reset
 
-# OPTION A: STANDARD RUN (Level 1, Drafting)
-func start_run(starting_class: CharacterData.ClassType) -> void:
-	is_arcade_mode = true
-	current_level = 1
-	player_run_data = ClassFactory.create_character(starting_class, "You")
-	_init_tree_root(starting_class)
-	free_unlocks_remaining = 1
-	SceneLoader.change_scene("res://Scenes/ActionTree.tscn")
-
-
-# OPTION B: PRESET RUN
-func start_run_from_preset(preset_data: CharacterData) -> void:
-	player_run_data = preset_data.duplicate(true) as CharacterData
-	current_level = 1
+## Clears all transient Circuit run globals so Trials, Tutorials, Quick Match, and PvP never inherit stale state.
+func clear_active_run_state() -> void:
+	is_arcade_mode = false
+	player_run_data = null
 	player_owned_tree_ids.clear()
-	_unlock_class_starters(player_run_data)
-	print("Starting Preset Run. Loading Deck Editor...")
-	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
+	active_sponsor = null
+	current_rerolls = 0
+	active_gym_buff = ""
+	pending_advancement = false
+	pending_reward = false
+	pending_league_victory = false
+	reward_tokens_granted = false
+	is_rival_match = false
+	is_boss_match = false
+	last_league_tokens_awarded = 0
+	next_fight_statuses.clear()
+	tournament_map.clear()
+	current_map_index = 0
+	leagues_completed = 0
+	GameManager.rival_intro_override = ""
 
 
-# OPTION C: CIRCUIT RUN (Class + Sponsor + Tournament Map)
+## Starts a fresh Circuit roguelike run with the chosen class and optional sponsor.
 func start_new_run(source_class: ClassDefinition, run_name: String = "New Run", sponsor: SponsorData = null) -> void:
+	clear_active_run_state()
+
 	current_run_name = run_name
 	is_arcade_mode = true
-
 	current_level = 1
-	player_owned_tree_ids.clear()
-	free_unlocks_remaining = 0
 	leagues_completed = 0
 	active_sponsor = sponsor
 
-	var p_data: CharacterData = CharacterData.new()
-	p_data.class_type = source_class.class_type
-	p_data.character_name = run_name
-	p_data.portrait = source_class.portrait
-	p_data.passive_desc = source_class.passive_description
+	# Delegate fighter construction to ClassFactory so base_speed & all class passives stay in sync
+	var p_data: CharacterData = ClassFactory.create_character(source_class.class_type, run_name, true)
+	if p_data == null:
+		printerr("RunManager: Failed to create character for class ", source_class.class_type)
+		return
 
-	p_data.can_pay_with_hp = source_class.can_pay_with_hp
-	p_data.tiring_drains_hp = source_class.tiring_drains_hp
-	p_data.combo_sp_recovery_rate = source_class.combo_sp_recovery_rate
-	p_data.has_bide_mechanic = source_class.has_bide_mechanic
-	p_data.has_keep_up_toggle = source_class.has_keep_up_toggle
-	p_data.has_technique_dropdown = source_class.has_technique_dropdown
+	p_data.deck.clear()
 
-	p_data.max_hp = source_class.base_hp
-	p_data.max_sp = source_class.base_sp
-
-	# Note: Combat-only sponsor bonuses (bonus_speed, starting_barrier, combo_sp_regen_bonus,
-	# starting_sp_bonus, momentum_start_bonus, etc.) are applied dynamically in GameManager.
+	# Note: Combat-only sponsor bonuses (starting_barrier, combo_sp_regen_bonus,
+	# starting_sp_bonus, momentum_start_bonus, wall_crush_damage_bonus, etc.) apply in GameManager.
 	if active_sponsor != null:
 		p_data.max_hp += active_sponsor.bonus_max_hp
 		p_data.max_sp += active_sponsor.bonus_max_sp
 		current_rerolls = active_sponsor.starting_rerolls
 
 		for eq: EquipmentData in active_sponsor.starting_equipment:
-			if eq == null:
-				continue
-			p_data.equipment.append(eq)
-			p_data.max_hp += eq.bonus_max_hp
-			p_data.max_sp += eq.bonus_max_sp
+			if eq != null:
+				grant_equipment(p_data, eq, false)
 
 	p_data.max_hp = maxi(1, p_data.max_hp)
 	p_data.max_sp = maxi(1, p_data.max_sp)
 	p_data.current_hp = p_data.max_hp
 	p_data.current_sp = p_data.max_sp
 
-	p_data.unlocked_actions = ClassFactory.get_starting_deck(source_class.class_type)
 	if active_sponsor != null and active_sponsor.starting_cards.size() > 0:
-		p_data.unlocked_actions.append_array(active_sponsor.starting_cards)
+		for c: ActionData in active_sponsor.starting_cards:
+			if c != null:
+				p_data.unlocked_actions.append(c.duplicate() as ActionData)
 
-	_unlock_class_starters(p_data, source_class)
+	_register_class_tree_root(p_data, source_class)
 
 	for action: ActionData in p_data.unlocked_actions:
 		if p_data.deck.size() < ClassFactory.HAND_LIMIT:
@@ -129,19 +123,9 @@ func start_new_run(source_class: ClassDefinition, run_name: String = "New Run", 
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 
-func _init_tree_root(class_type: CharacterData.ClassType) -> void:
-	player_owned_tree_ids.clear()
-	if ClassFactory.class_registry.has(class_type):
-		var def: ClassDefinition = ClassFactory.class_registry[class_type] as ClassDefinition
-		if def and def.skill_tree_root_id != 0:
-			player_owned_tree_ids.append(def.skill_tree_root_id)
-			return
-	player_owned_tree_ids.append(76)
-
-
-func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition = null) -> void:
+func _register_class_tree_root(p_data: CharacterData, source_class: ClassDefinition = null) -> void:
 	var root_id: int = 0
-	if source_class:
+	if source_class != null:
 		root_id = source_class.skill_tree_root_id
 
 	if root_id == 0:
@@ -151,85 +135,8 @@ func _unlock_class_starters(p_data: CharacterData, source_class: ClassDefinition
 			CharacterData.ClassType.TECHNICAL: root_id = 74
 			CharacterData.ClassType.PATIENT: root_id = 75
 
-	if root_id != 0:
-		if not player_owned_tree_ids.has(root_id):
-			player_owned_tree_ids.append(root_id)
-
-		var c_name: Variant = ClassFactory.ID_TO_NAME_MAP.get(root_id)
-		if c_name != null:
-			var card: ActionData = ClassFactory.find_action_resource(str(c_name))
-			if card != null:
-				var already_has: bool = false
-				for c: ActionData in p_data.unlocked_actions:
-					if c and c.display_name == card.display_name:
-						already_has = true
-						break
-				if not already_has:
-					p_data.unlocked_actions.append(card)
-			else:
-				print("ERROR: Could not find Starter Card resource for name: " + str(c_name))
-
-#endregion
-
-#region Legacy Arcade Fight & Win/Loss Handlers
-
-func start_next_fight() -> void:
-	GameManager.next_match_p1_data = player_run_data
-
-	var envs: Array[String] = ["Ring", "Dojo", "Street"]
-	var selected_env: String = envs.pick_random()
-	GameManager.apply_environment_rules(selected_env)
-
-	if AudioManager.has_method("play_location_music"):
-		AudioManager.play_location_music(selected_env)
-	else:
-		AudioManager.play_music("battle_theme")
-
-	var raw_level: int = current_level
-	match GameManager.ai_difficulty:
-		GameManager.Difficulty.VERY_EASY: raw_level -= 2
-		GameManager.Difficulty.EASY: raw_level -= 1
-		GameManager.Difficulty.MEDIUM: pass
-		GameManager.Difficulty.HARD: raw_level += 1
-
-	var final_enemy_level: int = raw_level
-	var stat_penalty: int = 0
-	if raw_level < 1:
-		stat_penalty = 1 - raw_level
-		final_enemy_level = 1
-
-	print("Generating Arcade Opponent: Difficulty ", GameManager.ai_difficulty, " -> Enemy Lv.", final_enemy_level)
-	if stat_penalty > 0:
-		print(">> UNDER-LEVEL PENALTY APPLIED: -", stat_penalty, " HP/SP")
-
-	var enemy: CharacterData
-	is_boss_match = false
-	GameManager.rival_intro_override = ""
-
-	if current_level > 0 and (current_level % 10 == 0 or current_level % 5 == 0):
-		is_boss_match = true
-		var is_finals: bool = (current_level % 10 == 0)
-		var level_bump: int = 2 if is_finals else 1
-		var mod_count: int = 2 if (is_finals and current_level >= 20) else 1
-		var boss_mods: Array[EquipmentData] = pick_boss_modifiers(mod_count)
-		enemy = ClassFactory.create_boss_enemy(final_enemy_level + level_bump, GameManager.ai_difficulty, boss_mods)
-		if is_finals:
-			enemy.character_name = "CHAMPION " + enemy.character_name
-		if not boss_mods.is_empty():
-			var intro_line: Variant = boss_mods[0].get("boss_intro_line")
-			if intro_line != null and str(intro_line) != "":
-				GameManager.rival_intro_override = str(intro_line)
-		print(">> PROCEDURAL BOSS GENERATED: " + enemy.character_name)
-	else:
-		enemy = ClassFactory.create_random_enemy(final_enemy_level, GameManager.ai_difficulty)
-		if stat_penalty > 0:
-			enemy.max_hp = maxi(1, enemy.max_hp - stat_penalty)
-			enemy.max_sp = maxi(1, enemy.max_sp - stat_penalty)
-			enemy.reset_stats()
-			enemy.character_name += " (Weakened)"
-
-	GameManager.next_match_p2_data = enemy
-	SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
+	if root_id != 0 and not player_owned_tree_ids.has(root_id):
+		player_owned_tree_ids.append(root_id)
 
 
 func handle_win() -> void:
@@ -239,6 +146,7 @@ func handle_win() -> void:
 
 	current_level += 1
 	pending_reward = true
+	reward_tokens_granted = false
 
 	save_run()
 	SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
@@ -246,34 +154,19 @@ func handle_win() -> void:
 
 func handle_loss() -> void:
 	AudioManager.reset_audio_state()
-	is_arcade_mode = false
-
-	var safe_name: String = current_run_name.validate_filename() + ".tres"
+	var safe_name: String = RunSaveManagerScript.sanitize_save_name(current_run_name) + ".tres"
 	delete_save_file(safe_name)
-	player_run_data = null
+	clear_active_run_state()
 
 #endregion
 
 #region Boss Modifiers, Equipment & Rewards
 
-## Loads all BossModifierData resources from BOSS_MODIFIERS_DIR.
 func get_all_boss_modifiers() -> Array[EquipmentData]:
 	var list: Array[EquipmentData] = []
-	var seen: Dictionary = {}
-	var dir: DirAccess = DirAccess.open(BOSS_MODIFIERS_DIR)
-	if dir:
-		dir.list_dir_begin()
-		var file: String = dir.get_next()
-		while file != "":
-			if not dir.current_is_dir():
-				var clean_file: String = file.replace(".remap", "")
-				if (clean_file.ends_with(".tres") or clean_file.ends_with(".res")) and not seen.has(clean_file):
-					seen[clean_file] = true
-					var res: Resource = load(BOSS_MODIFIERS_DIR + clean_file)
-					if res is EquipmentData:
-						list.append(res as EquipmentData)
-			file = dir.get_next()
-		dir.list_dir_end()
+	for res: Resource in ResourceCatalogScript.load_dir(BOSS_MODIFIERS_DIR):
+		if res is EquipmentData:
+			list.append(res as EquipmentData)
 	return list
 
 
@@ -299,22 +192,38 @@ func pick_boss_modifiers(count: int, exclude: Array[EquipmentData] = []) -> Arra
 
 func get_all_equipment() -> Array[EquipmentData]:
 	var list: Array[EquipmentData] = []
-	var seen: Dictionary = {}
-	var dir: DirAccess = DirAccess.open(EQUIPMENT_DIR)
-	if dir:
-		dir.list_dir_begin()
-		var file: String = dir.get_next()
-		while file != "":
-			if not dir.current_is_dir():
-				var clean_file: String = file.replace(".remap", "")
-				if (clean_file.ends_with(".tres") or clean_file.ends_with(".res")) and not seen.has(clean_file):
-					seen[clean_file] = true
-					var res: Resource = load(EQUIPMENT_DIR + clean_file)
-					if res is EquipmentData:
-						list.append(res as EquipmentData)
-			file = dir.get_next()
-		dir.list_dir_end()
+	for res: Resource in ResourceCatalogScript.load_dir(EQUIPMENT_DIR):
+		if res is EquipmentData:
+			list.append(res as EquipmentData)
 	return list
+
+
+func get_unowned_equipment(character: CharacterData) -> Array[EquipmentData]:
+	var unowned: Array[EquipmentData] = []
+	var owned_names: Array[String] = []
+	if character != null:
+		for eq: EquipmentData in character.equipment:
+			if eq != null:
+				owned_names.append(eq.item_name)
+	for item: EquipmentData in get_all_equipment():
+		if item != null and item.item_name not in owned_names:
+			unowned.append(item)
+	return unowned
+
+
+## Equips [param eq] on [param character] and applies its permanent max HP/SP modifiers consistently.
+func grant_equipment(character: CharacterData, eq: EquipmentData, adjust_current: bool = true) -> void:
+	if character == null or eq == null:
+		return
+	character.equipment.append(eq)
+	character.max_hp = maxi(1, character.max_hp + eq.bonus_max_hp)
+	character.max_sp = maxi(1, character.max_sp + eq.bonus_max_sp)
+	if adjust_current:
+		if eq.bonus_max_hp > 0:
+			character.current_hp = mini(character.current_hp + eq.bonus_max_hp, character.max_hp)
+		else:
+			character.current_hp = mini(character.current_hp, character.max_hp)
+		character.current_sp = character.max_sp
 
 
 func get_valid_action_rewards() -> Array[ActionData]:
@@ -347,10 +256,13 @@ func get_stat_upgrades() -> Array[Dictionary]:
 
 
 func apply_reward(reward: Variant) -> void:
+	if player_run_data == null:
+		return
+
 	if reward is ActionData:
 		var action: ActionData = reward as ActionData
 		var id: int = ClassFactory.get_id_by_name(action.display_name)
-		if id != 0:
+		if id != 0 and not player_owned_tree_ids.has(id):
 			player_owned_tree_ids.append(id)
 		player_run_data.unlocked_actions.append(action)
 		if player_run_data.deck.size() < ClassFactory.HAND_LIMIT:
@@ -360,14 +272,7 @@ func apply_reward(reward: Variant) -> void:
 
 	elif reward is EquipmentData:
 		var eq: EquipmentData = reward as EquipmentData
-		player_run_data.equipment.append(eq)
-		player_run_data.max_hp = maxi(1, player_run_data.max_hp + eq.bonus_max_hp)
-		player_run_data.max_sp = maxi(1, player_run_data.max_sp + eq.bonus_max_sp)
-		if eq.bonus_max_hp > 0:
-			player_run_data.current_hp = mini(player_run_data.current_hp + eq.bonus_max_hp, player_run_data.max_hp)
-		else:
-			player_run_data.current_hp = mini(player_run_data.current_hp, player_run_data.max_hp)
-		player_run_data.current_sp = player_run_data.max_sp
+		grant_equipment(player_run_data, eq, true)
 		print("Drafted Item: " + eq.item_name)
 
 	elif reward is Dictionary and (reward as Dictionary).has("func"):
@@ -375,60 +280,32 @@ func apply_reward(reward: Variant) -> void:
 		(dict_reward["func"] as Callable).call(player_run_data)
 		print("Drafted Upgrade: " + str(dict_reward["text"]))
 
+	check_danger_state()
 	handle_reward_complete()
 
 
 func handle_reward_complete() -> void:
 	print("Reward Claimed. Going to Deck Editor...")
 	pending_reward = false
+	reward_tokens_granted = false
+	is_boss_match = false
+	is_rival_match = false
 	pending_advancement = true
 	save_run()
 	SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
 
 #endregion
 
-#region Save & Load System
+#region Save & Load Delegation (RunSaveManager)
 
 func save_run() -> void:
-	if not DirAccess.dir_exists_absolute(SAVE_DIR):
-		DirAccess.make_dir_absolute(SAVE_DIR)
-
-	var save_data: RunSaveData = RunSaveData.new()
-	save_data.run_name = current_run_name
-	save_data.current_level = current_level
-	save_data.current_map_index = current_map_index
-	save_data.difficulty = GameManager.ai_difficulty
-	save_data.maintain_hp = maintain_hp_enabled
-	save_data.pending_advancement = pending_advancement
-	save_data.pending_reward = pending_reward
-	save_data.tree_ids = player_owned_tree_ids.duplicate()
-	save_data.player_data = player_run_data
-	save_data.map_data = tournament_map.duplicate()
-	save_data.timestamp = Time.get_datetime_string_from_system()
-	save_data.active_sponsor = active_sponsor
-	save_data.leagues_completed = leagues_completed
-	save_data.current_rerolls = current_rerolls
-	save_data.active_gym_buff = active_gym_buff
-	save_data.next_fight_statuses = next_fight_statuses.duplicate()
-	save_data.is_boss_match = is_boss_match
-	save_data.is_rival_match = is_rival_match
-
-	var safe_name: String = current_run_name.validate_filename()
-	var file_path: String = SAVE_DIR + safe_name + ".tres"
-	ResourceSaver.save(save_data, file_path)
-
-	_show_save_notification()
-	print("Run saved to: " + file_path)
+	RunSaveManagerScript.save_run(self)
 
 
 func load_run(filename: String) -> void:
-	var path: String = SAVE_DIR + filename
-	if not FileAccess.file_exists(path):
-		return
-
-	var save_data: RunSaveData = ResourceLoader.load(path) as RunSaveData
-	if not save_data:
-		print("Error loading save file.")
+	var save_data: RunSaveData = RunSaveManagerScript.load_run_data(filename)
+	if save_data == null or save_data.player_data == null:
+		printerr("RunManager: Error loading save file: ", filename)
 		return
 
 	current_run_name = save_data.run_name
@@ -446,8 +323,12 @@ func load_run(filename: String) -> void:
 
 	var raw_adv: Variant = save_data.get("pending_advancement")
 	var raw_rew: Variant = save_data.get("pending_reward")
+	var raw_lv: Variant = save_data.get("pending_league_victory")
+	var raw_tok: Variant = save_data.get("reward_tokens_granted")
 	pending_advancement = bool(raw_adv) if raw_adv != null else false
 	pending_reward = bool(raw_rew) if raw_rew != null else false
+	pending_league_victory = bool(raw_lv) if raw_lv != null else (current_map_index >= tournament_map.size() and tournament_map.size() > 0)
+	reward_tokens_granted = bool(raw_tok) if raw_tok != null else false
 
 	var raw_sponsor: Variant = save_data.get("active_sponsor")
 	active_sponsor = raw_sponsor as SponsorData if raw_sponsor is SponsorData else null
@@ -467,7 +348,9 @@ func load_run(filename: String) -> void:
 	var raw_rival: Variant = save_data.get("is_rival_match")
 	is_rival_match = bool(raw_rival) if raw_rival != null else false
 
-	if pending_reward:
+	if pending_league_victory:
+		SceneLoader.change_scene("res://Scenes/LeagueVictoryScreen.tscn")
+	elif pending_reward:
 		SceneLoader.change_scene("res://Scenes/RewardScreen.tscn")
 	elif pending_advancement:
 		SceneLoader.change_scene("res://Scenes/DeckEditScreen.tscn")
@@ -476,67 +359,15 @@ func load_run(filename: String) -> void:
 
 
 func get_save_files() -> Array[String]:
-	var files: Array[String] = []
-	var dir: DirAccess = DirAccess.open(SAVE_DIR)
-	if dir:
-		dir.list_dir_begin()
-		var file_name: String = dir.get_next()
-		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".tres"):
-				files.append(file_name)
-			file_name = dir.get_next()
-		dir.list_dir_end()
-	return files
+	return RunSaveManagerScript.get_save_files()
 
 
 func peek_save_file(filename: String) -> RunSaveData:
-	var path: String = SAVE_DIR + filename
-	if not FileAccess.file_exists(path):
-		return null
-	return ResourceLoader.load(path) as RunSaveData
+	return RunSaveManagerScript.load_run_data(filename)
 
 
 func delete_save_file(filename: String) -> void:
-	var path: String = SAVE_DIR + filename
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
-		print("Deleted save: " + filename)
-
-
-func _show_save_notification() -> void:
-	var layer: CanvasLayer = CanvasLayer.new()
-	layer.layer = 100
-	add_child(layer)
-
-	var panel: PanelContainer = PanelContainer.new()
-	layer.add_child(panel)
-	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	panel.grow_horizontal = Control.GROW_DIRECTION_END
-	panel.grow_vertical = Control.GROW_DIRECTION_END
-	panel.offset_left = 20.0
-	panel.offset_top = 20.0
-
-	var custom_style: StyleBoxFlat = StyleBoxFlat.new()
-	custom_style.bg_color = Color(0, 0, 0, 0.8)
-	custom_style.set_corner_radius_all(6)
-	custom_style.content_margin_left = 15.0
-	custom_style.content_margin_right = 15.0
-	custom_style.content_margin_top = 8.0
-	custom_style.content_margin_bottom = 8.0
-	panel.add_theme_stylebox_override("panel", custom_style)
-
-	panel.modulate.a = 0.0
-	var label: Label = Label.new()
-	label.text = " GAME SAVED "
-	label.add_theme_font_size_override("font_size", 20)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	panel.add_child(label)
-
-	var tween: Tween = create_tween()
-	tween.tween_property(panel, "modulate:a", 1.0, 0.5)
-	tween.tween_interval(1.5)
-	tween.tween_property(panel, "modulate:a", 0.0, 0.5)
-	tween.tween_callback(layer.queue_free)
+	RunSaveManagerScript.delete_save_file(filename)
 
 
 func check_danger_state() -> void:
@@ -552,6 +383,7 @@ func check_danger_state() -> void:
 func generate_new_league() -> void:
 	tournament_map.clear()
 	current_map_index = 0
+	pending_league_victory = false
 	print("Generating League " + str(leagues_completed + 1) + "...")
 
 	var diff_offset: int = 0
@@ -625,6 +457,19 @@ func generate_new_league() -> void:
 	save_run()
 
 
+## Marks the current non-combat node (Event) completed and unlocks the next node immediately before saving,
+## preventing save/reload reward farming on Event outcome screens.
+func complete_current_node_and_save() -> void:
+	if current_map_index < tournament_map.size():
+		tournament_map[current_map_index].is_completed = true
+	current_map_index += 1
+	if current_map_index >= tournament_map.size():
+		pending_league_victory = true
+	else:
+		tournament_map[current_map_index].is_locked = false
+	save_run()
+
+
 func advance_map() -> void:
 	if current_map_index < tournament_map.size():
 		tournament_map[current_map_index].is_completed = true
@@ -641,6 +486,7 @@ func advance_map() -> void:
 
 func handle_league_victory() -> void:
 	leagues_completed += 1
+	pending_league_victory = true
 	print("League %d Complete! Entering Victory Lap..." % leagues_completed)
 
 	var base_bonus: int = 5 + ((leagues_completed - 1) * 2)
@@ -663,13 +509,9 @@ func continue_to_next_league() -> void:
 
 
 func retire_champion() -> void:
-	var safe_name: String = current_run_name.validate_filename()
+	var safe_name: String = RunSaveManagerScript.sanitize_save_name(current_run_name)
 	delete_save_file(safe_name + ".tres")
-	is_arcade_mode = false
-	is_boss_match = false
-	is_rival_match = false
-	pending_advancement = false
-	pending_reward = false
+	clear_active_run_state()
 	_save_global_data()
 	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
@@ -679,6 +521,7 @@ func exit_deck_editor() -> void:
 		pending_advancement = false
 		advance_map()
 	else:
+		save_run()
 		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
 
 
@@ -730,18 +573,16 @@ func start_map_fight(node_data: MapNodeData) -> void:
 #region Global Meta Save & Synergies
 
 func _init_global_save() -> void:
-	if ResourceLoader.exists(GLOBAL_SAVE_PATH):
-		meta_data = load(GLOBAL_SAVE_PATH) as GlobalSaveData
-	else:
-		meta_data = GlobalSaveData.new()
-		_save_global_data()
+	meta_data = RunSaveManagerScript.load_global_save()
 
 
 func _save_global_data() -> void:
-	ResourceSaver.save(meta_data, GLOBAL_SAVE_PATH)
+	RunSaveManagerScript.save_global_save(meta_data)
 
 
 func add_circuit_tokens(amount: int) -> void:
+	if meta_data == null:
+		_init_global_save()
 	var final_amount: int = amount
 	if active_sponsor != null:
 		final_amount = roundi(final_amount * active_sponsor.meta_currency_multiplier)

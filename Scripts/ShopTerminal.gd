@@ -4,7 +4,7 @@ extends Control
 @onready var inventory_list: VBoxContainer = $MarginContainer/HBoxContainer/LeftPanel/ItemList/InventoryList
 @onready var item_icon: TextureRect = $MarginContainer/HBoxContainer/RightPanel/ItemIcon
 @onready var item_name_label: Label = $MarginContainer/HBoxContainer/RightPanel/ItemName
-@onready var item_desc_label: Label = $MarginContainer/HBoxContainer/RightPanel/ItemDesc
+@onready var item_desc_label: RichTextLabel = $MarginContainer/HBoxContainer/RightPanel/ItemDesc
 @onready var buy_btn: Button = $MarginContainer/HBoxContainer/RightPanel/BuyButton
 
 @export var resource_catalog: Array[Resource] = []
@@ -13,10 +13,14 @@ var selected_index: int = -1
 
 
 func _ready() -> void:
+	if buy_btn and not buy_btn.pressed.is_connected(_on_buy_pressed):
+		buy_btn.pressed.connect(_on_buy_pressed)
 	_refresh_ui()
 
 
 func _refresh_ui() -> void:
+	if RunManager.meta_data == null:
+		return
 	token_label.text = "CIRCUIT TOKENS: " + str(RunManager.meta_data.circuit_tokens)
 
 	for child: Node in inventory_list.get_children():
@@ -53,6 +57,8 @@ func _get_res_name(res: Resource) -> String:
 
 
 func _check_if_owned(res: Resource) -> bool:
+	if RunManager.meta_data == null:
+		return false
 	var id: String = _get_res_name(res)
 	if res is SponsorData:
 		return id in RunManager.meta_data.unlocked_sponsors
@@ -62,6 +68,8 @@ func _check_if_owned(res: Resource) -> bool:
 
 
 func _select_item(index: int) -> void:
+	if index < 0 or index >= resource_catalog.size() or RunManager.meta_data == null:
+		return
 	AudioManager.play_sfx("ui_click")
 	selected_index = index
 	var res: Resource = resource_catalog[index]
@@ -72,29 +80,35 @@ func _select_item(index: int) -> void:
 		item_desc_label.text = str(res.get("description"))
 	elif "passive_description" in res:
 		item_desc_label.text = str(res.get("passive_description"))
+	else:
+		item_desc_label.text = ""
 
 	if "icon" in res:
 		item_icon.texture = res.get("icon") as Texture2D
 	elif "portrait" in res:
 		item_icon.texture = res.get("portrait") as Texture2D
+	else:
+		item_icon.texture = null
 
 	var cost: int = int(res.get("shop_cost")) if "shop_cost" in res else 0
 
-	if RunManager.meta_data.circuit_tokens >= cost:
+	if _check_if_owned(res):
+		buy_btn.disabled = true
+		buy_btn.text = "ALREADY OWNED"
+	elif RunManager.meta_data.circuit_tokens >= cost:
 		buy_btn.disabled = false
 		buy_btn.text = "AUTHORIZE TRANSFER (" + str(cost) + "T)"
-		if buy_btn.pressed.is_connected(_on_buy_pressed):
-			buy_btn.pressed.disconnect(_on_buy_pressed)
-		buy_btn.pressed.connect(_on_buy_pressed)
 	else:
 		buy_btn.disabled = true
 		buy_btn.text = "INSUFFICIENT FUNDS"
 
 
 func _on_buy_pressed() -> void:
-	if selected_index == -1:
+	if selected_index < 0 or selected_index >= resource_catalog.size() or RunManager.meta_data == null:
 		return
 	var res: Resource = resource_catalog[selected_index]
+	if _check_if_owned(res):
+		return
 	var cost: int = int(res.get("shop_cost")) if "shop_cost" in res else 0
 	var id: String = _get_res_name(res)
 
@@ -115,5 +129,6 @@ func _on_buy_pressed() -> void:
 func _clear_preview() -> void:
 	item_name_label.text = "SELECT DATA PACKET"
 	item_desc_label.text = ""
+	item_icon.texture = null
 	buy_btn.disabled = true
 	buy_btn.text = "AWAITING SELECTION"

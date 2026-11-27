@@ -15,6 +15,6 @@ rival_boss_hp_buff = 1
 rival_boss_sp_buff = 1
 rival_reward_currency_bonus = 10
 item_name = "CRASH Supplements"
-description = "+1 Max SP and starts with Energy Drink (+1 Starting SP, +1 Speed)."
+description = "+1 Max SP and starts with Energy Drink (+1 Max SP, +1 Starting SP)."
 bonus_max_sp = 1
 metadata/_custom_type_script = "uid://c45g8d8d4wjtr"

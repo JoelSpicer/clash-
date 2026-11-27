@@ -4,10 +4,8 @@ extends CanvasLayer
 @onready var sensei_text: RichTextLabel = $MessageBox/MarginContainer/VBoxContainer/SenseiText
 @onready var continue_btn: Button = $MessageBox/MarginContainer/VBoxContainer/ContinueButton
 
-# We fetch the BattleUI dynamically so we can locate the UI elements
-@onready var battle_ui: Node = $"../CombatArena/BattleUI"
-
 var skip_btn: Button
+var _spotlight_tween: Tween = null
 
 signal tutorial_message_closed
 
@@ -56,8 +54,10 @@ func show_message(
 		if target_node != null:
 			_move_spotlight(target_node)
 		else:
-			var tween: Tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-			tween.tween_method(_set_spotlight_radius, darkener.material.get_shader_parameter("radius_px"), 0.0, 0.5)
+			if _spotlight_tween and _spotlight_tween.is_valid():
+				_spotlight_tween.kill()
+			_spotlight_tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			_spotlight_tween.tween_method(_set_spotlight_radius, darkener.material.get_shader_parameter("radius_px"), 0.0, 0.5)
 
 
 func _move_spotlight(target_node: Control) -> void:
@@ -77,10 +77,12 @@ func _move_spotlight(target_node: Control) -> void:
 	var start_uv: Vector2 = darkener.material.get_shader_parameter("center")
 	var start_rad: float = darkener.material.get_shader_parameter("radius_px")
 
-	var tween: Tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
-	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_method(_set_spotlight_center, start_uv, target_uv, 0.6)
-	tween.tween_method(_set_spotlight_radius, start_rad, target_radius, 0.6)
+	if _spotlight_tween and _spotlight_tween.is_valid():
+		_spotlight_tween.kill()
+	_spotlight_tween = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS).set_parallel(true)
+	_spotlight_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_spotlight_tween.tween_method(_set_spotlight_center, start_uv, target_uv, 0.6)
+	_spotlight_tween.tween_method(_set_spotlight_radius, start_rad, target_radius, 0.6)
 
 
 # --- Tween Helper Functions ---
@@ -93,6 +95,8 @@ func _set_spotlight_radius(r: float) -> void:
 
 
 func _on_continue_pressed() -> void:
+	if _spotlight_tween and _spotlight_tween.is_valid():
+		_spotlight_tween.kill()
 	visible = false
 	get_tree().paused = false
 
@@ -104,6 +108,8 @@ func _on_continue_pressed() -> void:
 
 
 func _on_skip_pressed() -> void:
+	if _spotlight_tween and _spotlight_tween.is_valid():
+		_spotlight_tween.kill()
 	visible = false
 	get_tree().paused = false
 	if darkener.material:

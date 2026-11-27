@@ -97,13 +97,11 @@ func add_clash_log(winner_id: int, p1_card: ActionData, p2_card: ActionData) -> 
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE 
 	
 	# 2. TEXT CONTENT
-	var win_text: String = "COMPLETE"
-	var color: String = "#24ab4a"
-	if winner_id == 1: pass
-	elif winner_id == 2: pass
+	var win_text: String = "P1 WINS" if winner_id == 1 else ("P2 WINS" if winner_id == 2 else "COMPLETE")
+	var color: String = P1_COLOR if winner_id == 1 else (P2_COLOR if winner_id == 2 else "#24ab4a")
 		
-	var txt: String = "[color=%s]>>> CLASH!: %s (Hover to view)[/color]" % [color, win_text]
-	var label: RichTextLabel = _create_rich_label(txt)
+	var txt: String = "[color=%s]>>> CLASH: %s (Hover to view)[/color]" % [color, win_text]
+	var label: RichTextLabel = _create_rich_label(txt, false)
 	
 	var text_margin: MarginContainer = MarginContainer.new()
 	text_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -142,6 +140,7 @@ func add_clash_log(winner_id: int, p1_card: ActionData, p2_card: ActionData) -> 
 	_auto_scroll()
 
 func clear_log() -> void:
+	hide_tooltip()
 	for child in log_list.get_children():
 		if child != archive_label:
 			child.queue_free()
@@ -149,12 +148,16 @@ func clear_log() -> void:
 	if archive_label:
 		archive_label.text = ""
 
+func hide_tooltip() -> void:
+	if tooltip_popup:
+		tooltip_popup.visible = false
+
 # --- HELPERS ---
 
-func _create_rich_label(text: String) -> RichTextLabel:
+func _create_rich_label(text: String, format_raw: bool = true) -> RichTextLabel:
 	var l: RichTextLabel = RichTextLabel.new()
 	l.bbcode_enabled = true
-	l.text = _format_text(text)
+	l.text = _format_text(text) if format_raw else text
 	l.fit_content = true 
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE 
@@ -167,11 +170,12 @@ func _format_text(raw: String) -> String:
 	return txt
 
 func _auto_scroll() -> void:
-	# Only scroll if we are actually visible to avoid errors
-	if not visible: return
+	if not visible or not is_inside_tree(): return
 	
 	await get_tree().process_frame
+	if not is_inside_tree(): return
 	await get_tree().process_frame
+	if not is_inside_tree(): return
 	
 	if scroll_container and scroll_container.get_v_scroll_bar():
 		scroll_container.scroll_vertical = int(scroll_container.get_v_scroll_bar().max_value)
@@ -179,19 +183,22 @@ func _auto_scroll() -> void:
 # --- INTERACTIVITY ---
 
 func _on_row_hovered(_btn: Button, c1: ActionData, c2: ActionData) -> void:
-	# 1. Update Content
 	if left_card_preview.has_method("set_card_data"):
 		left_card_preview.call("set_card_data", c1)
 		right_card_preview.call("set_card_data", c2)
 	
-	# 2. Position Popup
 	tooltip_popup.visible = true
 	tooltip_popup.reset_size() 
-	tooltip_popup.global_position = get_viewport().get_mouse_position()
+	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
+	var vp_size: Vector2 = get_viewport_rect().size
+	var pop_size: Vector2 = tooltip_popup.size
+	var clamped_x: float = clampf(mouse_pos.x + 16.0, 8.0, maxf(8.0, vp_size.x - pop_size.x - 8.0))
+	var clamped_y: float = clampf(mouse_pos.y + 16.0, 8.0, maxf(8.0, vp_size.y - pop_size.y - 8.0))
+	tooltip_popup.global_position = Vector2(clamped_x, clamped_y)
 
 	
 func _on_row_exited() -> void:
-	tooltip_popup.visible = false
+	hide_tooltip()
 
 func add_round_summary(p1_diff: Dictionary, p2_diff: Dictionary, mom_val: int) -> void:
 	# Create a simple row container
@@ -218,7 +225,7 @@ func add_round_summary(p1_diff: Dictionary, p2_diff: Dictionary, mom_val: int) -
 	
 	var final_bbcode: String = p1_text + "   " + p2_text + mom_text + combo_text + "\n [b]----------- NEW CLASH -----------[/b]"
 	
-	var label: RichTextLabel = _create_rich_label(final_bbcode)
+	var label: RichTextLabel = _create_rich_label(final_bbcode, false)
 	row.add_child(label)
 	
 	log_list.add_child(row)
@@ -281,6 +288,7 @@ func _find_richtext_recursive(node: Node) -> RichTextLabel:
 func _archive_old_logs() -> void:
 	# We check for MAX + 1 because the archive_label itself is at index 0
 	while log_list.get_child_count() > MAX_ACTIVE_ROWS + 1:
+		hide_tooltip()
 		var oldest_row: Node = log_list.get_child(1) # Index 1 is the oldest interactive log
 		
 		# Find its text and append to archive

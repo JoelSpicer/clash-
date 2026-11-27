@@ -53,7 +53,6 @@ enum Category {
 
 # --- OPPONENT SCRIPT & TELEGRAPHING ---
 @export var bot_moves: Array[String] = []
-@export var bot_feint_moves: Array[String] = []
 @export var show_enemy_intent: bool = true
 
 # --- COMPOSABLE WIN CONDITIONS ---

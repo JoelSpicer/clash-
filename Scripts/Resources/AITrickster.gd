@@ -3,7 +3,7 @@ class_name AITrickster
 
 
 func _init() -> void:
-	w_dmg = 1.15
+	w_dmg = 1.25
 	w_def = 0.85
 	w_tech = 1.3
 	w_cost = 0.8
@@ -74,9 +74,9 @@ func score_action(card: ActionData, me: CharacterData, opp: CharacterData, my_id
 			if opp_last_cost >= 2 and card.dodge_value > 0:
 				score += 22.0 * w_def
 			if card.is_parry:
-				score += 18.0 * w_tech
-		if card.reversal:
-			score += 18.0 * w_tech
+				score += 12.0 * w_tech
+			if card.reversal:
+				score += 14.0 * w_tech
 	else:
 		if raw_total_dmg == 0 and attacker_id == my_id:
 			score -= 10.0

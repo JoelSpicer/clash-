@@ -1,8 +1,12 @@
 class_name BotDecisionMaker
 extends RefCounted
 
+const CombatRulesScript = preload("res://Scripts/Battle/CombatRules.gd")
+
 ## Evaluates all legal actions (and Technical custom-technique variants) for [param character]
 ## and returns `{ "card": ActionData, "extra": Dictionary }` based on difficulty and AI profile.
+## When [param feint_mode] is true, enforces combined `base_feint_cost + card.cost` affordability
+## and returns `{ "card": null, "extra": {} }` (SKIP FEINT) instead of `Struggle`.
 static func choose_action(
 	character: CharacterData,
 	opponent: CharacterData,
@@ -12,48 +16,58 @@ static func choose_action(
 	max_cost: int,
 	my_opening: int,
 	allow_super: bool,
-	my_opportunity: int
+	my_opportunity: int,
+	feint_mode: bool = false,
+	base_feint_cost: int = 0
 ) -> Dictionary:
+	var constraints: Dictionary = {
+		"filter": type_filter,
+		"needs_opener": must_be_opener,
+		"max_cost": max_cost,
+		"opening_stat": my_opening,
+		"can_use_super": allow_super,
+		"opportunity_stat": my_opportunity,
+	}
+
 	var candidates: Array[Dictionary] = []
 
 	for card: ActionData in character.deck:
-		if type_filter != null and card.type != type_filter:
-			continue
-		if card.counter_value > 0 and my_opening < card.counter_value:
-			continue
-		if card.is_super and not allow_super:
-			continue
+		var base_eval: Dictionary = CombatRulesScript.evaluate_card_legality(
+			character, card, constraints, false, 0, feint_mode, base_feint_cost
+		)
+		if bool(base_eval["valid"]):
+			candidates.append({ "card": card, "sim": card, "extra": {} })
 
-		var base_needs_opener_block: bool = (must_be_opener and card.type == ActionData.Type.OFFENCE and not card.is_opener)
+			if not feint_mode and character.has_technique_dropdown and (card.cost + 1) <= max_cost:
+				var tech_first_cost: int = maxi(0, (card.cost + 1) - my_opportunity)
+				if character.current_sp >= tech_first_cost + 1:
+					if opponent.current_sp > 0:
+						candidates.append({
+							"card": card,
+							"sim": CombatRulesScript.apply_technique(card, 2),
+							"extra": { "technique": 2 }
+						})
+					if card.type == ActionData.Type.OFFENCE:
+						candidates.append({
+							"card": card,
+							"sim": CombatRulesScript.apply_technique(card, 3),
+							"extra": { "technique": 3 }
+						})
 
-		if not base_needs_opener_block and card.cost <= max_cost:
-			var can_pay: bool = GameManager.get_effective_repeat_count(character, card, my_opportunity, false, false) > 0
-			if can_pay:
-				candidates.append({ "card": card, "sim": card, "extra": {} })
-
-				if character.has_technique_dropdown and (card.cost + 1) <= max_cost:
-					var tech_first_cost: int = maxi(0, (card.cost + 1) - my_opportunity)
-					if character.current_sp >= tech_first_cost + 1:
-						if opponent.current_sp > 0:
-							var sim_tire: ActionData = card.duplicate() as ActionData
-							sim_tire.cost += 1
-							sim_tire.tiring += 1
-							candidates.append({ "card": card, "sim": sim_tire, "extra": { "technique": 2 } })
-						if card.type == ActionData.Type.OFFENCE:
-							var sim_mom: ActionData = card.duplicate() as ActionData
-							sim_mom.cost += 1
-							sim_mom.momentum_gain += 1
-							candidates.append({ "card": card, "sim": sim_mom, "extra": { "technique": 3 } })
-
-		if base_needs_opener_block and character.has_technique_dropdown and (card.cost + 1) <= max_cost:
-			var opener_first_cost: int = maxi(0, (card.cost + 1) - my_opportunity)
-			if character.current_sp >= opener_first_cost:
-				var sim_open: ActionData = card.duplicate() as ActionData
-				sim_open.cost += 1
-				sim_open.is_opener = true
-				candidates.append({ "card": card, "sim": sim_open, "extra": { "technique": 1 } })
+		elif not feint_mode and str(base_eval["reason"]) == "needs_opener" and character.has_technique_dropdown:
+			var opener_eval: Dictionary = CombatRulesScript.evaluate_card_legality(
+				character, card, constraints, false, 1, false, 0
+			)
+			if bool(opener_eval["valid"]):
+				candidates.append({
+					"card": card,
+					"sim": CombatRulesScript.apply_technique(card, 1),
+					"extra": { "technique": 1 }
+				})
 
 	if candidates.is_empty():
+		if feint_mode:
+			return { "card": null, "extra": {} }
 		var required_type: ActionData.Type = type_filter as ActionData.Type if type_filter != null else ActionData.Type.OFFENCE
 		return { "card": GameManager.get_struggle_action(required_type), "extra": {} }
 

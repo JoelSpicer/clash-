@@ -25,6 +25,12 @@ func _ready() -> void:
 	pivot_offset = size / 2.0
 
 
+func _exit_tree() -> void:
+	if is_instance_valid(current_ghost):
+		current_ghost.queue_free()
+		current_ghost = null
+
+
 func setup(action: ActionData) -> void:
 	my_action = action
 	title_label.text = action.display_name

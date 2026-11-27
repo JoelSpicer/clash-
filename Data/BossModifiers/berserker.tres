@@ -6,8 +6,8 @@
 [resource]
 script = ExtResource("1_script")
 item_name = "Berserker's Fury"
-description = "+1 Attack Damage and +2 Max HP, but -1 Block effectiveness."
-bonus_max_hp = 2
+description = "+1 Attack Damage, but -1 Block effectiveness."
+bonus_max_hp = 0
 damage_modifier = 1
 block_modifier = -1
 boss_epithet = "THE BERSERKER"

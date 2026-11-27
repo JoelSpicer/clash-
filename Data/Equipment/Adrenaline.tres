@@ -6,7 +6,7 @@
 script = ExtResource("1_yr1f8")
 shop_cost = 0
 item_name = "Adrenaline"
-description = "Start combat with +2 momentum, -1 max HP"
-bonus_max_hp = -1
+description = "Start combat with +2 Momentum and +1 Opportunity."
 momentum_start_bonus = 2
+starting_opportunity = 1
 metadata/_custom_type_script = "uid://b3y0gojixwh16"

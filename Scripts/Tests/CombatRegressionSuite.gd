@@ -4,10 +4,13 @@ extends Node
 ## Run via:
 ##   Godot_console.exe --headless --path <project> res://Scenes/Tests/CombatRegressionSuite.tscn
 
+const CombatRulesScript = preload("res://Scripts/Battle/CombatRules.gd")
+
 var _passed: int = 0
 var _failed: int = 0
 var _match_ended: bool = false
 var _match_winner: int = 0
+var _game_over_count: int = 0
 
 var _saved_tokens: int = 0
 var _saved_completed: Array[String] = []
@@ -21,6 +24,7 @@ func _ready() -> void:
 	GameManager.game_over.connect(func(w: int) -> void:
 		_match_ended = true
 		_match_winner = w
+		_game_over_count += 1
 	)
 
 	print("\n============================================================")
@@ -35,15 +39,21 @@ func _ready() -> void:
 	_test_initial_clash_priority_and_tie()
 	_test_wall_crush_sp_and_hp_overflow()
 	_test_feint_combine_and_skip_live_path()
+	_test_feint_preserves_reversal_and_recover_cures_injury()
 	_test_multi_lock_and_cost_cap()
+	_test_combat_rules_snapshot_roundtrip()
 	_test_repeat_sp_scaling()
 	_test_opening_and_opportunity()
 	_test_injured_tick_and_cure()
+	_test_failed_card_does_not_block_or_arm_bide()
+	_test_status_death_fires_game_over_once()
 	_test_retaliate_current_clash()
 	_test_tiring_normal_vs_heavy()
 	_test_class_passives_all_four()
 	_test_super_one_use_per_match()
 	_test_equipment_and_sponsor_modifiers()
+	_test_sponsor_passives_and_mode_isolation()
+	_test_class_factory_case_insensitive_and_speed()
 	_test_run_save_load_roundtrip()
 	_test_all_28_dojo_trials()
 
@@ -149,11 +159,11 @@ func _clash(
 ) -> void:
 	_match_ended = false
 	_match_winner = 0
+	_game_over_count = 0
 	GameManager.current_state = GameManager.State.SELECTION
 	GameManager.player_select_action(1, p1_card, p1_extra)
 	GameManager.state.p2_action_queue = p2_card
 	GameManager.state.p2_rage_active = bool(p2_extra.get("rage", false))
-	GameManager.state.p2_keep_up_active = bool(p2_extra.get("keep_up", false))
 	if GameManager.state.p1_action_queue != null and GameManager.state.p1_action_queue.feint:
 		GameManager.current_state = GameManager.State.FEINT_CHECK
 		GameManager.state.p1_pending_feint = true
@@ -330,8 +340,11 @@ func _test_class_passives_all_four() -> void:
 	GameManager.p2_data.current_sp = 1
 	_clash(_action("Active Block"), _action("Basic Light"))
 	_check("Patient Passive (Bide): Fall Back arms patient_buff_active", GameManager.p1_data.patient_buff_active)
+	_clash(_action("Basic Block"), _action("Basic Positioning"))
+	_check("Patient Passive (Bide): 0-dmg Block deals 0 dmg and keeps Bide armed",
+		GameManager.p2_data.current_hp == 2 and GameManager.p1_data.patient_buff_active)
 	_clash(_action("Haymaker"), _action("Basic Block"))
-	_check("Patient Passive (Bide): adds +1 Dmg to next action for lethal KO",
+	_check("Patient Passive (Bide): adds +1 Dmg to next damaging action for lethal KO",
 		GameManager.p2_data.current_hp <= 0 and not GameManager.p1_data.patient_buff_active)
 
 	# Quick Relentless
@@ -382,6 +395,109 @@ func _test_equipment_and_sponsor_modifiers() -> void:
 		GameManager.p2_data.current_hp == 6, "p2_hp=%d" % GameManager.p2_data.current_hp)
 
 
+func _test_feint_preserves_reversal_and_recover_cures_injury() -> void:
+	# Feint combining with Basic Reversal preserves reversal flag and steals Offence
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.NONE, 5, 5, 6, 2)
+	_clash(_action("Wind up"), _action("Basic Positioning"), {}, {}, _action("Basic Reversal"))
+	_check("Feint combine preserves secondary reversal flag and steals Offence",
+		GameManager.get_attacker() == 1 and GameManager.p2_data.current_hp == 4,
+		"attacker=%d p2_hp=%d" % [GameManager.get_attacker(), GameManager.p2_data.current_hp])
+
+	# Recover X (recover_value > 0) cures Injured cleanly without needing Fall Back
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.NONE, 5, 5, 5, 2)
+	GameManager.p1_data.statuses["Injured"] = 1
+	_clash(_action("Basic Block"), _action("Basic Light"))
+	_check("Recover X (Basic Block recover_value > 0) cures Injured cleanly",
+		not GameManager.has_status(1, "Injured") and GameManager.p1_data.current_hp == 5,
+		"has_inj=%s p1_hp=%d" % [str(GameManager.has_status(1, "Injured")), GameManager.p1_data.current_hp])
+
+
+func _test_combat_rules_snapshot_roundtrip() -> void:
+	var base: ActionData = _action("Basic Technical")
+	var tech_card: ActionData = CombatRulesScript.apply_technique(base, 1)
+	var snap: Dictionary = CombatRulesScript.serialize_action_snapshot(tech_card)
+	var restored: ActionData = CombatRulesScript.deserialize_action_snapshot(snap)
+	_check("CombatRules snapshot preserves Technical+ modified card (name, cost, is_opener, guard_break)",
+		restored != null and restored.display_name == tech_card.display_name and restored.cost == tech_card.cost and restored.is_opener and restored.guard_break,
+		"restored=%s" % str(restored))
+
+	var struggle: ActionData = GameManager.get_struggle_action(ActionData.Type.DEFENCE)
+	var s_restored: ActionData = CombatRulesScript.deserialize_action_snapshot(CombatRulesScript.serialize_action_snapshot(struggle))
+	_check("CombatRules snapshot preserves Struggle card",
+		s_restored != null and s_restored.is_struggle and s_restored.type == ActionData.Type.DEFENCE)
+
+
+func _test_failed_card_does_not_block_or_arm_bide() -> void:
+	# P2 is Patient at 0 SP, plays Crushing Block (Cost 2, Block 2) vs P1 Basic Light (1 dmg)
+	# Def +1 SP gives P2 1 SP < 2 SP -> action FAILS -> P2 must take full 1 dmg (no block)
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.PATIENT, 5, 0, 3, 1)
+	_clash(_action("Basic Light"), _action("Crushing Block"))
+	_check("Failed defensive card (insufficient SP) does NOT block incoming damage",
+		GameManager.p2_data.current_hp == 4, "p2_hp=%d" % GameManager.p2_data.current_hp)
+
+	# Failed Fall Back card (Slip Behind Cost 3 or custom Cost 3 Fall Back) must NOT arm Patient Bide
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.PATIENT, 5, 0, 3, 1)
+	var expensive_fb: ActionData = _action("Active Block")
+	expensive_fb.cost = 3
+	_clash(_action("Basic Light"), expensive_fb)
+	_check("Failed Fall Back card does NOT arm Patient Bide passive",
+		not GameManager.p2_data.patient_buff_active and GameManager.p2_data.current_hp == 4,
+		"bide=%s p2_hp=%d" % [str(GameManager.p2_data.patient_buff_active), GameManager.p2_data.current_hp])
+
+
+func _test_status_death_fires_game_over_once() -> void:
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.NONE, 1, 5, 3, 1)
+	GameManager.p2_data.statuses["Injured"] = 1
+	_clash(_action("Basic Light"), _action("Perfect Block"))
+	_check("Status KO (Injured tick) fires game_over exactly once & sets State.GAME_OVER",
+		_game_over_count == 1 and _match_winner == 1 and GameManager.current_state == GameManager.State.GAME_OVER,
+		"count=%d winner=%d state=%d" % [_game_over_count, _match_winner, int(GameManager.current_state)])
+
+
+func _test_sponsor_passives_and_mode_isolation() -> void:
+	# 1. TitanDemolitions (+3 Wall Crush) activates in Arcade mode
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.NONE, 6, 5, 1, 1)
+	GameManager.p2_data.current_sp = 0
+	RunManager.is_arcade_mode = true
+	RunManager.active_sponsor = load("res://Data/Sponsors/TitanDemolitions.tres") as SponsorData
+	# P2 is at Wall (Mom 1) with 0 SP (+1 Def SP = 1 SP), plays Basic Parry (Fall Back 2) vs Basic Positioning (0 dmg)
+	# Wall Crush = 2 base + 3 TitanDemolitions = 5 -> drains 1 SP + 4 HP -> P2 goes 6 -> 2 HP!
+	_clash(_action("Basic Positioning"), _action("Basic Parry"))
+	_check("TitanDemolitions sponsor adds +3 Wall Crush damage in Arcade mode",
+		GameManager.p2_data.current_hp == 2, "p2_hp=%d" % GameManager.p2_data.current_hp)
+
+	# 2. PhantomSyndicate (+2 Combo SP Regen -> rate 2) activates in Arcade mode
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.NONE, 6, 5, 3, 1)
+	GameManager.p1_data.current_sp = 2
+	RunManager.is_arcade_mode = true
+	RunManager.active_sponsor = load("res://Data/Sponsors/PhantomSyndicate.tres") as SponsorData
+	# P1 starts with 2 SP, plays Roll Punch (2 hits = 2 SP spent) -> Hit #2 triggers Flow (+1 SP)!
+	_clash(_action("Roll Punch"), _action("Basic Block"))
+	_check("PhantomSyndicate sponsor activates Combo SP Regen (rate=2, +1 SP on 2nd hit) in Arcade mode",
+		GameManager.get_effective_combo_sp_rate(1) == 2 and GameManager.p1_data.current_sp == 1,
+		"rate=%d p1_sp=%d" % [GameManager.get_effective_combo_sp_rate(1), GameManager.p1_data.current_sp])
+
+	# 3. Mode Isolation: when is_arcade_mode == false, active_sponsor MUST NOT leak!
+	_setup_match(CharacterData.ClassType.NONE, 5, 5, CharacterData.ClassType.NONE, 6, 5, 3, 1)
+	GameManager.p1_data.current_sp = 2
+	RunManager.is_arcade_mode = false
+	RunManager.active_sponsor = load("res://Data/Sponsors/PhantomSyndicate.tres") as SponsorData
+	_clash(_action("Roll Punch"), _action("Basic Block"))
+	_check("Sponsor passives do NOT leak when RunManager.is_arcade_mode == false",
+		GameManager.get_effective_combo_sp_rate(1) == 0 and GameManager.p1_data.current_sp == 0,
+		"rate=%d p1_sp=%d" % [GameManager.get_effective_combo_sp_rate(1), GameManager.p1_data.current_sp])
+	RunManager.active_sponsor = null
+
+
+func _test_class_factory_case_insensitive_and_speed() -> void:
+	_check("ClassFactory.get_id_by_name handles mixed-case 'Step up' (23) and 'Wind up' (35)",
+		ClassFactory.get_id_by_name("Step up") == 23 and ClassFactory.get_id_by_name("Wind up") == 35,
+		"step_up=%d wind_up=%d" % [ClassFactory.get_id_by_name("Step up"), ClassFactory.get_id_by_name("Wind up")])
+	var quick_char: CharacterData = ClassFactory.create_character(CharacterData.ClassType.QUICK, "QuickCheck")
+	_check("ClassFactory.create_character preserves class base_speed (Quick == 4)",
+		quick_char.speed == 4, "speed=%d" % quick_char.speed)
+
+
 func _test_run_save_load_roundtrip() -> void:
 	var test_name: String = "__regression_roundtrip_test"
 	var test_file: String = test_name + ".tres"
@@ -397,6 +513,8 @@ func _test_run_save_load_roundtrip() -> void:
 	RunManager.next_fight_statuses = ["Injured"]
 	RunManager.is_boss_match = true
 	RunManager.is_rival_match = false
+	RunManager.pending_league_victory = true
+	RunManager.reward_tokens_granted = true
 	RunManager.active_sponsor = sponsor
 	RunManager.player_run_data = p
 	RunManager.player_owned_tree_ids = [76, 66]
@@ -413,10 +531,21 @@ func _test_run_save_load_roundtrip() -> void:
 		and loaded.active_gym_buff == "iron_stance"
 		and loaded.next_fight_statuses.has("Injured")
 		and loaded.is_boss_match
+		and loaded.pending_league_victory
+		and loaded.reward_tokens_granted
 		and loaded.active_sponsor != null
 		and loaded.active_sponsor.item_name == sponsor.item_name
 	)
-	_check("RunSaveData roundtrip preserves sponsor, league, rerolls, gym buff, statuses, boss flags", ok)
+	_check("RunSaveData roundtrip preserves sponsor, league, rerolls, gym buff, statuses, boss & pending victory flags", ok)
+
+	# Verify CACHE_MODE_IGNORE: overwriting the same file reflects updated level immediately
+	RunManager.current_level = 7
+	RunManager.pending_league_victory = false
+	RunManager.save_run()
+	var reloaded: RunSaveData = RunManager.peek_save_file(test_file)
+	_check("RunSaveManager bypasses resource cache on overwrite (level 4 -> 7)",
+		reloaded != null and reloaded.current_level == 7 and not reloaded.pending_league_victory,
+		"level=%s" % str(reloaded.current_level if reloaded else -1))
 	RunManager.delete_save_file(test_file)
 
 #endregion

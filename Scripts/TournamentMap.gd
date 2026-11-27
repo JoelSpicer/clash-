@@ -6,6 +6,9 @@ extends Control
 const NODE_SCENE: PackedScene = preload("res://Scenes/UI/MapNode.tscn")
 
 
+var _node_committed: bool = false
+
+
 func _ready() -> void:
 	_generate_map_visuals()
 
@@ -28,7 +31,11 @@ func _generate_map_visuals() -> void:
 			target_node_control = node_instance
 
 	await get_tree().process_frame
+	if not is_inside_tree():
+		return
 	await get_tree().process_frame
+	if not is_inside_tree():
+		return
 
 	_draw_connections()
 
@@ -39,7 +46,7 @@ func _generate_map_visuals() -> void:
 func _scroll_to_node(target: Control) -> void:
 	var node_center_x: float = target.position.x + (target.size.x / 2.0)
 	var screen_center_x: float = scroll_container.size.x / 2.0
-	var final_scroll_x: float = node_center_x - screen_center_x
+	var final_scroll_x: float = maxf(0.0, node_center_x - screen_center_x)
 
 	var tween: Tween = create_tween()
 	tween.set_trans(Tween.TRANS_CUBIC)
@@ -63,7 +70,12 @@ func _draw_connections() -> void:
 
 
 func _on_node_clicked(index: int) -> void:
+	if _node_committed or index < 0 or index >= RunManager.tournament_map.size():
+		return
 	var data: MapNodeData = RunManager.tournament_map[index]
+	if data.is_locked or data.is_completed:
+		return
+	_node_committed = true
 	match data.type:
 		MapNodeData.Type.FIGHT, MapNodeData.Type.BOSS:
 			_start_fight(data)

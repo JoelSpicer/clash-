@@ -47,39 +47,22 @@ const ID_TO_NAME_MAP = {
 
 const CLASS_ROOT_IDS: Array[int] = [73, 74, 75, 76]
 
-const RANK_TITLES = [
-	"Foolish",      # Level 1
-	"Weak",         # Level 2
-	"Clumsy",       # Level 3
-	"Novice",       # Level 4
-	"Beginner",     # Level 5
-	"Rookie",       # Level 6
-	"Apprentice",   # Level 7
-	"Capable",      # Level 8
-	"Competent",    # Level 9
-	"Adept",        # Level 10
-	"Seasoned",     # Level 11
-	"Expert",       # Level 12
-	"Veteran",      # Level 13
-	"Elite",        # Level 14
-	"Master",       # Level 15
-	"Grandmaster",  # Level 16
-	"Legendary",    # Level 17
-	"Mythic",       # Level 18
-	"Transcendent", # Level 19
-	"Godly"         # Level 20+
-]
-
-var art_heavy = preload("res://Art/Portraits/heavy.png")
-var art_patient = preload("res://Art/Portraits/patient.png")
-var art_quick = preload("res://Art/Portraits/quick.png")
-var art_technical = preload("res://Art/Portraits/technical.png")
-
 const AI_PRESETS: Array[AIBehavior] = [
 	preload("res://Data/AI/AIAggressive.tres"),
 	preload("res://Data/AI/AIBalanced.tres"),
 	preload("res://Data/AI/AIDefensive.tres"),
 	preload("res://Data/AI/AITrickster.tres"),
+]
+
+const BASIC_ACTION_TEMPLATES: Array[ActionData] = [
+	preload("res://Data/Actions/basic_light.tres"),
+	preload("res://Data/Actions/basic_heavy.tres"),
+	preload("res://Data/Actions/basic_technical.tres"),
+	preload("res://Data/Actions/basic_positioning.tres"),
+	preload("res://Data/Actions/basic_block.tres"),
+	preload("res://Data/Actions/basic_dodge.tres"),
+	preload("res://Data/Actions/basic_parry.tres"),
+	preload("res://Data/Actions/basic_reversal.tres"),
 ]
 
 const HAND_LIMIT: int = 8
@@ -108,149 +91,102 @@ func _load_bot_names() -> void:
 		push_warning("Could not find enemy_names.txt! Using fallbacks.")
 		bot_names = ["Fighter A", "Fighter B", "Challenger"]
 
-# --- NEW: ENEMY GENERATOR ---
-# --- NEW: ENEMY GENERATOR ---
-func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
-	# 1. Pick a Random Class
-	var types = [
-		CharacterData.ClassType.HEAVY, 
-		CharacterData.ClassType.QUICK, 
-		CharacterData.ClassType.TECHNICAL, 
-		CharacterData.ClassType.PATIENT
-	]
-	var selected_class = types.pick_random()
-	
-	# 2. Create the Base Character
-	# This sets the BASE stats (e.g. 5 HP / 4 SP) from the Class Definition
-# Inside ClassFactory.create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
-	var bot_data: CharacterData = create_character(selected_class, "Lv." + str(level) + " Bot")
+## Creates a procedurally leveled fighter of a specific class (shared by Circuit enemy generation and balance runners).
+func create_leveled_fighter(
+	selected_class: CharacterData.ClassType,
+	level: int,
+	full_library: bool = false,
+	label: String = ""
+) -> CharacterData:
+	var display_name: String = label
+	if display_name == "":
+		display_name = bot_names.pick_random() if bot_names.size() > 0 else "Challenger"
+
+	var bot_data: CharacterData = create_character(selected_class, display_name, full_library)
 	bot_data.ai_profile = pick_random_ai_profile()
-	print("Assigned AI Profile: ", bot_data.ai_profile.resource_path if bot_data.ai_profile else "NULL")
-	
-	# Flavor: Rank Title
-	# If level is 1 or negative, default to 0 ("Foolish")
-	var title_index = 0
-	if level > 0:
-		title_index = clampi(level - 1, 0, RANK_TITLES.size() - 1)
 
-	var rank_title = RANK_TITLES[title_index]
-	
-	## Flavor: Prefix
-	#var prefix = ""
-	#match bot_data.ai_archetype:
-		#CharacterData.AIArchetype.AGGRESSIVE: prefix = "Furious "
-		#CharacterData.AIArchetype.DEFENSIVE: prefix = "Guarded "
-		#CharacterData.AIArchetype.TRICKSTER: prefix = "Tricky "
-		#CharacterData.AIArchetype.BALANCED: prefix = "Steady "
-	#
-	#bot_data.character_name = rank_title + " " + prefix + class_enum_to_string(selected_class)
-	
-	
-	# --- NEW: ASSIGN RANDOM NAME FROM FILE ---
-	var random_name = "Unknown"
-	if bot_names.size() > 0:
-		random_name = bot_names.pick_random()
-		
-	# Option A: Just use the name (e.g., "Spike")
-	bot_data.character_name = random_name
-	
-	# Option B: (Optional) Keep the rank title from your previous logic (e.g., "Novice Spike")
-	#bot_data.character_name = rank_title + " " + random_name
-	
-	# 3. DRAFT CARDS (Kept for gameplay variety, but ignored for stats now)
-	var cards_to_draft = level + 1
-	var owned_ids = []
-	var unlockable_options = []
-	
-	# Identify the starting Root Node
-	var root_id = 0
-	match selected_class:
-		CharacterData.ClassType.QUICK: root_id = 73
-		CharacterData.ClassType.TECHNICAL: root_id = 74
-		CharacterData.ClassType.PATIENT: root_id = 75
-		CharacterData.ClassType.HEAVY: root_id = 76
-	
-	# Init Shop
-	owned_ids.append(root_id)
-	if root_id in TREE_CONNECTIONS:
-		for neighbor in TREE_CONNECTIONS[root_id]:
-			unlockable_options.append(neighbor)
-			
-	# Draft Loop (Counter X cards require an already-drafted Create Opening >= X card)
-	for i in range(cards_to_draft):
-		var eligible_ids: Array[int] = []
-		for cand_id: int in unlockable_options:
-			var cand_name: Variant = ID_TO_NAME_MAP.get(cand_id)
-			if cand_name:
-				var cand_card: ActionData = find_action_resource(str(cand_name))
-				if cand_card and can_draft_action(cand_card, bot_data.unlocked_actions):
-					eligible_ids.append(cand_id)
-		if eligible_ids.is_empty():
-			break
+	# 1. Draft extra cards from the class's skill tree (respecting Counter X -> Create Opening >= X)
+	var cards_to_draft: int = maxi(0, level + 1) if level > 1 or not full_library else 0
+	if level > 1 or not full_library:
+		var owned_ids: Array[int] = []
+		var unlockable_options: Array[int] = []
+		var root_id: int = 76
+		match selected_class:
+			CharacterData.ClassType.QUICK: root_id = 73
+			CharacterData.ClassType.TECHNICAL: root_id = 74
+			CharacterData.ClassType.PATIENT: root_id = 75
+			CharacterData.ClassType.HEAVY: root_id = 76
 
-		var picked_id: int = eligible_ids.pick_random()
-		var card_name = ID_TO_NAME_MAP.get(picked_id)
+		owned_ids.append(root_id)
+		if root_id in TREE_CONNECTIONS:
+			for neighbor: int in TREE_CONNECTIONS[root_id]:
+				unlockable_options.append(neighbor)
 
-		if card_name:
-			var new_card = find_action_resource(card_name)
-			if new_card and not _has_card(bot_data.unlocked_actions, new_card):
-				bot_data.unlocked_actions.append(new_card)
+		for _i: int in range(cards_to_draft):
+			var eligible_ids: Array[int] = []
+			for cand_id: int in unlockable_options:
+				var cand_name: Variant = ID_TO_NAME_MAP.get(cand_id)
+				if cand_name != null:
+					var cand_card: ActionData = find_action_resource(str(cand_name))
+					if cand_card and can_draft_action(cand_card, bot_data.unlocked_actions):
+						eligible_ids.append(cand_id)
+			if eligible_ids.is_empty():
+				break
 
-		owned_ids.append(picked_id)
-		unlockable_options.erase(picked_id)
+			var picked_id: int = eligible_ids.pick_random()
+			var card_name: Variant = ID_TO_NAME_MAP.get(picked_id)
+			if card_name != null:
+				var new_card: ActionData = find_action_resource(str(card_name))
+				if new_card and not _has_card(bot_data.unlocked_actions, new_card):
+					bot_data.unlocked_actions.append(new_card)
 
-		if picked_id in TREE_CONNECTIONS:
-			for neighbor in TREE_CONNECTIONS[picked_id]:
-				if neighbor not in owned_ids and neighbor not in unlockable_options:
-					unlockable_options.append(neighbor)
-	
-	# 4. SELECT SMART HAND
-	bot_data.deck = _select_smart_hand(bot_data.unlocked_actions)
-	
-	# ---------------------------------------------------------
-	# 5. NEW STAT SCALING (LINEAR GROWTH - SKIPPING ZERO)
-	# ---------------------------------------------------------
-	var stat_bonus = 0
+			owned_ids.append(picked_id)
+			unlockable_options.erase(picked_id)
 
-# 1. Calculate the total pool of points to distribute
-	if level > 0:
-		stat_bonus = level - 1
+			if picked_id in TREE_CONNECTIONS:
+				for neighbor: int in TREE_CONNECTIONS[picked_id]:
+					if neighbor not in owned_ids and neighbor not in unlockable_options:
+						unlockable_options.append(neighbor)
+
+	# 2. Build active hand
+	if full_library:
+		bot_data.deck = bot_data.unlocked_actions.duplicate()
 	else:
-		stat_bonus = level 
+		bot_data.deck = _select_smart_hand(bot_data.unlocked_actions)
 
-	# 2. Distribute the bonus randomly
+	# 3. Linear stat scaling (skipping zero)
+	var stat_bonus: int = (level - 1) if level > 0 else level
 	if stat_bonus > 0:
-		# Pick a random number between 0 and the total bonus for HP
-		var hp_gain = randi_range(0, stat_bonus)
-		# Whatever is left over goes to SP
-		var sp_gain = stat_bonus - hp_gain
-		
+		var hp_gain: int = randi_range(0, stat_bonus)
+		var sp_gain: int = stat_bonus - hp_gain
 		bot_data.max_hp += hp_gain
 		bot_data.max_sp += sp_gain
-		
 	elif stat_bonus < 0:
-		# Logic for negative levels (de-buffing enemies)
-		# We use the same random logic but for reduction
-		var hp_loss = randi_range(stat_bonus, 0) # e.g. randi_range(-2, 0)
-		var sp_loss = stat_bonus - hp_loss
-		
-		bot_data.max_hp = max(1, bot_data.max_hp + hp_loss)
-		bot_data.max_sp = max(1, bot_data.max_sp + sp_loss)
+		var hp_loss: int = randi_range(stat_bonus, 0)
+		var sp_loss: int = stat_bonus - hp_loss
+		bot_data.max_hp = maxi(1, bot_data.max_hp + hp_loss)
+		bot_data.max_sp = maxi(1, bot_data.max_sp + sp_loss)
 
-	# Final safety check to ensure stats never drop to/below 0
-	bot_data.max_hp = max(1, bot_data.max_hp)
-	bot_data.max_sp = max(1, bot_data.max_sp)
-
-	# Reset current values to match new max values
+	bot_data.max_hp = maxi(1, bot_data.max_hp)
+	bot_data.max_sp = maxi(1, bot_data.max_sp)
 	bot_data.current_hp = bot_data.max_hp
 	bot_data.current_sp = bot_data.max_sp
-	
-	# Debug Print
+	return bot_data
+
+
+func create_random_enemy(level: int, _difficulty: GameManager.Difficulty) -> CharacterData:
+	var types: Array[CharacterData.ClassType] = [
+		CharacterData.ClassType.HEAVY,
+		CharacterData.ClassType.QUICK,
+		CharacterData.ClassType.TECHNICAL,
+		CharacterData.ClassType.PATIENT,
+	]
+	var selected_class: CharacterData.ClassType = types.pick_random()
+	var bot_data: CharacterData = create_leveled_fighter(selected_class, level, false)
 	print("\n=== ENEMY GENERATED (" + str(selected_class) + ") ===")
-	print("Level: " + str(level) + " | Title: " + rank_title)
+	print("Level: " + str(level) + " | Name: " + bot_data.character_name)
 	print("HP: " + str(bot_data.max_hp) + " | SP: " + str(bot_data.max_sp))
 	print("==============================\n")
-	
 	return bot_data
 
 ## Returns the signature Super card for a given fighting class.
@@ -387,6 +323,19 @@ func _select_smart_hand(pool: Array[ActionData]) -> Array[ActionData]:
 			off_ordered.remove_at(i)
 			break
 
+	# 1b. Guarantee at least 1 low-cost (0-1 SP) Offence card so bots always have an affordable attack/follow-up
+	var has_cheap_off: bool = false
+	for c: ActionData in chosen:
+		if c.type == ActionData.Type.OFFENCE and c.cost <= 1:
+			has_cheap_off = true
+			break
+	if not has_cheap_off:
+		for i in range(off_ordered.size()):
+			if off_ordered[i].cost <= 1 and can_draft_action(off_ordered[i], chosen):
+				chosen.append(off_ordered[i])
+				off_ordered.remove_at(i)
+				break
+
 	# 2. Guarantee at least 1 low-cost (0-1 SP) Defence card so the deck can recover SP cleanly
 	for i in range(def_ordered.size()):
 		if def_ordered[i].cost <= 1 and can_draft_action(def_ordered[i], chosen):
@@ -441,12 +390,6 @@ func _select_smart_hand(pool: Array[ActionData]) -> Array[ActionData]:
 		chosen.append(next_flex)
 
 	return chosen
-
-func _add_neighbors_to_list(node_id: int, owned: Array, available: Array) -> void:
-	if node_id in TREE_CONNECTIONS:
-		for neighbor: int in TREE_CONNECTIONS[node_id]:
-			if neighbor not in owned and neighbor not in available:
-				available.append(neighbor)
 
 # Helper for string names
 func class_enum_to_string(type: int) -> String:
@@ -541,54 +484,38 @@ func create_from_preset(preset: PresetCharacter, bypass_deck_limit: bool = false
 		else:
 			printerr("Warning: Preset '" + preset.character_name + "' could not find skill: " + skill_name)
 
-	# 3. Auto-Calculate Stats based on Class Rules
-	_recalculate_stats(char_data)
+	# 3. Always full-heal preset fighters (never affected by RunManager.is_arcade_mode)
+	var result: Dictionary = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions, char_data.equipment)
+	char_data.max_hp = int(result["hp"])
+	char_data.max_sp = int(result["sp"])
+	char_data.current_hp = char_data.max_hp
+	char_data.current_sp = char_data.max_sp
 	
 	return char_data
 
-# --- HELPER: Stat Calculation Logic (Same rules as ActionTree) ---
-# ClassFactory.gd
-
 func _recalculate_stats(char_data: CharacterData) -> void:
-	# 1. Snapshot old stats before we change them
 	var old_max_hp: int = char_data.max_hp
-	
-	# 2. Calculate new stats
 	var result: Dictionary = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions, char_data.equipment)
-	
 	char_data.max_hp = int(result["hp"])
 	char_data.max_sp = int(result["sp"])
 	
-	# --- 3. ROGUELIKE HP LOGIC ---
 	if RunManager.is_arcade_mode and RunManager.maintain_hp_enabled:
-		# Only heal them by the AMOUNT they grew (e.g., Max HP 5 -> 6 means heal 1 HP)
 		var hp_growth: int = char_data.max_hp - old_max_hp
 		char_data.current_hp += hp_growth
-		char_data.current_sp = char_data.max_sp # SP always resets per fight
+		char_data.current_sp = char_data.max_sp
 	else:
-		# Standard Mode: Full Heal
 		char_data.current_hp = char_data.max_hp
 		char_data.current_sp = char_data.max_sp
 
 
-# --- HELPER: Find Resource (Moved from ActionTree) ---
 func find_action_resource(action_name: String) -> ActionData:
 	var clean_name: String = action_name.to_lower().replace(" ", "_")
-	var filename: String = clean_name + ".tres"
-	
-	# Check Common folder
-	var common_path: String = "res://Data/Actions/" + filename
-	if ResourceLoader.exists(common_path): return load(common_path) as ActionData
-		
-	# Check Class folders
-	var class_folders: Array[String] = ["Heavy", "Patient", "Quick", "Technical"]
-	for folder: String in class_folders:
-		var class_path: String = "res://Data/Actions/Class/" + folder + "/" + filename
-		if ResourceLoader.exists(class_path): return load(class_path) as ActionData
-			
+	var common_path: String = "res://Data/Actions/" + clean_name + ".tres"
+	if ResourceLoader.exists(common_path):
+		return load(common_path) as ActionData
 	return null
 
-# New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
+
 func calculate_stats_for_deck(type: CharacterData.ClassType, _deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
 	if not class_registry.has(type): return {"hp": 5, "sp": 4}
 	
@@ -602,49 +529,18 @@ func calculate_stats_for_deck(type: CharacterData.ClassType, _deck: Array[Action
 			
 	return {"hp": maxi(1, final_hp), "sp": maxi(1, final_sp)}
 
-# NEW HELPER: Reverse lookup for Presets -> Tree Nodes
+
+## Case-insensitive reverse lookup for skill-tree reward IDs (fixes "Step up" / "Wind up" casing).
 func get_id_by_name(card_name: String) -> int:
+	var target: String = card_name.strip_edges().to_lower()
 	for id: int in ID_TO_NAME_MAP:
-		if ID_TO_NAME_MAP[id] == card_name:
+		if str(ID_TO_NAME_MAP[id]).to_lower() == target:
 			return id
-	return 0 # Not found
+	return 0
 
-func _simulate_draft_ids(class_type: CharacterData.ClassType, count: int) -> Array[int]:
-	var root_id: int = 76 # Heavy
-	match class_type:
-		CharacterData.ClassType.QUICK: root_id = 73
-		CharacterData.ClassType.TECHNICAL: root_id = 74
-		CharacterData.ClassType.PATIENT: root_id = 75
-	
-	var owned: Array[int] = [root_id]
-	var available: Array[int] = []
-	_add_neighbors_to_list(root_id, owned, available)
-	
-	var results: Array[int] = []
-	for i in range(count):
-		if available.is_empty(): break
-		var pick: int = available.pick_random()
-		results.append(pick)
-		owned.append(pick)
-		available.erase(pick)
-		_add_neighbors_to_list(pick, owned, available)
-		
-	return results
 
-# --- STARTER DECK GENERATION ---
-# --- STARTER DECK GENERATION ---
 func get_basic_actions() -> Array[ActionData]:
 	var basics: Array[ActionData] = []
-	
-	# Load the actual resource files so they have the correct Icons, IDs, and 'Is Basic' flags
-	# We use .duplicate() to ensure one player's card doesn't affect the other's
-	basics.append(load("res://Data/Actions/basic_light.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_heavy.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_technical.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_positioning.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_block.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_dodge.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_parry.tres").duplicate())
-	basics.append(load("res://Data/Actions/basic_reversal.tres").duplicate())
-	
+	for tmpl: ActionData in BASIC_ACTION_TEMPLATES:
+		basics.append(tmpl.duplicate() as ActionData)
 	return basics

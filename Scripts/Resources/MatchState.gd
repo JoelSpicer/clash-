@@ -20,8 +20,6 @@ var p2_pending_feint: bool = false
 
 var p1_rage_active: bool = false
 var p2_rage_active: bool = false
-var p1_keep_up_active: bool = false
-var p2_keep_up_active: bool = false
 
 var p1_gym_block_bonus: int = 0
 
@@ -56,8 +54,6 @@ func to_dict() -> Dictionary:
 		"p2_pending_feint": p2_pending_feint,
 		"p1_rage_active": p1_rage_active,
 		"p2_rage_active": p2_rage_active,
-		"p1_keep_up_active": p1_keep_up_active,
-		"p2_keep_up_active": p2_keep_up_active,
 		"p1_gym_block_bonus": p1_gym_block_bonus,
 		"p1_last_action_name": p1_last_action_name,
 		"p2_last_action_name": p2_last_action_name,
@@ -85,8 +81,6 @@ func from_dict(data: Dictionary) -> void:
 	p2_pending_feint = data.get("p2_pending_feint", false)
 	p1_rage_active = data.get("p1_rage_active", false)
 	p2_rage_active = data.get("p2_rage_active", false)
-	p1_keep_up_active = data.get("p1_keep_up_active", false)
-	p2_keep_up_active = data.get("p2_keep_up_active", false)
 	p1_gym_block_bonus = data.get("p1_gym_block_bonus", 0)
 	p1_last_action_name = data.get("p1_last_action_name", "")
 	p2_last_action_name = data.get("p2_last_action_name", "")

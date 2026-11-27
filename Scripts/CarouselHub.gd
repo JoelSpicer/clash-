@@ -5,38 +5,6 @@ var slides: Array[Dictionary] = []
 var current_index: int = 0
 var is_transitioning: bool = false
 
-# --- TUTORIAL DATA ---
-const TUTORIAL_TEXTS: Array[Dictionary] = [
-	{
-		"title": "WELCOME TO THE CIRCUIT",
-		"text": "This is the main roguelike mode. Choose your fighter's class, set your difficulty, optionally select a sponsor to alter your stats and gameplay, and battle your way through a gauntlet of opponents. Draft new Actions, Equipment and Buffs as you climb the ranks, gaining circuit tokens to unlock more classes and sponsors!"
-	},
-	{
-		"title": "QUICK MATCH",
-		"text": "Jump straight into a one-and-done clash between preset fighters! Pick any two presets, choose your arena and CPU difficulty, or toggle Opponent to Player 2 for local hotseat."
-	},
-	{
-		"title": "DOJO TRIALS",
-		"text": "Master CLASH's combat interactions, all four Class Passives, hybrid multi-trait actions, and multi-turn tactical puzzles! Clear trials to earn first-time Circuit Tokens and sharpen your reads."
-	},
-	{
-		"title": "NETWORK TERMINAL",
-		"text": "Spend the Circuit Tokens you earn from your runs here. You can unlock new Sponsors, Classes, and powerful permanent upgrades to aid you in future runs."
-	},
-	{
-		"title": "GAME SETTINGS",
-		"text": "Adjust your Audio and Visual preferences here. You can also access Debug tools if you need to reset your save data or grant yourself tokens."
-	},
-	{
-		"title": "COMPENDIUM",
-		"text": "Your ultimate knowledge base. Review the core rules of combat, look up what specific traits do, and browse the entire library of available Action cards."
-	},
-	{
-		"title": "MULTIPLAYER",
-		"text": "Fight your friends online with preset characters, if Joel has the server running!"
-	}
-]
-
 # --- NODES ---
 @onready var bg_current: TextureRect = $Background
 @onready var bg_fader: TextureRect = $BackgroundFader
@@ -58,43 +26,63 @@ var tut_title: Label
 var tut_panel: PanelContainer
 var tut_desc: RichTextLabel
 var help_btn: Button
+var _tut_tween: Tween = null
+
+
+func is_tutorial_popup_visible() -> bool:
+	return tut_overlay != null and tut_overlay.visible
+
 
 func _ready() -> void:
 	slides = [
 		{
 			"title": "THE CIRCUIT",
 			"scene_path": "res://Scenes/MenuArcade.tscn",
-			"bg_path": "res://Art/Background/LockerRoom.png"
+			"bg_path": "res://Art/Background/LockerRoom.png",
+			"tut_title": "WELCOME TO THE CIRCUIT",
+			"tut_text": "This is the main roguelike mode. Choose your fighter's class, set your difficulty, optionally select a sponsor to alter your stats and gameplay, and battle your way through a gauntlet of opponents. Draft new Actions, Equipment and Buffs as you climb the ranks, gaining circuit tokens to unlock more classes and sponsors!",
 		},
 		{
 			"title": "QUICK MATCH",
 			"scene_path": "res://Scenes/MenuQuick.tscn",
-			"bg_path": "res://Art/Background/Dojo.png"
+			"bg_path": "res://Art/Background/Dojo.png",
+			"tut_title": "QUICK MATCH",
+			"tut_text": "Jump straight into a one-and-done clash between preset fighters! Pick any two presets, choose your arena and CPU difficulty, or toggle Opponent to Player 2 for local hotseat.",
 		},
 		{
 			"title": "DOJO TRIALS",
 			"scene_path": "res://Scenes/MenuDojoTrials.tscn",
-			"bg_path": "res://Art/Background/Dojo.png"
+			"bg_path": "res://Art/Background/Dojo.png",
+			"tut_title": "DOJO TRIALS",
+			"tut_text": "Master CLASH's combat interactions, all four Class Passives, hybrid multi-trait actions, and multi-turn tactical puzzles! Clear trials to earn first-time Circuit Tokens and sharpen your reads.",
 		},
 		{
 			"title": "NETWORK TERMINAL",
 			"scene_path": "res://Scenes/ShopTerminal.tscn",
-			"bg_path": "res://Art/Background/Library.png"
+			"bg_path": "res://Art/Background/Library.png",
+			"tut_title": "NETWORK TERMINAL",
+			"tut_text": "Spend the Circuit Tokens you earn from your runs here. You can unlock new Sponsors, Classes, and powerful permanent upgrades to aid you in future runs.",
 		},
 		{
 			"title": "GAME SETTINGS",
 			"scene_path": "res://Scenes/MenuSettings.tscn",
-			"bg_path": "res://Art/Background/Dojo.png"
+			"bg_path": "res://Art/Background/Dojo.png",
+			"tut_title": "GAME SETTINGS",
+			"tut_text": "Adjust your Audio and Visual preferences here. You can also access Debug tools if you need to reset your save data or grant yourself tokens.",
 		},
 		{
 			"title": "COMPENDIUM",
-			"scene_path": "res://Scenes/compendium.tscn", 
-			"bg_path": "res://Art/Background/Street.png"
+			"scene_path": "res://Scenes/compendium.tscn",
+			"bg_path": "res://Art/Background/Street.png",
+			"tut_title": "COMPENDIUM",
+			"tut_text": "Your ultimate knowledge base. Review the core rules of combat, look up what specific traits do, and browse the entire library of available Action cards.",
 		},
 		{
 			"title": "MULTIPLAYER",
-			"scene_path": "res://Scenes/Multi.tscn", 
-			"bg_path": "res://Art/Background/Ring.png"
+			"scene_path": "res://Scenes/Multi.tscn",
+			"bg_path": "res://Art/Background/Ring.png",
+			"tut_title": "MULTIPLAYER",
+			"tut_text": "Fight your friends online with preset characters, if Joel has the server running!",
 		},
 	]
 	
@@ -104,7 +92,9 @@ func _ready() -> void:
 	
 	# --- SETUP PARALLAX VISUALS ---
 	# Wait one frame to ensure Godot has calculated the screen size
-	await get_tree().process_frame 
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return 
 	var screen_size: Vector2 = get_viewport_rect().size
 	
 	# Set the pivot to the center so it scales outward uniformly
@@ -333,34 +323,45 @@ func _check_and_show_tutorial(idx: int) -> void:
 		_show_current_tutorial()
 
 func _show_current_tutorial() -> void:
+	if current_index < 0 or current_index >= slides.size():
+		return
 	AudioManager.play_sfx("ui_confirm")
-	var data: Dictionary = TUTORIAL_TEXTS[current_index]
+	var data: Dictionary = slides[current_index]
 	
-	tut_title.text = str(data["title"])
-	tut_desc.text = "[center]" + str(data["text"]) + "[/center]"
+	tut_title.text = str(data.get("tut_title", data.get("title", "HELP")))
+	tut_desc.text = "[center]" + str(data.get("tut_text", "")) + "[/center]"
 	
-	# --- FIX 3: POP-IN ANIMATION ---
+	if _tut_tween and _tut_tween.is_valid():
+		_tut_tween.kill()
+	
+	# --- POP-IN ANIMATION ---
 	tut_overlay.show()
 	tut_overlay.modulate.a = 0.0
 	
 	# Wait 1 frame so the panel can calculate its true size
 	await get_tree().process_frame
+	if not is_inside_tree():
+		return
 	
 	# Set pivot to the center so it scales outward
 	tut_panel.pivot_offset = tut_panel.size / 2
 	tut_panel.scale = Vector2(0.5, 0.5)
 	
-	var tween: Tween = create_tween().set_parallel(true)
-	tween.tween_property(tut_overlay, "modulate:a", 1.0, 0.2)
-	tween.tween_property(tut_panel, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	if _tut_tween and _tut_tween.is_valid():
+		_tut_tween.kill()
+	_tut_tween = create_tween().set_parallel(true)
+	_tut_tween.tween_property(tut_overlay, "modulate:a", 1.0, 0.2)
+	_tut_tween.tween_property(tut_panel, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _hide_tutorial() -> void:
-	# --- FIX 3: POP-OUT ANIMATION ---
+	if _tut_tween and _tut_tween.is_valid():
+		_tut_tween.kill()
+	# --- POP-OUT ANIMATION ---
 	tut_panel.pivot_offset = tut_panel.size / 2
 	
-	var tween: Tween = create_tween().set_parallel(true)
-	tween.tween_property(tut_overlay, "modulate:a", 0.0, 0.2)
-	tween.tween_property(tut_panel, "scale", Vector2(0.8, 0.8), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
+	_tut_tween = create_tween().set_parallel(true)
+	_tut_tween.tween_property(tut_overlay, "modulate:a", 0.0, 0.2)
+	_tut_tween.tween_property(tut_panel, "scale", Vector2(0.8, 0.8), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	
 	# Wait for the animation to finish before hiding the node entirely
-	tween.chain().tween_callback(tut_overlay.hide)
+	_tut_tween.chain().tween_callback(tut_overlay.hide)

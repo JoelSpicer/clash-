@@ -4,11 +4,11 @@ extends Control
 @onready var winner_label: Label = $Panel/MarginContainer/VBoxContainer/WinnerLabel
 @onready var main_btn: Button = $Panel/MarginContainer/VBoxContainer/RematchButton
 @onready var menu_btn: Button = $Panel/MarginContainer/VBoxContainer/MenuButton
-@onready var panel: Control = $Panel
 @onready var view_btn: Button = $Panel/MarginContainer/VBoxContainer/ViewBtn
 
 var winner_data: CharacterData = null
 var match_log_text: String = ""
+var _action_committed: bool = false
 
 var log_popup: Panel = null
 var log_label: RichTextLabel = null
@@ -30,6 +30,11 @@ func _ready() -> void:
 
 
 func setup(data: CharacterData, log_text: String = "") -> void:
+	_action_committed = false
+	main_btn.disabled = false
+	menu_btn.disabled = false
+	menu_btn.visible = true
+
 	winner_data = data
 	match_log_text = log_text
 
@@ -52,10 +57,11 @@ func setup(data: CharacterData, log_text: String = "") -> void:
 
 func _setup_quick_match_mode() -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
-		main_btn.text = "REMATCH (SYNC)"
-		menu_btn.text = "DISCONNECT"
+		main_btn.text = "RETURN TO LOBBY"
+		menu_btn.text = "MAIN MENU"
 	else:
 		main_btn.text = "REMATCH"
+		menu_btn.text = "MAIN MENU"
 
 
 func _is_arcade_player_winner() -> bool:
@@ -77,10 +83,14 @@ func _setup_arcade_mode() -> void:
 		title_label.text = "RUN ENDED"
 		title_label.modulate = Color.RED
 		main_btn.text = "FINISH RUN"
-		menu_btn.visible = false
 
 
 func _on_main_action() -> void:
+	if _action_committed:
+		return
+	_action_committed = true
+	main_btn.disabled = true
+	menu_btn.disabled = true
 	AudioManager.play_sfx("ui_confirm")
 
 	if RunManager.is_arcade_mode and RunManager.player_run_data != null:
@@ -97,26 +107,31 @@ func _on_main_action() -> void:
 			NetworkManager.rpc_id(1, "request_server_reset")
 		else:
 			AudioManager.reset_audio_state()
+			AudioManager.play_location_music(GameManager.current_environment_name)
 			get_tree().paused = false
 			SceneLoader.change_scene("res://Scenes/CombatArena.tscn")
 
 
 func _on_menu_pressed() -> void:
+	if _action_committed:
+		return
+	_action_committed = true
+	main_btn.disabled = true
+	menu_btn.disabled = true
 	AudioManager.play_sfx("ui_back")
 	AudioManager.reset_audio_state()
 
-	if RunManager.player_run_data:
-		RunManager.player_run_data = null
-
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
-		NetworkManager.rpc_id(1, "request_server_reset")
+		NetworkManager.cancel_connection()
+		get_tree().paused = false
+		SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 	else:
+		RunManager.clear_active_run_state()
 		get_tree().paused = false
 		SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 
 func _on_view_pressed() -> void:
-	AudioManager.play_sfx("ui_click")
 	log_popup.visible = not log_popup.visible
 
 
@@ -124,10 +139,11 @@ func _build_log_window() -> void:
 	log_popup = Panel.new()
 	log_popup.visible = false
 	log_popup.mouse_filter = Control.MOUSE_FILTER_STOP
-
-	log_popup.custom_minimum_size = Vector2(600, 400)
-	log_popup.size = Vector2(600, 400)
-	log_popup.position = (get_viewport_rect().size / 2.0) - (Vector2(600, 400) / 2.0)
+	log_popup.set_anchors_preset(Control.PRESET_CENTER)
+	log_popup.offset_left = -300.0
+	log_popup.offset_top = -200.0
+	log_popup.offset_right = 300.0
+	log_popup.offset_bottom = 200.0
 
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.1, 0.95)

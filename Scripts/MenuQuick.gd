@@ -44,27 +44,7 @@ func _ready() -> void:
 
 func _load_presets() -> void:
 	presets.clear()
-	var dir: DirAccess = DirAccess.open(PRESETS_DIR)
-	if not dir:
-		printerr("MenuQuick: Could not open presets directory: ", PRESETS_DIR)
-		return
-
-	var filenames: Array[String] = []
-	var seen: Dictionary = {}
-	dir.list_dir_begin()
-	var file_name: String = dir.get_next()
-	while file_name != "":
-		if not dir.current_is_dir():
-			var clean_name: String = file_name.replace(".remap", "")
-			if (clean_name.ends_with(".tres") or clean_name.ends_with(".res")) and not seen.has(clean_name):
-				seen[clean_name] = true
-				filenames.append(clean_name)
-		file_name = dir.get_next()
-	dir.list_dir_end()
-
-	filenames.sort()
-	for fn: String in filenames:
-		var res: Resource = load(PRESETS_DIR + fn)
+	for res: Resource in ResourceCatalog.load_dir(PRESETS_DIR):
 		if res is PresetCharacter:
 			presets.append(res as PresetCharacter)
 
@@ -136,17 +116,14 @@ func _update_p2_mode_visuals() -> void:
 
 
 func _on_fight_pressed() -> void:
-	if presets.is_empty():
+	if presets.is_empty() or fight_btn.disabled:
 		return
+	fight_btn.disabled = true
 
-	# 1. Clear any leftover Circuit run state so sponsors/equipment/boss flags never bleed in
-	RunManager.is_arcade_mode = false
-	RunManager.player_run_data = null
-	RunManager.active_sponsor = null
-	RunManager.active_gym_buff = ""
-	RunManager.is_boss_match = false
-	RunManager.is_rival_match = false
-	RunManager.next_fight_statuses.clear()
+	# 1. Clear any leftover Circuit/Trial/Tutorial state so modifiers never bleed in
+	RunManager.clear_active_run_state()
+	TrialManager.clear_active_trial()
+	TutorialManager.clear_active_tutorial()
 	GameManager.rival_intro_override = ""
 
 	# 2. Apply CPU Difficulty

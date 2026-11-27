@@ -22,6 +22,11 @@ var max_parallax: float = 15.0
 var parallax_smoothness: float = 4.0
 var base_bg_pos: Vector2 = Vector2.ZERO
 var finisher_triggered: bool = false
+var _momentum_base_x: float = 0.0
+var _momentum_base_captured: bool = false
+var _wall_crush_tween: Tween = null
+var _p1_bark_tween: Tween = null
+var _p2_bark_tween: Tween = null
 
 
 func setup(
@@ -174,6 +179,8 @@ func play_clash_animation(p1_card: ActionData, p2_card: ActionData) -> void:
 	tween.tween_property(left_card_display, "position:x", center.x - (card_size.x / 2.0), 0.25)
 	tween.tween_property(right_card_display, "position:x", center.x - (card_size.x / 2.0), 0.25)
 	await tween.finished
+	if not is_inside_tree():
+		return
 
 	# 2. Impact shake + SFX
 	apply_camera_impact(0.1, 30.0)
@@ -196,6 +203,8 @@ func play_clash_animation(p1_card: ActionData, p2_card: ActionData) -> void:
 
 	HitStopManager.stop_frame(0.2)
 	await get_tree().create_timer(1.2).timeout
+	if not is_inside_tree():
+		return
 
 	clash_layer.visible = false
 	GameManager.clash_animation_finished.emit()
@@ -205,11 +214,16 @@ func play_wall_crush_shake(target_id: int) -> void:
 	apply_camera_impact(0.05, 15.0)
 	if not momentum_tracker:
 		return
-	var original_x: float = momentum_tracker.position.x
+	if not _momentum_base_captured:
+		_momentum_base_x = momentum_tracker.position.x
+		_momentum_base_captured = true
+	if _wall_crush_tween != null and _wall_crush_tween.is_valid():
+		_wall_crush_tween.kill()
+		momentum_tracker.position.x = _momentum_base_x
 	var shake_dir: float = -10.0 if target_id == 1 else 10.0
-	var tween: Tween = create_tween()
-	tween.tween_property(momentum_tracker, "position:x", original_x + shake_dir, 0.05)
-	tween.tween_property(momentum_tracker, "position:x", original_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+	_wall_crush_tween = create_tween()
+	_wall_crush_tween.tween_property(momentum_tracker, "position:x", _momentum_base_x + shake_dir, 0.05)
+	_wall_crush_tween.tween_property(momentum_tracker, "position:x", _momentum_base_x, 0.2).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
 
 
 func spawn_floating_text(target_id: int, text: String, color: Color, y_offset: float = 0.0) -> void:
@@ -226,6 +240,10 @@ func show_bark(player_id: int, text: String) -> void:
 	var bubble: PanelContainer = p1_bark_label if player_id == 1 else p2_bark_label
 	if not bubble:
 		return
+	var prev_tw: Tween = _p1_bark_tween if player_id == 1 else _p2_bark_tween
+	if prev_tw != null and prev_tw.is_valid():
+		prev_tw.kill()
+
 	var text_label: Label = bubble.get_child(0) as Label
 	if text_label:
 		text_label.text = text
@@ -241,6 +259,10 @@ func show_bark(player_id: int, text: String) -> void:
 	tween.chain().tween_property(bubble, "scale", Vector2(1.0, 1.0), 0.1)
 	tween.chain().tween_interval(1.5)
 	tween.chain().tween_property(bubble, "modulate:a", 0.0, 0.3)
+	if player_id == 1:
+		_p1_bark_tween = tween
+	else:
+		_p2_bark_tween = tween
 
 
 func show_player_identity_flash() -> void:

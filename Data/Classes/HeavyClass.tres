@@ -11,7 +11,7 @@ script = ExtResource("1_1dmwk")
 class_named = "Heavy"
 portrait = ExtResource("1_uqam5")
 passive_description = "RAGE: Pay HP instead of SP when low. Tiring drains HP if you are out of SP."
-tree_description = "[b]Action: Haymaker[/b]\\nOpener, Cost 3, Dmg 2, Mom 3\\n[b]Action: Elbow Block[/b]\\nBlock 1, Cost 2, Dmg 1\\n[b]Passive: Rage[/b]\\nPay HP instead of SP when low. Tiring drains HP when out of SP.\\n[b]Growth:[/b]\\n[color=#ff9999]Offence:[/color] +1 SP, [color=#99ccff]Defence:[/color] +2 HP\\n[b]Speed:[/b] 1"
+tree_description = "[b]Action: Haymaker[/b]\\nOpener, Cost 3, Dmg 2, Mom 3\\n[b]Action: Elbow Block[/b]\\nBlock 1, Cost 2, Dmg 1\\n[b]Passive: Rage[/b]\\nPay HP instead of SP when low. Tiring drains HP when out of SP.\\n[b]Speed:[/b] 1"
 playstyle_summary = "Tank with blocks and unleash massive hits."
 arcade_description = "[center][b][font_size=28]HEAVY[/font_size][/b][/center]
 [font_size=17][center][i][color=light_gray]A powerhouse that uses HP as a resource.[/color][/i][/center]

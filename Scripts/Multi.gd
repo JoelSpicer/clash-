@@ -77,24 +77,18 @@ func _load_presets_from_folder() -> void:
 	character_dropdown.clear()
 	character_roster.clear()
 
-	var path: String = "res://Data/Presets"
-	var dir: DirAccess = DirAccess.open(path)
-
-	if dir:
-		var files: PackedStringArray = dir.get_files()
-		for file: String in files:
-			var clean_file: String = file.replace(".remap", "")
-			if clean_file.ends_with(".tres") or clean_file.ends_with(".res"):
-				var full_path: String = path + "/" + clean_file
-				var preset: PresetCharacter = load(full_path) as PresetCharacter
-
-				if preset:
-					character_roster.append(full_path)
-					var drop_text: String = preset.character_name + " (Lv." + str(preset.level) + ")"
-					character_dropdown.add_item(drop_text)
-	else:
-		printerr("ERROR: Could not open directory: " + path)
+	var paths: Array[String] = ResourceCatalog.list_paths("res://Data/Presets")
+	if paths.is_empty():
+		printerr("ERROR: Could not find character presets in res://Data/Presets")
 		_set_status("Error: Could not load character presets.", Color.SALMON)
+		return
+
+	for full_path: String in paths:
+		var preset: PresetCharacter = load(full_path) as PresetCharacter
+		if preset:
+			character_roster.append(full_path)
+			var drop_text: String = preset.character_name + " (Lv." + str(preset.level) + ")"
+			character_dropdown.add_item(drop_text)
 
 
 func _on_join_pressed() -> void:

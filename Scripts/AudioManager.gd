@@ -3,6 +3,9 @@ extends Node
 var sounds: Dictionary = {
 	"ui_hover": preload("res://Audio/UI/hover.wav"),
 	"ui_click": preload("res://Audio/UI/click.wav"),
+	"ui_confirm": preload("res://Audio/UI/click.wav"),
+	"ui_back": preload("res://Audio/UI/click.wav"),
+	"error": preload("res://Audio/Combat/block.wav"),
 	"hit_light": preload("res://Audio/Combat/hit_light.wav"),
 	"hit_heavy": preload("res://Audio/Combat/hit_heavy.wav"),
 	"block": preload("res://Audio/Combat/block.wav"),
@@ -16,6 +19,7 @@ var sounds: Dictionary = {
 
 var is_danger_mode: bool = false
 var heartbeat_player: AudioStreamPlayer
+var _vignette_tween: Tween = null
 
 @onready var music_player: OvaniPlayer = $MusicPlayer
 
@@ -113,6 +117,9 @@ func set_danger_mode(active: bool) -> void:
 		if music_player:
 			music_player.FadeVolume(-5.0, 1.0)
 	else:
+		if _vignette_tween != null and _vignette_tween.is_valid():
+			_vignette_tween.kill()
+		_vignette_tween = null
 		if heartbeat_player and heartbeat_player.playing:
 			heartbeat_player.stop()
 		if music_player:
@@ -134,16 +141,18 @@ func reset_audio_state() -> void:
 func _pulse_vignette() -> void:
 	if not is_danger_mode:
 		return
+	if _vignette_tween != null and _vignette_tween.is_valid():
+		_vignette_tween.kill()
 
-	var tween: Tween = create_tween()
-	tween.tween_method(func(v: float) -> void:
+	_vignette_tween = create_tween()
+	_vignette_tween.tween_method(func(v: float) -> void:
 		GlobalCinematics.danger_vignette_boost = v
 		GlobalCinematics._update_visuals()
 	, 0.45, 0.55, 0.4).set_trans(Tween.TRANS_SINE)
 
-	tween.tween_method(func(v: float) -> void:
+	_vignette_tween.tween_method(func(v: float) -> void:
 		GlobalCinematics.danger_vignette_boost = v
 		GlobalCinematics._update_visuals()
 	, 0.55, 0.45, 0.4).set_trans(Tween.TRANS_SINE)
 
-	tween.tween_callback(_pulse_vignette)
+	_vignette_tween.tween_callback(_pulse_vignette)

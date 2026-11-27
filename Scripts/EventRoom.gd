@@ -16,6 +16,7 @@ const EVENT_IDS: Array[String] = [
 
 var current_event_id: String = ""
 var _event_resolved: bool = false
+var _finishing: bool = false
 
 
 func _ready() -> void:
@@ -25,9 +26,6 @@ func _ready() -> void:
 	btn_a.pressed.connect(func() -> void: _on_option_selected(1))
 	btn_b.pressed.connect(func() -> void: _on_option_selected(2))
 	btn_c.pressed.connect(func() -> void: _on_option_selected(3))
-
-	for btn: Button in [btn_a, btn_b, btn_c]:
-		btn.mouse_entered.connect(func() -> void: AudioManager.play_sfx("ui_hover", 0.2))
 
 
 func _load_event(id: String) -> void:
@@ -69,7 +67,8 @@ func _load_event(id: String) -> void:
 
 
 func _on_option_selected(choice: int) -> void:
-	AudioManager.play_sfx("ui_click")
+	if _finishing:
+		return
 
 	if _event_resolved:
 		_finish_event()
@@ -94,9 +93,7 @@ func _on_option_selected(choice: int) -> void:
 					drugs.item_name = "Experimental Supplements"
 					drugs.description = "+1 Max SP. Side effects include sweating and tunnel vision."
 					drugs.bonus_max_sp = 1
-					p1.equipment.append(drugs)
-					p1.max_sp += 1
-					p1.current_sp = p1.max_sp
+					RunManager.grant_equipment(p1, drugs, true)
 					RunManager.next_fight_statuses.append("Injured")
 					outcome = "Your pulse spikes! Gained [color=#66ccff]+1 Max SP[/color] (now %d), but you'll start your next fight [color=#ff7777]Injured[/color]." % p1.max_sp
 				3:
@@ -134,13 +131,10 @@ func _on_option_selected(choice: int) -> void:
 			match choice:
 				1:
 					p1.current_hp = maxi(1, p1.current_hp - 3)
-					var reward_eq: EquipmentData = _pick_unowned_equipment(p1)
-					if reward_eq != null:
-						p1.equipment.append(reward_eq)
-						p1.max_hp = maxi(1, p1.max_hp + reward_eq.bonus_max_hp)
-						p1.max_sp = maxi(1, p1.max_sp + reward_eq.bonus_max_sp)
-						p1.current_hp = mini(p1.current_hp, p1.max_hp)
-						p1.current_sp = p1.max_sp
+					var unowned: Array[EquipmentData] = RunManager.get_unowned_equipment(p1)
+					if not unowned.is_empty():
+						var reward_eq: EquipmentData = unowned.pick_random()
+						RunManager.grant_equipment(p1, reward_eq, true)
 						outcome = "You dig out [color=#ffcc44]%s[/color] (%s)! Current HP: %d/%d." % [reward_eq.item_name, reward_eq.description, p1.current_hp, p1.max_hp]
 					else:
 						RunManager.add_circuit_tokens(4)
@@ -172,7 +166,8 @@ func _on_option_selected(choice: int) -> void:
 					outcome = "You shut the locker cleanly. A passing official nods and tosses you [color=#ffcc44]+1 Circuit Token[/color]."
 
 	RunManager.check_danger_state()
-	RunManager.save_run()
+	# Mark node completed BEFORE saving so pausing/reloading on the outcome screen cannot farm the event
+	RunManager.complete_current_node_and_save()
 	_show_outcome(outcome)
 
 
@@ -185,22 +180,9 @@ func _show_outcome(text: String) -> void:
 
 
 func _finish_event() -> void:
-	if RunManager.tournament_map.size() > 0:
-		RunManager.advance_map()
+	_finishing = true
+	btn_a.disabled = true
+	if RunManager.pending_league_victory:
+		RunManager.handle_league_victory()
 	else:
 		SceneLoader.change_scene("res://Scenes/TournamentMap.tscn")
-
-
-func _pick_unowned_equipment(p1: CharacterData) -> EquipmentData:
-	var all_items: Array[EquipmentData] = RunManager.get_all_equipment()
-	var owned_names: Array[String] = []
-	for eq: EquipmentData in p1.equipment:
-		if eq:
-			owned_names.append(eq.item_name)
-	var unowned: Array[EquipmentData] = []
-	for item: EquipmentData in all_items:
-		if item and item.item_name not in owned_names:
-			unowned.append(item)
-	if unowned.is_empty():
-		return null
-	return unowned.pick_random()

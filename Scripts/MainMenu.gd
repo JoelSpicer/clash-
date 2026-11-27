@@ -35,6 +35,8 @@ func _ready() -> void:
 	
 	# --- SETUP PARALLAX VISUALS ---
 	await get_tree().process_frame
+	if not is_inside_tree():
+		return
 	var screen_size: Vector2 = get_viewport_rect().size
 	
 	# Set pivot to center and scale the ENTIRE container up
@@ -74,7 +76,7 @@ func _init_slideshow() -> void:
 		get_tree().create_timer(7.0).timeout.connect(_cycle_background)
 
 func _cycle_background() -> void:
-	if bg_list.is_empty(): return
+	if not is_inside_tree() or bg_list.is_empty(): return
 	# Pick the next image
 	active_bg_index = (active_bg_index + 1) % bg_list.size()
 	var next_texture: Texture2D = bg_list[active_bg_index]
@@ -248,4 +250,4 @@ func _on_quit_pressed() -> void:
 	get_tree().quit()
 
 func _on_compendium_pressed() -> void:
-	SceneLoader.change_scene("res://Scenes/Multi.tscn")
+	SceneLoader.change_scene("res://Scenes/compendium.tscn")

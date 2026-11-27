@@ -22,6 +22,8 @@ func _refresh_grid() -> void:
 	for c: Node in card_grid.get_children():
 		c.queue_free()
 
+	if RunManager.player_run_data == null:
+		return
 	var deck: Array[ActionData] = RunManager.player_run_data.deck
 	var unlocked: Array[ActionData] = RunManager.player_run_data.unlocked_actions
 
@@ -59,6 +61,8 @@ func _refresh_grid() -> void:
 
 func _toggle_card(action: ActionData) -> void:
 	var player: CharacterData = RunManager.player_run_data
+	if player == null:
+		return
 
 	if player.has_card_in_deck(action.display_name):
 		player.remove_card_from_deck(action.display_name)
@@ -83,9 +87,9 @@ func _add_equipped_badge(parent: Control) -> void:
 
 
 func _on_fight_pressed() -> void:
-	if RunManager.player_run_data.deck.size() < 1:
+	if RunManager.player_run_data == null or RunManager.player_run_data.deck.size() < 1:
 		return
-
+	fight_btn.disabled = true
 	AudioManager.play_sfx("ui_confirm")
 	RunManager.exit_deck_editor()
 

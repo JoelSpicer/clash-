@@ -40,7 +40,7 @@ func _ready() -> void:
 		delete_btn.pressed.connect(_on_delete_pressed)
 		delete_btn.hide() 
 	
-	_select_class(0)
+	_select_class(0, false)
 
 # --- NEW: DYNAMIC SECTION GENERATION ---
 func _generate_lists() -> void:
@@ -153,6 +153,9 @@ func _update_preview_panel(index: int) -> void:
 
 # --- START RUN ---
 func _on_start_pressed() -> void:
+	if start_btn.disabled:
+		return
+	start_btn.disabled = true
 	AudioManager.play_sfx("ui_confirm")
 	
 	if selected_save_file != "":
@@ -162,8 +165,13 @@ func _on_start_pressed() -> void:
 			var run_name: String = name_input.text
 			if run_name.strip_edges() == "": run_name = "Unnamed"
 			
-			var chosen_sponsor: SponsorData = available_sponsors[sponsor_option.selected]
+			var sponsor_idx: int = sponsor_option.selected
+			var chosen_sponsor: SponsorData = null
+			if sponsor_idx >= 0 and sponsor_idx < available_sponsors.size():
+				chosen_sponsor = available_sponsors[sponsor_idx]
 			RunManager.start_new_run(base_classes[selected_index], run_name, chosen_sponsor)
+		else:
+			start_btn.disabled = false
 
 # --- SETTINGS HELPERS ---
 
@@ -172,16 +180,28 @@ func _on_difficulty_changed(index: int) -> void:
 
 # --- UPDATED INTERACTION LOGIC ---
 
-func _select_class(index: int) -> void:
-	AudioManager.play_sfx("ui_click")
+func _select_class(index: int, play_sfx: bool = true) -> void:
+	if play_sfx:
+		AudioManager.play_sfx("ui_click")
+	var was_save: bool = selected_save_file != ""
 	selected_index = index
 	selected_save_file = "" 
 	
 	name_input.editable = true
+	if was_save:
+		name_input.text = ""
 	start_btn.text = "START RUN"
 	
+	sponsor_option.disabled = false
+	_on_sponsor_selected(sponsor_option.selected)
+	
+	if difficulty_option.disabled:
+		difficulty_option.selected = 2
 	difficulty_option.disabled = false 
 	GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty
+	
+	if delete_btn:
+		delete_btn.hide()
 	
 	for btn: Button in buttons:
 		if int(btn.get_meta("id")) == index and bool(btn.get_meta("is_save")) == false:
@@ -202,14 +222,12 @@ func _on_delete_pressed() -> void:
 	if selected_save_file == "": return
 	AudioManager.play_sfx("ui_click")
 	RunManager.delete_save_file(selected_save_file)
-	selected_save_file = ""
-	delete_btn.hide()
 	_generate_lists()
-	_select_class(0)
+	_select_class(0, false)
 
 func _show_save_preview(filename: String) -> void:
 	var data: RunSaveData = RunManager.peek_save_file(filename)
-	if data == null:
+	if data == null or data.player_data == null:
 		info_label.text = "[color=red]Error reading save.[/color]"
 		return
 		
@@ -261,6 +279,10 @@ func _setup_difficulty() -> void:
 		difficulty_option.item_selected.connect(_on_difficulty_changed)
 
 func _on_item_selected(index: int, text: String, is_save: bool) -> void:
+	if not is_save:
+		_select_class(index, true)
+		return
+
 	AudioManager.play_sfx("ui_click")
 	
 	for btn: Button in buttons:
@@ -271,41 +293,26 @@ func _on_item_selected(index: int, text: String, is_save: bool) -> void:
 			btn.modulate = Color(1, 1, 1) if not bool(btn.get_meta("is_save")) else Color(0.6, 0.8, 1.0)
 			btn.remove_theme_color_override("font_color")
 
-	if is_save:
-		selected_save_file = text + ".tres"
-		start_btn.text = "LOAD RUN"
-		name_input.editable = false
-		name_input.text = text
-		
-		sponsor_option.disabled = true
-		sponsor_info_panel.modulate = Color(1.0, 1.0, 1.0, 0.0)
-		
-		var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
-		if data == null: return
-		data.player_data.character_name = data.run_name
-
-		difficulty_option.selected = data.difficulty
-		difficulty_option.disabled = true 
-		
-		_show_save_preview(selected_save_file)
+	selected_save_file = text + ".tres"
+	start_btn.text = "LOAD RUN"
+	name_input.editable = false
+	name_input.text = text
+	
+	sponsor_option.disabled = true
+	sponsor_info_panel.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	
+	var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
+	if data == null or data.player_data == null:
+		info_label.text = "[color=red]Error reading save.[/color]"
 		delete_btn.show()
-	else:
-		selected_save_file = "" 
-		selected_index = index
-		start_btn.text = "START RUN"
-		name_input.editable = true
-		
-		sponsor_option.disabled = false
-		_on_sponsor_selected(sponsor_option.selected)
-		
-		if difficulty_option.disabled == true:
-			difficulty_option.selected = 2
-			
-		difficulty_option.disabled = false 
-		GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty
-		
-		_update_preview_panel(index)
-		delete_btn.hide()
+		return
+	data.player_data.character_name = data.run_name
+
+	difficulty_option.selected = data.difficulty
+	difficulty_option.disabled = true 
+	
+	_show_save_preview(selected_save_file)
+	delete_btn.show()
 
 func _on_tutorial_pressed() -> void:
 	AudioManager.play_sfx("ui_confirm")
@@ -318,24 +325,11 @@ func _load_sponsors() -> void:
 	sponsor_option.add_item("No Sponsor")
 	available_sponsors.append(null)
 	
-	var dir_path: String = "res://Data/Sponsors/"
-	var seen: Dictionary = {}
-	var dir: DirAccess = DirAccess.open(dir_path)
-	if dir:
-		dir.list_dir_begin()
-		var file_name: String = dir.get_next()
-		while file_name != "":
-			if not dir.current_is_dir():
-				var clean_name: String = file_name.replace(".remap", "")
-				if (clean_name.ends_with(".tres") or clean_name.ends_with(".res")) and not seen.has(clean_name):
-					seen[clean_name] = true
-					var sponsor: SponsorData = load(dir_path + clean_name) as SponsorData
-					if sponsor:
-						if sponsor.item_name in RunManager.meta_data.unlocked_sponsors or sponsor.item_name == "CRASH Supplements" or sponsor.item_name == "SLAM Supplements":
-							available_sponsors.append(sponsor)
-							sponsor_option.add_item(sponsor.item_name)
-			file_name = dir.get_next()
-		dir.list_dir_end()
+	for res: Resource in ResourceCatalog.load_dir("res://Data/Sponsors/"):
+		var sponsor: SponsorData = res as SponsorData
+		if sponsor and (sponsor.item_name in RunManager.meta_data.unlocked_sponsors or sponsor.item_name == "CRASH Supplements" or sponsor.item_name == "SLAM Supplements"):
+			available_sponsors.append(sponsor)
+			sponsor_option.add_item(sponsor.item_name)
 			
 	if not sponsor_option.item_selected.is_connected(_on_sponsor_selected):
 		sponsor_option.item_selected.connect(_on_sponsor_selected)
@@ -344,7 +338,7 @@ func _load_sponsors() -> void:
 
 # --- SPONSOR VISUALS ---
 func _on_sponsor_selected(index: int) -> void:
-	var sponsor: SponsorData = available_sponsors[index]
+	var sponsor: SponsorData = available_sponsors[index] if index >= 0 and index < available_sponsors.size() else null
 	
 	if sponsor == null:
 		sponsor_info_panel.modulate = Color(1.0, 1.0, 1.0, 0.0)

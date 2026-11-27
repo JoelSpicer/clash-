@@ -14,6 +14,8 @@ extends Resource
 
 @export var pending_advancement: bool = false
 @export var pending_reward: bool = false
+@export var pending_league_victory: bool = false
+@export var reward_tokens_granted: bool = false
 
 @export var active_sponsor: SponsorData = null
 @export var leagues_completed: int = 0

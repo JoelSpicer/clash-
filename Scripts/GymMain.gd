@@ -33,9 +33,12 @@ func _update_stats_display() -> void:
 
 
 func _on_heal_pressed() -> void:
+	if player == null:
+		return
 	AudioManager.play_sfx("ui_confirm")
 	var heal_amt: int = _get_heal_amount()
 	player.current_hp = mini(player.current_hp + heal_amt, player.max_hp)
+	RunManager.check_danger_state()
 	flavor_text.text = "Patched up and ready to fight."
 	_finish_gym()
 
@@ -65,6 +68,8 @@ func _finish_gym() -> void:
 
 
 func _get_heal_amount() -> int:
+	if player == null:
+		return 1
 	var base_heal: int = maxi(1, roundi(float(player.max_hp) * 0.3))
 	if RunManager.active_sponsor:
 		base_heal = roundi(float(base_heal) * RunManager.active_sponsor.gym_bonus_multiplier)

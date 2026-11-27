@@ -139,6 +139,13 @@ const SCRIPTS = {
 	}
 }
 
+func clear_active_tutorial() -> void:
+	is_tutorial_active = false
+	active_tutorial_id = ""
+	current_step = 0
+	active_script.clear()
+
+
 # --- NEW: THE SETUP MASTER FUNCTION ---
 func setup_and_start_tutorial(tutorial_id: String) -> void:
 	if not SCRIPTS.has(tutorial_id):
@@ -150,16 +157,11 @@ func setup_and_start_tutorial(tutorial_id: String) -> void:
 
 	# 1. Set the Active Script & Clear Conflicting Mode State
 	active_tutorial_id = tutorial_id
-	active_script = tutorial_data["steps"]
+	active_script = (tutorial_data["steps"] as Array).duplicate(true)
 	is_tutorial_active = true
 	current_step = 0
 	TrialManager.clear_active_trial()
-	RunManager.is_arcade_mode = false
-	RunManager.is_boss_match = false
-	RunManager.is_rival_match = false
-	RunManager.active_sponsor = null
-	RunManager.active_gym_buff = ""
-	RunManager.next_fight_statuses.clear()
+	RunManager.clear_active_run_state()
 
 	# 2. Create Fighters with Configured Stats
 	var p1: CharacterData = CharacterData.new()
@@ -191,7 +193,6 @@ func setup_and_start_tutorial(tutorial_id: String) -> void:
 		AudioManager.play_location_music(env)
 
 	# 4. Settings
-	RunManager.is_arcade_mode = false
 	GameManager.p2_is_custom = false
 	GameManager.ai_difficulty = GameManager.Difficulty.MEDIUM
 
@@ -199,41 +200,17 @@ func setup_and_start_tutorial(tutorial_id: String) -> void:
 	SceneLoader.change_scene("res://Scenes/CombatArena.tscn")
 
 # --- NEW: DECK GENERATOR ---
-# This builds a perfectly balanced basic deck in memory for the tutorial.
-# Replace your old _generate_basic_deck() with this:
 func _generate_deck(deck_name: String) -> Array[ActionData]:
 	var d: Array[ActionData] = []
+	var basics: Array[ActionData] = ClassFactory.get_basic_actions()
 	
 	match deck_name:
 		"basic":
-			# OFFENCE
-			d.append(load("res://Data/Actions/basic_light.tres").duplicate(true))
-			d.append(load("res://Data/Actions/basic_technical.tres").duplicate(true))
-			d.append(load("res://Data/Actions/basic_heavy.tres").duplicate(true))
-			d.append(load("res://Data/Actions/basic_positioning.tres").duplicate(true))
-			# DEFENCE
-			d.append(load("res://Data/Actions/basic_block.tres").duplicate(true))
-			d.append(load("res://Data/Actions/basic_dodge.tres").duplicate(true))
-			d.append(load("res://Data/Actions/basic_parry.tres").duplicate(true))
-			d.append(load("res://Data/Actions/basic_reversal.tres").duplicate(true))
-			
-		"advanced":
-			# Put whatever specific cards you want to teach here!
-			d.append(load("res://Data/Actions/haymaker.tres").duplicate(true))
-			d.append(load("res://Data/Actions/elbow_block.tres").duplicate(true))
-			# Add as many as you need for the advanced tutorial...
-		
+			d = basics
 		"toobasic":
-			# OFFENCE
-			d.append(load("res://Data/Actions/basic_light.tres").duplicate(true))
-			d.append(load("res://Data/Actions/basic_technical.tres").duplicate(true))
-			d.append(load("res://Data/Actions/basic_heavy.tres").duplicate(true))
-			d.append(load("res://Data/Actions/basic_positioning.tres").duplicate(true))
-			# DEFENCE
-			#d.append(load("res://Data/Actions/basic_block.tres").duplicate(true))
-			#d.append(load("res://Data/Actions/basic_dodge.tres").duplicate(true))
-			#d.append(load("res://Data/Actions/basic_parry.tres").duplicate(true))
-			#d.append(load("res://Data/Actions/basic_reversal.tres").duplicate(true))
+			for card: ActionData in basics:
+				if card.type == ActionData.Type.OFFENCE:
+					d.append(card)
 	return d
 
 # --- UPDATED HELPERS ---
@@ -261,13 +238,10 @@ func advance_step() -> bool:
 # --- UPDATED: END TUTORIAL ---
 func end_tutorial() -> void:
 	print("--- TUTORIAL COMPLETE (", active_tutorial_id, ") ---")
-	var target_scene: String = "res://Scenes/CarouselHub.tscn" if active_tutorial_id == "begin" else "res://Scenes/MainMenu.tscn"
+	var target_scene: String = "res://Scenes/CarouselHub.tscn"
 
 	# 1. Reset variables
-	is_tutorial_active = false
-	active_tutorial_id = ""
-	current_step = 0
-	active_script = []
+	clear_active_tutorial()
 	get_tree().paused = false
 
 	# 2. Reset Audio & Visual State
@@ -275,5 +249,5 @@ func end_tutorial() -> void:
 	GlobalCinematics.reset_visuals()
 	AudioManager.play_music("menu_theme")
 
-	# 3. Route the player onward (first-time intro goes straight into CarouselHub!)
+	# 3. Route the player onward into CarouselHub
 	SceneLoader.change_scene(target_scene)
