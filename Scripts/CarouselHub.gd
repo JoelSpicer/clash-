@@ -17,7 +17,7 @@ const TUTORIAL_TEXTS = [
 	},
 	{
 		"title": "DOJO TRIALS",
-		"text": "Master CLASH's combat interactions, all four Class Passives, hybrid skill-tree cards, and multi-turn tactical puzzles! Clear trials to earn first-time Circuit Tokens and sharpen your reads."
+		"text": "Master CLASH's combat interactions, all four Class Passives, hybrid multi-trait actions, and multi-turn tactical puzzles! Clear trials to earn first-time Circuit Tokens and sharpen your reads."
 	},
 	{
 		"title": "NETWORK TERMINAL",

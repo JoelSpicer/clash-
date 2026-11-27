@@ -241,6 +241,12 @@ func player_select_action(player_id: int, action: ActionData, extra_data: Dictio
 				final_action.momentum_gain += 1
 				final_action.display_name += "+"
 	
+	# During FEINT_CHECK, pass the secondary card straight to _handle_feint_selection
+	# WITHOUT overwriting state.p1_action_queue / p2_action_queue (which holds the base Feint card).
+	if current_state == State.FEINT_CHECK:
+		_handle_feint_selection(player_id, final_action)
+		return
+
 	if player_id == 1:
 		state.p1_action_queue = final_action
 		state.p1_rage_active = extra_data.get("rage", false)
@@ -253,8 +259,6 @@ func player_select_action(player_id: int, action: ActionData, extra_data: Dictio
 	if current_state == State.SELECTION:
 		if state.p1_action_queue and state.p2_action_queue:
 			change_state(State.REVEAL)
-	elif current_state == State.FEINT_CHECK:
-		_handle_feint_selection(player_id, final_action)
 
 # ==============================================================================
 # FEINT MECHANICS

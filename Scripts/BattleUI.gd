@@ -752,7 +752,7 @@ func setup_match_ui(p1: CharacterData, p2: CharacterData, local_id: int) -> void
 		load_deck(p1.deck)
 
 
-var _trial_overlay: CanvasLayer = null
+var _trial_overlay: Control = null
 var _trial_result_shown: bool = false
 var _trial_briefing_shown: bool = false
 
@@ -761,8 +761,11 @@ func setup_trial_ui() -> void:
 	_trial_result_shown = false
 	_trial_briefing_shown = false
 	if _trial_overlay == null:
-		_trial_overlay = TrialOverlayScript.new() as CanvasLayer
+		_trial_overlay = TrialOverlayScript.new() as Control
 		add_child(_trial_overlay)
+		# Keep the trial HUD banner beneath InspectPopup and ClashLayer so popups are never covered
+		if inspect_popup != null:
+			move_child(_trial_overlay, maxi(0, inspect_popup.get_index() - 1))
 	_trial_overlay.call("refresh_banner")
 
 

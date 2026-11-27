@@ -1,17 +1,21 @@
 class_name TrialOverlay
-extends CanvasLayer
+extends Control
 
 signal briefing_dismissed
 
 var _top_panel: PanelContainer
 var _title_lbl: Label
 var _turn_lbl: Label
+var _collapse_btn: Button
+var _body_vbox: VBoxContainer
 var _objective_lbl: Label
 var _intent_lbl: RichTextLabel
 var _hint_box: PanelContainer
 var _hint_lbl: RichTextLabel
 var _hint_visible: bool = false
+var _collapsed: bool = false
 
+var _modal_layer: CanvasLayer
 var _modal_backdrop: ColorRect
 var _modal_panel: PanelContainer
 var _modal_title: Label
@@ -22,7 +26,8 @@ var _modal_buttons: HBoxContainer
 
 
 func _ready() -> void:
-	layer = 110
+	set_anchors_preset(Control.PRESET_FULL_RECT)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_top_bar()
 	_build_modal()
@@ -30,29 +35,36 @@ func _ready() -> void:
 
 
 func _build_top_bar() -> void:
-	var wrapper: MarginContainer = MarginContainer.new()
-	wrapper.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	wrapper.offset_top = 8.0
-	wrapper.offset_left = 300.0
-	wrapper.offset_right = -300.0
-	wrapper.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(wrapper)
+	# Positioned below MomentumTracker (~0..100px) and centered between P1/P2 HUDs
+	# so Sensei's bars and Inspect popup are never covered.
+	var anchor: Control = Control.new()
+	anchor.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	anchor.offset_top = 104.0
+	anchor.offset_bottom = 260.0
+	anchor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(anchor)
+
+	var center: CenterContainer = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	anchor.add_child(center)
 
 	var outer_vbox: VBoxContainer = VBoxContainer.new()
+	outer_vbox.custom_minimum_size = Vector2(640, 0)
 	outer_vbox.add_theme_constant_override("separation", 6)
 	outer_vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wrapper.add_child(outer_vbox)
+	center.add_child(outer_vbox)
 
 	_top_panel = PanelContainer.new()
 	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.07, 0.09, 0.14, 0.92)
-	style.border_color = Color(0.95, 0.78, 0.25, 0.9)
+	style.bg_color = Color(0.07, 0.09, 0.14, 0.9)
+	style.border_color = Color(0.95, 0.78, 0.25, 0.85)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(8)
-	style.content_margin_left = 14
-	style.content_margin_right = 14
-	style.content_margin_top = 8
-	style.content_margin_bottom = 8
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
 	_top_panel.add_theme_stylebox_override("panel", style)
 	outer_vbox.add_child(_top_panel)
 
@@ -60,54 +72,63 @@ func _build_top_bar() -> void:
 	vbox.add_theme_constant_override("separation", 4)
 	_top_panel.add_child(vbox)
 
-	# Row 1: Title + Turn Counter + Action Buttons
+	# Row 1: Title + Turn Counter + Compact Action Buttons (always visible even when collapsed)
 	var header_row: HBoxContainer = HBoxContainer.new()
-	header_row.add_theme_constant_override("separation", 10)
+	header_row.add_theme_constant_override("separation", 8)
 	vbox.add_child(header_row)
 
 	_title_lbl = Label.new()
-	_title_lbl.add_theme_font_size_override("font_size", 18)
+	_title_lbl.add_theme_font_size_override("font_size", 15)
 	_title_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.35))
 	_title_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(_title_lbl)
 
 	_turn_lbl = Label.new()
-	_turn_lbl.add_theme_font_size_override("font_size", 15)
+	_turn_lbl.add_theme_font_size_override("font_size", 13)
 	_turn_lbl.add_theme_color_override("font_color", Color(0.65, 0.9, 1.0))
 	header_row.add_child(_turn_lbl)
 
+	_collapse_btn = Button.new()
+	_collapse_btn.text = "HIDE"
+	_collapse_btn.custom_minimum_size = Vector2(60, 26)
+	_collapse_btn.pressed.connect(_on_toggle_collapse)
+	header_row.add_child(_collapse_btn)
+
 	var hint_btn: Button = Button.new()
 	hint_btn.text = "HINT"
-	hint_btn.custom_minimum_size = Vector2(72, 28)
+	hint_btn.custom_minimum_size = Vector2(60, 26)
 	hint_btn.pressed.connect(_on_toggle_hint)
 	header_row.add_child(hint_btn)
 
 	var retry_btn: Button = Button.new()
 	retry_btn.text = "RETRY"
-	retry_btn.custom_minimum_size = Vector2(76, 28)
+	retry_btn.custom_minimum_size = Vector2(66, 26)
 	retry_btn.pressed.connect(func() -> void: TrialManager.retry_trial())
 	header_row.add_child(retry_btn)
 
 	var exit_btn: Button = Button.new()
 	exit_btn.text = "DOJO"
-	exit_btn.custom_minimum_size = Vector2(72, 28)
+	exit_btn.custom_minimum_size = Vector2(60, 26)
 	exit_btn.pressed.connect(func() -> void: TrialManager.exit_trial_to_menu())
 	header_row.add_child(exit_btn)
 
-	# Row 2: Objective
+	# Collapsible Details Body (Objective + Intent)
+	_body_vbox = VBoxContainer.new()
+	_body_vbox.add_theme_constant_override("separation", 3)
+	vbox.add_child(_body_vbox)
+
 	_objective_lbl = Label.new()
-	_objective_lbl.add_theme_font_size_override("font_size", 14)
+	_objective_lbl.add_theme_font_size_override("font_size", 13)
 	_objective_lbl.add_theme_color_override("font_color", Color.WHITE)
 	_objective_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vbox.add_child(_objective_lbl)
+	_body_vbox.add_child(_objective_lbl)
 
-	# Row 3: Telegraphed Enemy Intent (or Deduction prompt)
 	_intent_lbl = RichTextLabel.new()
 	_intent_lbl.bbcode_enabled = true
 	_intent_lbl.fit_content = true
 	_intent_lbl.scroll_active = false
-	_intent_lbl.add_theme_font_size_override("normal_font_size", 14)
-	vbox.add_child(_intent_lbl)
+	_intent_lbl.add_theme_font_size_override("normal_font_size", 13)
+	_body_vbox.add_child(_intent_lbl)
 
 	# Collapsible Hint Box
 	_hint_box = PanelContainer.new()
@@ -128,16 +149,22 @@ func _build_top_bar() -> void:
 	_hint_lbl.bbcode_enabled = true
 	_hint_lbl.fit_content = true
 	_hint_lbl.scroll_active = false
-	_hint_lbl.add_theme_font_size_override("normal_font_size", 14)
+	_hint_lbl.add_theme_font_size_override("normal_font_size", 13)
 	_hint_box.add_child(_hint_lbl)
 
 
 func _build_modal() -> void:
+	# Dedicated high CanvasLayer ONLY for Briefing / Result popups
+	_modal_layer = CanvasLayer.new()
+	_modal_layer.layer = 110
+	_modal_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_modal_layer)
+
 	_modal_backdrop = ColorRect.new()
 	_modal_backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_modal_backdrop.color = Color(0.0, 0.0, 0.0, 0.72)
 	_modal_backdrop.visible = false
-	add_child(_modal_backdrop)
+	_modal_layer.add_child(_modal_backdrop)
 
 	var center: CenterContainer = CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -197,9 +224,9 @@ func refresh_banner() -> void:
 	if t == null:
 		return
 
-	_title_lbl.text = "DOJO TRIAL: " + t.title + "  [" + t.focus_trait + "]"
+	_title_lbl.text = t.title + " [" + t.focus_trait + "]"
 	var shown_turn: int = mini(TrialManager.current_turn + 1, t.turn_limit)
-	_turn_lbl.text = "CLASH %d / %d" % [shown_turn, t.turn_limit]
+	_turn_lbl.text = "CLASH %d/%d" % [shown_turn, t.turn_limit]
 	_objective_lbl.text = "Objective: " + t.objective_short
 	_hint_lbl.text = "[color=#7fd8ff][b]Sensei's Hint:[/b][/color] " + t.hint_text
 
@@ -306,6 +333,15 @@ func show_result(outcome: Dictionary) -> void:
 
 	_modal_backdrop.visible = true
 	get_tree().paused = true
+
+
+func _on_toggle_collapse() -> void:
+	_collapsed = not _collapsed
+	_body_vbox.visible = not _collapsed
+	_collapse_btn.text = "SHOW" if _collapsed else "HIDE"
+	if _collapsed:
+		_hint_visible = false
+		_hint_box.visible = false
 
 
 func _on_toggle_hint() -> void:

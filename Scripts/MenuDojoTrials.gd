@@ -25,98 +25,122 @@ func _ready() -> void:
 func _build_ui() -> void:
 	var margin: MarginContainer = MarginContainer.new()
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 90)
-	margin.add_theme_constant_override("margin_right", 90)
-	margin.add_theme_constant_override("margin_top", 120)
-	margin.add_theme_constant_override("margin_bottom", 60)
+	# CarouselHub's ContentContainer already applies outer offsets (61/75/65/37)
+	margin.add_theme_constant_override("margin_left", 24)
+	margin.add_theme_constant_override("margin_right", 24)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
 	add_child(margin)
 
 	var main_vbox: VBoxContainer = VBoxContainer.new()
-	main_vbox.add_theme_constant_override("separation", 14)
+	main_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	main_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_vbox.add_theme_constant_override("separation", 10)
 	margin.add_child(main_vbox)
 
 	# Progress Header
 	_progress_lbl = Label.new()
 	_progress_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_progress_lbl.add_theme_font_size_override("font_size", 20)
+	_progress_lbl.add_theme_font_size_override("font_size", 18)
 	_progress_lbl.add_theme_color_override("font_color", Color(1.0, 0.88, 0.35))
 	main_vbox.add_child(_progress_lbl)
 
 	var hbox: HBoxContainer = HBoxContainer.new()
+	hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	hbox.add_theme_constant_override("separation", 28)
+	hbox.add_theme_constant_override("separation", 24)
 	main_vbox.add_child(hbox)
 
 	# --- LEFT PANEL: SCROLLABLE TRIAL LIST ---
 	var left_panel: PanelContainer = _make_card_panel(Color(0.06, 0.08, 0.12, 0.88), Color(0.35, 0.55, 0.85, 0.7))
 	left_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	left_panel.size_flags_stretch_ratio = 1.05
+	left_panel.clip_contents = true
 	hbox.add_child(left_panel)
 
 	var scroll: ScrollContainer = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.custom_minimum_size = Vector2(0, 100)
 	left_panel.add_child(scroll)
 
 	_list_vbox = VBoxContainer.new()
 	_list_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_list_vbox.add_theme_constant_override("separation", 8)
+	_list_vbox.add_theme_constant_override("separation", 6)
 	scroll.add_child(_list_vbox)
 
 	# --- RIGHT PANEL: TRIAL DOSSIER ---
 	var right_panel: PanelContainer = _make_card_panel(Color(0.07, 0.09, 0.14, 0.92), Color(0.95, 0.78, 0.25, 0.8))
 	right_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right_panel.size_flags_stretch_ratio = 1.15
+	right_panel.clip_contents = true
 	hbox.add_child(right_panel)
 
 	var right_vbox: VBoxContainer = VBoxContainer.new()
-	right_vbox.add_theme_constant_override("separation", 12)
+	right_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right_vbox.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	right_vbox.add_theme_constant_override("separation", 10)
 	right_panel.add_child(right_vbox)
 
 	_dossier_title = Label.new()
-	_dossier_title.add_theme_font_size_override("font_size", 30)
+	_dossier_title.add_theme_font_size_override("font_size", 26)
 	_dossier_title.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
 	_dossier_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	right_vbox.add_child(_dossier_title)
 
 	_dossier_meta = Label.new()
-	_dossier_meta.add_theme_font_size_override("font_size", 16)
+	_dossier_meta.add_theme_font_size_override("font_size", 15)
 	_dossier_meta.add_theme_color_override("font_color", Color(0.65, 0.9, 1.0))
+	_dossier_meta.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	right_vbox.add_child(_dossier_meta)
 
 	_dossier_reward = Label.new()
-	_dossier_reward.add_theme_font_size_override("font_size", 16)
+	_dossier_reward.add_theme_font_size_override("font_size", 15)
 	right_vbox.add_child(_dossier_reward)
 
 	var sep1: HSeparator = HSeparator.new()
 	right_vbox.add_child(sep1)
 
+	var dossier_scroll: ScrollContainer = ScrollContainer.new()
+	dossier_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dossier_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	dossier_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	dossier_scroll.custom_minimum_size = Vector2(0, 80)
+	right_vbox.add_child(dossier_scroll)
+
+	var dossier_body: VBoxContainer = VBoxContainer.new()
+	dossier_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dossier_body.add_theme_constant_override("separation", 10)
+	dossier_scroll.add_child(dossier_body)
+
 	_dossier_briefing = RichTextLabel.new()
 	_dossier_briefing.bbcode_enabled = true
 	_dossier_briefing.fit_content = true
 	_dossier_briefing.scroll_active = false
-	_dossier_briefing.add_theme_font_size_override("normal_font_size", 17)
-	right_vbox.add_child(_dossier_briefing)
+	_dossier_briefing.add_theme_font_size_override("normal_font_size", 16)
+	dossier_body.add_child(_dossier_briefing)
 
 	_dossier_setup = RichTextLabel.new()
 	_dossier_setup.bbcode_enabled = true
 	_dossier_setup.fit_content = true
 	_dossier_setup.scroll_active = false
 	_dossier_setup.add_theme_font_size_override("normal_font_size", 15)
-	right_vbox.add_child(_dossier_setup)
+	dossier_body.add_child(_dossier_setup)
 
 	_dossier_cards = RichTextLabel.new()
 	_dossier_cards.bbcode_enabled = true
 	_dossier_cards.fit_content = true
 	_dossier_cards.scroll_active = false
 	_dossier_cards.add_theme_font_size_override("normal_font_size", 15)
-	_dossier_cards.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	right_vbox.add_child(_dossier_cards)
+	dossier_body.add_child(_dossier_cards)
 
 	_start_btn = Button.new()
 	_start_btn.text = "START TRIAL"
-	_start_btn.custom_minimum_size = Vector2(240, 56)
-	_start_btn.add_theme_font_size_override("font_size", 22)
+	_start_btn.custom_minimum_size = Vector2(220, 48)
+	_start_btn.add_theme_font_size_override("font_size", 20)
 	var btn_style: StyleBoxFlat = StyleBoxFlat.new()
 	btn_style.bg_color = Color(0.18, 0.6, 0.32)
 	btn_style.set_corner_radius_all(8)
