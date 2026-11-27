@@ -16,6 +16,10 @@ const TUTORIAL_TEXTS = [
 		"text": "Jump straight into a one-and-done clash between preset fighters! Pick any two presets, choose your arena and CPU difficulty, or toggle Opponent to Player 2 for local hotseat."
 	},
 	{
+		"title": "DOJO TRIALS",
+		"text": "Master CLASH's combat interactions, all four Class Passives, hybrid skill-tree cards, and multi-turn tactical puzzles! Clear trials to earn first-time Circuit Tokens and sharpen your reads."
+	},
+	{
 		"title": "NETWORK TERMINAL",
 		"text": "Spend the Circuit Tokens you earn from your runs here. You can unlock new Sponsors, Classes, and powerful permanent upgrades to aid you in future runs."
 	},
@@ -68,6 +72,11 @@ func _ready():
 			"bg_path": "res://Art/Background/Dojo.png"
 		},
 		{
+			"title": "DOJO TRIALS",
+			"scene_path": "res://Scenes/MenuDojoTrials.tscn",
+			"bg_path": "res://Art/Background/Dojo.png"
+		},
+		{
 			"title": "NETWORK TERMINAL",
 			"scene_path": "res://Scenes/ShopTerminal.tscn",
 			"bg_path": "res://Art/Background/Library.png"
@@ -113,11 +122,17 @@ func _ready():
 	
 	_setup_tutorial_ui()
 	
-	_load_slide_content(0)
-	_snap_background(0)
+	var start_idx: int = 0
+	if TrialManager.return_to_dojo_slide:
+		TrialManager.return_to_dojo_slide = false
+		start_idx = 2
+	current_index = start_idx
+	
+	_load_slide_content(start_idx)
+	_snap_background(start_idx)
 	
 	# Check for tutorial on the very first screen load
-	_check_and_show_tutorial(0)
+	_check_and_show_tutorial(start_idx)
 
 func _process(delta):
 	# 1. Get current screen size and mouse position

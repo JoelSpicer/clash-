@@ -57,10 +57,11 @@ func _on_main_menu_pressed() -> void:
 	if multiplayer.has_multiplayer_peer():
 		NetworkManager.cancel_connection()
 
-	# 3. Reset tutorial, audio, and visual states so nothing bleeds into the menu
+	# 3. Reset tutorial, trial, audio, and visual states so nothing bleeds into the menu
 	TutorialManager.is_tutorial_active = false
 	TutorialManager.current_step = 0
 	TutorialManager.active_script.clear()
+	TrialManager.clear_active_trial()
 	AudioManager.reset_audio_state()
 	GlobalCinematics.reset_visuals()
 

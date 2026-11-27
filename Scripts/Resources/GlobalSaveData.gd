@@ -7,3 +7,4 @@ class_name GlobalSaveData
 @export var unlocked_sponsors: Array[String] = []
 @export var unlocked_classes: Array[String] = []
 @export var seen_menu_tutorials: Dictionary = {}
+@export var completed_trials: Array[String] = []

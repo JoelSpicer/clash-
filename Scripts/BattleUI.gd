@@ -3,6 +3,7 @@ extends CanvasLayer
 const BattleEffectsControllerScript = preload("res://Scripts/Battle/BattleEffectsController.gd")
 const BattleTooltipControllerScript = preload("res://Scripts/Battle/BattleTooltipController.gd")
 const BattleInspectPanelScript = preload("res://Scripts/Battle/BattleInspectPanel.gd")
+const TrialOverlayScript = preload("res://Scripts/Battle/TrialOverlay.gd")
 
 #region Signals & Scenes
 
@@ -751,7 +752,52 @@ func setup_match_ui(p1: CharacterData, p2: CharacterData, local_id: int) -> void
 		load_deck(p1.deck)
 
 
+var _trial_overlay: CanvasLayer = null
+var _trial_result_shown: bool = false
+var _trial_briefing_shown: bool = false
+
+
+func setup_trial_ui() -> void:
+	_trial_result_shown = false
+	_trial_briefing_shown = false
+	if _trial_overlay == null:
+		_trial_overlay = TrialOverlayScript.new() as CanvasLayer
+		add_child(_trial_overlay)
+	_trial_overlay.call("refresh_banner")
+
+
+func refresh_trial_banner() -> void:
+	if _trial_overlay != null:
+		_trial_overlay.call("refresh_banner")
+
+
+func show_trial_briefing_and_wait() -> void:
+	if _trial_overlay == null or _trial_briefing_shown:
+		return
+	_trial_briefing_shown = true
+	_trial_overlay.call("show_briefing")
+	await _trial_overlay.briefing_dismissed
+
+
+func show_trial_result(outcome: Dictionary) -> void:
+	if _trial_result_shown:
+		return
+	_trial_result_shown = true
+	if GameManager.p1_data and GameManager.p2_data:
+		update_all_visuals(GameManager.p1_data, GameManager.p2_data, GameManager.state.momentum)
+	if _trial_overlay == null:
+		setup_trial_ui()
+	_trial_overlay.call("show_result", outcome)
+
+
 func _show_game_over(winner_id: int) -> void:
+	if TrialManager.is_trial_active:
+		if _trial_result_shown:
+			return
+		var outcome: Dictionary = TrialManager.evaluate_trial_outcome(true, winner_id)
+		show_trial_result(outcome)
+		return
+
 	if not game_over_screen or game_over_screen.visible:
 		return
 

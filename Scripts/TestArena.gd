@@ -76,8 +76,13 @@ func _ready() -> void:
 	GameManager.p2_data = p2_resource
 	GameManager.reset_combat()
 
+	if TrialManager.is_trial_active:
+		TrialManager.apply_trial_initial_state()
+		battle_ui.call("setup_trial_ui")
+
 	# 6. Setup Visuals & Snapshot Refresh
 	battle_ui.call("initialize_hud", p1_resource, p2_resource)
+	_update_visuals()
 	if not GameManager.snapshot_applied.is_connected(_update_visuals):
 		GameManager.snapshot_applied.connect(_update_visuals)
 
@@ -169,6 +174,13 @@ func _on_state_changed(new_state: GameManager.State) -> void:
 				_check_server_funnel()
 
 		GameManager.State.POST_CLASH:
+			if TrialManager.is_trial_active:
+				var outcome: Dictionary = TrialManager.evaluate_trial_outcome(false, 0)
+				if str(outcome.get("status", "CONTINUE")) != "CONTINUE":
+					_simulation_active = false
+					battle_ui.call("lock_ui")
+					battle_ui.call("show_trial_result", outcome)
+					return
 			if TutorialManager.is_tutorial_active:
 				TutorialManager.advance_step()
 			_print_status_report()
@@ -313,6 +325,13 @@ func _prepare_human_turn(player_id: int) -> void:
 		await get_tree().process_frame
 		await get_tree().process_frame
 
+		if TrialManager.is_trial_active and player_id == 1:
+			battle_ui.call("refresh_trial_banner")
+			if TrialManager.current_turn == 0 and GameManager.current_state == GameManager.State.SELECTION:
+				battle_ui.set("is_locked", true)
+				await battle_ui.call("show_trial_briefing_and_wait")
+				battle_ui.set("is_locked", false)
+
 		if TutorialManager.is_tutorial_active and player_id == 1:
 			battle_ui.set("is_locked", true)
 			if TutorialManager.current_step == 0:
@@ -453,7 +472,9 @@ func _run_bot_turn(player_id: int) -> void:
 	var card: ActionData
 	var extra_data: Dictionary = {}
 
-	if TutorialManager.is_tutorial_active and player_id == 2:
+	if TrialManager.is_trial_active and player_id == 2:
+		card = TrialManager.get_bot_card_for_turn(character)
+	elif TutorialManager.is_tutorial_active and player_id == 2:
 		var target_card_name: String = str(TutorialManager.get_current_data().get("bot_card", ""))
 		card = _find_card_by_name(character, target_card_name)
 		if card == null:
