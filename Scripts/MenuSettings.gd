@@ -17,6 +17,7 @@ extends Control
 @onready var minus_tokens_btn = $CenterContainer/VBoxContainer/MinusTokensBtn 
 @onready var wipe_save_btn = $CenterContainer/VBoxContainer/WipeSaveBtn       # NEW
 @onready var reset_tutorials_btn = $CenterContainer/VBoxContainer/ResetTutorialsBtn
+@onready var reset_trials_btn = $CenterContainer/VBoxContainer/ResetTrialsBtn
 
 func _ready():
 	# 1. Setup Audio
@@ -49,6 +50,8 @@ func _ready():
 		wipe_save_btn.pressed.connect(_on_wipe_save_pressed)
 	if reset_tutorials_btn: # <--- NEW
 		reset_tutorials_btn.pressed.connect(_on_reset_tutorials_pressed)
+	if reset_trials_btn:
+		reset_trials_btn.pressed.connect(_on_reset_trials_pressed)
 
 
 # --- SETUP HELPER: AUDIO ---
@@ -140,3 +143,10 @@ func _on_reset_tutorials_pressed():
 			RunManager._save_global_data()
 			
 		print("DEBUG: All menu tutorials have been reset!")
+
+func _on_reset_trials_pressed() -> void:
+	if RunManager.meta_data:
+		RunManager.meta_data.completed_trials.clear()
+		if RunManager.has_method("_save_global_data"):
+			RunManager._save_global_data()
+		print("DEBUG: All Dojo Trials progress has been reset!")

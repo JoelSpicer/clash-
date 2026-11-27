@@ -215,6 +215,7 @@ func _create_passive_toggles() -> void:
 
 	rage_toggle = CheckButton.new()
 	rage_toggle.text = "RAGE (Pay HP)"
+	rage_toggle.tooltip_text = "RAGE: Pay HP instead of SP when low. Tiring also drains HP when you are out of SP."
 	rage_toggle.visible = false
 	rage_toggle.toggled.connect(func(_on: bool) -> void: _refresh_grid())
 	container.add_child(rage_toggle)

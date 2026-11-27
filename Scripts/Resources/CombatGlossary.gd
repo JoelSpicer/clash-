@@ -22,9 +22,9 @@ const KEYWORD_DEFS: Dictionary = {
 	"Parry": "Your action steals the Momentum X trait of your opponent's action. If this causes the momentum tracker to move in your direction, your opponent's action has no effect on you, and your opponent's next action must have the Opener trait",
 	"Recover": "Gain X stamina",
 	"Repeat": "Execute this action up to X total times in a single clash, paying its stamina cost for each hit while you have enough SP. Each hit interacts with your opponent's action (Block applies per hit; Parry only steals 1 hit's momentum), and Opportunity applies only to the first hit.",
-	"Retaliate": "Your opponent takes the same damage as they dealt to you in the previous clash",
+	"Retaliate": "Your opponent takes the same damage as they deal to you in the current clash (reduced by their Block or Dodge)",
 	"Reversal": "If the momentum tracker moves closer to your side from this clash, the current combo ends and you take the offence, even if you do not have the momentum advantage. This applies even in the initial clash",
 	"Super": "This action can only be used when the momentum tracker has reached the end of your side. You can only use an action with this trait once per combat",
 	"Sweep": "This action affects all opponents you are in combat with",
-	"Tiring": "Cause the opponent to lose X Stamina"
+	"Tiring": "Cause the opponent to lose X Stamina (drains HP from Heavy fighters if they are out of SP)"
 }

@@ -113,3 +113,8 @@ text = "WIPE GLOBAL SAVE (Debug)"
 layout_mode = 2
 theme_override_font_sizes/font_size = 5
 text = "Reset tutorials"
+
+[node name="ResetTrialsBtn" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 5
+text = "Reset Dojo Trials"
