@@ -149,6 +149,7 @@ func _ready() -> void:
 	GameManager.damage_dealt.connect(_on_damage_dealt)
 	GameManager.healing_received.connect(_on_healing_received)
 	GameManager.status_applied.connect(_on_status_applied)
+	GameManager.combat_callout.connect(_on_combat_callout)
 	GameManager.combat_log_updated.connect(_on_combat_log_updated)
 	GameManager.clash_resolved.connect(_on_clash_resolved_log)
 	if not GameManager.state_changed.is_connected(_on_game_state_changed):
@@ -485,8 +486,10 @@ func _refresh_grid() -> void:
 		return a_card.display_name < b_card.display_name
 	)
 
+	var hotkey_idx: int = 1
 	for entry: Dictionary in entries:
-		_spawn_card_button(entry["card"] as ActionData, int(entry["cost"]), bool(entry["valid"]), Color.WHITE)
+		_spawn_card_button(entry["card"] as ActionData, int(entry["cost"]), bool(entry["valid"]), Color.WHITE, hotkey_idx)
+		hotkey_idx += 1
 
 	var hide_struggle: bool = false
 	if TutorialManager.is_tutorial_active:
@@ -496,19 +499,22 @@ func _refresh_grid() -> void:
 
 	if not feint_mode and not hide_struggle:
 		var struggle: ActionData = GameManager.get_struggle_action(current_tab)
-		_spawn_card_button(struggle, 0, true, Color(0.9, 0.9, 0.9))
+		_spawn_card_button(struggle, 0, true, Color(0.9, 0.9, 0.9), hotkey_idx)
+		hotkey_idx += 1
 
 	if feint_mode:
 		skip_action.type = current_tab
-		_spawn_card_button(skip_action, 0, true, Color(0.9, 0.9, 1.0))
+		_spawn_card_button(skip_action, 0, true, Color(0.9, 0.9, 1.0), hotkey_idx)
 
 
-func _spawn_card_button(card: ActionData, cost_display: int, available: bool, tint: Color) -> void:
+func _spawn_card_button(card: ActionData, cost_display: int, available: bool, tint: Color, hotkey_num: int = 0) -> void:
 	var btn: Control = card_button_scene.instantiate() as Control
 	button_grid.add_child(btn)
 	btn.call("setup", card)
 	btn.call("update_cost_display", cost_display)
 	btn.call("set_available", available)
+	if btn.has_method("set_hotkey_hint"):
+		btn.call("set_hotkey_hint", hotkey_num)
 	btn.modulate = tint
 	btn.connect("card_hovered", _on_card_hovered)
 	btn.connect("card_exited", _on_card_exited)
@@ -616,8 +622,78 @@ func _on_healing_received(target_id: int, amount: int) -> void:
 	_effects_ctrl.call("spawn_floating_text", target_id, "+" + str(amount), Color.GREEN, 0.0)
 
 
+var _callout_stagger_p1: int = 0
+var _callout_stagger_p2: int = 0
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not (event is InputEventKey):
+		return
+	var key_event: InputEventKey = event as InputEventKey
+	if not key_event.pressed or key_event.echo:
+		return
+	if get_tree().paused or Pausemenu.visible:
+		return
+	var focused: Control = get_viewport().gui_get_focus_owner()
+	if focused is LineEdit or focused is TextEdit:
+		return
+
+	match key_event.keycode:
+		KEY_TAB:
+			if not is_locked and not btn_offence.disabled and not btn_defence.disabled:
+				var next_tab: ActionData.Type = ActionData.Type.DEFENCE if current_tab == ActionData.Type.OFFENCE else ActionData.Type.OFFENCE
+				_switch_tab(next_tab)
+				AudioManager.play_sfx("ui_hover", 0.1)
+				get_viewport().set_input_as_handled()
+		KEY_I:
+			if _inspect_ctrl:
+				_inspect_ctrl.call("toggle_inspect")
+				get_viewport().set_input_as_handled()
+		KEY_L:
+			if log_toggle:
+				log_toggle.button_pressed = not log_toggle.button_pressed
+				get_viewport().set_input_as_handled()
+		KEY_R:
+			if TrialManager.is_trial_active and not _trial_result_shown:
+				TrialManager.retry_trial()
+				get_viewport().set_input_as_handled()
+		KEY_H:
+			if TrialManager.is_trial_active and _trial_overlay != null:
+				_trial_overlay.call("toggle_hint")
+				get_viewport().set_input_as_handled()
+		_:
+			var slot_idx: int = _keycode_to_slot_index(key_event.keycode)
+			if slot_idx >= 0 and not is_locked and button_grid.visible:
+				if slot_idx < button_grid.get_child_count():
+					var btn: BaseButton = button_grid.get_child(slot_idx) as BaseButton
+					if btn != null and not btn.disabled:
+						if btn.has_method("_pressed"):
+							btn.call("_pressed")
+						else:
+							btn.emit_signal("pressed")
+						get_viewport().set_input_as_handled()
+
+
+func _keycode_to_slot_index(code: Key) -> int:
+	if code >= KEY_1 and code <= KEY_9:
+		return int(code - KEY_1)
+	if code >= KEY_KP_1 and code <= KEY_KP_9:
+		return int(code - KEY_KP_1)
+	return -1
+
+
 func _on_status_applied(target_id: int, status: String) -> void:
 	_effects_ctrl.call("spawn_floating_text", target_id, status, Color.YELLOW, -40.0)
+
+
+func _on_combat_callout(target_id: int, text: String, color: Color) -> void:
+	var stagger: int = _callout_stagger_p1 if target_id == 1 else _callout_stagger_p2
+	if target_id == 1:
+		_callout_stagger_p1 += 1
+	else:
+		_callout_stagger_p2 += 1
+	var y_off: float = -72.0 - (float(stagger) * 32.0)
+	_effects_ctrl.call("spawn_floating_text", target_id, text, color, y_off)
 
 
 func _on_combat_log_updated(text: String) -> void:
@@ -626,6 +702,8 @@ func _on_combat_log_updated(text: String) -> void:
 
 
 func _on_clash_resolved_log(winner_id: int, p1_card: ActionData, p2_card: ActionData, _results: Dictionary) -> void:
+	_callout_stagger_p1 = 0
+	_callout_stagger_p2 = 0
 	if combat_log:
 		combat_log.call("add_clash_log", winner_id, p1_card, p2_card)
 

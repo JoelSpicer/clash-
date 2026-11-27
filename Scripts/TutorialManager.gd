@@ -140,13 +140,13 @@ const SCRIPTS = {
 }
 
 # --- NEW: THE SETUP MASTER FUNCTION ---
-func setup_and_start_tutorial(tutorial_id: String):
+func setup_and_start_tutorial(tutorial_id: String) -> void:
 	if not SCRIPTS.has(tutorial_id):
 		printerr("Tutorial ID not found: ", tutorial_id)
 		return
 
-	var tutorial_data = SCRIPTS[tutorial_id]
-	var config = tutorial_data["config"]
+	var tutorial_data: Dictionary = SCRIPTS[tutorial_id]
+	var config: Dictionary = tutorial_data["config"]
 
 	# 1. Set the Active Script & Clear Conflicting Mode State
 	active_tutorial_id = tutorial_id
@@ -162,21 +162,21 @@ func setup_and_start_tutorial(tutorial_id: String):
 	RunManager.next_fight_statuses.clear()
 
 	# 2. Create Fighters with Configured Stats
-	var p1 = CharacterData.new()
-	p1.character_name = config.get("p1_name", "Student")
-	p1.max_hp = config.get("p1_hp", 10)
-	p1.max_sp = config.get("p1_sp", 5)
-	p1.class_type = config.get("p1_class", 0) as CharacterData.ClassType
-	var p1_deck_type = config.get("p1_deck", "basic")
+	var p1: CharacterData = CharacterData.new()
+	p1.character_name = str(config.get("p1_name", "Student"))
+	p1.max_hp = int(config.get("p1_hp", 10))
+	p1.max_sp = int(config.get("p1_sp", 5))
+	p1.class_type = int(config.get("p1_class", 0)) as CharacterData.ClassType
+	var p1_deck_type: String = str(config.get("p1_deck", "basic"))
 	p1.deck = _generate_deck(p1_deck_type)
 	p1.reset_stats(false)
 
-	var p2 = CharacterData.new()
-	p2.character_name = config.get("p2_name", "Sensei")
-	p2.max_hp = config.get("p2_hp", 10)
-	p2.max_sp = config.get("p2_sp", 5)
-	p2.class_type = config.get("p2_class", 0) as CharacterData.ClassType
-	var p2_deck_type = config.get("p2_deck", "basic")
+	var p2: CharacterData = CharacterData.new()
+	p2.character_name = str(config.get("p2_name", "Sensei"))
+	p2.max_hp = int(config.get("p2_hp", 10))
+	p2.max_sp = int(config.get("p2_sp", 5))
+	p2.class_type = int(config.get("p2_class", 0)) as CharacterData.ClassType
+	var p2_deck_type: String = str(config.get("p2_deck", "basic"))
 	p2.deck = _generate_deck(p2_deck_type)
 	p2.reset_stats(false)
 
@@ -184,7 +184,7 @@ func setup_and_start_tutorial(tutorial_id: String):
 	GameManager.next_match_p2_data = p2
 
 	# 3. Apply Environment Rules
-	var env = config.get("environment", "Dojo")
+	var env: String = str(config.get("environment", "Dojo"))
 	GameManager.apply_environment_rules(env)
 	
 	if AudioManager.has_method("play_location_music"):

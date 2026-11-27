@@ -356,6 +356,10 @@ func _on_toggle_collapse() -> void:
 		_hint_box.visible = false
 
 
+func toggle_hint() -> void:
+	_on_toggle_hint()
+
+
 func _on_toggle_hint() -> void:
 	_hint_visible = not _hint_visible
 	_hint_box.visible = _hint_visible

@@ -1,54 +1,82 @@
 extends SoundButton
 
-signal card_hovered(action)
+signal card_hovered(action: ActionData)
 signal card_exited()
-signal card_selected(action)
+signal card_selected(action: ActionData)
 
 # --- NODES ---
-@onready var title_label = $InnerMargin/VBox/TitleLabel
-@onready var cost_label = $InnerMargin/VBox/CostPanel/CostLabel
-@onready var type_icon = $InnerMargin/VBox/IconContainer/TypeIcon
-@onready var card_border = $CardBorder
-@onready var card_background = $CardBackground
+@onready var title_label: Label = $InnerMargin/VBox/TitleLabel
+@onready var cost_label: Label = $InnerMargin/VBox/CostPanel/CostLabel
+@onready var type_icon: Label = $InnerMargin/VBox/IconContainer/TypeIcon
+@onready var card_border: Panel = $CardBorder
+@onready var card_background: Control = $CardBackground
 
 var my_action: ActionData
-var current_ghost: Control = null # The floating copy
+var current_ghost: Control = null
+var _hotkey_label: Label = null
 
 # --- STYLING CONSTANTS ---
-const COL_OFFENCE = Color("#ff6666")
-const COL_DEFENCE = Color("#66a3ff")
+const COL_OFFENCE: Color = Color("#ff6666")
+const COL_DEFENCE: Color = Color("#66a3ff")
 
-func _ready():
+
+func _ready() -> void:
 	super._ready()
-	pivot_offset = size / 2
+	pivot_offset = size / 2.0
 
-func setup(action: ActionData):
+
+func setup(action: ActionData) -> void:
 	my_action = action
 	title_label.text = action.display_name
 	update_cost_display(action.cost)
-	
-	# Apply Styling (Same as before)
-	var style = card_border.get_theme_stylebox("panel").duplicate()
+
+	var style: StyleBoxFlat = card_border.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
 	if action.type == ActionData.Type.OFFENCE:
 		style.border_color = COL_OFFENCE
 		type_icon.text = "⚔️"
-		if action.damage > 3: type_icon.text = "💥"
+		if action.damage > 3:
+			type_icon.text = "💥"
 	elif action.type == ActionData.Type.DEFENCE:
 		style.border_color = COL_DEFENCE
 		type_icon.text = "🛡️"
-		if action.dodge_value > 0: type_icon.text = "💨"
-		
-	if action.heal_value > 0: type_icon.text = "❤️"
-	if action.statuses_to_apply.size() > 0: type_icon.text = "☠️"
-	
+		if action.dodge_value > 0:
+			type_icon.text = "💨"
+
+	if action.heal_value > 0:
+		type_icon.text = "❤️"
+	if action.statuses_to_apply.size() > 0:
+		type_icon.text = "☠️"
+
 	card_border.add_theme_stylebox_override("panel", style)
-	
-	var cost_style = StyleBoxFlat.new()
+
+	var cost_style: StyleBoxFlat = StyleBoxFlat.new()
 	cost_style.bg_color = Color(0, 0, 0, 0.5)
 	cost_style.set_corner_radius_all(4)
 	$InnerMargin/VBox/CostPanel.add_theme_stylebox_override("panel", cost_style)
 
-func set_available(is_affordable: bool):
+
+func set_hotkey_hint(key_num: int) -> void:
+	if key_num < 1 or key_num > 9:
+		if _hotkey_label != null:
+			_hotkey_label.visible = false
+		return
+
+	if _hotkey_label == null:
+		_hotkey_label = Label.new()
+		_hotkey_label.name = "HotkeyHint"
+		_hotkey_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_hotkey_label.position = Vector2(6.0, 4.0)
+		_hotkey_label.add_theme_font_size_override("font_size", 11)
+		_hotkey_label.add_theme_color_override("font_color", Color(0.85, 0.9, 1.0, 0.78))
+		_hotkey_label.add_theme_color_override("font_outline_color", Color.BLACK)
+		_hotkey_label.add_theme_constant_override("outline_size", 3)
+		add_child(_hotkey_label)
+
+	_hotkey_label.text = "[" + str(key_num) + "]"
+	_hotkey_label.visible = true
+
+
+func set_available(is_affordable: bool) -> void:
 	disabled = not is_affordable
 	if is_affordable:
 		modulate = Color(1, 1, 1, 1)
@@ -59,87 +87,84 @@ func set_available(is_affordable: bool):
 		mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
 		card_background.self_modulate = Color(0.3, 0.3, 0.3)
 
-func update_cost_display(new_cost: int):
-	if not cost_label: return
+
+func update_cost_display(new_cost: int) -> void:
+	if not cost_label:
+		return
 	cost_label.text = str(new_cost) + " SP"
-	if new_cost == 0 or new_cost < my_action.cost:
+	if new_cost == 0 or (my_action != null and new_cost < my_action.cost):
 		cost_label.modulate = Color(0.5, 1.0, 0.5)
 	else:
 		cost_label.modulate = Color.WHITE
 
+
 # --- GHOST LOGIC ---
 
-func _on_mouse_entered():
-	if disabled: return
-	emit_signal("card_hovered", my_action)
+func _on_mouse_entered() -> void:
+	if disabled:
+		return
+	card_hovered.emit(my_action)
 	_create_ghost()
 
-func _on_mouse_exited():
-	emit_signal("card_exited")
-	
+
+func _on_mouse_exited() -> void:
+	card_exited.emit()
+
 	if current_ghost:
 		current_ghost.queue_free()
 		current_ghost = null
-	
+
 	self.modulate.a = 1.0
 
-func _pressed():
+
+func _pressed() -> void:
 	if not disabled:
-		# --- ADD THIS LINE ---
 		AudioManager.play_sfx("ui_click")
-		# ---------------------
 		if current_ghost:
-			var tween = create_tween()
+			var tween: Tween = create_tween()
 			tween.tween_property(current_ghost, "scale", Vector2(0.95, 0.95), 0.05)
 			tween.tween_property(current_ghost, "scale", Vector2(1.1, 1.1), 0.05)
-		
-		emit_signal("card_selected", my_action)
 
-func _create_ghost():
-	var ui_layer = _get_ui_layer()
-	if not ui_layer: return
-	
-	# 1. Duplicate
-	current_ghost = self.duplicate(0)
-	
-	# 2. CRITICAL FIX: Recursively force IGNORE on the ghost AND all its children
+		card_selected.emit(my_action)
+
+
+func _create_ghost() -> void:
+	var ui_layer: Node = _get_ui_layer()
+	if not ui_layer:
+		return
+
+	current_ghost = self.duplicate(0) as Control
 	_make_ghost_ignore_mouse(current_ghost)
-	
-	# 3. Add to UI Layer
 	ui_layer.add_child(current_ghost)
-	
-	# 4. Position & Setup
+
 	current_ghost.global_position = self.global_position
 	current_ghost.size = self.size
 	current_ghost.pivot_offset = self.pivot_offset
-	current_ghost.z_index = 100 
-	
-	# 5. Hide Real Button
+	current_ghost.z_index = 100
+
 	self.modulate.a = 0.0
-	
-	# 6. Animate
-	var tween = create_tween()
+
+	var tween: Tween = create_tween()
 	tween.set_parallel(true)
 	tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(current_ghost, "scale", Vector2(1.15, 1.15), 0.15)
 	tween.tween_property(current_ghost, "rotation_degrees", randf_range(-3.0, 3.0), 0.15)
-	
-	var ghost_border = current_ghost.get_node_or_null("CardBorder")
+
+	var ghost_border: CanvasItem = current_ghost.get_node_or_null("CardBorder") as CanvasItem
 	if ghost_border:
 		ghost_border.modulate = Color(1.3, 1.3, 1.3)
 
-# --- NEW HELPER FUNCTION ---
-func _make_ghost_ignore_mouse(node: Node):
-	# If this node is a UI Control, tell it to ignore the mouse
+
+func _make_ghost_ignore_mouse(node: Node) -> void:
 	if node is Control:
-		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	
-	# Repeat for every single child, grandchild, etc.
-	for child in node.get_children():
+		(node as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	for child: Node in node.get_children():
 		_make_ghost_ignore_mouse(child)
 
+
 func _get_ui_layer() -> Node:
-	var parent = get_parent()
+	var parent: Node = get_parent()
 	while parent:
 		if parent is CanvasLayer:
 			return parent

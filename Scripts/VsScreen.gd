@@ -1,40 +1,37 @@
 extends Control
 
-@onready var background = $Background
-@onready var content = $Content
+@onready var background: TextureRect = $Background
+@onready var content: Control = $Content
 
-# --- NEW CINEMATIC NODES ---
-@onready var flash_overlay = $FlashOverlay
-@onready var top_bar = $TopLetterbox
-@onready var bottom_bar = $BottomLetterbox
+@onready var flash_overlay: ColorRect = $FlashOverlay
+@onready var top_bar: Control = $TopLetterbox
+@onready var bottom_bar: Control = $BottomLetterbox
 
-# --- PLAYER 1 NODES ---
-@onready var p1_container = $Content/P1_Container
-@onready var p1_portrait = $Content/P1_Container/Portrait
-@onready var p1_name = $Content/P1_Container/InfoBox/VBoxContainer/NameLabel
-@onready var p1_class = $Content/P1_Container/InfoBox/VBoxContainer/ClassLabel
-@onready var p1_hp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
-@onready var p1_sp = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
-@onready var p1_bubble = $Content/P1_Container/PanelContainer/SpeechBubble
+@onready var p1_container: Control = $Content/P1_Container
+@onready var p1_portrait: TextureRect = $Content/P1_Container/Portrait
+@onready var p1_name: Label = $Content/P1_Container/InfoBox/VBoxContainer/NameLabel
+@onready var p1_class: Label = $Content/P1_Container/InfoBox/VBoxContainer/ClassLabel
+@onready var p1_hp: Label = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
+@onready var p1_sp: Label = $Content/P1_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
+@onready var p1_bubble: Label = $Content/P1_Container/PanelContainer/SpeechBubble
 
-# --- PLAYER 2 NODES ---
-@onready var p2_container = $Content/P2_Container
-@onready var p2_portrait = $Content/P2_Container/Portrait
-@onready var p2_name = $Content/P2_Container/InfoBox/VBoxContainer/NameLabel
-@onready var p2_class = $Content/P2_Container/InfoBox/VBoxContainer/ClassLabel
-@onready var p2_hp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
-@onready var p2_sp = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
-@onready var p2_bubble = $Content/P2_Container/PanelContainer/SpeechBubble
+@onready var p2_container: Control = $Content/P2_Container
+@onready var p2_portrait: TextureRect = $Content/P2_Container/Portrait
+@onready var p2_name: Label = $Content/P2_Container/InfoBox/VBoxContainer/NameLabel
+@onready var p2_class: Label = $Content/P2_Container/InfoBox/VBoxContainer/ClassLabel
+@onready var p2_hp: Label = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/HPLabel
+@onready var p2_sp: Label = $Content/P2_Container/InfoBox/VBoxContainer/StatsRow/SPLabel
+@onready var p2_bubble: Label = $Content/P2_Container/PanelContainer/SpeechBubble
 
-@onready var vs_label = $Content/VsLabel
-@onready var arena_label = $ArenaLabel
+@onready var vs_label: Control = $Content/VsLabel
+@onready var arena_label: Label = $ArenaLabel
 
-# --- PARALLAX SETTINGS ---
-var max_parallax: float = 20.0 # A good middle ground between menu and combat
+var max_parallax: float = 20.0
 var parallax_smoothness: float = 4.0
 var base_bg_pos: Vector2 = Vector2.ZERO
 
-func _ready():
+
+func _ready() -> void:
 	# 1. Hide things before setup
 	p1_bubble.visible_ratio = 0.0 # Typewriter reset
 	p2_bubble.visible_ratio = 0.0
@@ -67,8 +64,8 @@ func _ready():
 	await get_tree().create_timer(7.0).timeout
 	SceneLoader.change_scene("res://Scenes/CombatArena.tscn")
 
-func _setup_visuals():
-	var env_name = GameManager.current_environment_name
+func _setup_visuals() -> void:
+	var env_name: String = GameManager.current_environment_name
 	if GameManager.environment_backgrounds.has(env_name):
 		background.texture = GameManager.environment_backgrounds[env_name]
 	arena_label.text = "- " + env_name.to_upper() + " -"
@@ -146,8 +143,8 @@ func _set_p2_traits_banner(base_class_name: String, trait_lines: Array[String], 
 	traits_label.text = prefix + " | ".join(trait_lines)
 	traits_label.modulate = Color(1.0, 0.85, 0.45) if is_boss else Color(0.75, 0.9, 1.0)
 
-func _play_intro_animation():
-	var screen_w = get_viewport_rect().size.x
+func _play_intro_animation() -> void:
+	var screen_w: float = get_viewport_rect().size.x
 	
 	# Reset states
 	vs_label.scale = Vector2.ZERO
@@ -222,18 +219,19 @@ func _play_intro_animation():
 	tween.tween_property(p2_bubble, "visible_ratio", 1.0, 0.8).set_trans(Tween.TRANS_LINEAR)
 
 # Camera Shake effect for the Content layer
-func _shake_content(intensity: float, duration: float):
-	var original_pos = content.position
-	var shake_tween = create_tween()
+func _shake_content(intensity: float, duration: float) -> void:
+	var original_pos: Vector2 = content.position
+	var shake_tween: Tween = create_tween()
 	
-	shake_tween.tween_method(func(val):
-		var offset = Vector2(randf_range(-val, val), randf_range(-val, val))
+	shake_tween.tween_method(func(val: float) -> void:
+		var offset: Vector2 = Vector2(randf_range(-val, val), randf_range(-val, val))
 		content.position = original_pos + offset
 	, intensity, 0.0, duration)
 	
-	shake_tween.tween_callback(func(): content.position = original_pos)
+	shake_tween.tween_callback(func() -> void: content.position = original_pos)
 
-func _process(delta):
+
+func _process(delta: float) -> void:
 	# --- APPLY PARALLAX TO BACKGROUND ---
 	if background:
 		var screen_size = get_viewport_rect().size

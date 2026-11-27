@@ -1,21 +1,21 @@
 extends Control
 
 # --- UI REFERENCES ---
-@onready var class_list_root = $MarginContainer/VBoxContainer/HBoxContainer/ClassScroll/ClassList # Changed to VBoxContainer!
-@onready var info_label = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/InfoLabel
-@onready var portrait_rect = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
-@onready var tutorial_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/TutorialButton
-@onready var sponsor_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorOption
-@onready var sponsor_info_panel = %SponsorInfoPanel
-@onready var sponsor_icon = %SponsorInfoPanel/HBox/SponsorIcon
-@onready var sponsor_name = %SponsorInfoPanel/HBox/VBox/SponsorName
-@onready var sponsor_desc = %SponsorInfoPanel/HBox/VBox/SponsorDesc
+@onready var class_list_root: VBoxContainer = $MarginContainer/VBoxContainer/HBoxContainer/ClassScroll/ClassList
+@onready var info_label: RichTextLabel = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/InfoLabel
+@onready var portrait_rect: TextureRect = $MarginContainer/VBoxContainer/HBoxContainer/P1_Column/P1_Portrait
+@onready var tutorial_btn: Button = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/TutorialButton
+@onready var sponsor_option: OptionButton = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/SponsorOption
+@onready var sponsor_info_panel: PanelContainer = %SponsorInfoPanel
+@onready var sponsor_icon: TextureRect = %SponsorInfoPanel/HBox/SponsorIcon
+@onready var sponsor_name: Label = %SponsorInfoPanel/HBox/VBox/SponsorName
+@onready var sponsor_desc: Label = %SponsorInfoPanel/HBox/VBox/SponsorDesc
 var available_sponsors: Array[SponsorData] = []
 # Settings
-@onready var difficulty_option = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
-@onready var start_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/StartButton
-@onready var delete_btn = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DeleteButton
-@onready var name_input = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/NameInput
+@onready var difficulty_option: OptionButton = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DifficultyOption
+@onready var start_btn: Button = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/StartButton
+@onready var delete_btn: Button = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/DeleteButton
+@onready var name_input: LineEdit = $MarginContainer/VBoxContainer/HBoxContainer/Settings_Column/NameInput
 
 # --- DATA ---
 @export var base_classes: Array[ClassDefinition]
@@ -24,9 +24,9 @@ var available_sponsors: Array[SponsorData] = []
 var selected_index: int = 0
 var buttons: Array[Button] = []
 var selected_save_file: String = "" 
-var preview_tween: Tween # NEW: Keeps track of our animation
+var preview_tween: Tween
 
-func _ready():
+func _ready() -> void:
 	_setup_difficulty()
 	_load_sponsors()
 	_generate_lists() 
@@ -43,55 +43,49 @@ func _ready():
 	_select_class(0)
 
 # --- NEW: DYNAMIC SECTION GENERATION ---
-func _generate_lists():
+func _generate_lists() -> void:
 	# Clear the root
 	for child in class_list_root.get_children(): child.queue_free()
 	buttons.clear()
 	
 	# 1. CREATE NEW GAME GRID
-	var class_grid = GridContainer.new()
+	var class_grid: GridContainer = GridContainer.new()
 	class_grid.columns = 2
 	class_grid.add_theme_constant_override("h_separation", 10)
 	class_grid.add_theme_constant_override("v_separation", 10)
 	class_list_root.add_child(class_grid)
 	
 	for i in range(base_classes.size()):
-		var def = base_classes[i]
-		# --- NEW: UNLOCK CHECK ---
-		# Is it the Heavy (Free), OR is it in our global save file?
-		var is_unlocked = (def.class_named == "Heavy") or (def.class_named in RunManager.meta_data.unlocked_classes)
+		var def: ClassDefinition = base_classes[i]
+		var is_unlocked: bool = (def.class_named == "Heavy") or (def.class_named in RunManager.meta_data.unlocked_classes)
 		
 		if is_unlocked:
 			_create_button(class_grid, i, def.class_named, def.portrait, false)
 
 	# 2. CREATE SAVE FILES SECTION
-	var saves = RunManager.get_save_files()
+	var saves: Array[String] = RunManager.get_save_files()
 	if saves.size() > 0:
-		# Add a stylised Header
-		var header = Label.new()
+		var header: Label = Label.new()
 		header.text = "- SAVED RUNS -"
 		header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		header.add_theme_color_override("font_color", Color.YELLOW)
 		class_list_root.add_child(header)
 		
-		# Add a VBox for Save Files (Wide horizontal bars)
-		var save_vbox = VBoxContainer.new()
+		var save_vbox: VBoxContainer = VBoxContainer.new()
 		save_vbox.add_theme_constant_override("separation", 10)
 		class_list_root.add_child(save_vbox)
 		
 		for i in range(saves.size()):
-			var filename = saves[i]
-			var save_index = 100 + i 
+			var filename: String = saves[i]
+			var save_index: int = 100 + i 
 			_create_button(save_vbox, save_index, filename.replace(".tres", ""), null, true)
 
-func _create_button(parent_container: Control, index: int, text: String, icon: Texture2D, is_save: bool):
-	var btn = Button.new()
+func _create_button(parent_container: Control, index: int, text: String, icon: Texture2D, is_save: bool) -> void:
+	var btn: Button = Button.new()
 	btn.text = text
 	
-	# --- NEW: Store the true ID and type securely on the button ---
 	btn.set_meta("id", index)
 	btn.set_meta("is_save", is_save)
-	# --------------------------------------------------------------
 	
 	if is_save:
 		btn.custom_minimum_size = Vector2(290, 60) # Wide Bar for saves
@@ -106,38 +100,33 @@ func _create_button(parent_container: Control, index: int, text: String, icon: T
 	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	btn.clip_text = true
 	
-	# --- NEW: HOVER CONNECTION ---
-	btn.mouse_entered.connect(func(): _on_class_hover(index, is_save, text))
+	btn.mouse_entered.connect(func() -> void: _on_class_hover(index, is_save, text))
 	btn.mouse_exited.connect(_on_class_unhover)
-	btn.pressed.connect(func(): _on_item_selected(index, text, is_save))
+	btn.pressed.connect(func() -> void: _on_item_selected(index, text, is_save))
 	
 	parent_container.add_child(btn)
 	buttons.append(btn)
 
 # --- INTERACTION ---
-func _on_class_hover(index: int, is_save: bool, text: String = ""):
+func _on_class_hover(index: int, is_save: bool, text: String = "") -> void:
 	AudioManager.play_sfx("ui_hover", 0.1)
 	
 	if is_save:
-		# If hovering a save, preview the save file!
 		_show_save_preview(text + ".tres")
 	else:
-		# If hovering a base class, preview the base class!
 		_update_preview_panel(index)
 
-func _on_class_unhover():
-	# Revert the preview panel to whatever is actually locked in
+func _on_class_unhover() -> void:
 	if selected_save_file != "":
 		_show_save_preview(selected_save_file)
 	else:
 		_update_preview_panel(selected_index)
 
 # --- THE "SLAM" AND "TYPEWRITER" ANIMATION ---
-func _update_preview_panel(index: int):
+func _update_preview_panel(index: int) -> void:
 	if index >= base_classes.size(): return
-	var data = base_classes[index]
+	var data: ClassDefinition = base_classes[index]
 	
-	# 1. Kill any currently running animation (so it doesn't glitch if moving mouse fast)
 	if preview_tween and preview_tween.is_valid():
 		preview_tween.kill()
 		
@@ -146,12 +135,10 @@ func _update_preview_panel(index: int):
 	# 2. ANIMATE PORTRAIT (The Slam)
 	if portrait_rect:
 		portrait_rect.texture = data.portrait
-		# Start high, invisible, and slightly scaled up
 		portrait_rect.position.y = -50 
 		portrait_rect.modulate.a = 0.0
 		portrait_rect.scale = Vector2(1.1, 1.1)
 		
-		# Tween it back to normal with a "Bounce/Back" ease
 		preview_tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		preview_tween.tween_property(portrait_rect, "position:y", 0.0, 0.3)
 		preview_tween.tween_property(portrait_rect, "modulate:a", 1.0, 0.2)
@@ -159,37 +146,33 @@ func _update_preview_panel(index: int):
 	
 	# 3. TYPEWRITER EFFECT FOR INFO
 	info_label.text = data.arcade_description.c_unescape() if data.arcade_description != "" else "Info missing."
-	info_label.visible_ratio = 0.0 # Hide text completely
+	info_label.visible_ratio = 0.0
 	
-	# Calculate typing time (longer text takes slightly longer, max 0.5s)
-	var type_time = min(info_label.text.length() * 0.005, 0.5) 
+	var type_time: float = minf(info_label.text.length() * 0.005, 0.5) 
 	preview_tween.tween_property(info_label, "visible_ratio", 1.0, type_time).set_trans(Tween.TRANS_LINEAR)
 
 # --- START RUN ---
-func _on_start_pressed():
+func _on_start_pressed() -> void:
 	AudioManager.play_sfx("ui_confirm")
 	
 	if selected_save_file != "":
 		RunManager.load_run(selected_save_file)
 	else:
 		if selected_index < base_classes.size():
-			var run_name = name_input.text
+			var run_name: String = name_input.text
 			if run_name.strip_edges() == "": run_name = "Unnamed"
 			
-			# GRAB THE SELECTED SPONSOR
-			var chosen_sponsor = available_sponsors[sponsor_option.selected]
-			
-			# PASS IT TO RUN MANAGER
+			var chosen_sponsor: SponsorData = available_sponsors[sponsor_option.selected]
 			RunManager.start_new_run(base_classes[selected_index], run_name, chosen_sponsor)
 
 # --- SETTINGS HELPERS ---
 
-func _on_difficulty_changed(index: int):
+func _on_difficulty_changed(index: int) -> void:
 	GameManager.ai_difficulty = index as GameManager.Difficulty
 
 # --- UPDATED INTERACTION LOGIC ---
 
-func _select_class(index: int):
+func _select_class(index: int) -> void:
 	AudioManager.play_sfx("ui_click")
 	selected_index = index
 	selected_save_file = "" 
@@ -197,31 +180,25 @@ func _select_class(index: int):
 	name_input.editable = true
 	start_btn.text = "START RUN"
 	
-	# 1. Re-enable the UI
 	difficulty_option.disabled = false 
-
-	# 2. INSERT THE FIX HERE:
 	GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty
 	
-	# --- 3. Handle button highlights (FIXED) ---
-	for btn in buttons:
-		if btn.get_meta("id") == index and btn.get_meta("is_save") == false:
+	for btn: Button in buttons:
+		if int(btn.get_meta("id")) == index and bool(btn.get_meta("is_save")) == false:
 			btn.modulate = Color(1.2, 1.2, 1.2)
 			btn.add_theme_color_override("font_color", Color.GREEN)
 		else:
-			# Reset to white (or blue-ish if it's a save file button)
-			btn.modulate = Color(1, 1, 1) if not btn.get_meta("is_save") else Color(0.6, 0.8, 1.0)
+			btn.modulate = Color(1, 1, 1) if not bool(btn.get_meta("is_save")) else Color(0.6, 0.8, 1.0)
 			btn.remove_theme_color_override("font_color")
-	# -------------------------------------------
 			
 	_update_preview_panel(index)
 
 func _get_difficulty_name(value: int) -> String:
-	var keys = GameManager.Difficulty.keys()
+	var keys: PackedStringArray = GameManager.Difficulty.keys()
 	if value >= 0 and value < keys.size(): return keys[value].capitalize()
 	return "Unknown"
 
-func _on_delete_pressed():
+func _on_delete_pressed() -> void:
 	if selected_save_file == "": return
 	AudioManager.play_sfx("ui_click")
 	RunManager.delete_save_file(selected_save_file)
@@ -230,18 +207,17 @@ func _on_delete_pressed():
 	_generate_lists()
 	_select_class(0)
 
-func _show_save_preview(filename: String):
+func _show_save_preview(filename: String) -> void:
 	var data: RunSaveData = RunManager.peek_save_file(filename)
 	if data == null:
 		info_label.text = "[color=red]Error reading save.[/color]"
 		return
 		
-	# 1. Kill any currently running animation
 	if preview_tween and preview_tween.is_valid():
 		preview_tween.kill()
 		
 	preview_tween = create_tween().set_parallel(true)
-	var p_data = data.player_data
+	var p_data: CharacterData = data.player_data
 	
 	# 2. ANIMATE PORTRAIT (The Slam)
 	if portrait_rect and p_data.portrait:
@@ -258,7 +234,7 @@ func _show_save_preview(filename: String):
 		portrait_rect.texture = null
 	
 	# 3. BUILD TEXT
-	var txt = "[center][b][font_size=24]" + data.run_name + "[/font_size][/b][/center]\n"
+	var txt: String = "[center][b][font_size=24]" + data.run_name + "[/font_size][/b][/center]\n"
 	txt += "[center][color=gray]Level " + str(data.current_level) + " - " + _get_difficulty_name(data.difficulty) + "[/color][/center]\n\n"
 	txt += "[b]Class:[/b] " + ClassFactory.class_enum_to_string(p_data.class_type) + "\n"
 	txt += "[b]HP:[/b] " + str(p_data.current_hp) + "/" + str(p_data.max_hp) + "   "
@@ -268,10 +244,10 @@ func _show_save_preview(filename: String):
 	info_label.text = txt
 	info_label.visible_ratio = 0.0 
 	
-	var type_time = min(info_label.text.length() * 0.005, 0.5) 
+	var type_time: float = minf(info_label.text.length() * 0.005, 0.5) 
 	preview_tween.tween_property(info_label, "visible_ratio", 1.0, type_time).set_trans(Tween.TRANS_LINEAR)
 
-func _setup_difficulty():
+func _setup_difficulty() -> void:
 	difficulty_option.clear()
 	difficulty_option.add_item("Very Easy")
 	difficulty_option.add_item("Easy")
@@ -279,24 +255,21 @@ func _setup_difficulty():
 	difficulty_option.add_item("Hard")
 	
 	difficulty_option.selected = 2 # Medium
-	# FIX: Explicitly tell GameManager the starting difficulty!
 	GameManager.ai_difficulty = 2 as GameManager.Difficulty
 	
 	if not difficulty_option.item_selected.is_connected(_on_difficulty_changed):
 		difficulty_option.item_selected.connect(_on_difficulty_changed)
 
-func _on_item_selected(index: int, text: String, is_save: bool):
+func _on_item_selected(index: int, text: String, is_save: bool) -> void:
 	AudioManager.play_sfx("ui_click")
 	
-	# --- 1. Visual Highlight (FIXED) ---
-	for btn in buttons:
-		if btn.get_meta("id") == index and btn.get_meta("is_save") == is_save:
+	for btn: Button in buttons:
+		if int(btn.get_meta("id")) == index and bool(btn.get_meta("is_save")) == is_save:
 			btn.modulate = Color(1.2, 1.2, 1.2)
 			btn.add_theme_color_override("font_color", Color.GREEN)
 		else:
-			btn.modulate = Color(1, 1, 1) if not btn.get_meta("is_save") else Color(0.6, 0.8, 1.0)
+			btn.modulate = Color(1, 1, 1) if not bool(btn.get_meta("is_save")) else Color(0.6, 0.8, 1.0)
 			btn.remove_theme_color_override("font_color")
-	# -----------------------------------
 
 	if is_save:
 		selected_save_file = text + ".tres"
@@ -305,24 +278,17 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		name_input.text = text
 		
 		sponsor_option.disabled = true
-		
-		# --- FIX: Turn it invisible without removing its layout space ---
-		sponsor_info_panel.modulate = "ffffff00"
-		# ---------------------------------------------------------------
+		sponsor_info_panel.modulate = Color(1.0, 1.0, 1.0, 0.0)
 		
 		var data: RunSaveData = RunManager.peek_save_file(selected_save_file)
 		if data == null: return
-		# Ensure the fighter's internal name matches the Run Name for the VS Screen/UI
 		data.player_data.character_name = data.run_name
 
-		# Lock the settings to match the save file
 		difficulty_option.selected = data.difficulty
 		difficulty_option.disabled = true 
 		
-		# Call our new helper function!
 		_show_save_preview(selected_save_file)
 		delete_btn.show()
-
 	else:
 		selected_save_file = "" 
 		selected_index = index
@@ -330,29 +296,25 @@ func _on_item_selected(index: int, text: String, is_save: bool):
 		name_input.editable = true
 		
 		sponsor_option.disabled = false
-		_on_sponsor_selected(sponsor_option.selected) # Bring the panel back!
+		_on_sponsor_selected(sponsor_option.selected)
 		
-		# FIX: If we clicked a save file previously, reset dropdown to Medium
 		if difficulty_option.disabled == true:
 			difficulty_option.selected = 2
 			
 		difficulty_option.disabled = false 
-		
-		# FIX: Sync GameManager to whatever the dropdown currently says
 		GameManager.ai_difficulty = difficulty_option.selected as GameManager.Difficulty
 		
 		_update_preview_panel(index)
 		delete_btn.hide()
 
-func _on_tutorial_pressed():
+func _on_tutorial_pressed() -> void:
 	AudioManager.play_sfx("ui_confirm")
 	TutorialManager.setup_and_start_tutorial("basic")
 
-func _load_sponsors():
+func _load_sponsors() -> void:
 	sponsor_option.clear()
 	available_sponsors.clear()
 	
-	# Add a "None" option first
 	sponsor_option.add_item("No Sponsor")
 	available_sponsors.append(null)
 	
@@ -375,26 +337,22 @@ func _load_sponsors():
 			file_name = dir.get_next()
 		dir.list_dir_end()
 			
-	# --- NEW: CONNECT SIGNAL AND INITIALIZE ---
 	if not sponsor_option.item_selected.is_connected(_on_sponsor_selected):
 		sponsor_option.item_selected.connect(_on_sponsor_selected)
 		
-	# Force it to update right away so the panel hides if "No Sponsor" is the default
 	_on_sponsor_selected(sponsor_option.selected)
 
 # --- SPONSOR VISUALS ---
-func _on_sponsor_selected(index: int):
-	var sponsor = available_sponsors[index]
+func _on_sponsor_selected(index: int) -> void:
+	var sponsor: SponsorData = available_sponsors[index]
 	
 	if sponsor == null:
-		# "No Sponsor" selected
-		#sponsor_info_panel.hide()
-		sponsor_info_panel.modulate = "ffffff00"
+		sponsor_info_panel.modulate = Color(1.0, 1.0, 1.0, 0.0)
 		sponsor_info_panel.show()
 		sponsor_name.text = "Sponsor"
 		sponsor_desc.text = "Select a Sponsor to enhance your run"
 	else:
-		sponsor_info_panel.modulate = "ffffffff"
+		sponsor_info_panel.modulate = Color.WHITE
 		sponsor_info_panel.show()
 		sponsor_name.text = sponsor.item_name
 		sponsor_desc.text = sponsor.description
@@ -402,5 +360,4 @@ func _on_sponsor_selected(index: int):
 		if sponsor.icon:
 			sponsor_icon.texture = sponsor.icon
 		else:
-			# Fallback icon if you forgot to assign one
 			sponsor_icon.texture = preload("res://Art/Icons/icon_Opportunity.png")

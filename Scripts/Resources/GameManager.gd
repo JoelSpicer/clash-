@@ -17,6 +17,7 @@ signal game_over(winner_id: int)
 signal damage_dealt(target_id: int, amount: int, is_blocked: bool)
 signal healing_received(target_id: int, amount: int)
 signal status_applied(target_id: int, status_name: String)
+signal combat_callout(target_id: int, text: String, color: Color)
 signal request_clash_animation(p1_card: ActionData, p2_card: ActionData)
 signal clash_animation_finished
 signal wall_crush_occurred(player_id: int, damage_amount: int)
@@ -76,7 +77,7 @@ var _is_sync_approved: bool = false
 # INITIALIZATION
 # ==============================================================================
 
-func _ready():
+func _ready() -> void:
 	_load_backgrounds()
 	
 	MOMENTUM_P1_MAX = int(TOTAL_MOMENTUM_SLOTS / 2.0)
@@ -85,20 +86,20 @@ func _ready():
 	print("--- GAME MANAGER READY ---")
 	print("Momentum Config: Total=", TOTAL_MOMENTUM_SLOTS, " | P1_Max=", MOMENTUM_P1_MAX, " | P2_Start=", MOMENTUM_P2_START)
 
-func start_combat(p1: CharacterData, p2: CharacterData):
+func start_combat(p1: CharacterData, p2: CharacterData) -> void:
 	p1_data = p1
 	p2_data = p2
 	reset_combat()
 
-func reset_combat():
+func reset_combat() -> void:
 	# --- 1. RESET STATS ---
-	var p1_maintain = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
+	var p1_maintain: bool = RunManager.is_arcade_mode and RunManager.maintain_hp_enabled
 	p1_data.reset_stats(p1_maintain) 
 	p2_data.reset_stats(false)
 	
 	# --- 2. INJECT EVENT STATUSES ---
 	if RunManager.is_arcade_mode:
-		for s in RunManager.next_fight_statuses:
+		for s: String in RunManager.next_fight_statuses:
 			p1_data.statuses[s] = 1
 		RunManager.next_fight_statuses.clear()
 	
@@ -116,14 +117,14 @@ func reset_combat():
 	var all_p1_modifiers: Array[BaseModifierData] = []
 	all_p1_modifiers.append_array(p1_data.equipment)
 	if RunManager.player_run_data and RunManager.player_run_data != p1_data:
-		for eq in RunManager.player_run_data.equipment:
+		for eq: EquipmentData in RunManager.player_run_data.equipment:
 			if eq not in all_p1_modifiers:
 				all_p1_modifiers.append(eq)
 	if RunManager.active_sponsor:
 		all_p1_modifiers.append(RunManager.active_sponsor)
 		
-	for mod in all_p1_modifiers:
-		p1_data.current_sp = max(0, p1_data.current_sp + mod.starting_sp_bonus)
+	for mod: BaseModifierData in all_p1_modifiers:
+		p1_data.current_sp = maxi(0, p1_data.current_sp + mod.starting_sp_bonus)
 		if mod.starting_barrier > 0:
 			p1_data.current_hp += mod.starting_barrier
 			print("Modifier Barrier Applied: +%d HP" % mod.starting_barrier)
@@ -136,8 +137,8 @@ func reset_combat():
 		total_p1_momentum_bonus -= RunManager.active_sponsor.rival_momentum_handicap
 		print("Rival Handicap Applied! Momentum shifted by " + str(RunManager.active_sponsor.rival_momentum_handicap))
 
-	for item in p2_data.equipment:
-		p2_data.current_sp = max(0, p2_data.current_sp + item.starting_sp_bonus)
+	for item: EquipmentData in p2_data.equipment:
+		p2_data.current_sp = maxi(0, p2_data.current_sp + item.starting_sp_bonus)
 		if item.starting_barrier > 0:
 			p2_data.current_hp += item.starting_barrier
 		total_p2_momentum_bonus += item.momentum_start_bonus
@@ -167,14 +168,14 @@ func reset_combat():
 			state.p1_gym_block_bonus = 1
 			print(">> Iron Stance: +1 Global Block")
 		elif RunManager.active_gym_buff == "exploit_weakness":
-			var damage = max(1, roundi(p2_data.max_hp * 0.2))
+			var damage: int = maxi(1, roundi(p2_data.max_hp * 0.2))
 			p2_data.current_hp -= damage
 			print(">> Exploit Weakness: Enemy took " + str(damage) + " dmg")
 		RunManager.active_gym_buff = ""
 	
 	# --- 7. CALCULATE PRIORITY (SPEED TIES) ---
-	var p1_final_speed = p1_data.speed + p1_speed_bonus
-	var p2_final_speed = p2_data.speed + p2_speed_bonus
+	var p1_final_speed: int = p1_data.speed + p1_speed_bonus
+	var p2_final_speed: int = p2_data.speed + p2_speed_bonus
 	
 	if p1_final_speed > p2_final_speed: 
 		state.priority_player = 1
@@ -197,10 +198,10 @@ func get_attacker() -> int:
 # STATE MACHINE
 # ==============================================================================
 
-func change_state(new_state: State):
-	var my_role = "Referee (Server)"
+func change_state(new_state: State) -> void:
+	var my_role: String = "Referee (Server)"
 	if multiplayer.has_multiplayer_peer():
-		var my_id = multiplayer.get_unique_id()
+		var my_id: int = multiplayer.get_unique_id()
 		if my_id == p1_network_id: my_role = "Player 1"
 		elif my_id == p2_network_id: my_role = "Player 2"
 		
@@ -212,8 +213,6 @@ func change_state(new_state: State):
 	match current_state:
 		State.SELECTION:
 			pass
-			#if state.p1_locked_card: player_select_action(1, state.p1_locked_card)
-			#if state.p2_locked_card: player_select_action(2, state.p2_locked_card)
 		State.REVEAL:
 			_enter_reveal_phase()
 		State.FEINT_CHECK:
@@ -221,12 +220,12 @@ func change_state(new_state: State):
 		State.RESOLUTION:
 			resolve_clash()
 
-func player_select_action(player_id: int, action: ActionData, extra_data: Dictionary = {}):
-	var final_action = action
-	var tech_idx = extra_data.get("technique", 0)
+func player_select_action(player_id: int, action: ActionData, extra_data: Dictionary = {}) -> void:
+	var final_action: ActionData = action
+	var tech_idx: int = int(extra_data.get("technique", 0))
 	
 	if action != null and tech_idx > 0:
-		final_action = action.duplicate() 
+		final_action = action.duplicate() as ActionData
 		final_action.cost += 1 
 		
 		match tech_idx:
@@ -249,12 +248,12 @@ func player_select_action(player_id: int, action: ActionData, extra_data: Dictio
 
 	if player_id == 1:
 		state.p1_action_queue = final_action
-		state.p1_rage_active = extra_data.get("rage", false)
-		state.p1_keep_up_active = extra_data.get("keep_up", false)
+		state.p1_rage_active = bool(extra_data.get("rage", false))
+		state.p1_keep_up_active = bool(extra_data.get("keep_up", false))
 	else:
 		state.p2_action_queue = final_action
-		state.p2_rage_active = extra_data.get("rage", false)
-		state.p2_keep_up_active = extra_data.get("keep_up", false)
+		state.p2_rage_active = bool(extra_data.get("rage", false))
+		state.p2_keep_up_active = bool(extra_data.get("keep_up", false))
 		
 	if current_state == State.SELECTION:
 		if state.p1_action_queue and state.p2_action_queue:
@@ -272,19 +271,16 @@ func _enter_reveal_phase() -> void:
 
 	# --- 1. HEADLESS SERVER FIX & SAFETY TIMER ---
 	if multiplayer.is_server() and DisplayServer.get_name() == "headless":
-		# Start a 10 second timeout timer in case a client disconnects during the animation
-		var net_manager = get_node("/root/NetworkManager")
+		var net_manager: Node = get_node("/root/NetworkManager")
 		net_manager._animation_timeout = get_tree().create_timer(10.0)
 		net_manager._animation_timeout.timeout.connect(net_manager._on_handshake_timeout)
 	else:
-		# Clients wait for the visual animation to finish
 		await clash_animation_finished
 
 	# --- 2. NETWORK SYNC CHECK ---
 	if multiplayer.has_multiplayer_peer() and multiplayer.get_peers().size() > 0:
 		if not multiplayer.is_server():
-			# Tell the server we finished watching the animation
-			var net_manager = get_node("/root/NetworkManager")
+			var net_manager: Node = get_node("/root/NetworkManager")
 			net_manager.report_animation_done.rpc_id(1)
 			
 		if not _is_sync_approved:
@@ -298,25 +294,25 @@ func _enter_reveal_phase() -> void:
 	else:
 		change_state(State.RESOLUTION)
 		
-func _handle_feint_selection(player_id: int, secondary_action: ActionData):
+func _handle_feint_selection(player_id: int, secondary_action: ActionData) -> void:
 	if secondary_action == null:
 		emit_signal("combat_log_updated", "P" + str(player_id) + " skips Feint combination.")
 		_clear_feint_flag(player_id)
 		_check_feint_completion()
 		return
 
-	var base_card = state.p1_action_queue if player_id == 1 else state.p2_action_queue
-	var character = p1_data if player_id == 1 else p2_data
+	var base_card: ActionData = state.p1_action_queue if player_id == 1 else state.p2_action_queue
+	var character: CharacterData = p1_data if player_id == 1 else p2_data
 	
-	var total_cost = base_card.cost + secondary_action.cost
-	var opp_val = _get_opportunity_value(player_id)
-	var effective_total = max(0, total_cost - opp_val)
+	var total_cost: int = base_card.cost + secondary_action.cost
+	var opp_val: int = _get_opportunity_value(player_id)
+	var effective_total: int = maxi(0, total_cost - opp_val)
 	
-	var combined_card = _combine_actions(base_card, secondary_action)
+	var combined_card: ActionData = _combine_actions(base_card, secondary_action)
 	# Repeat pays per hit (up to repeat_count), so at least 1 hit must be affordable
-	var total_required = effective_total
+	var total_required: int = effective_total
 	
-	var can_afford = false
+	var can_afford: bool = false
 	if character.current_sp >= total_required:
 		can_afford = true
 	elif character.class_type == CharacterData.ClassType.HEAVY and (character.current_sp + character.current_hp) > total_required:
@@ -324,6 +320,7 @@ func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 		
 	if can_afford:
 		emit_signal("combat_log_updated", "P" + str(player_id) + " Feint Successful! Combined into: " + combined_card.display_name)
+		combat_callout.emit(player_id, "FEINT COMBINED!", Color(0.45, 0.9, 1.0))
 		if player_id == 1: state.p1_action_queue = combined_card
 		else: state.p2_action_queue = combined_card
 	else:
@@ -332,16 +329,16 @@ func _handle_feint_selection(player_id: int, secondary_action: ActionData):
 	_clear_feint_flag(player_id)
 	_check_feint_completion()
 
-func _clear_feint_flag(player_id):
+func _clear_feint_flag(player_id: int) -> void:
 	if player_id == 1: state.p1_pending_feint = false
 	else: state.p2_pending_feint = false
 
-func _check_feint_completion():
+func _check_feint_completion() -> void:
 	if not state.p1_pending_feint and not state.p2_pending_feint:
 		change_state(State.RESOLUTION)
 
 func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
-	var new_card = base.duplicate()
+	var new_card: ActionData = base.duplicate() as ActionData
 	new_card.display_name = base.display_name + " + " + sec.display_name
 	
 	new_card.cost += sec.cost
@@ -357,8 +354,8 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	new_card.multi_limit += sec.multi_limit
 	new_card.opportunity += sec.opportunity
 	
-	new_card.counter_value = max(new_card.counter_value, sec.counter_value) 
-	new_card.repeat_count = max(new_card.repeat_count, sec.repeat_count)
+	new_card.counter_value = maxi(new_card.counter_value, sec.counter_value) 
+	new_card.repeat_count = maxi(new_card.repeat_count, sec.repeat_count)
 	
 	if sec.guard_break: new_card.guard_break = true
 	if sec.retaliate: new_card.retaliate = true
@@ -367,9 +364,9 @@ func _combine_actions(base: ActionData, sec: ActionData) -> ActionData:
 	if sec.is_opener: new_card.is_opener = true
 	
 	new_card.statuses_to_apply.clear()
-	for s in base.statuses_to_apply:
+	for s: Dictionary in base.statuses_to_apply:
 		new_card.statuses_to_apply.append(s.duplicate(true))
-	for s in sec.statuses_to_apply:
+	for s: Dictionary in sec.statuses_to_apply:
 		new_card.statuses_to_apply.append(s.duplicate(true))
 	
 	new_card.feint = false 
@@ -513,6 +510,10 @@ func resolve_clash() -> void:
 	# Glossary rule: Parry succeeds iff it causes the momentum tracker to move in the parrier's direction
 	var p1_parry_success: bool = (p1_parries and delta < 0)
 	var p2_parry_success: bool = (p2_parries and delta > 0)
+	if p1_parry_success:
+		combat_callout.emit(1, "PARRIED!", Color(1.0, 0.88, 0.25))
+	if p2_parry_success:
+		combat_callout.emit(2, "PARRIED!", Color(1.0, 0.88, 0.25))
 
 	var p1_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
 	var p2_results: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
@@ -540,18 +541,22 @@ func resolve_clash() -> void:
 		
 		if p1_reversed:
 			state.attacker_override = 1
+			combat_callout.emit(1, "REVERSAL!", Color(0.35, 1.0, 0.85))
 			combat_log_updated.emit(">> P1 Reverses! Seizing Offence.")
 		elif p2_reversed:
 			state.attacker_override = 2
+			combat_callout.emit(2, "REVERSAL!", Color(0.35, 1.0, 0.85))
 			combat_log_updated.emit(">> P2 Reverses! Seizing Offence.")
 	else:
 		state.momentum = clamp_momentum(state.momentum + delta)
 		
 		if p1_reversed:
 			state.attacker_override = 1
+			combat_callout.emit(1, "REVERSAL!", Color(0.35, 1.0, 0.85))
 			combat_log_updated.emit(">> P1 REVERSAL SUCCESSFUL!")
 		elif p2_reversed:
 			state.attacker_override = 2
+			combat_callout.emit(2, "REVERSAL!", Color(0.35, 1.0, 0.85))
 			combat_log_updated.emit(">> P2 REVERSAL SUCCESSFUL!")
 
 	_handle_status_damage(winner_id, p1_started_injured, p2_started_injured)
@@ -580,23 +585,24 @@ func resolve_clash() -> void:
 # PHASE IMPLEMENTATIONS
 # ==============================================================================
 
-func _apply_wall_crush(player_id: int, amount: int):
-	var character = p1_data if player_id == 1 else p2_data
-	var attacker_data = p2_data if player_id == 1 else p1_data
-	var final_amount = amount
+func _apply_wall_crush(player_id: int, amount: int) -> void:
+	var character: CharacterData = p1_data if player_id == 1 else p2_data
+	var attacker_data: CharacterData = p2_data if player_id == 1 else p1_data
+	var final_amount: int = amount
 	
-	for item in attacker_data.equipment:
+	for item: EquipmentData in attacker_data.equipment:
 		final_amount += item.wall_crush_damage_bonus
 	
 	emit_signal("wall_crush_occurred", player_id, final_amount)
+	combat_callout.emit(player_id, "WALL CRUSH -" + str(final_amount) + "!", Color(1.0, 0.25, 0.25))
 	emit_signal("combat_log_updated", ">> P" + str(player_id) + " CRUSHED against the wall!")
 	
 	if character.current_sp >= final_amount:
 		character.current_sp -= final_amount
 		emit_signal("combat_log_updated", "   Lost " + str(final_amount) + " SP to hold ground.")
 	else:
-		var sp_paid = character.current_sp
-		var hp_damage = final_amount - sp_paid
+		var sp_paid: int = character.current_sp
+		var hp_damage: int = final_amount - sp_paid
 		
 		character.current_sp = 0
 		character.current_hp -= hp_damage
@@ -648,21 +654,22 @@ func _advance_combo_hits(owner_id: int, hits: int) -> void:
 		character.combo_action_count += 1
 		if rate > 0 and (character.combo_action_count % rate == 0):
 			character.current_sp = min(character.current_sp + 1, character.max_sp)
+			combat_callout.emit(owner_id, "RELENTLESS +1 SP!", Color(0.45, 1.0, 0.55))
 			emit_signal("combat_log_updated", ">> Flow! P" + str(owner_id) + " recovers 1 SP.")
 
-func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData, hits: int = -1):
-	var character = p1_data if owner_id == 1 else p2_data
-	var total_hits = hits if hits > 0 else max(1, my_card.repeat_count)
+func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData, hits: int = -1) -> void:
+	var character: CharacterData = p1_data if owner_id == 1 else p2_data
+	var total_hits: int = hits if hits > 0 else maxi(1, my_card.repeat_count)
 	
 	for i in range(total_hits):
-		var actual_recover = my_card.recover_value
+		var actual_recover: int = my_card.recover_value
 		if my_card.type == ActionData.Type.DEFENCE: actual_recover += 1
 		
 		if actual_recover > 0: 
-			character.current_sp = min(character.current_sp + actual_recover, character.max_sp)
+			character.current_sp = mini(character.current_sp + actual_recover, character.max_sp)
 			
 		if my_card.heal_value > 0: 
-			character.current_hp = min(character.current_hp + my_card.heal_value, character.max_hp)
+			character.current_hp = mini(character.current_hp + my_card.heal_value, character.max_hp)
 			emit_signal("healing_received", owner_id, my_card.heal_value)
 
 		if my_card.heal_value > 0 or my_card.fall_back_value > 0:
@@ -671,9 +678,9 @@ func _apply_phase_1_self_effects(owner_id: int, my_card: ActionData, hits: int =
 				emit_signal("combat_log_updated", ">> P" + str(owner_id) + " cures Injury!")
 
 func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: ActionData, enemy_card: ActionData, target_is_immune: bool, hits: int = -1) -> Dictionary:
-	var character = p1_data if owner_id == 1 else p2_data
-	var target = p2_data if owner_id == 1 else p1_data
-	var result = { "fatal": false, "opening": 0, "opportunity": 0 }
+	var character: CharacterData = p1_data if owner_id == 1 else p2_data
+	var target: CharacterData = p2_data if owner_id == 1 else p1_data
+	var result: Dictionary = { "fatal": false, "opening": 0, "opportunity": 0 }
 	
 	if target_is_immune:
 		emit_signal("combat_log_updated", "P" + str(owner_id) + " attack NULLIFIED (Dodge/Parry)!")
@@ -681,17 +688,17 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 		emit_signal("status_applied", target_id, "DODGED")
 		return result
 
-	var dmg_mod = 0
-	var attacker_block_mod = 0 
-	var defender_block_mod = 0
-	var thorns_dmg = 0
+	var dmg_mod: int = 0
+	var attacker_block_mod: int = 0 
+	var defender_block_mod: int = 0
+	var thorns_dmg: int = 0
 	
 	var attacker_mods: Array[BaseModifierData] = []
 	attacker_mods.append_array(character.equipment) 
 	if owner_id == 1 and RunManager.active_sponsor:
 		attacker_mods.append(RunManager.active_sponsor)
 		
-	for mod in attacker_mods:
+	for mod: BaseModifierData in attacker_mods:
 		dmg_mod += mod.damage_modifier
 		attacker_block_mod += mod.block_modifier
 		
@@ -700,7 +707,7 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 	if target_id == 1 and RunManager.active_sponsor:
 		defender_mods.append(RunManager.active_sponsor)
 		
-	for mod in defender_mods:
+	for mod: BaseModifierData in defender_mods:
 		defender_block_mod += mod.block_modifier
 		thorns_dmg += mod.thorns
 		
@@ -709,35 +716,42 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 	elif target_id == 1:
 		defender_block_mod += state.p1_gym_block_bonus
 		
-	var total_hits = hits if hits > 0 else max(1, my_card.repeat_count)
+	var total_hits: int = hits if hits > 0 else maxi(1, my_card.repeat_count)
 	for i in range(total_hits):
 		# Only buff cards that actually deal damage (so +Damage equipment doesn't turn Block/Positioning into attacks)
-		var total_damage = max(0, my_card.damage + dmg_mod) if my_card.damage > 0 else 0
-		var enemy_block = max(0, enemy_card.block_value + defender_block_mod) if enemy_card.block_value > 0 else 0
+		var total_damage: int = maxi(0, my_card.damage + dmg_mod) if my_card.damage > 0 else 0
+		var enemy_block: int = maxi(0, enemy_card.block_value + defender_block_mod) if enemy_card.block_value > 0 else 0
 		
-		if my_card.guard_break: 
+		if my_card.guard_break:
+			if enemy_block > 0 and i == 0:
+				combat_callout.emit(target_id, "GUARD BREAK!", Color(1.0, 0.55, 0.15))
 			enemy_block = 0
 			
-		var net_damage = max(0, total_damage - enemy_block)
+		var net_damage: int = maxi(0, total_damage - enemy_block)
 		
 		if my_card.tiring > 0:
 			if target.tiring_drains_hp and target.current_sp < my_card.tiring:
-				var drain_amount = my_card.tiring
-				var sp_avail = target.current_sp
-				var hp_cost = drain_amount - sp_avail
+				var drain_amount: int = my_card.tiring
+				var sp_avail: int = target.current_sp
+				var hp_cost: int = drain_amount - sp_avail
 				target.current_sp = 0
 				target.current_hp -= hp_cost
+				combat_callout.emit(target_id, "TIRING -" + str(hp_cost) + " HP!", Color(1.0, 0.4, 0.25))
 				emit_signal("combat_log_updated", ">> Rage! P" + str(target_id) + " takes " + str(hp_cost) + " HP dmg instead of SP.")
 				emit_signal("damage_dealt", target_id, hp_cost, false)
 			else:
-				target.current_sp = max(0, target.current_sp - my_card.tiring)
+				var prev_sp: int = target.current_sp
+				target.current_sp = maxi(0, target.current_sp - my_card.tiring)
+				var drained_sp: int = prev_sp - target.current_sp
+				if drained_sp > 0:
+					combat_callout.emit(target_id, "TIRING -" + str(drained_sp) + " SP", Color(1.0, 0.82, 0.35))
 				emit_signal("combat_log_updated", ">> Tiring! P" + str(target_id) + " drained of " + str(my_card.tiring) + " SP.")
 		
-		for effect in my_card.statuses_to_apply:
-			var s_name = effect.get("name", "Unknown")
-			var s_val = effect.get("amount", 1)
-			var is_self = effect.get("self", false)
-			var dest_id = owner_id if is_self else target_id
+		for effect: Dictionary in my_card.statuses_to_apply:
+			var s_name: String = str(effect.get("name", "Unknown"))
+			var s_val: int = int(effect.get("amount", 1))
+			var is_self: bool = bool(effect.get("self", false))
+			var dest_id: int = owner_id if is_self else target_id
 			
 			if not has_status(dest_id, s_name):
 				apply_status(dest_id, s_name, s_val)
@@ -768,12 +782,13 @@ func _apply_phase_2_combat_effects(owner_id: int, target_id: int, my_card: Actio
 			emit_signal("damage_dealt", target_id, 0, true)
 
 		if total_damage > 0 and enemy_card.retaliate:
-			var raw_recoil = total_damage
-			var self_block = my_card.block_value + my_card.dodge_value + attacker_block_mod 
-			var net_recoil = max(0, raw_recoil - self_block)
+			var raw_recoil: int = total_damage
+			var self_block: int = my_card.block_value + my_card.dodge_value + attacker_block_mod 
+			var net_recoil: int = maxi(0, raw_recoil - self_block)
 			
 			if net_recoil > 0:
 				character.current_hp -= net_recoil
+				combat_callout.emit(owner_id, "RETALIATE -" + str(net_recoil) + "!", Color(1.0, 0.35, 0.85))
 				emit_signal("combat_log_updated", ">> RETALIATE! P" + str(target_id) + " reflects " + str(net_recoil) + " dmg!")
 				
 				if character.current_hp <= 0:
@@ -844,6 +859,7 @@ func _pay_cost_for_hits(player_id: int, card: ActionData) -> int:
 
 	if rage_is_on and character.can_pay_with_hp:
 		character.current_hp -= total_cost
+		combat_callout.emit(player_id, "RAGE -" + str(total_cost) + " HP!", Color(1.0, 0.3, 0.3))
 		emit_signal("combat_log_updated", ">> RAGE! P" + str(player_id) + " pays " + str(total_cost) + " HP.")
 		emit_signal("damage_dealt", player_id, total_cost, false)
 		return hits
@@ -864,12 +880,12 @@ func _pay_cost_for_hits(player_id: int, card: ActionData) -> int:
 	emit_signal("combat_log_updated", ">> P" + str(player_id) + " Out of SP! Action Fails!")
 	return 0
 
-func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
-	for id in [1, 2]:
-		var player = p1_data if id == 1 else p2_data
-		var started_injured = p1_started_injured if id == 1 else p2_started_injured
+func _handle_status_damage(winner_id: int, p1_started_injured: bool, p2_started_injured: bool) -> void:
+	for id: int in [1, 2]:
+		var player: CharacterData = p1_data if id == 1 else p2_data
+		var started_injured: bool = p1_started_injured if id == 1 else p2_started_injured
 		
-		for s_name in player.statuses.keys():
+		for s_name: String in player.statuses.keys():
 			match s_name:
 				"Injured":
 					if started_injured:
@@ -877,7 +893,7 @@ func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
 						emit_signal("combat_log_updated", ">> P" + str(id) + " suffers Injury damage!")
 						emit_signal("damage_dealt", id, 1, false)
 				"Poison":
-					var stacks = player.statuses["Poison"]
+					var stacks: int = int(player.statuses["Poison"])
 					player.current_hp -= stacks
 					emit_signal("combat_log_updated", ">> P" + str(id) + " takes Poison dmg!")
 					
@@ -885,29 +901,29 @@ func _handle_status_damage(winner_id, p1_started_injured, p2_started_injured):
 			_handle_death(winner_id)
 			return
 
-func _handle_death(winner_id):
-	var game_winner = 0
+func _handle_death(winner_id: int) -> void:
+	var game_winner: int = 0
 	if p1_data.current_hp > 0: game_winner = 1
 	elif p2_data.current_hp > 0: game_winner = 2
 	else: game_winner = winner_id 
 	
 	if game_winner == 1 and RunManager.player_run_data:
 		var heal_amt: int = 0
-		for eq in RunManager.player_run_data.equipment:
+		for eq: EquipmentData in RunManager.player_run_data.equipment:
 			if eq:
 				heal_amt += eq.heal_on_win
 		if RunManager.active_sponsor:
 			heal_amt += RunManager.active_sponsor.heal_on_win
 		
 		if heal_amt > 0:
-			p1_data.current_hp = min(p1_data.current_hp + heal_amt, p1_data.max_hp)
+			p1_data.current_hp = mini(p1_data.current_hp + heal_amt, p1_data.max_hp)
 			emit_signal("combat_log_updated", ">> Victory Sustain! Recovered " + str(heal_amt) + " HP.")
 			print("Victory Heal: +%d HP" % heal_amt)
 			
 	emit_signal("game_over", game_winner)
 
-func _check_reversal_state():
-	var active_attacker = get_attacker()
+func _check_reversal_state() -> void:
+	var active_attacker: int = get_attacker()
 	
 	if state.attacker_override != 0:
 		state.current_combo_attacker = state.attacker_override 
@@ -916,7 +932,7 @@ func _check_reversal_state():
 		return
 
 	if active_attacker != 0:
-		var att_data = p1_data if active_attacker == 1 else p2_data
+		var att_data: CharacterData = p1_data if active_attacker == 1 else p2_data
 		if att_data.current_sp <= 0:
 			emit_signal("combat_log_updated", ">> Attacker Out of SP. Combo Ends.")
 			state.current_combo_attacker = 0 
@@ -925,29 +941,33 @@ func _check_reversal_state():
 	else:
 		state.current_combo_attacker = 0
 
-func _handle_locks(winner_id):
+func _handle_locks(winner_id: int) -> void:
 	state.p1_locked_card = null; state.p2_locked_card = null
-	var winner_card = state.p1_action_queue if winner_id == 1 else state.p2_action_queue
-	var loser_card_obj = state.p2_action_queue if winner_id == 1 else state.p1_action_queue 
+	var winner_card: ActionData = state.p1_action_queue if winner_id == 1 else state.p2_action_queue
+	var loser_card_obj: ActionData = state.p2_action_queue if winner_id == 1 else state.p1_action_queue 
 	if winner_card.multi_limit > 0:
 		emit_signal("combat_log_updated", "Multi Triggered! Loser Locked.")
 		if winner_id == 1: state.p2_locked_card = loser_card_obj
 		else: state.p1_locked_card = loser_card_obj
 
-func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bool, p2_parry_win: bool):
-	var next_p1_limit = 99; var next_p2_limit = 99
-	var next_p1_opening = 0; var next_p2_opening = 0
+func _update_turn_constraints(p1_res: Dictionary, p2_res: Dictionary, p1_card: ActionData, p2_card: ActionData, p1_parry_win: bool, p2_parry_win: bool) -> void:
+	var next_p1_limit: int = 99
+	var next_p2_limit: int = 99
+	var next_p1_opening: int = 0
+	var next_p2_opening: int = 0
 	state.p1_must_opener = false; state.p2_must_opener = false
 	
-	if p1_res["opening"] > 0:
-		next_p2_limit = min(next_p2_limit, p1_res["opening"]) 
-		next_p1_opening = p1_res["opening"] 
-	if p2_res["opening"] > 0:
-		next_p1_limit = min(next_p1_limit, p2_res["opening"])
-		next_p2_opening = p2_res["opening"]
+	var p1_open: int = int(p1_res.get("opening", 0))
+	var p2_open: int = int(p2_res.get("opening", 0))
+	if p1_open > 0:
+		next_p2_limit = mini(next_p2_limit, p1_open) 
+		next_p1_opening = p1_open 
+	if p2_open > 0:
+		next_p1_limit = mini(next_p1_limit, p2_open)
+		next_p2_opening = p2_open
 	
-	if p1_card.multi_limit > 0: next_p1_limit = min(next_p1_limit, p1_card.multi_limit)
-	if p2_card.multi_limit > 0: next_p2_limit = min(next_p2_limit, p2_card.multi_limit)
+	if p1_card.multi_limit > 0: next_p1_limit = mini(next_p1_limit, p1_card.multi_limit)
+	if p2_card.multi_limit > 0: next_p2_limit = mini(next_p2_limit, p2_card.multi_limit)
 		
 	if p1_parry_win:
 		state.p2_must_opener = true
@@ -961,13 +981,13 @@ func _update_turn_constraints(p1_res, p2_res, p1_card, p2_card, p1_parry_win: bo
 	state.p1_opening_stat = next_p1_opening
 	state.p2_opening_stat = next_p2_opening
 
-	state.p1_opportunity_stat = p1_res["opportunity"]
-	state.p2_opportunity_stat = p2_res["opportunity"]
+	state.p1_opportunity_stat = int(p1_res.get("opportunity", 0))
+	state.p2_opportunity_stat = int(p2_res.get("opportunity", 0))
 	
 	if state.p1_opportunity_stat > 0: emit_signal("combat_log_updated", "P1 gains Opportunity.")
 	if state.p2_opportunity_stat > 0: emit_signal("combat_log_updated", "P2 gains Opportunity.")
 
-func swap_priority():
+func swap_priority() -> void:
 	state.priority_player = 3 - state.priority_player
 
 func get_player(id: int) -> CharacterData:
@@ -987,15 +1007,15 @@ func clamp_momentum(val: int) -> int:
 
 func get_advantage_momentum(player_id: int) -> int:
 	if player_id == 1:
-		return max(1, MOMENTUM_P1_MAX - 1)
+		return maxi(1, MOMENTUM_P1_MAX - 1)
 	else:
-		return min(TOTAL_MOMENTUM_SLOTS, MOMENTUM_P2_START + 1)
+		return mini(TOTAL_MOMENTUM_SLOTS, MOMENTUM_P2_START + 1)
 
 func get_wall_momentum(player_id: int) -> int:
 	if player_id == 1: return 1
 	else: return TOTAL_MOMENTUM_SLOTS
 
-func apply_environment_rules(env_type: String):
+func apply_environment_rules(env_type: String) -> void:
 	current_environment_name = env_type
 	match env_type:
 		"Ring": TOTAL_MOMENTUM_SLOTS = 6
@@ -1008,24 +1028,26 @@ func apply_environment_rules(env_type: String):
 	
 	print(">>> ENVIRONMENT SET: " + env_type + " (Momentum: " + str(TOTAL_MOMENTUM_SLOTS) + ")")
 
-func _handle_patient_passive(player_id: int, card: ActionData):
-	var character = p1_data if player_id == 1 else p2_data
+func _handle_patient_passive(player_id: int, card: ActionData) -> void:
+	var character: CharacterData = p1_data if player_id == 1 else p2_data
 	if not character.has_bide_mechanic: return
-	var consumed_buff = false
+	var consumed_buff: bool = false
 	
 	if character.patient_buff_active:
 		card.damage += 1
 		character.patient_buff_active = false 
 		consumed_buff = true
+		combat_callout.emit(player_id, "BIDE +1 DMG!", Color(1.0, 0.88, 0.3))
 		emit_signal("combat_log_updated", ">> P" + str(player_id) + " BIDE Unleashed! (+1 Dmg)")
 		
-	var total_fb = card.fall_back_value
+	var total_fb: int = card.fall_back_value
 	if total_fb > 0 and not consumed_buff:
 		character.patient_buff_active = true
+		combat_callout.emit(player_id, "BIDE ARMED", Color(0.55, 0.85, 1.0))
 		emit_signal("combat_log_updated", ">> P" + str(player_id) + " Bides their time... (Next Action Buffed)")
 
 func get_struggle_action(force_type: ActionData.Type) -> ActionData:
-	var action = ActionData.new()
+	var action: ActionData = ActionData.new()
 	action.display_name = "Struggle"
 	action.is_struggle = true
 	action.description = "Offence, Defence, Recover 1, Fall Back 2"
@@ -1035,35 +1057,35 @@ func get_struggle_action(force_type: ActionData.Type) -> ActionData:
 	action.fall_back_value = 2
 	return action
 
-func apply_status(target_id: int, status_name: String, value: int = 1):
-	var target = p1_data if target_id == 1 else p2_data
+func apply_status(target_id: int, status_name: String, value: int = 1) -> void:
+	var target: CharacterData = p1_data if target_id == 1 else p2_data
 	target.statuses[status_name] = value
 	emit_signal("status_applied", target_id, status_name)
 	emit_signal("combat_log_updated", ">> P" + str(target_id) + " gained status: " + status_name)
 
 func has_status(target_id: int, status_name: String) -> bool:
-	var target = p1_data if target_id == 1 else p2_data
+	var target: CharacterData = p1_data if target_id == 1 else p2_data
 	return target.statuses.has(status_name)
 
-func remove_status(target_id: int, status_name: String):
-	var target = p1_data if target_id == 1 else p2_data
+func remove_status(target_id: int, status_name: String) -> void:
+	var target: CharacterData = p1_data if target_id == 1 else p2_data
 	if target.statuses.has(status_name):
 		target.statuses.erase(status_name)
 		emit_signal("status_applied", target_id, "CURED")
 
-func _load_backgrounds():
-	var path = "res://Art/Background/"
-	var dir = DirAccess.open(path)
+func _load_backgrounds() -> void:
+	var path: String = "res://Art/Background/"
+	var dir: DirAccess = DirAccess.open(path)
 	
 	if dir:
 		dir.list_dir_begin()
-		var file_name = dir.get_next()
+		var file_name: String = dir.get_next()
 		
 		while file_name != "":
 			if not dir.current_is_dir():
-				var clean_name = file_name.replace(".import", "").replace(".remap", "")
+				var clean_name: String = file_name.replace(".import", "").replace(".remap", "")
 				if clean_name.ends_with(".png") or clean_name.ends_with(".jpg"):
-					var key = clean_name.get_basename()
+					var key: String = clean_name.get_basename()
 					if not environment_backgrounds.has(key):
 						environment_backgrounds[key] = load(path + clean_name)
 						print(">> Loaded Environment Art: " + key)
@@ -1072,10 +1094,10 @@ func _load_backgrounds():
 	else:
 		print("ERROR: Could not find 'res://Art/Background/' folder.")
 
-func _update_dynamic_music():
+func _update_dynamic_music() -> void:
 	if p1_data.max_hp <= 0: return
 	
-	var hp_percent = float(p1_data.current_hp) / float(p1_data.max_hp)
+	var hp_percent: float = float(p1_data.current_hp) / float(p1_data.max_hp)
 	
 	if hp_percent <= 0.33:
 		AudioManager.set_music_intensity(0.5, 1.5) 

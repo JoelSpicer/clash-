@@ -1,7 +1,7 @@
 extends Node
 
-const SAVE_PATH = "user://settings.cfg"
-var config = ConfigFile.new()
+const SAVE_PATH: String = "user://settings.cfg"
+var config: ConfigFile = ConfigFile.new()
 
 # Store current values in memory
 var settings_data: Dictionary = {
@@ -101,8 +101,8 @@ func get_saved_visual(key: String, default_val: float) -> float:
 
 # --- INTERNAL HELPERS ---
 
-func _apply_volume(bus_name: String, linear_val: float):
-	var bus_idx = AudioServer.get_bus_index(bus_name)
+func _apply_volume(bus_name: String, linear_val: float) -> void:
+	var bus_idx: int = AudioServer.get_bus_index(bus_name)
 	if bus_idx != -1:
 		AudioServer.set_bus_volume_db(bus_idx, linear_to_db(linear_val))
 		AudioServer.set_bus_mute(bus_idx, linear_val < 0.05)

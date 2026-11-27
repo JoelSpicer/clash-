@@ -2,13 +2,13 @@ extends Control
 
 #region vars
 # --- DATA ---
-var action_tree_dict = {}     
-var id_to_name = {}
-var name_to_id = {}
+var action_tree_dict: Dictionary = {}     
+var id_to_name: Dictionary = {}
+var name_to_id: Dictionary = {}
 
 # --- SCENE REFS ---
-@onready var nodes_layer = %NodesLayer
-@onready var lines_layer = %LinesLayer
+@onready var nodes_layer: Control = %NodesLayer
+@onready var lines_layer: Control = %LinesLayer
 
 # --- STATE ---
 var unlocked_ids: Array[int] = []
@@ -25,7 +25,7 @@ var current_max_sp: int = 3
 var ui_layer: CanvasLayer
 var stats_label: Label 
 var popup_card: Control
-var card_scene = preload("res://Scenes/CardDisplay.tscn")
+var card_scene: PackedScene = preload("res://Scenes/CardDisplay.tscn")
 
 # Loadout Manager Refs
 var loadout_panel: PanelContainer
@@ -34,29 +34,29 @@ var reserve_container: HFlowContainer
 var toggle_btn: Button
 #endregion
 
-func _ready():
+func _ready() -> void:
 	action_tree_dict = ClassFactory.TREE_CONNECTIONS
 	id_to_name = ClassFactory.ID_TO_NAME_MAP
 	
 	# Reverse lookup
 	name_to_id.clear()
-	for id in id_to_name:
+	for id: int in id_to_name:
 		name_to_id[id_to_name[id]] = id
 	
 	# 1. SETUP NODES
 	for child in nodes_layer.get_children():
 		if child.has_method("setup"):
-			var id = int(str(child.name)) 
-			var a_name = id_to_name.get(id, "Unknown")
-			child.setup(id, a_name)
+			var id: int = int(str(child.name)) 
+			var a_name: String = str(id_to_name.get(id, "Unknown"))
+			child.call("setup", id, a_name)
 			
 			# Connect Signals
-			if not child.action_clicked.is_connected(_on_node_clicked):
-				child.action_clicked.connect(_on_node_clicked)
-			if not child.hovered.is_connected(_on_node_hovered):
-				child.hovered.connect(_on_node_hovered)
-			if not child.exited.is_connected(_on_node_exited):
-				child.exited.connect(_on_node_exited)
+			if not child.is_connected("action_clicked", _on_node_clicked):
+				child.connect("action_clicked", _on_node_clicked)
+			if not child.is_connected("hovered", _on_node_hovered):
+				child.connect("hovered", _on_node_hovered)
+			if not child.is_connected("exited", _on_node_exited):
+				child.connect("exited", _on_node_exited)
 
 	# 2. CREATE UI LAYER (Draws on top of Tree)
 	ui_layer = CanvasLayer.new()
@@ -73,7 +73,7 @@ func _ready():
 		if owned_ids.size() > 0: selected_class_id = owned_ids[0] 
 		
 		# Hide unnecessary buttons
-		var btn_back = $TreeContainer/BackButton
+		var btn_back: BaseButton = get_node_or_null("TreeContainer/BackButton") as BaseButton
 		if btn_back: 
 			if RunManager.current_level == 1:
 				btn_back.visible = true
@@ -82,7 +82,7 @@ func _ready():
 				btn_back.visible = false # Hide for levels 2+ (No escaping!)
 		
 		# Update Confirm Button text
-		var btn_confirm = $TreeContainer/ConfirmButton 
+		var btn_confirm: Button = get_node_or_null("TreeContainer/ConfirmButton") as Button
 		if btn_confirm:
 			if RunManager.free_unlocks_remaining > 0:
 				btn_confirm.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
@@ -91,12 +91,12 @@ func _ready():
 		
 		# Recalculate unlocks
 		_unlock_neighbors(selected_class_id)
-		for oid in owned_ids: 
+		for oid: int in owned_ids: 
 			_unlock_neighbors(oid)
 			
 	else:
 		_setup_for_current_player()
-		var btn_back = $TreeContainer/BackButton
+		var btn_back: BaseButton = get_node_or_null("TreeContainer/BackButton") as BaseButton
 		if btn_back: btn_back.pressed.connect(_on_back_button_pressed)
 	
 	_refresh_loadout_manager()
@@ -108,11 +108,8 @@ func _ready():
 # UI CONSTRUCTION
 # ==============================================================================
 
-func _build_ui_overlay():
-	
-
+func _build_ui_overlay() -> void:
 	# 2. Loadout Manager Panel (Bottom Center, Initially Hidden)
-	# Created BEFORE the button so it renders BEHIND it
 	loadout_panel = PanelContainer.new()
 	loadout_panel.visible = false 
 	
@@ -122,19 +119,19 @@ func _build_ui_overlay():
 	loadout_panel.custom_minimum_size.y = 300 
 	
 	# Add a background style
-	var style = StyleBoxFlat.new()
+	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.1, 0.95) 
 	loadout_panel.add_theme_stylebox_override("panel", style)
 	
 	ui_layer.add_child(loadout_panel)
 	
 	# Layout
-	var main_vbox = VBoxContainer.new()
+	var main_vbox: VBoxContainer = VBoxContainer.new()
 	main_vbox.add_theme_constant_override("separation", 10)
 	loadout_panel.add_child(main_vbox)
 	
 	# --- ROW 1: ACTIVE HAND ---
-	var lbl_active = Label.new()
+	var lbl_active: Label = Label.new()
 	lbl_active.text = "ACTIVE HAND (Max 8)"
 	lbl_active.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_vbox.add_child(lbl_active)
@@ -146,17 +143,17 @@ func _build_ui_overlay():
 	main_vbox.add_child(active_container)
 	
 	# Separator
-	var sep = HSeparator.new()
+	var sep: HSeparator = HSeparator.new()
 	main_vbox.add_child(sep)
 	
 	# --- ROW 2: RESERVES ---
-	var lbl_reserve = Label.new()
+	var lbl_reserve: Label = Label.new()
 	lbl_reserve.text = "RESERVE LIBRARY (Click to Equip)"
 	lbl_reserve.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_vbox.add_child(lbl_reserve)
 	
 	# ScrollContainer
-	var scroll = ScrollContainer.new()
+	var scroll: ScrollContainer = ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.custom_minimum_size.y = 150
 	main_vbox.add_child(scroll)
@@ -168,7 +165,6 @@ func _build_ui_overlay():
 	scroll.add_child(reserve_container)
 
 	# 3. Toggle Button (Bottom Right)
-	# Created LAST so it renders ON TOP
 	toggle_btn = Button.new()
 	toggle_btn.text = "EDIT LOADOUT"
 	toggle_btn.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -177,23 +173,16 @@ func _build_ui_overlay():
 	toggle_btn.pressed.connect(_on_toggle_loadout_pressed)
 	ui_layer.add_child(toggle_btn)
 
-func _setup_popup():
-	popup_card = card_scene.instantiate()
+func _setup_popup() -> void:
+	popup_card = card_scene.instantiate() as Control
 	popup_card.visible = false
 	popup_card.mouse_filter = Control.MOUSE_FILTER_IGNORE 
 	
-	# FIX 1: Break existing layout constraints (The Warning Fix)
-	# This ensures the card doesn't try to stretch to the full screen size
+	# Break existing layout constraints
 	popup_card.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	
-	# Ensure it is on top of the UI layer
 	popup_card.set_as_top_level(true) 
 	popup_card.z_index = 4096 
-	
-	# FIX 2: Explicit Dimensions (Portrait Mode)
 	popup_card.size = Vector2(250, 350)
-	
-	# FIX 3: Scale
 	popup_card.scale = Vector2(0.6, 0.6) 
 	
 	ui_layer.add_child(popup_card)
@@ -202,7 +191,7 @@ func _setup_popup():
 # LOGIC
 # ==============================================================================
 
-func _on_toggle_loadout_pressed():
+func _on_toggle_loadout_pressed() -> void:
 	loadout_panel.visible = !loadout_panel.visible
 	if loadout_panel.visible:
 		toggle_btn.text = "CLOSE LOADOUT"
@@ -210,7 +199,7 @@ func _on_toggle_loadout_pressed():
 	else:
 		toggle_btn.text = "EDIT LOADOUT"
 
-func _refresh_loadout_manager():
+func _refresh_loadout_manager() -> void:
 	if not loadout_panel.visible: return
 	
 	# 1. Clear old buttons
@@ -227,16 +216,16 @@ func _refresh_loadout_manager():
 	else:
 		# Custom Mode Logic
 		if selected_class_id == 0: return
-		var class_enum = _get_class_enum_from_id(selected_class_id)
+		var class_enum: CharacterData.ClassType = _get_class_enum_from_id(selected_class_id)
 		
 		# Starter cards
-		var starters = ClassFactory.get_starting_deck(class_enum)
+		var starters: Array[ActionData] = ClassFactory.get_starting_deck(class_enum)
 		library.append_array(starters)
 		
 		# Tree cards
-		for id in owned_ids:
+		for id: int in owned_ids:
 			if id in ClassFactory.CLASS_ROOT_IDS: continue
-			var c = ClassFactory.find_action_resource(id_to_name.get(id))
+			var c: ActionData = ClassFactory.find_action_resource(str(id_to_name.get(id, "")))
 			if c: library.append(c)
 			
 		# Temporary: Custom Mode just fills active with everything.
@@ -244,19 +233,18 @@ func _refresh_loadout_manager():
 		library = [] 
 
 	# 3. Populate Active Row
-	for card in active_deck:
-		var btn = _create_card_button(card, true)
+	for card: ActionData in active_deck:
+		var btn: Button = _create_card_button(card, true)
 		active_container.add_child(btn)
 		
 	# 4. Populate Reserve Row
-	# Logic: Show cards in 'library' that are NOT in 'active_deck'
-	for card in library:
+	for card: ActionData in library:
 		if not _is_card_in_list(card, active_deck):
-			var btn = _create_card_button(card, false)
+			var btn: Button = _create_card_button(card, false)
 			reserve_container.add_child(btn)
 
 func _create_card_button(card: ActionData, is_active: bool) -> Button:
-	var btn = Button.new()
+	var btn: Button = Button.new()
 	btn.custom_minimum_size = Vector2(60, 80)
 	btn.tooltip_text = card.display_name + "\n" + card.description
 	
@@ -272,19 +260,16 @@ func _create_card_button(card: ActionData, is_active: bool) -> Button:
 	else:
 		btn.modulate = Color(0.6, 0.8, 1.0)
 		
-	# LOGIC:
 	if is_active:
-		# Click to UNEQUIP
-		btn.pressed.connect(func(): _on_unequip_card(card))
+		btn.pressed.connect(func() -> void: _on_unequip_card(card))
 	else:
-		# Click to EQUIP
-		btn.pressed.connect(func(): _on_equip_card(card))
+		btn.pressed.connect(func() -> void: _on_equip_card(card))
 		
 	return btn
 
-func _on_unequip_card(card: ActionData):
+func _on_unequip_card(card: ActionData) -> void:
 	if not RunManager.is_arcade_mode: return
-	var player = RunManager.player_run_data
+	var player: CharacterData = RunManager.player_run_data
 	
 	if player.deck.size() <= 1:
 		print("Cannot have empty deck.")
@@ -295,9 +280,9 @@ func _on_unequip_card(card: ActionData):
 	_update_tree_visuals()
 	_recalculate_stats()
 
-func _on_equip_card(card: ActionData):
+func _on_equip_card(card: ActionData) -> void:
 	if not RunManager.is_arcade_mode: return
-	var player = RunManager.player_run_data
+	var player: CharacterData = RunManager.player_run_data
 	
 	if player.deck.size() >= ClassFactory.HAND_LIMIT:
 		print("Hand Full! Remove a card first.")
@@ -309,17 +294,18 @@ func _on_equip_card(card: ActionData):
 	_recalculate_stats()
 
 # --- TOOLTIP LOGIC ---
-func _on_node_hovered(id, a_name):
+func _on_node_hovered(id: int, a_name: String) -> void:
 	# CLASS NODES
 	if id in ClassFactory.CLASS_ROOT_IDS:
-		var class_info = _get_class_display_data(id)
-		popup_card.set_card_data(class_info)
+		var class_info: ActionData = _get_class_display_data(id)
+		if popup_card.has_method("set_card_data"):
+			popup_card.call("set_card_data", class_info)
 		popup_card.visible = true
 		_update_popup_position()
 		return
 
 	# ACTION NODES
-	var res = ClassFactory.find_action_resource(a_name)
+	var res: ActionData = ClassFactory.find_action_resource(a_name)
 	if res == null:
 		res = ActionData.new()
 		res.display_name = a_name
@@ -327,25 +313,25 @@ func _on_node_hovered(id, a_name):
 		res.cost = 0
 	
 	if popup_card.has_method("set_card_data"):
-		popup_card.set_card_data(res, res.cost)
+		popup_card.call("set_card_data", res, res.cost)
 	
 	popup_card.visible = true
 	_update_popup_position()
 
-func _on_node_exited():
+func _on_node_exited() -> void:
 	popup_card.visible = false
 
-func _process(_delta):
+func _process(_delta: float) -> void:
 	if popup_card.visible:
 		_update_popup_position()
 
-func _update_popup_position():
-	var m_pos = get_viewport().get_mouse_position()
-	var screen_size = get_viewport_rect().size
-	var card_size = popup_card.size * popup_card.scale
-	var offset = Vector2(30, 30)
+func _update_popup_position() -> void:
+	var m_pos: Vector2 = get_viewport().get_mouse_position()
+	var screen_size: Vector2 = get_viewport_rect().size
+	var card_size: Vector2 = popup_card.size * popup_card.scale
+	var offset: Vector2 = Vector2(30, 30)
 	
-	var final_pos = m_pos + offset
+	var final_pos: Vector2 = m_pos + offset
 	
 	# Keep on screen
 	if final_pos.x + card_size.x > screen_size.x:
@@ -356,9 +342,8 @@ func _update_popup_position():
 	popup_card.position = final_pos
 
 # --- INTERACTION LOGIC (Tree) ---
-func _on_node_clicked(id: int, _name: String):
+func _on_node_clicked(id: int, _name: String) -> void:
 	if RunManager.is_arcade_mode:
-		
 		# A. Clicking Owned Node -> Just Highlight
 		if id in owned_ids:
 			if id in ClassFactory.CLASS_ROOT_IDS: return
@@ -367,18 +352,12 @@ func _on_node_clicked(id: int, _name: String):
 		# B. Drafting (Buying new)
 		if id not in unlocked_ids: return 
 		
-		# --- FIX: PREVENT SELECTION IF NO UNLOCKS LEFT ---
 		if RunManager.free_unlocks_remaining <= 0:
-			# Optional: Visual feedback like a sound or shake
 			print("No unlocks remaining! Click START FIGHT.")
 			return
-		# -------------------------------------------------
 		
 		pending_unlock_id = id
-		
 		_update_tree_visuals()
-		
-		# FIX: Force recalculate so the UI updates IMMEDIATELY with the new card preview
 		_recalculate_stats()
 		return
 	
@@ -398,11 +377,11 @@ func _on_node_clicked(id: int, _name: String):
 
 # --- HELPERS ---
 func _is_card_in_list(card: ActionData, list: Array[ActionData]) -> bool:
-	for c in list:
+	for c: ActionData in list:
 		if c.display_name == card.display_name: return true
 	return false
 
-func _select_class(class_id: int):
+func _select_class(class_id: int) -> void:
 	selected_class_id = class_id
 	owned_ids.clear()
 	unlocked_ids.clear()
@@ -412,93 +391,82 @@ func _select_class(class_id: int):
 	_recalculate_stats()
 	_refresh_loadout_manager()
 
-func _recalculate_stats():
-	var stats = { "hp": 10, "sp": 3 }
+func _recalculate_stats() -> void:
+	var stats: Dictionary = { "hp": 10, "sp": 3 }
 	
 	if RunManager.is_arcade_mode:
-		var p = RunManager.player_run_data
-		
-		# FIX: CALCULATE WITH PREVIEW
-		# Create a temporary list of what we own + what we are about to buy
-		var cards_to_count = p.unlocked_actions.duplicate()
+		var p: CharacterData = RunManager.player_run_data
+		var cards_to_count: Array[ActionData] = p.unlocked_actions.duplicate()
 		
 		if pending_unlock_id != 0:
-			var card_name = id_to_name.get(pending_unlock_id)
-			var pending_card = ClassFactory.find_action_resource(card_name)
+			var card_name: String = str(id_to_name.get(pending_unlock_id, ""))
+			var pending_card: ActionData = ClassFactory.find_action_resource(card_name)
 			if pending_card:
 				cards_to_count.append(pending_card)
 		
 		stats = ClassFactory.calculate_stats_for_deck(p.class_type, cards_to_count)
-		
 	else:
 		if selected_class_id == 0: return
-		var class_enum = _get_class_enum_from_id(selected_class_id)
-		var temp_deck = ClassFactory.get_starting_deck(class_enum)
-		for id in owned_ids:
+		var class_enum: CharacterData.ClassType = _get_class_enum_from_id(selected_class_id)
+		var temp_deck: Array[ActionData] = ClassFactory.get_starting_deck(class_enum)
+		for id: int in owned_ids:
 			if id in ClassFactory.CLASS_ROOT_IDS: continue
-			var card = ClassFactory.find_action_resource(id_to_name.get(id))
+			var card: ActionData = ClassFactory.find_action_resource(str(id_to_name.get(id, "")))
 			if card: temp_deck.append(card)
 		stats = ClassFactory.calculate_stats_for_deck(class_enum, temp_deck)
 	
-	current_max_hp = stats["hp"]
-	current_max_sp = stats["sp"]
+	current_max_hp = int(stats["hp"])
+	current_max_sp = int(stats["sp"])
 
-func _unlock_neighbors(node_id: int):
+func _unlock_neighbors(node_id: int) -> void:
 	if node_id in action_tree_dict:
-		for neighbor_id in action_tree_dict[node_id]:
+		for neighbor_id: int in action_tree_dict[node_id]:
 			if neighbor_id not in unlocked_ids and neighbor_id not in owned_ids:
 				unlocked_ids.append(neighbor_id)
 
-func _update_tree_visuals():
+func _update_tree_visuals() -> void:
 	for child in nodes_layer.get_children():
-		var id = int(str(child.name))
+		var id: int = int(str(child.name))
 		
 		if id == pending_unlock_id:
-			child.set_status(1) # Available (Selected)
-			child.modulate = Color(1.5, 1.5, 1.5)
+			child.call("set_status", 1) # Available (Selected)
+			if child is CanvasItem:
+				(child as CanvasItem).modulate = Color(1.5, 1.5, 1.5)
 		else:
-			child.modulate = Color.WHITE
+			if child is CanvasItem:
+				(child as CanvasItem).modulate = Color.WHITE
 			
 			if id in owned_ids:
-				# FIX: Force ALL owned nodes (including Class Node) to Green (Status 3)
-				# We no longer distinguish between 'Equipped' and 'Reserve' on the tree visual itself.
-				child.set_status(3) 
+				child.call("set_status", 3) 
 			elif id in unlocked_ids:
-				child.set_status(1) # AVAILABLE (Yellow)
+				child.call("set_status", 1) # AVAILABLE (Yellow)
 			else:
-				child.set_status(0) # LOCKED
+				child.call("set_status", 0) # LOCKED
 
-func _on_confirm_button_pressed():
+func _on_confirm_button_pressed() -> void:
 	if RunManager.is_arcade_mode:
-		
 		# --- CASE 1: START FIGHT (Ready to go) ---
 		if RunManager.free_unlocks_remaining <= 0 and pending_unlock_id == 0:
+			var has_offence: bool = false
+			var has_defence: bool = false
 			
-			# --- NEW: LOADOUT VALIDATION ---
-			var has_offence = false
-			var has_defence = false
-			
-			for card in RunManager.player_run_data.deck:
+			for card: ActionData in RunManager.player_run_data.deck:
 				if card.type == ActionData.Type.OFFENCE: has_offence = true
 				if card.type == ActionData.Type.DEFENCE: has_defence = true
 				
 			if not has_offence or not has_defence:
 				print("Cannot Start: Invalid Loadout.")
-				# Visual Feedback using the Stats Label
-				stats_label.text = "REQ: 1 OFFENCE & 1 DEFENCE!"
-				stats_label.modulate = Color(1, 0.3, 0.3) # Red Warning
-				
-				# Reset the label after 2 seconds
-				await get_tree().create_timer(2.0).timeout
-				_recalculate_stats()
+				if stats_label:
+					stats_label.text = "REQ: 1 OFFENCE & 1 DEFENCE!"
+					stats_label.modulate = Color(1, 0.3, 0.3) # Red Warning
+					await get_tree().create_timer(2.0).timeout
+					_recalculate_stats()
 				return
-			# -------------------------------
 			
 			RunManager.start_next_fight()
 			return
 
 		# --- CASE 2: DRAFTING (Spending Free Unlocks) ---
-		# This now handles BOTH the initial draft AND level-up rewards
 		if RunManager.free_unlocks_remaining > 0:
 			if pending_unlock_id == 0: return 
 			
@@ -506,8 +474,8 @@ func _on_confirm_button_pressed():
 			RunManager.player_owned_tree_ids.append(pending_unlock_id)
 			owned_ids.append(pending_unlock_id)
 			
-			var card_name = id_to_name.get(pending_unlock_id)
-			var new_card = ClassFactory.find_action_resource(card_name)
+			var card_name: String = str(id_to_name.get(pending_unlock_id, ""))
+			var new_card: ActionData = ClassFactory.find_action_resource(card_name)
 			if new_card:
 				RunManager.player_run_data.unlocked_actions.append(new_card)
 				if RunManager.player_run_data.deck.size() < ClassFactory.HAND_LIMIT:
@@ -521,20 +489,19 @@ func _on_confirm_button_pressed():
 			_refresh_loadout_manager()
 			_update_tree_visuals()
 			
-			# 3. Heal & Stats (This covers the "Full Heal on Level Up" requirement)
+			# 3. Heal & Stats
 			ClassFactory._recalculate_stats(RunManager.player_run_data)
 			_recalculate_stats() # Update UI
 			
 			# 4. Check Status
-			var btn = $TreeContainer/ConfirmButton
-			if RunManager.free_unlocks_remaining <= 0:
-				btn.text = "START FIGHT"
-				#var btn_back = $TreeContainer/BackButton
-				var btn_reset = $TreeContainer/ResetButton
-				#if btn_back: btn_back.visible = false
-				if btn_reset: btn_reset.visible = false
-			else:
-				btn.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
+			var btn: Button = get_node_or_null("TreeContainer/ConfirmButton") as Button
+			if btn:
+				if RunManager.free_unlocks_remaining <= 0:
+					btn.text = "START FIGHT"
+					var btn_reset: Control = get_node_or_null("TreeContainer/ResetButton") as Control
+					if btn_reset: btn_reset.visible = false
+				else:
+					btn.text = "PICK (" + str(RunManager.free_unlocks_remaining) + " LEFT)"
 			return
 
 		# --- CASE 3: FALLBACK ---
@@ -548,30 +515,24 @@ func _on_confirm_button_pressed():
 		# --- CUSTOM DECK LAUNCH ---
 		if selected_class_id == 0: return
 		
-		# 1. USE FACTORY TO BUILD BASE (Handles Passives & Identity automatically!)
-		var class_enum = _get_class_enum_from_id(selected_class_id)
-		var final_character = ClassFactory.create_character(class_enum, "Custom Fighter")
+		var class_enum: CharacterData.ClassType = _get_class_enum_from_id(selected_class_id)
+		var final_character: CharacterData = ClassFactory.create_character(class_enum, "Custom Fighter")
 		
-		# 2. BUILD THE CUSTOM DECK
-		# Start with the base cards for this class
-		var base_deck = ClassFactory.get_starting_deck(class_enum)
+		var base_deck: Array[ActionData] = ClassFactory.get_starting_deck(class_enum)
 		var final_deck: Array[ActionData] = []
 		final_deck.append_array(base_deck)
 		
-		# Add every card unlocked in the tree
-		for id in owned_ids:
+		for id: int in owned_ids:
 			if id in ClassFactory.CLASS_ROOT_IDS: continue 
-			var a_name = id_to_name.get(id)
-			var card_resource = ClassFactory.find_action_resource(a_name)
+			var a_name: String = str(id_to_name.get(id, ""))
+			var card_resource: ActionData = ClassFactory.find_action_resource(a_name)
 			if card_resource: final_deck.append(card_resource)
 		
-		# 3. APPLY CUSTOM STATS & DECK
 		final_character.deck = final_deck
-		final_character.max_hp = current_max_hp # Calculated from tree nodes
-		final_character.max_sp = current_max_sp # Calculated from tree nodes
-		final_character.reset_stats() # Apply the new max values to current values
+		final_character.max_hp = current_max_hp
+		final_character.max_sp = current_max_sp
+		final_character.reset_stats()
 		
-		# 4. NAME & ASSIGN
 		if GameManager.editing_player_index == 1:
 			var p1_name: String = GameManager.match_config.p1_name
 			final_character.character_name = p1_name if p1_name != "" else "Player 1"
@@ -591,14 +552,12 @@ func _on_confirm_button_pressed():
 			
 		SceneLoader.change_scene("res://Scenes/VsScreen.tscn")
 
-func _on_back_button_pressed():
-	# --- NEW: Arcade Mode Cancel ---
+func _on_back_button_pressed() -> void:
 	if RunManager.is_arcade_mode:
 		print("Canceling Arcade Run...")
 		RunManager.handle_loss() # Cleans up the arcade state variables
 		SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
 		return
-	# -------------------------------
 	print("Canceling customization...")
 	GameManager.next_match_p1_data = null
 	GameManager.next_match_p2_data = null
@@ -607,20 +566,20 @@ func _on_back_button_pressed():
 	GameManager.match_config.reset()
 	SceneLoader.change_scene("res://Scenes/CarouselHub.tscn")
 
-func _try_deselect_action(id_to_remove: int):
-	var remaining_ids = owned_ids.duplicate()
+func _try_deselect_action(id_to_remove: int) -> void:
+	var remaining_ids: Array[int] = owned_ids.duplicate()
 	remaining_ids.erase(id_to_remove)
 	
 	# Flood fill check
-	var reachable_count = 0
+	var reachable_count: int = 0
 	var queue: Array[int] = [selected_class_id]
-	var visited = {selected_class_id: true}
+	var visited: Dictionary = {selected_class_id: true}
 	
 	while queue.size() > 0:
-		var current = queue.pop_front()
+		var current: int = queue.pop_front()
 		if current in remaining_ids: reachable_count += 1
 		if current in action_tree_dict:
-			for neighbor in action_tree_dict[current]:
+			for neighbor: int in action_tree_dict[current]:
 				if neighbor in remaining_ids and not neighbor in visited:
 					visited[neighbor] = true
 					queue.append(neighbor)
@@ -631,7 +590,7 @@ func _try_deselect_action(id_to_remove: int):
 
 	owned_ids.erase(id_to_remove)
 	unlocked_ids.clear()
-	for owner_id in owned_ids:
+	for owner_id: int in owned_ids:
 		_unlock_neighbors(owner_id)
 		
 	_update_tree_visuals()
@@ -666,34 +625,32 @@ func _setup_for_current_player() -> void:
 	lines_layer.queue_redraw()
 
 func _get_class_display_data(id: int) -> ActionData:
-	var data = ActionData.new()
+	var data: ActionData = ActionData.new()
 	data.cost = 0
 	
-	# Use your helper to get the Enum
-	var type = _get_class_enum_from_id(id)
+	var type: CharacterData.ClassType = _get_class_enum_from_id(id)
 	
-	# Fetch from Registry
 	if ClassFactory.class_registry.has(type):
-		var def = ClassFactory.class_registry[type]
+		var def: ClassDefinition = ClassFactory.class_registry[type]
 		data.display_name = "CLASS: " + def.class_named.to_upper()
-		data.description = def.tree_description # <--- Loaded from Resource!
+		data.description = def.tree_description
 		
 	return data
 
 func _is_id_equipped(id: int) -> bool:
 	if not RunManager.is_arcade_mode: return id in owned_ids
-	var player = RunManager.player_run_data
-	var c_name = id_to_name.get(id)
+	var player: CharacterData = RunManager.player_run_data
+	var c_name: String = str(id_to_name.get(id, ""))
 	return player.has_card_in_deck(c_name)
 
-func _is_card_equipped(player, card_data) -> bool:
+func _is_card_equipped(player: CharacterData, card_data: ActionData) -> bool:
 	return player.has_card_in_deck(card_data.display_name)
 
-func _remove_from_deck(player, card_data):
+func _remove_from_deck(player: CharacterData, card_data: ActionData) -> void:
 	player.remove_card_from_deck(card_data.display_name)
 
 
-func _get_class_enum_from_id(id: int) -> int:
+func _get_class_enum_from_id(id: int) -> CharacterData.ClassType:
 	match id:
 		73: return CharacterData.ClassType.QUICK
 		74: return CharacterData.ClassType.TECHNICAL
@@ -703,5 +660,5 @@ func _get_class_enum_from_id(id: int) -> int:
 
 func _get_id_from_card(card: ActionData) -> int:
 	if card.display_name in name_to_id:
-		return name_to_id[card.display_name]
+		return int(name_to_id[card.display_name])
 	return 0

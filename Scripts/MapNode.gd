@@ -3,16 +3,17 @@ extends PanelContainer
 
 signal node_clicked(index: int)
 
-@onready var icon = $VBoxContainer/Icon
-@onready var label = $VBoxContainer/Label # "Round 1"
-@onready var enemy_name_label = $VBoxContainer/EnemyNameLabel # NEW!
-@onready var status = $VBoxContainer/Status
-@onready var button = $Button
+@onready var icon: TextureRect = $VBoxContainer/Icon
+@onready var label: Label = $VBoxContainer/Label
+@onready var enemy_name_label: Label = $VBoxContainer/EnemyNameLabel
+@onready var status: Label = $VBoxContainer/Status
+@onready var button: Button = $Button
 
 var my_index: int = -1
 var data: MapNodeData
 
-func setup(node_data: MapNodeData, index: int):
+
+func setup(node_data: MapNodeData, index: int) -> void:
 	my_index = index
 	data = node_data
 	
@@ -112,10 +113,10 @@ func setup(node_data: MapNodeData, index: int):
 		tween.tween_property(self, "scale", Vector2(1.05, 1.05), 0.5)
 		tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.5)
 
-func _on_button_pressed():
+func _on_button_pressed() -> void:
 	node_clicked.emit(my_index)
 
-func _ready():
+
+func _ready() -> void:
 	button.pressed.connect(_on_button_pressed)
-	# Set pivot so the pulse animation scales from the center
-	pivot_offset = size / 2
+	pivot_offset = size / 2.0

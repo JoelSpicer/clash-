@@ -1,12 +1,12 @@
 extends Control
 
 # --- CONFIGURATION ---
-var slides: Array = []
+var slides: Array[Dictionary] = []
 var current_index: int = 0
 var is_transitioning: bool = false
 
 # --- TUTORIAL DATA ---
-const TUTORIAL_TEXTS = [
+const TUTORIAL_TEXTS: Array[Dictionary] = [
 	{
 		"title": "WELCOME TO THE CIRCUIT",
 		"text": "This is the main roguelike mode. Choose your fighter's class, set your difficulty, optionally select a sponsor to alter your stats and gameplay, and battle your way through a gauntlet of opponents. Draft new Actions, Equipment and Buffs as you climb the ranks, gaining circuit tokens to unlock more classes and sponsors!"
@@ -38,13 +38,13 @@ const TUTORIAL_TEXTS = [
 ]
 
 # --- NODES ---
-@onready var bg_current = $Background
-@onready var bg_fader = $BackgroundFader
-@onready var content_container = $ContentContainer
-@onready var title_label = $UI_Layer/TitleLabel
-@onready var btn_left = $UI_Layer/LeftArrow
-@onready var btn_right = $UI_Layer/RightArrow
-@onready var btn_back = $UI_Layer/BackButton
+@onready var bg_current: TextureRect = $Background
+@onready var bg_fader: TextureRect = $BackgroundFader
+@onready var content_container: Control = $ContentContainer
+@onready var title_label: Label = $UI_Layer/TitleLabel
+@onready var btn_left: BaseButton = $UI_Layer/LeftArrow
+@onready var btn_right: BaseButton = $UI_Layer/RightArrow
+@onready var btn_back: BaseButton = $UI_Layer/BackButton
 
 # --- PARALLAX SETTINGS ---
 var max_parallax: float = 25.0        # How many pixels it can move in any direction
@@ -59,7 +59,7 @@ var tut_panel: PanelContainer
 var tut_desc: RichTextLabel
 var help_btn: Button
 
-func _ready():
+func _ready() -> void:
 	slides = [
 		{
 			"title": "THE CIRCUIT",
@@ -98,14 +98,14 @@ func _ready():
 		},
 	]
 	
-	btn_left.pressed.connect(func(): _change_slide(-1))
-	btn_right.pressed.connect(func(): _change_slide(1))
+	btn_left.pressed.connect(func() -> void: _change_slide(-1))
+	btn_right.pressed.connect(func() -> void: _change_slide(1))
 	btn_back.pressed.connect(_on_back_pressed)
 	
 	# --- SETUP PARALLAX VISUALS ---
 	# Wait one frame to ensure Godot has calculated the screen size
 	await get_tree().process_frame 
-	var screen_size = get_viewport_rect().size
+	var screen_size: Vector2 = get_viewport_rect().size
 	
 	# Set the pivot to the center so it scales outward uniformly
 	bg_current.pivot_offset = screen_size / 2.0
@@ -134,25 +134,52 @@ func _ready():
 	# Check for tutorial on the very first screen load
 	_check_and_show_tutorial(start_idx)
 
-func _process(delta):
+func _process(delta: float) -> void:
 	# 1. Get current screen size and mouse position
-	var screen_size = get_viewport_rect().size
-	var mouse_pos = get_viewport().get_mouse_position()
-	var center = screen_size / 2.0
+	var screen_size: Vector2 = get_viewport_rect().size
+	var mouse_pos: Vector2 = get_viewport().get_mouse_position()
+	var center: Vector2 = screen_size / 2.0
 	
 	# 2. Calculate offset (Returns a value between -1.0 and 1.0)
-	var offset_x = (mouse_pos.x - center.x) / center.x
-	var offset_y = (mouse_pos.y - center.y) / center.y
-	var mouse_offset = Vector2(offset_x, offset_y)
+	var offset_x: float = (mouse_pos.x - center.x) / center.x
+	var offset_y: float = (mouse_pos.y - center.y) / center.y
+	var mouse_offset: Vector2 = Vector2(offset_x, offset_y)
 	
 	# 3. Multiply by max distance and invert it (Negative moves OPPOSITE the mouse)
-	var target_pos = base_bg_pos - (mouse_offset * max_parallax)
+	var target_pos: Vector2 = base_bg_pos - (mouse_offset * max_parallax)
 	
 	# 4. Smoothly interpolate (lerp) to the target position
 	bg_current.position = bg_current.position.lerp(target_pos, delta * parallax_smoothness)
 	bg_fader.position = bg_fader.position.lerp(target_pos, delta * parallax_smoothness)
 
-func _change_slide(direction: int):
+func _unhandled_input(event: InputEvent) -> void:
+	if not (event is InputEventKey):
+		return
+	var key_event: InputEventKey = event as InputEventKey
+	if not key_event.pressed or key_event.echo:
+		return
+	if Pausemenu.visible:
+		return
+
+	if tut_overlay and tut_overlay.visible:
+		if event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_cancel"):
+			_hide_tutorial()
+			get_viewport().set_input_as_handled()
+		return
+
+	var focused: Control = get_viewport().gui_get_focus_owner()
+	if focused is LineEdit or focused is TextEdit or focused is OptionButton:
+		return
+
+	if event.is_action_pressed("ui_left"):
+		_change_slide(-1)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_right"):
+		_change_slide(1)
+		get_viewport().set_input_as_handled()
+
+
+func _change_slide(direction: int) -> void:
 	if is_transitioning: return
 	is_transitioning = true
 	AudioManager.play_sfx("ui_hover", 0.5) 
@@ -161,33 +188,34 @@ func _change_slide(direction: int):
 	if current_index >= slides.size(): current_index = 0
 	elif current_index < 0: current_index = slides.size() - 1
 	
-	var slide_data = slides[current_index]
-	title_label.text = slide_data.title
+	var slide_data: Dictionary = slides[current_index]
+	title_label.text = str(slide_data["title"])
 	
 	# A. Crossfade Background
-	var new_bg = load(slide_data.bg_path)
+	var new_bg: Texture2D = load(str(slide_data["bg_path"])) as Texture2D
 	if new_bg:
 		bg_fader.texture = new_bg
 		bg_fader.modulate.a = 0.0
 		bg_fader.visible = true 
-		var t_bg = create_tween()
+		var t_bg: Tween = create_tween()
 		t_bg.tween_property(bg_fader, "modulate:a", 1.0, 0.4)
 		await t_bg.finished
 		bg_current.texture = new_bg
 		bg_fader.modulate.a = 0.0
 	
 	# B. Slide Content
-	var old_content = content_container.get_child(0) if content_container.get_child_count() > 0 else null
-	var new_scene = load(slide_data.scene_path).instantiate()
+	var old_content: Control = content_container.get_child(0) as Control if content_container.get_child_count() > 0 else null
+	var packed: PackedScene = load(str(slide_data["scene_path"])) as PackedScene
+	var new_scene: Control = packed.instantiate() as Control
 	
-	var screen_width = get_viewport_rect().size.x
-	var enter_pos = Vector2(screen_width, 0) if direction > 0 else Vector2(-screen_width, 0)
-	var exit_pos = Vector2(-screen_width, 0) if direction > 0 else Vector2(screen_width, 0)
+	var screen_width: float = get_viewport_rect().size.x
+	var enter_pos: Vector2 = Vector2(screen_width, 0) if direction > 0 else Vector2(-screen_width, 0)
+	var exit_pos: Vector2 = Vector2(-screen_width, 0) if direction > 0 else Vector2(screen_width, 0)
 	
 	new_scene.position = enter_pos
 	content_container.add_child(new_scene)
 	
-	var t_slide = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	var t_slide: Tween = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	t_slide.tween_property(new_scene, "position", Vector2.ZERO, 0.4)
 	if old_content:
 		t_slide.tween_property(old_content, "position", exit_pos, 0.4)
@@ -199,26 +227,27 @@ func _change_slide(direction: int):
 	# Check for tutorial AFTER the slide finishes moving
 	_check_and_show_tutorial(current_index)
 
-func _load_slide_content(idx: int):
-	var data = slides[idx]
-	title_label.text = data.title
+func _load_slide_content(idx: int) -> void:
+	var data: Dictionary = slides[idx]
+	title_label.text = str(data["title"])
 	for child in content_container.get_children():
 		child.queue_free()
-	var scene = load(data.scene_path).instantiate()
+	var packed: PackedScene = load(str(data["scene_path"])) as PackedScene
+	var scene: Node = packed.instantiate()
 	content_container.add_child(scene)
 
-func _snap_background(idx: int):
-	var tex = load(slides[idx].bg_path)
+func _snap_background(idx: int) -> void:
+	var tex: Texture2D = load(str(slides[idx]["bg_path"])) as Texture2D
 	if tex: bg_current.texture = tex
 
-func _on_back_pressed():
+func _on_back_pressed() -> void:
 	SceneLoader.change_scene("res://Scenes/MainMenu.tscn")
 
 # =========================================================
 # TUTORIAL SYSTEM
 # =========================================================
 
-func _setup_tutorial_ui():
+func _setup_tutorial_ui() -> void:
 	# 1. Add Help Button to UI Layer
 	help_btn = Button.new()
 	help_btn.text = "?"
@@ -245,7 +274,7 @@ func _setup_tutorial_ui():
 	tut_layer.add_child(tut_overlay)
 	
 	# --- FIX 1: CENTER CONTAINER ---
-	var center_container = CenterContainer.new()
+	var center_container: CenterContainer = CenterContainer.new()
 	center_container.set_anchors_preset(Control.PRESET_FULL_RECT)
 	tut_overlay.add_child(center_container)
 	
@@ -255,21 +284,21 @@ func _setup_tutorial_ui():
 	center_container.add_child(tut_panel)
 	# -------------------------------
 	
-	var style = StyleBoxFlat.new()
+	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(0.1, 0.1, 0.1)
 	style.set_border_width_all(2)
 	style.border_color = Color(0.4, 0.6, 1.0)
 	style.set_corner_radius_all(8)
 	tut_panel.add_theme_stylebox_override("panel", style)
 	
-	var margin = MarginContainer.new()
+	var margin: MarginContainer = MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 20)
 	margin.add_theme_constant_override("margin_top", 20)
 	margin.add_theme_constant_override("margin_right", 20)
 	margin.add_theme_constant_override("margin_bottom", 20)
 	tut_panel.add_child(margin)
 	
-	var vbox = VBoxContainer.new()
+	var vbox: VBoxContainer = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 20)
 	margin.add_child(vbox)
 	
@@ -284,31 +313,31 @@ func _setup_tutorial_ui():
 	tut_desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(tut_desc)
 	
-	var close_btn = Button.new()
+	var close_btn: Button = Button.new()
 	close_btn.text = "GOT IT"
 	close_btn.custom_minimum_size = Vector2(150, 50)
 	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	close_btn.pressed.connect(func(): 
+	close_btn.pressed.connect(func() -> void: 
 		AudioManager.play_sfx("ui_click")
 		_hide_tutorial() # Call the new hide animation!
 	)
 	vbox.add_child(close_btn)
 
-func _check_and_show_tutorial(idx: int):
+func _check_and_show_tutorial(idx: int) -> void:
 	if not RunManager.meta_data: return
 	
-	var menu_key = slides[idx].title
+	var menu_key: String = str(slides[idx]["title"])
 	if not RunManager.meta_data.seen_menu_tutorials.has(menu_key):
 		RunManager.meta_data.seen_menu_tutorials[menu_key] = true
 		RunManager._save_global_data()
 		_show_current_tutorial()
 
-func _show_current_tutorial():
+func _show_current_tutorial() -> void:
 	AudioManager.play_sfx("ui_confirm")
-	var data = TUTORIAL_TEXTS[current_index]
+	var data: Dictionary = TUTORIAL_TEXTS[current_index]
 	
-	tut_title.text = data.title
-	tut_desc.text = "[center]" + data.text + "[/center]"
+	tut_title.text = str(data["title"])
+	tut_desc.text = "[center]" + str(data["text"]) + "[/center]"
 	
 	# --- FIX 3: POP-IN ANIMATION ---
 	tut_overlay.show()
@@ -321,15 +350,15 @@ func _show_current_tutorial():
 	tut_panel.pivot_offset = tut_panel.size / 2
 	tut_panel.scale = Vector2(0.5, 0.5)
 	
-	var tween = create_tween().set_parallel(true)
+	var tween: Tween = create_tween().set_parallel(true)
 	tween.tween_property(tut_overlay, "modulate:a", 1.0, 0.2)
 	tween.tween_property(tut_panel, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
-func _hide_tutorial():
+func _hide_tutorial() -> void:
 	# --- FIX 3: POP-OUT ANIMATION ---
 	tut_panel.pivot_offset = tut_panel.size / 2
 	
-	var tween = create_tween().set_parallel(true)
+	var tween: Tween = create_tween().set_parallel(true)
 	tween.tween_property(tut_overlay, "modulate:a", 0.0, 0.2)
 	tween.tween_property(tut_panel, "scale", Vector2(0.8, 0.8), 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_IN)
 	

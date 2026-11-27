@@ -1,14 +1,14 @@
 extends TextureButton
 
-signal action_clicked(node_id, node_name)
-signal hovered(node_id, node_name)
+signal action_clicked(node_id: int, node_name: String)
+signal hovered(node_id: int, node_name: String)
 signal exited()
 
 # Define status constants for readability
-const STATUS_LOCKED = 0
-const STATUS_AVAILABLE = 1
-const STATUS_OWNED = 2# In Library, not in Deck
-const STATUS_EQUIPPED = 3 # In Active Deck
+const STATUS_LOCKED: int = 0
+const STATUS_AVAILABLE: int = 1
+const STATUS_OWNED: int = 2     # In Library, not in Deck
+const STATUS_EQUIPPED: int = 3  # In Active Deck
 
 var id: int = 0
 var action_name: String = ""
@@ -18,39 +18,35 @@ var status: int = STATUS_LOCKED
 var label: Label
 var background: Panel
 
-func _ready():
+func _ready() -> void:
 	# 1. VISUAL REPAIR
 	if get_child_count() == 0:
 		_build_ui()
 	else:
-		label = get_node_or_null("Label")
-		background = get_node_or_null("Panel")
+		label = get_node_or_null("Label") as Label
+		background = get_node_or_null("Panel") as Panel
 	
 	# --- FIX 1: FORCE MOUSE IGNORE ON CHILDREN ---
-	# This ensures the label/panel never block the hover signal
 	if label: label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if background: background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# ---------------------------------------------
 	
 	# 2. SIZE REPAIR
 	if size.x < 40 or size.y < 40:
 		custom_minimum_size = Vector2(50, 50)
 		size = Vector2(50, 50)
 		
-# --- AUDIO CONNECTIONS ---
-	# Add hover sound (using the existing signal or a new connection)
-	mouse_entered.connect(func(): 
+	# --- AUDIO CONNECTIONS ---
+	mouse_entered.connect(func() -> void: 
 		hovered.emit(id, action_name)
 		AudioManager.play_sfx("ui_hover", 0.2)
 	)
 	
-	# Add click sound
-	pressed.connect(func():
+	pressed.connect(func() -> void:
 		AudioManager.play_sfx("ui_click")
 	)
-	mouse_exited.connect(func(): exited.emit())	
+	mouse_exited.connect(func() -> void: exited.emit())	
 
-func _build_ui():
+func _build_ui() -> void:
 	background = Panel.new()
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -64,13 +60,13 @@ func _build_ui():
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(label)
 
-func setup(new_id: int, new_name: String):
+func setup(new_id: int, new_name: String) -> void:
 	id = new_id
 	action_name = new_name
 	if label: label.text = str(id)
 	tooltip_text = ""
 
-func set_status(new_status: int):
+func set_status(new_status: int) -> void:
 	status = new_status
 	disabled = false
 	
@@ -85,5 +81,5 @@ func set_status(new_status: int):
 			STATUS_EQUIPPED:
 				background.modulate = Color(0.2, 1.0, 0.2) # Bright Green (Active)
 
-func _pressed():
+func _pressed() -> void:
 	action_clicked.emit(id, action_name)

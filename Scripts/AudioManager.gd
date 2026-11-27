@@ -1,17 +1,12 @@
 extends Node
 
-# --- ASSET LIBRARY ---
-# Note: These now point to your .tres resources, NOT .wav files!
-var sounds = {
-	# SFX (Keep these pointing to .wav)
+var sounds: Dictionary = {
 	"ui_hover": preload("res://Audio/UI/hover.wav"),
 	"ui_click": preload("res://Audio/UI/click.wav"),
 	"hit_light": preload("res://Audio/Combat/hit_light.wav"),
 	"hit_heavy": preload("res://Audio/Combat/hit_heavy.wav"),
 	"block": preload("res://Audio/Combat/block.wav"),
 	"clash": preload("res://Audio/Combat/clash.wav"),
-	
-	# MUSIC (Point these to the .tres files you made in Phase 3)
 	"menu_theme": preload("res://Audio/Music/SongMenus.tres"),
 	"music_ring": preload("res://Audio/Music/SongRing.tres"),
 	"music_dojo": preload("res://Audio/Music/SongDojo.tres"),
@@ -22,142 +17,133 @@ var sounds = {
 var is_danger_mode: bool = false
 var heartbeat_player: AudioStreamPlayer
 
-# --- NODES ---
-# This connects to the OvaniPlayer child node we added in Phase 1
-@onready var music_player = $MusicPlayer 
+@onready var music_player: OvaniPlayer = $MusicPlayer
 
-# --- SFX POOL ---
-var pool_size = 10
+var pool_size: int = 10
 var sfx_players: Array[AudioStreamPlayer] = []
 var current_music_key: String = ""
 
-func _ready():
-	process_mode = Node.PROCESS_MODE_ALWAYS 
 
-	# 1. Setup SFX Pool (Unchanged)
-	for i in range(pool_size):
-		var p = AudioStreamPlayer.new()
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+	for _i: int in range(pool_size):
+		var p: AudioStreamPlayer = AudioStreamPlayer.new()
 		p.bus = "SFX"
 		add_child(p)
 		sfx_players.append(p)
-	
-	# 2. Setup Heartbeat (Unchanged)
+
 	heartbeat_player = AudioStreamPlayer.new()
 	heartbeat_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	heartbeat_player.stream = preload("res://Audio/SFX/heartbeat.wav")
 	heartbeat_player.bus = "SFX"
-	heartbeat_player.volume_db = 5.0 
+	heartbeat_player.volume_db = 5.0
 	add_child(heartbeat_player)
 
-# --- PUBLIC FUNCTION: MUSIC ---
-func play_music(key: String, fade_duration: float = 2.0):
+
+func play_music(key: String, fade_duration: float = 2.0) -> void:
 	if not sounds.has(key):
 		print("Music track not found: " + key)
 		return
-		
-	if current_music_key == key: return
+
+	if current_music_key == key:
+		return
 	current_music_key = key
-	
-	var song_resource = sounds[key]
-	
-	if music_player:
-		# CORRECT FUNCTION NAME:
+
+	var song_resource: OvaniSong = sounds[key] as OvaniSong
+	if music_player and song_resource:
 		music_player.PlaySongNow(song_resource, fade_duration)
 
-func set_music_intensity(target_val: float, fade_time: float = 2.0):
-	if music_player:
-		# The plugin handles the lerp automatically!
-		music_player.FadeIntensity(clamp(target_val, 0.0, 1.0), fade_time)
 
-func stop_music(fade_duration: float = 2.0):
+func set_music_intensity(target_val: float, fade_time: float = 2.0) -> void:
 	if music_player:
-		# CHANGE THIS:
-		# music_player.Stop(fade_duration)
-		
-		# TO THIS:
+		music_player.FadeIntensity(clampf(target_val, 0.0, 1.0), fade_time)
+
+
+func stop_music(fade_duration: float = 2.0) -> void:
+	if music_player:
 		music_player.StopSongsNow(fade_duration)
-		
 	current_music_key = ""
 
 
-# --- PUBLIC FUNCTION: LOCATION MUSIC ---
-func play_location_music(env_name: String):
-	var target_key = "battle_theme"
+func play_location_music(env_name: String) -> void:
+	var target_key: String = "battle_theme"
 	match env_name.to_lower():
 		"ring": target_key = "music_ring"
 		"dojo": target_key = "music_dojo"
 		"street": target_key = "music_street"
-	
 	play_music(target_key, 2.0)
 
-# --- PUBLIC FUNCTION: SFX ---
-func play_sfx(key: String, pitch_variance: float = 0.0):
-	if not sounds.has(key): return
-	var stream = sounds[key]
-	var player = _get_available_player(stream)
+
+func play_sfx(key: String, pitch_variance: float = 0.0) -> void:
+	if not sounds.has(key):
+		return
+	var stream: AudioStream = sounds[key] as AudioStream
+	if stream == null:
+		return
+	var player: AudioStreamPlayer = _get_available_player(stream)
 	if player:
 		if player.stream != stream:
 			player.stream = stream
-		player.pitch_scale = randf_range(1.0 - pitch_variance, 1.0 + pitch_variance) if pitch_variance > 0 else 1.0
+		player.pitch_scale = randf_range(1.0 - pitch_variance, 1.0 + pitch_variance) if pitch_variance > 0.0 else 1.0
 		player.play()
+
 
 func _get_available_player(preferred_stream: AudioStream = null) -> AudioStreamPlayer:
 	if preferred_stream != null:
-		for p in sfx_players:
+		for p: AudioStreamPlayer in sfx_players:
 			if not p.playing and p.stream == preferred_stream:
 				return p
-	for p in sfx_players:
-		if not p.playing: return p
-	var p = sfx_players.pop_front()
+	for p: AudioStreamPlayer in sfx_players:
+		if not p.playing:
+			return p
+	var p: AudioStreamPlayer = sfx_players.pop_front()
 	sfx_players.append(p)
 	return p
 
-func set_danger_mode(active: bool):
-	if active == is_danger_mode: return
+
+func set_danger_mode(active: bool) -> void:
+	if active == is_danger_mode:
+		return
 	is_danger_mode = active
-	
+
 	if active:
-		# 1. Start the heartbeat
 		heartbeat_player.play()
 		_pulse_vignette()
-		# 2. Maybe lower the volume slightly to make the scene feel 'quiet' and 'scary'
-		music_player.FadeVolume(-5.0, 1.0) 
+		if music_player:
+			music_player.FadeVolume(-5.0, 1.0)
 	else:
-		# 1. Stop heartbeat
 		if heartbeat_player and heartbeat_player.playing:
 			heartbeat_player.stop()
-		# 2. Restore full volume
-		music_player.FadeVolume(0.0, 1.0)
+		if music_player:
+			music_player.FadeVolume(0.0, 1.0)
 
-func reset_audio_state():
-	set_danger_mode(false) 
+
+func reset_audio_state() -> void:
+	set_danger_mode(false)
 	set_music_intensity(0.0, 0.5)
-	
+
 	if GlobalCinematics.has_method("set_danger_vignette"):
 		GlobalCinematics.set_danger_vignette(false)
-		
-	if music_player: 
+
+	if music_player:
 		music_player.StopSongsNow(0.5)
 	current_music_key = ""
 
-# Inside AudioManager.gd
 
-func _pulse_vignette():
-	if not is_danger_mode: return
-	
-	# Pulse the vignette intensity up and down slightly
-	var tween = create_tween()
-	tween.tween_method(func(v): 
+func _pulse_vignette() -> void:
+	if not is_danger_mode:
+		return
+
+	var tween: Tween = create_tween()
+	tween.tween_method(func(v: float) -> void:
 		GlobalCinematics.danger_vignette_boost = v
-		# CHANGE THIS: Was _update_vignette_shader()
-		GlobalCinematics._update_visuals() 
-	, 0.45, 0.55, 0.4).set_trans(Tween.TRANS_SINE) # Pulse up
-	
-	tween.tween_method(func(v): 
-		GlobalCinematics.danger_vignette_boost = v
-		# CHANGE THIS: Was _update_vignette_shader()
 		GlobalCinematics._update_visuals()
-	, 0.55, 0.45, 0.4).set_trans(Tween.TRANS_SINE) # Pulse down
-	
-	# Loop the pulse as long as we are in danger
+	, 0.45, 0.55, 0.4).set_trans(Tween.TRANS_SINE)
+
+	tween.tween_method(func(v: float) -> void:
+		GlobalCinematics.danger_vignette_boost = v
+		GlobalCinematics._update_visuals()
+	, 0.55, 0.45, 0.4).set_trans(Tween.TRANS_SINE)
+
 	tween.tween_callback(_pulse_vignette)

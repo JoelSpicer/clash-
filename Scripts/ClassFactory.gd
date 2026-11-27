@@ -82,11 +82,11 @@ const AI_PRESETS: Array[AIBehavior] = [
 	preload("res://Data/AI/AITrickster.tres"),
 ]
 
-const HAND_LIMIT = 8
+const HAND_LIMIT: int = 8
 
 var bot_names: Array[String] = []
 
-func _ready():
+func _ready() -> void:
 	_load_bot_names()
 
 ## Picks a random AI resource preset for a generated run enemy.
@@ -95,12 +95,12 @@ func pick_random_ai_profile() -> AIBehavior:
 		return null
 	return AI_PRESETS.pick_random()
 
-func _load_bot_names():
-	var file_path = "res://Data/enemy_names.txt"
+func _load_bot_names() -> void:
+	var file_path: String = "res://Data/enemy_names.txt"
 	if FileAccess.file_exists(file_path):
-		var file = FileAccess.open(file_path, FileAccess.READ)
+		var file: FileAccess = FileAccess.open(file_path, FileAccess.READ)
 		while not file.eof_reached():
-			var line = file.get_line().strip_edges() # Remove extra spaces/newlines
+			var line: String = file.get_line().strip_edges() # Remove extra spaces/newlines
 			if line != "":
 				bot_names.append(line)
 		file.close()
@@ -442,9 +442,9 @@ func _select_smart_hand(pool: Array[ActionData]) -> Array[ActionData]:
 
 	return chosen
 
-func _add_neighbors_to_list(node_id: int, owned: Array, available: Array):
+func _add_neighbors_to_list(node_id: int, owned: Array, available: Array) -> void:
 	if node_id in TREE_CONNECTIONS:
-		for neighbor in TREE_CONNECTIONS[node_id]:
+		for neighbor: int in TREE_CONNECTIONS[node_id]:
 			if neighbor not in owned and neighbor not in available:
 				available.append(neighbor)
 
@@ -549,20 +549,20 @@ func create_from_preset(preset: PresetCharacter, bypass_deck_limit: bool = false
 # --- HELPER: Stat Calculation Logic (Same rules as ActionTree) ---
 # ClassFactory.gd
 
-func _recalculate_stats(char_data: CharacterData):
+func _recalculate_stats(char_data: CharacterData) -> void:
 	# 1. Snapshot old stats before we change them
-	var old_max_hp = char_data.max_hp
+	var old_max_hp: int = char_data.max_hp
 	
 	# 2. Calculate new stats
-	var result = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions, char_data.equipment)
+	var result: Dictionary = calculate_stats_for_deck(char_data.class_type, char_data.unlocked_actions, char_data.equipment)
 	
-	char_data.max_hp = result["hp"]
-	char_data.max_sp = result["sp"]
+	char_data.max_hp = int(result["hp"])
+	char_data.max_sp = int(result["sp"])
 	
 	# --- 3. ROGUELIKE HP LOGIC ---
 	if RunManager.is_arcade_mode and RunManager.maintain_hp_enabled:
 		# Only heal them by the AMOUNT they grew (e.g., Max HP 5 -> 6 means heal 1 HP)
-		var hp_growth = char_data.max_hp - old_max_hp
+		var hp_growth: int = char_data.max_hp - old_max_hp
 		char_data.current_hp += hp_growth
 		char_data.current_sp = char_data.max_sp # SP always resets per fight
 	else:
@@ -573,62 +573,57 @@ func _recalculate_stats(char_data: CharacterData):
 
 # --- HELPER: Find Resource (Moved from ActionTree) ---
 func find_action_resource(action_name: String) -> ActionData:
-	var clean_name = action_name.to_lower().replace(" ", "_")
-	var filename = clean_name + ".tres"
+	var clean_name: String = action_name.to_lower().replace(" ", "_")
+	var filename: String = clean_name + ".tres"
 	
 	# Check Common folder
-	var common_path = "res://Data/Actions/" + filename
-	if ResourceLoader.exists(common_path): return load(common_path)
+	var common_path: String = "res://Data/Actions/" + filename
+	if ResourceLoader.exists(common_path): return load(common_path) as ActionData
 		
 	# Check Class folders
-	var class_folders = ["Heavy", "Patient", "Quick", "Technical"]
-	for folder in class_folders:
-		var class_path = "res://Data/Actions/Class/" + folder + "/" + filename
-		if ResourceLoader.exists(class_path): return load(class_path)
+	var class_folders: Array[String] = ["Heavy", "Patient", "Quick", "Technical"]
+	for folder: String in class_folders:
+		var class_path: String = "res://Data/Actions/Class/" + folder + "/" + filename
+		if ResourceLoader.exists(class_path): return load(class_path) as ActionData
 			
 	return null
 
 # New Helper Function: Accepts a Class Type and a List of Cards -> Returns Stats
-# In ClassFactory.gd
-
 func calculate_stats_for_deck(type: CharacterData.ClassType, _deck: Array[ActionData], equipment: Array[EquipmentData] = []) -> Dictionary:
 	if not class_registry.has(type): return {"hp": 5, "sp": 4}
 	
 	var def: ClassDefinition = class_registry[type]
-	var final_hp = def.base_hp
-	var final_sp = def.base_sp
+	var final_hp: int = def.base_hp
+	var final_sp: int = def.base_sp
 	
-	# Growth loop deleted here! We just use the Base Stats.
-	
-	# Keep Equipment Logic (This is still useful!)
-	for item in equipment:
+	for item: EquipmentData in equipment:
 		final_hp += item.bonus_max_hp
 		final_sp += item.bonus_max_sp
 			
-	return {"hp": max(1, final_hp), "sp": max(1, final_sp)}
+	return {"hp": maxi(1, final_hp), "sp": maxi(1, final_sp)}
 
 # NEW HELPER: Reverse lookup for Presets -> Tree Nodes
 func get_id_by_name(card_name: String) -> int:
-	for id in ID_TO_NAME_MAP:
+	for id: int in ID_TO_NAME_MAP:
 		if ID_TO_NAME_MAP[id] == card_name:
 			return id
 	return 0 # Not found
 
-func _simulate_draft_ids(class_type, count) -> Array:
-	var root_id = 76 # Heavy
+func _simulate_draft_ids(class_type: CharacterData.ClassType, count: int) -> Array[int]:
+	var root_id: int = 76 # Heavy
 	match class_type:
 		CharacterData.ClassType.QUICK: root_id = 73
 		CharacterData.ClassType.TECHNICAL: root_id = 74
 		CharacterData.ClassType.PATIENT: root_id = 75
 	
-	var owned = [root_id]
-	var available = []
+	var owned: Array[int] = [root_id]
+	var available: Array[int] = []
 	_add_neighbors_to_list(root_id, owned, available)
 	
-	var results = []
+	var results: Array[int] = []
 	for i in range(count):
 		if available.is_empty(): break
-		var pick = available.pick_random()
+		var pick: int = available.pick_random()
 		results.append(pick)
 		owned.append(pick)
 		available.erase(pick)
